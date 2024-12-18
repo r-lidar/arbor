@@ -5,3 +5,11 @@ colMins <- function(mat) {
     .Call(`_lidRtls_colMins`, mat)
 }
 
+findPaths <- function(graph_df, start_node_ids, goal_node_ids) {
+    .Call(`_lidRtls_findPaths`, graph_df, start_node_ids, goal_node_ids)
+}
+
+get_distance_matrix <- function(graph_df, start_node_ids, goal_node_ids) {
+    .Call(`_lidRtls_get_distance_matrix`, graph_df, start_node_ids, goal_node_ids)
+}
+

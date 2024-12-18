@@ -21,9 +21,37 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// findPaths
+Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
+RcppExport SEXP _lidRtls_findPaths(SEXP graph_dfSEXP, SEXP start_node_idsSEXP, SEXP goal_node_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_node_ids(goal_node_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(findPaths(graph_df, start_node_ids, goal_node_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_distance_matrix
+Rcpp::NumericMatrix get_distance_matrix(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
+RcppExport SEXP _lidRtls_get_distance_matrix(SEXP graph_dfSEXP, SEXP start_node_idsSEXP, SEXP goal_node_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_node_ids(goal_node_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_distance_matrix(graph_df, start_node_ids, goal_node_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_colMins", (DL_FUNC) &_lidRtls_colMins, 1},
+    {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 3},
+    {"_lidRtls_get_distance_matrix", (DL_FUNC) &_lidRtls_get_distance_matrix, 3},
     {NULL, NULL, 0}
 };
 
