@@ -152,9 +152,9 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   combined_network <- rbind(point_network, target_network, ground_network, seed_network)
   free(point_network, target_network, ground_network, seed_network)
 
-  graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
+  #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
 
-  free(combined_network)
+  #free(combined_network)
 
   toc(t0)
 
@@ -162,7 +162,10 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
 
   # Shortest distance in order to find reachable 'target' points
   # I don't remember why we need that. In theory cppRouting::get_path_pair() should be enough but maybe non reachable targets pose an issue
-  distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = seed_id, to = target_ids, allcores = FALSE)
+  #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = seed_id, to = target_ids, allcores = FALSE)
+  distance_matrix <- lidRtls:::get_distance_matrix(combined_network, seed_id, target_ids)
+  distance_matrix[is.infinite(distance_matrix)] = NA_real_
+
   i = colMins(distance_matrix)
   j = which(!is.na(i))
 
@@ -177,7 +180,7 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   to = target_ids[j]
 
   # For loop by chunk to reduce memory usage and have an estimated progression
-  chunk_size <- 2500
+  chunk_size <- 50000
   chunks <- split(to, ceiling(seq_along(to) / chunk_size))
   pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
 
@@ -185,10 +188,14 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   {
     current_to <- chunks[[i]]
 
-    path <- cppRouting::get_path_pair(graph_object, from = from[seq_along(current_to)], to = current_to)
+    #path <- cppRouting::get_path_pair(graph_object, from = from[seq_along(current_to)], to = current_to)
+    #path <- lapply(path, function(x) as.integer(x)[-1])
+    #path <- unname(do.call(c, path))
 
-    path <- lapply(path, function(x) as.integer(x)[-1])
-    path <- unname(do.call(c, path))
+    path = lidRtls:::findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path = path$paths
+    path <- lapply(path, function(x) x[-1])
+    path <- do.call(c, path)
 
     count <- table(path)
     id <- as.numeric(names(count))
@@ -203,13 +210,16 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   }
   close(pb)
 
+  free(combined_network)
+
+
   dec@data$count[dec@data$count > 0] = log(dec@data$count[dec@data$count > 0])
   #x = plot(dec, color = "count", legend = T)
   #plot(dec, color = "anisotropy", legend = T, breaks = "quantile")
 
   free(path, count, id, rm, from, to)
 
-  toc(t0, units = "mins")
+  toc(t0)
 
   cat("Assigning wood to small structure... (Step 8/9)\n") ; t0 = tic()
 
@@ -280,7 +290,7 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
 
   toc(t0)
 
-  toc(ti, units = "mins", space = "")
+  toc(ti, space = "")
 
   gc()
 

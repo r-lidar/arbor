@@ -47,10 +47,18 @@ tic = function()
   Sys.time()
 }
 
-toc = function(t0, units = "secs", space = "  ")
+toc = function(t0, space = "  ")
 {
+  units = "secs"
   tf = Sys.time()
   dt = difftime(tf, t0, units = units)
+
+  # Check if time is greater than 120 seconds and switch to minutes
+  if (dt > 120) {
+    dt = dt / 60  # Convert to minutes
+    units = "mins"
+  }
+
   cat(paste0(space, "Done in ", round(dt, 1), " ", units,  "\n"))
 }
 

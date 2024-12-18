@@ -28,7 +28,8 @@ typedef std::vector<std::vector<float>> Matrix;
  It uses OpenMP to parallelize the calculation for efficiency when dealing with multiple nodes.
  */
 
-struct Node {
+struct Node
+{
   int destination_node_id;
   float edge_cost;
 };
@@ -128,7 +129,8 @@ public:
     for (size_t i = 0; i < num_start_nodes; ++i)
     {
       auto [distances, _] = compute_distances(start_node_ids[i]); // Compute distances from the start node
-      for (size_t j = 0; j < num_goal_nodes; ++j) {
+      for (size_t j = 0; j < num_goal_nodes; ++j)
+      {
         distance_matrix[i][j] = distances[goal_node_ids[j]]; // Store the distance to each goal node
       }
     }
@@ -140,7 +142,7 @@ public:
 // [[Rcpp::export]]
 Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
 {
-  Graph graph(graph_df); // Create the graph from the DataFrame
+  Graph graph(graph_df);
 
   // Precompute the distances and predecessors for all start nodes
   std::unordered_map<int, std::pair<std::vector<float>, std::unordered_map<int, int>>> precomputed_data;
@@ -160,7 +162,7 @@ Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_id
   for (int i = 0; i < num_pairs; ++i)
   {
     auto result = graph.findPath(start_node_ids[i], goal_node_ids[i], precomputed_data[start_node_ids[i]]);
-    paths[i] = result.first; // Store the path
+    paths[i] = result.first;        // Store the path
     total_costs[i] = result.second; // Store the total cost of the path
   }
 
@@ -170,13 +172,13 @@ Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_id
 // [[Rcpp::export]]
 Rcpp::NumericMatrix get_distance_matrix(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
 {
-  Graph graph(graph_df); // Create the graph from the DataFrame
+  Graph graph(graph_df);
 
-  std::vector<int> start_nodes = Rcpp::as<std::vector<int>>(start_node_ids); // Convert Rcpp vector to std::vector
-  std::vector<int> goal_nodes = Rcpp::as<std::vector<int>>(goal_node_ids); // Convert Rcpp vector to std::vector
-  auto distance_matrix = graph.getDistanceMatrix(start_nodes, goal_nodes); // Compute the distance matrix
+  std::vector<int> start_nodes = Rcpp::as<std::vector<int>>(start_node_ids);
+  std::vector<int> goal_nodes = Rcpp::as<std::vector<int>>(goal_node_ids);
+  auto distance_matrix = graph.getDistanceMatrix(start_nodes, goal_nodes);
 
-  Rcpp::NumericMatrix result(start_nodes.size(), goal_nodes.size()); // Prepare the result matrix
+  Rcpp::NumericMatrix result(start_nodes.size(), goal_nodes.size());
 
   // Fill the result matrix with the computed distances
   for (size_t i = 0; i < start_nodes.size(); ++i)

@@ -2,6 +2,8 @@
 #' @importFrom Rcpp sourceCpp
 segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_factor = 0.8)
 {
+  ti = tic()
+
   # Other parameters hard coded
   upward_cost_factor = 100
   wood2wood_cost_fact = 0.1
@@ -19,6 +21,16 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   seeds$X <- seed_coordinates[, "X"]
   seeds$Y <- seed_coordinates[, "Y"]
   seeds$Z <- seed_coordinates[, "Z"]
+
+  x = mean(las$X)
+  y = mean(las$Y)
+  z = mean(las$Z)-100
+  master_seed = data.frame(X = x, Y = y, Z = z)
+  quantize(master_seed[["X"]], 0.01, las@header$`X offset`)
+  quantize(master_seed[["Y"]], 0.01, las@header$`Y offset`)
+  quantize(master_seed[["Z"]], 0.01, las@header$`Z offset`)
+  header = rlas::header_create(master_seed)
+  master_seed = suppressWarnings(lidR::LAS(master_seed, header))
 
   cat("Decimating the point cloud... (Step 1/6)\n")
 
@@ -88,33 +100,72 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   seed_network$from <- seed_network$from + num_points
   seeds_ids <- (num_points+1):(num_points+num_trees)
 
+  master_seed_network  <- compute_network(seeds, master_seed, k = num_trees)
+  master_seed_network$from <- master_seed_network$from + max(seeds_ids)
+  master_seed_network$to <- master_seed_network$to + min(seeds_ids)
+  master_seed_network$cost <- 0.001
+  master_seed_id = master_seed_network[1,1]
+
   toc(t0)
 
   cat("Constructing the graph object... (Step 3/6)\n") ; t0 = tic()
 
   # Extract unique tree location IDs
 
-  combined_network <- rbind(point_network, seed_network)
+  combined_network <- rbind(point_network, seed_network, master_seed_network)
   free(point_network, seed_network)
 
-  graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
-  free(combined_network)
+  #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
+  #free(combined_network)
 
   toc(t0)
 
-  from = seeds_ids
+  from = master_seed_id
   to = points_ids
 
   cat("Calculating shortest paths from tree origins (can take a few minutes)... (Step 4/6)\n") ; t0 = tic()
 
-  distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = from, to = to)
+  #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = from, to = to)
+  distance_matrix <- lidRtls:::get_distance_matrix(combined_network, from, to)
+  distance_matrix[is.infinite(distance_matrix)] = NA_real_
+
+  i = colMins(distance_matrix)
+  j = which(!is.na(i))
+
   gc()
 
-  tree_id_vector = colMins(distance_matrix)
-  free(distance_matrix)
+  from = rep(master_seed_id, length(j))
+  to = points_ids[j]
+
+  t = tic()
+  # For loop by chunk to reduce memory usage and have an estimated progression
+  chunk_size <- 1000000
+  chunks <- split(to, ceiling(seq_along(to) / chunk_size))
+  pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
+
   treeID <- rep(NA_integer_, npoints(dec))
-  treeID[points_ids] = seeds$treeID[tree_id_vector]
-  free(tree_id_vector)
+
+  for (i in seq_along(chunks))
+  {
+    current_to <- chunks[[i]]
+
+    #path <- cppRouting::get_path_pair(graph_object, from = from[seq_along(current_to)], to = current_to)
+    #path <- lapply(path, function(x) as.integer(x)[-1])
+    #path <- unname(do.call(c, path))
+
+    path = lidRtls:::findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path = path$paths
+    path <- lapply(path, function(x) x[2])
+    tree_id_vector <- unlist(path)
+    tree_id_vector = tree_id_vector - min(seeds_ids)
+    treeID[current_to] = seeds$treeID[tree_id_vector]
+    utils::setTxtProgressBar(pb, i)
+  }
+  close(pb)
+
+  toc(t)
+
+  free(combined_network)
 
   # chunk_size <- 100000
   # chunks <- split(to, ceiling(seq_along(to) / chunk_size))
@@ -151,7 +202,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
 
   las = expand_treeid_to_neighbors(las, dec, z_factor = z_factor)
 
-  toc(t0, units = "mins", space = "")
+  toc(ti, space = "")
 
   gc()
 
