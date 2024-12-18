@@ -21,6 +21,7 @@ file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part2.laz
 las = readTLS(file, select = select, filter = filter)
 las
 
+#las = clip_circle(las, 30,25,8)
 #las = clip_circle(las, 75,-10,8)
 
 # ====== REDUCE TO 1 POINTS/CM3 =======
