@@ -115,8 +115,9 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
 
   # Each seed is connected to the knn in the point cloud. The connection is undirectional.
   # it is possible to move from the seed to the scene not the opposite. The cost is the distance
-  seed_network  <- compute_network(dec, seeds, k = k*5)
+  seed_network  <- compute_network(dec, seeds, k = k)
   seed_network$from <- seed_network$from + num_points
+  seed_network$cost <- 0.001
   seeds_ids <- (num_points+1):(num_points+num_trees)
 
   master_seed_network  <- compute_network(seeds, master_seed, k = num_trees)
