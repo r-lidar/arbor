@@ -42,15 +42,15 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   x_translation <- mean(las$X)
   y_translation <- mean(las$Y)
 
-  dec$X <- dec$X - x_translation
-  dec$Y <- dec$Y - y_translation
-  dec$Z <- dec$Z * z_factor
+  dec@data$X <- dec@data$X - x_translation
+  dec@data$Y <- dec@data$Y - y_translation
+  dec@data$Z <- dec@data$Z * z_factor
 
   header = rlas::header_create(seeds)
   seeds = lidR::LAS(seeds[, c("X", "Y", "Z", "treeID")], header)
-  seeds$X <- seeds$X - x_translation
-  seeds$Y <- seeds$Y - y_translation
-  seeds$Z <- seeds$Z * z_factor
+  seeds@data$X <- seeds@data$X - x_translation
+  seeds@data$Y <- seeds@data$Y - y_translation
+  seeds@data$Z <- seeds@data$Z * z_factor
 
   num_trees <- nrow(seeds)
   num_points <- nrow(dec)
@@ -74,13 +74,32 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   # It is more expensive to move in large steps
   point_network$cost <- point_network$cost^2
 
-  # Tt is more expensive to move upward (downward actually because we are starting from the seeds)
+  # It is more expensive to move upward  (downward actually because we are starting from the seeds)
+  X1 = dec$X[point_network$from]
+  X2 = dec$X[point_network$to]
+  Y1 = dec$Y[point_network$from]
+  Y2 = dec$Y[point_network$to]
   Z1 = dec$Z[point_network$from]
   Z2 = dec$Z[point_network$to]
-  dZ = Z1-Z2
-  upward = dZ > 0
-  point_network$cost[upward] = point_network$cost[upward]*upward_cost_factor
-  free(Z1, Z2, dZ, upward)
+  dx = X1-X2
+  dy = Y1-Y2
+  dz = Z1-Z2
+  magnitude = sqrt(dx^2+dy^2+dz^2)
+  dot_product <- -dz
+  cos_theta = dot_product/magnitude
+  angle_degree <- acos(cos_theta)*180/pi
+
+  f = function(x)
+  {
+    y = exp(log(100)/100*x)
+    y[x > 100] = 100
+    y
+  }
+
+  #upward = Z1-Z2 > 0
+  #point_network$cost[upward] = point_network$cost[upward]*upward_cost_factor
+  point_network$cost = point_network$cost*f(angle_degree)
+  free(dx, dy, dz, X1, X2, Y1, Y2, Z1, Z2, magnitude, dot_product, cos_theta, angle_degree)
 
   is_wood1 = !dec$foliage[point_network$from]
   is_wood2 = !dec$foliage[point_network$to]
@@ -95,8 +114,8 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   points_ids = 1:num_points
 
   # Each seed is connected to the knn in the point cloud. The connection is undirectional.
-  # it is possible to move from the seed to the scene not the oppositite. The cost is the distance
-  seed_network  <- compute_network(dec, seeds, k = k)
+  # it is possible to move from the seed to the scene not the opposite. The cost is the distance
+  seed_network  <- compute_network(dec, seeds, k = k*5)
   seed_network$from <- seed_network$from + num_points
   seeds_ids <- (num_points+1):(num_points+num_trees)
 
@@ -157,8 +176,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
     path = path$paths
     path <- lapply(path, function(x) x[2])
     tree_id_vector <- unlist(path)
-    tree_id_vector = tree_id_vector - min(seeds_ids)
-    treeID[current_to] = seeds$treeID[tree_id_vector]
+    treeID[current_to] = tree_id_vector
     utils::setTxtProgressBar(pb, i)
   }
   close(pb)
@@ -188,6 +206,8 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   # }
   # close(pb)
 
+  trueTreeID = treeID - min(seeds_ids) + 1 # +1 because there is an index error somewhere
+  treeID = seeds$treeID[trueTreeID]
   dec <- lidR::add_lasattribute(dec, treeID, name = "treeID", desc = "tree ID")
 
   toc(t0)

@@ -1,6 +1,6 @@
 seed_from_dtm = function(dtm)
 {
-  seeds = terra::rast(terra::ext(dtm), res = 1)
+  seeds = terra::rast(terra::ext(dtm), res = 0.25)
   seeds = terra::resample(dtm, seeds)
   seeds = as.data.frame(seeds, xy = T)
   seeds = data.table::as.data.table(seeds)

@@ -29,18 +29,18 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   y_translation <- mean(las$Y)
 
   # The decimated points cloud of the scene
-  dec$X <- dec$X - x_translation
-  dec$Y <- dec$Y - y_translation
-  dec$Z <- dec$Z * z_factor
+  dec@data$X <- dec@data$X - x_translation
+  dec@data$Y <- dec@data$Y - y_translation
+  dec@data$Z <- dec@data$Z * z_factor
   dec@header@VLR$Extra_Bytes = NULL
   dec@data = dec@data[, .(X,Y,Z, anisotropy, pointID)]
   num_points <- npoints(dec)
 
   # The target points spread on the volume
   target =  lidR::decimate_points(las, lidR::barycenter_per_voxel(target_sample_res))
-  target$X <- target$X - x_translation
-  target$Y <- target$Y - y_translation
-  target$Z <- target$Z * z_factor
+  target@data$X <- target@data$X - x_translation
+  target@data$Y <- target@data$Y - y_translation
+  target@data$Z <- target@data$Z * z_factor
   target@data = target@data[, .(X,Y,Z, anisotropy, pointID)]
   num_target = npoints(target)
 
@@ -91,11 +91,32 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   point_network$cost <- point_network$cost^2
 
   # It is more expensive to move upward  (downward actually because we are starting from the seeds)
+  X1 = dec$X[point_network$from]
+  X2 = dec$X[point_network$to]
+  Y1 = dec$Y[point_network$from]
+  Y2 = dec$Y[point_network$to]
   Z1 = dec$Z[point_network$from]
   Z2 = dec$Z[point_network$to]
-  upward = Z1-Z2 > 0
-  point_network$cost[upward] = point_network$cost[upward]*upward_cost_factor
-  free(upward, Z1, Z2)
+  dx = X1-X2
+  dy = Y1-Y2
+  dz = Z1-Z2
+  magnitude = sqrt(dx^2+dy^2+dz^2)
+  dot_product <- -dz
+  cos_theta = dot_product/magnitude
+  angle_degree <- acos(cos_theta)*180/pi
+
+  f = function(x)
+  {
+    y = exp(log(100)/100*x)
+    y[x > 100] = 100
+    y
+  }
+
+  #upward = Z1-Z2 > 0
+  #point_network$cost[upward] = point_network$cost[upward]*upward_cost_factor
+  point_network$cost = point_network$cost*f(angle_degree)
+
+  free(dx, dy, dz, X1, X2, Y1, Y2, Z1, Z2, magnitude, dot_product, cos_theta, angle_degree)
 
   # The cost is weighted by the anisotropy
   #A1 = point_coordinates$anisotropy[point_network$from]
@@ -128,7 +149,7 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   # it is possible to move from the ground to the scene not the oppositite. The cost of the connection
   # is the euclidean distance.
 
-  ground_network = compute_network(dec, gnd, k = k)
+  ground_network = compute_network(dec, gnd, k = k*5)
   ground_network$from <- ground_network$from + num_points + num_target
   ground_ids = (num_points+num_target+1):(num_points+num_target+1+num_gnd)
 
