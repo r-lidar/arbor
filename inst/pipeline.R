@@ -24,6 +24,8 @@ file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahi
 file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Referencesite1_part1.laz"
 file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Referencesite1_part2.laz"
 
+
+
 # ====== READ POINT CLOUD =======
 
 las = readTLS(file, select = select, filter = filter)
@@ -65,10 +67,12 @@ if (display) plot(las)
 
 # ===== COMPUTE ANISOTROPY =======
 
-las2 = lidRtls:::smooth3d(las, 0.04)
-las2 = lidR::knn_distance(las2, k = 20)
-f <- ecdf(las2$distance)
-las2@data$anisotropy <- 1-f(las2$distance)
+olas = sf::st_coordinates(las)
+
+las = lidRtls:::smooth3d(las, 0.04)
+las = lidR::knn_distance(las, k = 20)
+f <- ecdf(las$distance)
+las@data$anisotropy <- 1-f(las$distance)
 
 las = compute_anisotropy(las, k = k_ani)
 
@@ -77,7 +81,7 @@ if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 # ====== SEGMENT FOLIAGE/WOOD ======
 
 las = segment_foliage(las, dtm, res = 0.08, max_gap = max_gap, k = k, min_passage = 5, th_anisotropy = 0.75)
-#las = segment_foliage(las, dtm, res = 0.02, max_gap = 0.05, k = k, min_passage = 5, th_anisotropy = 0.6)
+#las = segment_foliage(las, dtm, res = 0.02, max_gap = 0.05, k = k, min_passage = 5, th_anisotropy = 0.6, space_res = 0.1)
 
 if (display)
 {

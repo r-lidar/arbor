@@ -1,5 +1,17 @@
+#' Find a seed for each tree
+#'
+#' In order to segment each individual instance of trees, we must first find seeds for each tree.
+#' This is performed by extracting a slice close to the ground. The wood foliage semantic segmentation
+#' must have been performed first for the method to be able to extract wood points. Then it performs
+#' a connected component clustering.
+#'
+#' @param las LAS object from lidR
+#' @param slice_seeds_at vector. Two number to slice the point cloud.
+#' @param res resolution for connected component clustering
+#' @param smooth the slice is smoothed in order to improve a bit the connected component clustering.
+#' This is the smoothing radius of the sphere.
 #' @export
-find_seeds = function(las, smooth = 0.06, res = 0.025, slice_seeds_at = c(0.5, 0.8))
+find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0.06)
 {
   cat("Finding seeds with a clusetring approach\n")
 
