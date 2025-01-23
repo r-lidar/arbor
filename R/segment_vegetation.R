@@ -32,7 +32,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   header = rlas::header_create(master_seed)
   master_seed = suppressWarnings(lidR::LAS(master_seed, header))
 
-  cat("Decimating the point cloud... (Step 1/6)\n")
+  cat("Decimating the point cloud... (Step 1/7)\n")
 
   t0 = tic()
 
@@ -57,7 +57,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
 
   toc(t0)
 
-  cat("Identifying neighbors... (Step 2/6)\n") ; t0 = tic()
+  cat("Identifying neighbors... (Step 2/7)\n") ; t0 = tic()
 
   # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
   # is based on the euclidean distance with some variation in order to specifically follow the wood
@@ -128,7 +128,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
 
   toc(t0)
 
-  cat("Constructing the graph object... (Step 3/6)\n") ; t0 = tic()
+  cat("Constructing the graph object... (Step 3/7)\n") ; t0 = tic()
 
   # Extract unique tree location IDs
 
@@ -143,7 +143,7 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
   from = master_seed_id
   to = points_ids
 
-  cat("Calculating shortest paths from tree origins (can take a few minutes)... (Step 4/6)\n") ; t0 = tic()
+  cat("Calculating shortest paths from tree origins (can take a few minutes)... (Step 4/7)\n") ; t0 = tic()
 
   #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = from, to = to)
   distance_matrix <- lidRtls:::get_distance_matrix(combined_network, from, to)
@@ -213,9 +213,10 @@ segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_f
 
   toc(t0)
 
+
   #plot(dec, color = "treeID", legend = TRUE)
 
-  cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
+  cat("Assigning tree IDs to the dense point cloud... (Step 6/7)\n") ; t0 = tic()
 
   dec$X <- dec$X + x_translation
   dec$Y <- dec$Y + y_translation

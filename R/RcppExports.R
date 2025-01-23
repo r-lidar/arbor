@@ -13,3 +13,7 @@ get_distance_matrix <- function(graph_df, start_node_ids, goal_node_ids) {
     .Call(`_lidRtls_get_distance_matrix`, graph_df, start_node_ids, goal_node_ids)
 }
 
+cpp_smooth3d <- function(las, radius, weight, ncpu, pgbar, verbose) {
+    .Call(`_lidRtls_cpp_smooth3d`, las, radius, weight, ncpu, pgbar, verbose)
+}
+

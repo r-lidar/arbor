@@ -1,10 +1,31 @@
 #' @export
-find_seeds = function(las, slice_seeds_at = c(0.5, 0.8))
+find_seeds = function(las, smooth = 0.06, res = 0.025, slice_seeds_at = c(0.5, 0.8))
 {
-  seed = lidR::filter_poi(las, hag > slice_seeds_at[1], hag < slice_seeds_at[2], foliage == FALSE)
+  cat("Finding seeds with a clusetring approach\n")
 
-  seed = lidR::connected_components(seed, 0.05, 10)
+  seed = lidR::filter_poi(las, hag > slice_seeds_at[1], hag < slice_seeds_at[2], foliage == FALSE)
+  #seed = smooth3d(seed, smooth)
+  seed$Z = seed$Z * 0.01
+  seed = lidR::connected_components(seed, res, 10)
   seed = lidR::filter_poi(seed, clusterID != 0)
+  seed$Z = seed$Z * 100
+  #plot(seed, color = "clusterID", pal = pastel.colors(500)) |> add_dtm3d(dtm)
+
+  fit_circle_to_seed = function(id)
+  {
+    cl = seed[seed$clusterID == id]
+    if (npoints(cl) < 10) return(NULL)
+    circle = fit_circle(cl, num_iterations = 400)
+    if (!is.null(circle$radius) && circle$radius < 0.25 && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
+    else return(NULL)
+  }
+
+  cat("Fitting RANSAC circles to each trees\n")
+
+  circles = lapply(unique(seed$clusterID), fit_circle_to_seed)
+  circles = do.call(rbind, circles)
+  circles = sf::st_as_sf(circles, coords = c("X", "Y"))
+  circles = sf::st_buffer(circles, circles$R*1.20)
 
   f = function(x,y,z)
   {
@@ -20,10 +41,32 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8))
     return(list(X = X,Y = Y,Z = Z))
   }
 
+  cat("Seed correction with RANSAC circles\n")
+
   seeds = seed@data[, f(X,Y,Z), by = clusterID]
+  seeds = na.omit(seeds)
 
   sfseeds = sf::st_as_sf(seeds, coords = c("X", "Y", "Z"))
+
+  intersect = sf::st_intersects(circles, sfseeds)
+  ii = lapply(intersect, length)
+  ii = which(ii > 2)
+
+  for (iii in ii)
+  {
+    ids = sfseeds[intersect[[iii]],]$clusterID
+    sfseeds$clusterID[sfseeds$clusterID %in% ids] = ids[1]
+  }
+
+  #circ = circles[61,]
+  #see = sfseeds[intersect[[61]],]
+  #plot(sf::st_geometry(circ), axes = T)
+  #plot(see, add = T, pch = as.numeric(as.factor(see$clusterID)), col = "black")
+  #plot(seed[seed$clusterID %in% see$clusterID], color = "clusterID")
+
   names(sfseeds)[1] = "treeID"
+
+  #plot(seed, color = "clusterID", pal = pastel.colors(500)) |> add_dtm3d(dtm) |> add_treetops3d(sfseeds, radius = 0.05)
 
   return(sfseeds)
 }

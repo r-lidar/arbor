@@ -88,7 +88,7 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   point_network$cost[gaps] = Inf
 
   # It is more expensive to move in large steps
-  point_network$cost <- point_network$cost^2
+  point_network$cost <- point_network$cost^3
 
   # It is more expensive to move upward  (downward actually because we are starting from the seeds)
   X1 = dec$X[point_network$from]
@@ -286,9 +286,11 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
 
   cat("Connected component cleaning... (Step 8/9)\n") ; t0 = tic()
 
+  nofoliage$Z = nofoliage$Z * 0.8
   nofoliage = connected_components(nofoliage, connected_components_res, connected_components_min)
   #foliage2 = nofoliage[nofoliage$clusterID == 0 & nofoliage$wood == FALSE]
   nofoliage = nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
+  nofoliage$Z = nofoliage$Z / 0.8
 
   toc(t0)
 

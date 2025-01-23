@@ -1,11 +1,9 @@
 #' @export
 clip_buffer = function(las, seeds, buffer = -5)
 {
-  bb = sf::st_bbox(las)
-  bb = terra::ext(bb)
-  bb = bb-5
-  bb = sf::st_bbox(bb)
-  valid_seeds = sf::st_crop(seeds, bb)
+  bb = sf::st_convex_hull(las)
+  bb = sf::st_buffer(bb, dist = buffer)
+  valid_seeds = sf::st_filter(seeds, bb)
 
   valid_trees = las[las$treeID %in% valid_seeds$treeID]
   valid_trees
