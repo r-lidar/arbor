@@ -1,11 +1,39 @@
+#' Wood foliage instance segmentation
+#'
+#' Wood foliage instance segmentation. The points are connected to their knn to build a networks in which
+#' a path finder can navigate. The path finder starts for every point in space and try to reach the ground
+#' by the least cost path. This allow to find the skeleton of the trees. The point are assigned a class
+#' wood foliage based on two main criteria. Are they close to the skeleton? Is their anisotropy above
+#' a threshold? Last a connected component step cleans small cluster wrongly assigned as wood class because
+#' some foliage points usually have high anisotropy\cr\cr
+#' This function has numerous parameters. Those after `...` have minor impact and
+#' useful only on very specific contexts. In the general case, if the scene have regular trees, do not
+#' change these parameters.
+#'
+#' @param las LAS object from lidR
+#' @param res resolution. The point cloud is decimated first in order to work with few points. Ideally keeping
+#' one point every 5 cm would be optimal. In practice it increases the computation times. Every 10 cm
+#' works well actually and compute fast. The default is 8 cm as a trade-off between 5 and 10 cm.
+#' @param max_gap When connecting the points to create a network in which the algorithm searches for
+#' the least cost path, points with a distance superior than this threshold cannot be connected. Default
+#' 20 cm.
+#' @param ... unused. Serves only to separate easy parameters to complex ones that should not need to
+#' be modified
+#' @param k each point is connected to k nearest neighboors to buid a network.
+#' @param th_anisotropy point with an anisotropy higher than this value are assigned wood
+#' @param min_passage The path finder than tries to reach the ground from every point in space in
+#' order to build the skeleton of the trees. For a point to be part of the tree skeletons, it must
+#' be a point of passage more than once. Default is 5 times
+#' @param space_res The path finder than tries to reach the ground from every point in space in
+#' order to build the skeleton of the trees. Of course "every point in space" is not  actually possible.
+#' This is the resolution of the space. Default is one point every 40 cm.
 #' @export
-segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_passage = 5, th_anisotropy = 0.75)
+segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passage = 5, th_anisotropy = 0.75, k = 10, space_res = 0.4)
 {
   # Other parameters hard coded
   upward_cost_factor = 100
   connected_components_res = 0.05
   connected_components_min = 1000
-  target_sample_res = 0.4
   wood_assignation_k = 50
   wood_assignation_dist = 0.05
   wood_extra_reasignation_k = 10
@@ -37,7 +65,7 @@ segment_foliage = function(las, dtm, res = 0.08, k = 10, max_gap = 0.2, min_pass
   num_points <- npoints(dec)
 
   # The target points spread on the volume
-  target =  lidR::decimate_points(las, lidR::barycenter_per_voxel(target_sample_res))
+  target =  lidR::decimate_points(las, lidR::barycenter_per_voxel(space_res))
   target@data$X <- target@data$X - x_translation
   target@data$Y <- target@data$Y - y_translation
   target@data$Z <- target@data$Z * z_factor
