@@ -114,6 +114,12 @@ las = segment_vegetation(las, seeds, max_gap = max_gap, k = k)
 
 if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
 
+#las$X = olas[,1]
+#las$Y = olas[,2]
+#las$Z = olas[,3]
+
+las = fix_splited_trees(las)
+
 trees = clean_small_cluster(las, max_heigh = 5)
 
 if (display)

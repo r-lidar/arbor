@@ -1,5 +1,18 @@
+#' Post production tool
+#'
+#' Apply this function to fix minor issue in instance segmentation. If you have no issue but apply
+#' this function this should not have any effect. This function fits circles on each tree at different
+#' levels and tries to figure out if two segmented trees are actually the same one badly segmented because
+#' of bad seeds. In some cases tt is possible that one tree have two different seeds leading to two
+#' different instance. This function tries to fix that.
+#'
+#' @param las LAS object from lidR
+#' @param max_height maximum height above the lowest point of a tree to fit circles
+#' @param slice_thickness slice thickness to fit circles
+#' @param maximum_radius a threshold to protect against bad circle fitting. If a circle is bigger than
+#' that it is not valid. Set it the maximum expected radius of a tree.
 #' @export
-fix_splited_trees = function(las)
+fix_splited_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_radius = 0.25)
 {
   fit_circle_to_seed = function(id)
   {
@@ -8,16 +21,16 @@ fix_splited_trees = function(las)
     cl = slice[keep]
     if (npoints(cl) < 10) return(NULL)
     circle = fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
-    if (!is.null(circle$radius) && circle$radius < 0.25 && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
+    if (!is.null(circle$radius) && circle$radius < maximum_radius && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
     else return(NULL)
   }
 
   zmin = min(las$hag)
-  offsets = seq(0,1,0.25)
+  offsets = seq(0, max_height,slice_thickness)
 
   for (k in 1:length(offsets))
   {
-    slice = filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+0.25, foliage == FALSE)
+    slice = filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
 
     #x = plot(slice, color = "treeID")
 

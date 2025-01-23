@@ -1,3 +1,7 @@
+#' Remove small trees that are likely badly segmented and clean the low understory
+#'
+#' @param las LAS object from lidR
+#' @param max_height remove every tree instance smaller than this height
 #' @export
 clean_small_cluster = function(las, max_heigh = 3)
 {
