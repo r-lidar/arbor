@@ -11,4 +11,4 @@ LazyData: true
 RoxygenNote: 7.3.1
 LinkingTo: Rcpp, RcppProgress, lidR
 Depends: lidR
-Imports: utils, sf, Rcpp
+Imports: utils, sf, Rcpp, terra

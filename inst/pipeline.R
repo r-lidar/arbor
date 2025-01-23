@@ -69,10 +69,10 @@ if (display) plot(las)
 
 olas = sf::st_coordinates(las)
 
-las = lidRtls:::smooth3d(las, 0.04)
-las = lidR::knn_distance(las, k = 20)
-f <- ecdf(las$distance)
-las@data$anisotropy <- 1-f(las$distance)
+#'las = lidRtls:::smooth3d(las, 0.04)
+#'las = lidR::knn_distance(las, k = 20)
+#'f <- ecdf(las$distance)
+#'las@data$anisotropy <- 1-f(las$distance)
 
 las = compute_anisotropy(las, k = k_ani)
 
@@ -114,13 +114,20 @@ las = segment_vegetation(las, seeds, max_gap = max_gap, k = k)
 
 if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
 
-#las$X = olas[,1]
-#las$Y = olas[,2]
-#las$Z = olas[,3]
+# ====== FIX SEGMENTATION ISSUES =======
 
 las = fix_splited_trees(las)
+#' las = fix_splited_trees(las, max_height = 0.5, maximum_radius = 0.5)
+
+if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
+
+#' las$X = olas[,1]
+#' las$Y = olas[,2]
+#' las$Z = olas[,3]
+
 
 trees = clean_small_cluster(las, max_heigh = 5)
+#' trees = clean_small_cluster(las, max_heigh = 1)
 
 if (display)
 {
@@ -132,7 +139,6 @@ plot(filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> ad
 
 # ==== CLEAN BOTTOM ADN TREE EXTENSION =====
 
-las = fix_splited_trees(las)
 
 generate_cylinder_points <- function(circle, height = 0.5, n_points = 1000)
 {
@@ -211,7 +217,7 @@ align_to_z <- function(main_axis)
 extensions = list()
 for (id in unique(trees$treeID))
 {
-  print(id)
+  cat("Tree", id)
   tt = filter_poi(trees, treeID == id, foliage == FALSE, hag < 3)
   if (is.empty(tt)) next
   tt$Z = tt$Z * 0.1
@@ -233,6 +239,8 @@ for (id in unique(trees$treeID))
   }
 
   tt = filter_poi(tt, hag < 2)
+
+  cat("\n")
 
   #xyz = sf::st_coordinates(tt)
   #pca <- prcomp(xyz, center = TRUE, scale. = FALSE)
@@ -376,7 +384,7 @@ plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(
 
 # ==== CLIP BUFFER ======
 
-valid_trees = clip_buffer(las, seeds)
+valid_trees = clip_buffer(las, seeds, -1)
 valid_trees = clean_small_cluster(valid_trees, max_heigh = 6)
 plot(filter_poi(valid_trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.1)
 
