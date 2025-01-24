@@ -19,10 +19,10 @@
 #' @param min_slice_thickness,max_slice_thickness the algorithm fits circles on many slices with various
 #' thicknesses. This control the thicknesses limits
 #' @param extra_height the trees can be prolongated a below the ground
+#' @param debug boolean. Some debugging display.
 #' @export
-tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1, min_slice_thickness = 0.1, max_slice_thickness = 0.6, extra_height = 0)
+tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1, min_slice_thickness = 0.1, max_slice_thickness = 0.6, extra_height = 0, debug = FALSE)
 {
-
   max_radius = max_diameter/2
 
   # Generate multiple slices
@@ -78,7 +78,7 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
       circle = fit_circle(bottom)
       inliner = length(circle$inliers)/npoints(bottom) * 100
 
-      if (display)
+      if (debug)
       {
         plot(sf::st_coordinates(bottom), asp = 1, main = id)
         symbols(circle$center_x, circle$center_y, circles = circle$radius,  add = TRUE, fg = "red", inches = FALSE)

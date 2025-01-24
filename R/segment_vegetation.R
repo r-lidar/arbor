@@ -1,31 +1,73 @@
-#' Individual tree instance segmentation
+#' Individual Tree Instance Segmentation
 #'
-#' Individual tree instance segmentation. The points are connected to their knn to build a networks in which
-#' a path finder can navigate. The path finder starts for every points and try to reach each seed. It calculates
-#' the cost to reach each seed and assign to each point the ID of the seed that have the least cost path.\cr\cr
-#' The cost of the path is computed in a complex way but we can retain 4 important criteria: (1) the
-#' cube distance between the points favoring movement between close points (2) extra cost penalties
-#' assigmed to mouvement between foliage to foliage points to favor movement in wood. (3) massive extra
-#' cost penalties assigmed to mouvement between wood to foliage points to favor movement in wood and (4)
-#' extra cost penalties for upward movement to favor downward movement to the seeds
+#' This function performs individual tree instance segmentation by constructing a point-based network
+#' and computing the least-cost path for each point to predefined seed points. The goal is to assign
+#' each point in the point cloud a `treeID` corresponding to its nearest seed, based on the least-cost
+#' path computed through the network. The process incorporates both spatial and heuristic constraints
+#' to segment trees effectively.\cr\cr
+#' The segmentation algorithm operates as follows:
+#' \enumerate{
+#' \item **Network Construction**: A k-nearest neighbor (k-NN) graph is built where points are connected
+#' to their `k` closest neighbors. The cost to move in the graph between two points is explained in
+#' next section and is calculated based on criteria such as euclidean distance, foliage type, and
+#' movement direction
+#' \item **Pathfinding**: Using the constructed graph, the function computes the least-cost path from
+#' every point to each seed.
+#' \item **Tree ID Assignment**: Each point is assigned the `treeID` of the seed with the least-cost
+#' path.
+#' }
+#' Key Features of the Cost Function:
+#' \itemize{
+#' \item **Proximity Penalty**: Close points are favored with lower movement costs by using the cube of
+#' the euclidean distance
+#' \item **Foliage Type Penalty**: Foliage to foliage movement or foliage to wood movement incur
+#' substantial additional costs.
+#' \item **Directional Penalty**: Movements against gravity (upward) are penalized more to prioritize
+#' paths leading downward to seeds.
+#' }
 #'
-#' @param las LAS object from lidR previously segmented with segment foliage
-#' @param seeds sf object with points corresponding to seeds. It can be produced by \link{find_seeds}
-#' or by any other mean.
-#' @param res resolution. The point cloud is decimated first in order to work with few points. Ideally keeping
-#' one point every 5 cm would be optimal. In practice it increases the computation times. Every 10 cm
-#' works well actually and compute fast. The default is 8 cm as a trade-off between 5 and 10 cm.
-#' @param max_gap When connecting the points to create a network in which the algorithm searches for
-#' the least cost path, points with a distance superior than this threshold cannot be connected. Default
-#' 20 cm.
+#' @param las A `LAS` object (from the `lidR` package) containing the point cloud data. It must have
+#'   an attribute `foliage`, which can be generated using prior semantic segmentation.
+#' @param seeds An `sf` object containing points that represent tree seeds. Each point must have
+#'   xyz coordinates and a `treeID`. Seeds can be generated using \link{find_seeds}.
+#' @param res Numeric. The resolution for decimating the point cloud. Smaller resolutions retain more
+#'   points but increase computational cost. Ideally keeping one point every 5 cm would be optimal.
+#'   In practice it increases the computation times. Every 10 cm works well actually and compute fast.
+#'   The default is 0.08 meters (8 cm), a trade-off between 5 and 10 cm.
+#' @param max_gap Numeric. Maximum allowed distance (in meters) between points for them to be connected
+#'   in the network. Points separated by larger gaps are disconnected, effectively creating barriers.
+#'   Default is 0.2 meters.
+#' @param k Integer. Number of nearest neighbors used to build the k-NN graph for the network. Default
+#'  is 10.
+#' @param z_factor Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
+#'   reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
+#'   Default is 0.8.
 #' @param ... unused. Serves only to separate easy parameters to complex ones that should not need to
-#' be modified
-#' @param k each point is connected to k nearest neighboors to buid a network.
-#' @param th_anisotropy point with an anisotropy higher than this value are assigned wood
-#' @param z_factor The point cloud can be squished on Z axis to reduce gaps on Z axis while maintaining
-#' real size gaps in XY axes. This help capturing more foliage in higher canopy
+#' be modified.
+#'
+#' @return A `LAS` object with an additional attribute `treeID`, indicating the ID of the tree to
+#'   which each point belongs.
+#'
+#' @details
+#' Internal Processing Steps:
+#' 1. **Preprocessing**:
+#'    - Decimate the point cloud based on the specified resolution (`res`).
+#'    - Transform and scale coordinates for network construction and pathfinding.
+#' 2. **Network Construction**:
+#'    - Points are connected to their `k` nearest neighbors with a distance threshold (`max_gap`).
+#'    - The cost on each edge is the cube of the euclidean distance
+#'    - Additional cost penalties are applied based on movement direction and wood/foliage transitions.
+#' 3. **Pathfinding**:
+#'    - A graph is built combining point and seed networks.
+#'    - The shortest path (least-cost) from each point to all seeds is calculated.
+#' 4. **Tree Assignment**:
+#'    - Points are assigned the `treeID` of the nearest seed based on path costs.
+#'    - IDs are propagated back to the original dense point cloud.
+#'
+#' @md
 #' @export
 #' @importFrom Rcpp sourceCpp
+#' @seealso \link{find_seeds}, \link{segment_foliage}
 segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2, z_factor = 0.8)
 {
   ti = tic()

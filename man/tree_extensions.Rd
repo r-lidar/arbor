@@ -12,7 +12,8 @@ tree_extensions(
   max_height = 1,
   min_slice_thickness = 0.1,
   max_slice_thickness = 0.6,
-  extra_height = 0
+  extra_height = 0,
+  debug = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ correspond realistically to the size of a biggest tree in your context.}
 thicknesses. This control the thicknesses limits}
 
 \item{extra_height}{the trees can be prolongated a below the ground}
+
+\item{debug}{boolean. Some debugging display.}
 
 \item{...}{unused. Only useful to separate important parameters from those that should only be change
 in very specific contexts}
