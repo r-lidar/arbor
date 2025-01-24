@@ -67,14 +67,13 @@ if (display) plot(las)
 
 # ===== COMPUTE ANISOTROPY =======
 
-olas = sf::st_coordinates(las)
-
+#olas = sf::st_coordinates(las)
 #'las = lidRtls:::smooth3d(las, 0.04)
 #'las = lidR::knn_distance(las, k = 20)
 #'f <- ecdf(las$distance)
 #'las@data$anisotropy <- 1-f(las$distance)
 
-las = compute_anisotropy(las, k = k_ani)
+las = compute_anisotropy(las, k = 50)
 
 if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 
@@ -114,20 +113,26 @@ las = segment_vegetation(las, seeds, max_gap = max_gap, k = k)
 
 if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
 
+# ====== RETAIN ONLY MAIN TREES =======
+#     (and clean the understory)
+
+trees = clean_small_cluster(las, max_heigh = 5)
+
 # ====== FIX SEGMENTATION ISSUES =======
+# Segmentation is not always perfect especially complex environment.
+# The seed dectection may have assign two seed to a single trees or an additionnal
+# patch of wood may be assigned the id of a big tree because of a missing seed.
+# For example in the example plot we have
+if (display) plot(filter_poi(las, treeID %in% c(1856, 1898)), color = "treeID")
 
-las = fix_splited_trees(las)
-#' las = fix_splited_trees(las, max_height = 0.5, maximum_radius = 0.5)
+trees = fix_split_trees(trees)
+trees = fix_small_isolated_low_clusters(trees)
 
-if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
+if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
 
 #' las$X = olas[,1]
 #' las$Y = olas[,2]
 #' las$Z = olas[,3]
-
-
-trees = clean_small_cluster(las, max_heigh = 5)
-#' trees = clean_small_cluster(las, max_heigh = 1)
 
 if (display)
 {
@@ -137,257 +142,31 @@ plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(
 plot(filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.1)
 }
 
-# ==== CLEAN BOTTOM ADN TREE EXTENSION =====
+# ====== BUILD TREE EXTENSIONS =======
+# (is a little slow, need improvement)
 
+extensions = tree_extensions(trees, dtm, extra_height = 0.15)
 
-generate_cylinder_points <- function(circle, height = 0.5, n_points = 1000)
+if (display)
 {
-  # Extract circle parameters
-  center_x <- circle$center_x
-  center_y <- circle$center_y
-  radius <- circle$radius
-  z_top <- circle$z
-  z_bottom <- z_top - height
-
-  # Create a grid of points
-  cylinder_points <- data.frame(
-    X = 0,
-    Y = 0,
-    theta = runif(n_points, 0, 2*pi),
-    Z = runif(n_points, z_bottom, z_top)
-  )
-
-  # Convert to Cartesian coordinates
-  cylinder_points$X <- center_x + radius * cos(cylinder_points$theta)
-  cylinder_points$Y <- center_y + radius * sin(cylinder_points$theta)
-
-  # Drop theta column (optional)
-  cylinder_points$theta <- NULL
-
-  # Return the result as a data frame
-  return(cylinder_points)
+  x = plot(trees) |> add_dtm3d(dtm)
+  plot(extensions, add = x)
 }
 
-align_to_z <- function(main_axis)
+trees = weld_extension(trees, extensions)
+
+if (display)
 {
-    # Normalize the main axis vector
-    main_axis <- main_axis / sqrt(sum(main_axis^2))
-
-    # Z-axis unit vector
-    z_axis <- c(0, 0, 1)
-
-    # Cross product to find the rotation axis
-    rotation_axis <- c(
-      main_axis[2] * z_axis[3] - main_axis[3] * z_axis[2],
-      main_axis[3] * z_axis[1] - main_axis[1] * z_axis[3],
-      main_axis[1] * z_axis[2] - main_axis[2] * z_axis[1]
-    )
-
-    # Normalize the rotation axis
-    axis_length <- sqrt(sum(rotation_axis^2))
-    if (axis_length > 1e-6) { # Avoid division by zero
-      rotation_axis <- rotation_axis / axis_length
-    } else {
-      # If the main axis is already aligned with Z, return identity matrix
-      return(diag(3))
-    }
-
-    # Compute the angle between main_axis and Z-axis
-    angle <- acos(sum(main_axis * z_axis))
-
-    # Construct the rotation matrix using Rodrigues' rotation formula
-    K <- matrix(c(
-      0, -rotation_axis[3], rotation_axis[2],
-      rotation_axis[3], 0, -rotation_axis[1],
-      -rotation_axis[2], rotation_axis[1], 0
-    ), nrow = 3, byrow = TRUE)
-
-    R <- diag(3) + sin(angle) * K + (1 - cos(angle)) * (K %*% K)
-
-    return(R)
+  plot(trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
+  plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(dtm)
 }
-
-
-
-# bad id = 137
-# bad id = 598
-# bad id = 334
-# bad id = 625
-#trees@data$pointID = 1:npoints(trees)
-extensions = list()
-for (id in unique(trees$treeID))
-{
-  cat("Tree", id)
-  tt = filter_poi(trees, treeID == id, foliage == FALSE, hag < 3)
-  if (is.empty(tt)) next
-  tt$Z = tt$Z * 0.1
-  tt = connected_components(tt, 0.05, 200)
-  tt$Z = tt$Z * 10
-
-  ids = 1
-
-  if (length(unique(tt$clusterID)) > 1)
-  {
-    ids = table(tt$clusterID)
-    ids = as.numeric(names(ids[which.max(ids)]))
-    pid = tt$pointID[tt$clusterID != ids]
-    las$foliage[pid] = TRUE
-    tt = filter_poi(tt, clusterID == ids)
-    #plot(tt, color = "clusterID")
-    #cat("  ", id, "\n")
-    #plot(tt, color = "foliage", pal = c("chocolate4", "darkgreen"))
-  }
-
-  tt = filter_poi(tt, hag < 2)
-
-  cat("\n")
-
-  #xyz = sf::st_coordinates(tt)
-  #pca <- prcomp(xyz, center = TRUE, scale. = FALSE)
-  #main_axis <- pca$rotation[, 1]  # First principal component
-
-  # Compute the rotation matrix
-  #rotation_matrix <- align_to_z(main_axis)
-
-  # Apply the rotation to the point cloud
-  #rotated_xyz = xyz %*% t(rotation_matrix)
-  #rotated_xyz <- scale(rotated_xyz, center = TRUE, scale = FALSE)
-  #ttt <- as.data.frame(rotated_xyz)
-  #names(ttt) = c("X", "Y", "Z")
-  #ttt$clusterID = tt$clusterID
-  #ttt = LAS(ttt)
-
-
-  # Plot the point cloud
-  #rgl::plot3d(centered_xyz, col = "blue", size = 2)
-  #rgl::points3d(rotated_xyz, col = "red", size = 2)
-  ##rgl::arrow3d(p0 = c(0,0,0), p1 =  main_axis, type = "lines",  col = "red", length = 2)
-
-  ranges = expand.grid(bottom = seq(0.1,1,0.05), top = seq(0.1,1,0.05))
-  ranges = ranges[ranges$top - ranges$bottom >= 0.1,]
-  ranges = ranges[ranges$top - ranges$bottom <= 0.6,]
-
-  circles = apply(ranges, 1, function(x)
-  {
-    bottom = filter_poi(tt, hag  >= x[1], hag <= x[2])
-    if (is.empty(bottom)) return(NULL)
-
-    bottom$Z = bottom$Z * 0.01
-    bottom = connected_components(bottom, 0.01, 5)
-    ids = table(bottom$clusterID)
-    ids = as.numeric(names(ids[which.max(ids)]))
-    bottom = bottom[bottom$clusterID == ids]
-
-    if (npoints(bottom) < 10) return(NULL)
-
-    bottom$Z = bottom$Z * 100
-    circle = fit_circle(bottom)
-    inliner = length(circle$inliers)/npoints(bottom) * 100
-
-    if (display)
-    {
-    plot(sf::st_coordinates(bottom), asp = 1, main = id)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius,  add = TRUE, fg = "red", inches = FALSE)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01,  add = TRUE, fg = "red", lty=3, inches = FALSE)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01,  add = TRUE, fg = "red", lty= 3, inches = FALSE)
-    mtext(paste0("Radius = ", round(circle$radius,2), " inliner = ", round(inliner), "% sector ", circle$angle_range, " deg"))
-    }
-    circle$pinlier = inliner
-    circle$inliers = NULL
-    as.data.frame(circle)
-  })
-
-  if (is.null(circles)) next
-
-  circles = do.call(rbind, circles)
-
-  valid = circles$radius < 0.25 & circles$angle_range > 90
-  n = sum(valid)
-  if (n == 0) valid = circles$radius < 0.25
-  n = sum(valid)
-  if (n == 0) next
-
-  circles = circles[valid,]
-  circles = circles[rev(order(circles$pinlier)),]
-  n = min(c(5, n))
-
-  if (n == 0) next
-
-  circles = circles[1:n,]
-  x = median(circles$center_x)
-  y = median(circles$center_y)
-  z = min(circles$z)+0.05
-  r = median((circles$radius))
-  circle = list(center_x = x, center_y = y, z = z, radius = r)
-
-  loc = matrix(c(x,y), ncol = 2)
-  zgnd = terra::extract(dtm, loc, method = "bilinear")
-  hcyl = as.numeric(z-zgnd+0.15)
-
-  if (circle$radius > 0.1) cat("Big tree", id, "\n")
-
-  if (circle$radius < 0.15)
-  {
-    extension = generate_cylinder_points(circle, height = hcyl)
-    #extension = as.matrix(extension)
-    #extension <- extension %*% rotation_matrix
-    #extension = as.data.frame(extension)
-    #names(extension) = c("X", 'Y', "Z")
-    quantize(extension$X, tt@header[["X scale factor"]], tt@header[["X offset"]])
-    quantize(extension$Y, tt@header[["Y scale factor"]], tt@header[["Y offset"]])
-    quantize(extension$Z, tt@header[["Z scale factor"]], tt@header[["Z offset"]])
-    extension$treeID = id
-    extensions[[as.character(id)]] = extension
-  }
-  #x = plot(tt)
-  #plot(LAS(extension), add = x)
-}
-
-combine_with_fill <- function(df1, df2, fill_value = 0L)
-{
-  all_cols <- union(names(df1), names(df2))
-
-  # Add missing columns with the fill value
-  for (col in setdiff(all_cols, names(df1))) {
-    df1[[col]] <- fill_value
-  }
-  for (col in setdiff(all_cols, names(df2))) {
-    df2[[col]] <- fill_value
-  }
-
-  # Ensure column order matches
-  df1 <- df1[, ..all_cols]
-  df2 <- df2[, ..all_cols]
-
-  # Combine rows
-  rbind(df1, df2)
-}
-
-
-trees = clean_small_cluster(las, max_heigh = 5)
-
-extensions = do.call(rbind, extensions)
-extensions$anisotropy = 1
-extensions$wood = TRUE
-data.table::setDT(extensions)
-x = plot(filter_poi(trees, foliage == FALSE)) |> add_dtm3d(dtm)
-plot(LAS(extensions), add = x)
-
-
-trees@data = combine_with_fill(trees@data, extensions)
-trees = las_update(trees)
-
-plot(trees, color = "treeID") |> add_dtm3d(dtm)
-plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(dtm)
-
-
 
 # ==== CLIP BUFFER ======
 
-valid_trees = clip_buffer(las, seeds, -1)
-valid_trees = clean_small_cluster(valid_trees, max_heigh = 6)
+valid_trees = clip_buffer(trees, seeds, -1)
 plot(filter_poi(valid_trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.1)
 
+# ==== VARIOUS EXPORTS ====
 
 o =  tools::file_path_sans_ext(file)
 r = paste0(o, "_dtm.tif")
@@ -400,8 +179,6 @@ seeds$Z = xyz[,3]
 writeLAS(las, o)
 terra::writeRaster(dtm, r)
 #sf::st_write(sf::st_zm(seeds), s, append = FALSE)
-
-# ==== EXPORT ALL TREES ====
 
 trees_no_foliage = filter_poi(trees, foliage == FALSE)
 plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)

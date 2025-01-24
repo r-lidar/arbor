@@ -2,7 +2,7 @@
 % Please edit documentation in R/segment_foliage.R
 \name{segment_foliage}
 \alias{segment_foliage}
-\title{Wood foliage instance segmentation}
+\title{Wood foliage semantic segmentation}
 \usage{
 segment_foliage(
   las,
@@ -43,7 +43,7 @@ order to build the skeleton of the trees. Of course "every point in space" is no
 This is the resolution of the space. Default is one point every 40 cm.}
 }
 \description{
-Wood foliage instance segmentation. The points are connected to their knn to build a networks in which
+Wood foliage semantic segmentation. The points are connected to their knn to build a networks in which
 a path finder can navigate. The path finder starts for every point in space and try to reach the ground
 by the least cost path. This allow to find the skeleton of the trees. The point are assigned a class
 wood foliage based on two main criteria. Are they close to the skeleton? Is their anisotropy above

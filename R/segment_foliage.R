@@ -1,6 +1,6 @@
-#' Wood foliage instance segmentation
+#' Wood foliage semantic segmentation
 #'
-#' Wood foliage instance segmentation. The points are connected to their knn to build a networks in which
+#' Wood foliage semantic segmentation. The points are connected to their knn to build a networks in which
 #' a path finder can navigate. The path finder starts for every point in space and try to reach the ground
 #' by the least cost path. This allow to find the skeleton of the trees. The point are assigned a class
 #' wood foliage based on two main criteria. Are they close to the skeleton? Is their anisotropy above

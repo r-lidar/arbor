@@ -1,6 +1,6 @@
 #' Post production tool
 #'
-#' Apply this function to fix minor issue in instance segmentation. If you have no issue but apply
+#' Apply this function to fix some issue in the instance segmentation. If you have no issue but apply
 #' this function this should not have any effect. This function fits circles on each tree at different
 #' levels and tries to figure out if two segmented trees are actually the same one badly segmented because
 #' of bad seeds. In some cases tt is possible that one tree have two different seeds leading to two
@@ -12,22 +12,39 @@
 #' @param maximum_radius a threshold to protect against bad circle fitting. If a circle is bigger than
 #' that it is not valid. Set it the maximum expected radius of a tree.
 #' @export
-fix_splited_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_radius = 0.25)
+fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_radius = 0.25)
 {
+  # Define a function to fit circle
   fit_circle_to_seed = function(id)
   {
+    #cat("Tree", id, ":")
     keep = slice$treeID == id
     keep[is.na(keep)] = FALSE
     cl = slice[keep]
-    if (npoints(cl) < 10) return(NULL)
+    if (npoints(cl) < 10)
+    {
+      #cat(" not enought points\n")
+      return(NULL)
+    }
     circle = fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
-    if (!is.null(circle$radius) && circle$radius < maximum_radius && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
-    else return(NULL)
+    #cat(" radius =", round(circle$radius, 2))
+    if (!is.null(circle$radius) && circle$radius < maximum_radius && circle$angle_range > 90)
+    {
+      #cat("\n")
+      return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
+    }
+    else
+    {
+      #cat(" invalid\n")
+      return(NULL)
+    }
   }
 
   zmin = min(las$hag)
   offsets = seq(0, max_height,slice_thickness)
 
+  # For each slice apply the fit to each tree
+  # if two circle intersect they are from the same tree
   for (k in 1:length(offsets))
   {
     slice = filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
@@ -53,10 +70,153 @@ fix_splited_trees = function(las, max_height = 1, slice_thickness = 0.25, maximu
       ids = circles[i,]$id
       #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
       #plot(filter_poi(las, treeID %in% ids), color = "foliage")
-      cat("Combining trees", ids, "\n")
+      cat("Combining trees", ids, "into tree", ids[1], "\n")
       las$treeID[las$treeID %in% ids] = ids[1]
     }
   }
 
   return(las)
 }
+
+#' Post production tool
+#'
+#' Apply this function to fix some issue in the instance segmentation. If you have no issue but apply
+#' this function this should not have any effect. This function look at the wood part of each trees
+#' an test with a connected component algorithm if there are more than one big cluster. This can
+#' happen when a seed is missing with \link{find_seeds}. In this case a few wood point may be assigned
+#' to the wrong tree because this was the best seed to reach. Those point are reasigned to foliage class
+#' in order to do not mess-up QSM software
+#'
+#' @param las LAS object from lidR with semantic and instance segmentation
+#' @export
+fix_small_isolated_low_clusters = function(las)
+{
+  las@data$pointID = 1:npoints(las)
+
+  for (id in unique(las$treeID))
+  {
+    cat("Tree", id)
+    tt = filter_poi(las, treeID == id, foliage == FALSE, hag < 3)
+    if (is.empty(tt))
+    {
+      cat("\n")
+      next
+    }
+    tt$Z = tt$Z * 0.1
+    tt = connected_components(tt, 0.05, 200)
+    tt$Z = tt$Z * 10
+
+    ids = 1
+    n = length(unique(tt$clusterID))
+    if (n > 1)
+    {
+      ids = table(tt$clusterID)
+      ids = as.numeric(names(ids[which.max(ids)]))
+      cat(" :", n, "clusters found. Smaller cluster(s) re-assigned as foliage")
+      pid = tt$pointID[tt$clusterID != ids]
+      las$foliage[pid] = TRUE
+      tt = filter_poi(tt, clusterID == ids)
+      #plot(tt, color = "clusterID")
+      #cat("  ", id, "\n")
+      #plot(tt, color = "foliage", pal = c("chocolate4", "darkgreen"))
+    }
+    else
+    {
+      cat(" ok")
+    }
+
+    cat("\n")
+  }
+
+  las@data$pointID = NULL
+
+  return(las)
+}
+
+generate_cylinder_points <- function(circle, height = 0.5, n_points = 1000)
+{
+  # Extract circle parameters
+  center_x <- circle$center_x
+  center_y <- circle$center_y
+  radius <- circle$radius
+  z_top <- circle$z
+  z_bottom <- z_top - height
+
+  # Create a grid of points
+  cylinder_points <- data.frame(
+    X = 0,
+    Y = 0,
+    theta = runif(n_points, 0, 2*pi),
+    Z = runif(n_points, z_bottom, z_top)
+  )
+
+  # Convert to Cartesian coordinates
+  cylinder_points$X <- center_x + radius * cos(cylinder_points$theta)
+  cylinder_points$Y <- center_y + radius * sin(cylinder_points$theta)
+
+  # Drop theta column (optional)
+  cylinder_points$theta <- NULL
+
+  # Return the result as a data frame
+  return(cylinder_points)
+}
+
+align_to_z <- function(main_axis)
+{
+  # Normalize the main axis vector
+  main_axis <- main_axis / sqrt(sum(main_axis^2))
+
+  # Z-axis unit vector
+  z_axis <- c(0, 0, 1)
+
+  # Cross product to find the rotation axis
+  rotation_axis <- c(
+    main_axis[2] * z_axis[3] - main_axis[3] * z_axis[2],
+    main_axis[3] * z_axis[1] - main_axis[1] * z_axis[3],
+    main_axis[1] * z_axis[2] - main_axis[2] * z_axis[1]
+  )
+
+  # Normalize the rotation axis
+  axis_length <- sqrt(sum(rotation_axis^2))
+  if (axis_length > 1e-6) { # Avoid division by zero
+    rotation_axis <- rotation_axis / axis_length
+  } else {
+    # If the main axis is already aligned with Z, return identity matrix
+    return(diag(3))
+  }
+
+  # Compute the angle between main_axis and Z-axis
+  angle <- acos(sum(main_axis * z_axis))
+
+  # Construct the rotation matrix using Rodrigues' rotation formula
+  K <- matrix(c(
+    0, -rotation_axis[3], rotation_axis[2],
+    rotation_axis[3], 0, -rotation_axis[1],
+    -rotation_axis[2], rotation_axis[1], 0
+  ), nrow = 3, byrow = TRUE)
+
+  R <- diag(3) + sin(angle) * K + (1 - cos(angle)) * (K %*% K)
+
+  return(R)
+}
+
+combine_with_fill <- function(df1, df2, fill_value = 0L)
+{
+  all_cols <- union(names(df1), names(df2))
+
+  # Add missing columns with the fill value
+  for (col in setdiff(all_cols, names(df1))) {
+    df1[[col]] <- fill_value
+  }
+  for (col in setdiff(all_cols, names(df2))) {
+    df2[[col]] <- fill_value
+  }
+
+  # Ensure column order matches
+  df1 <- df1[, ..all_cols]
+  df2 <- df2[, ..all_cols]
+
+  # Combine rows
+  rbind(df1, df2)
+}
+

@@ -1,6 +1,32 @@
+#' Individual tree instance segmentation
+#'
+#' Individual tree instance segmentation. The points are connected to their knn to build a networks in which
+#' a path finder can navigate. The path finder starts for every points and try to reach each seed. It calculates
+#' the cost to reach each seed and assign to each point the ID of the seed that have the least cost path.\cr\cr
+#' The cost of the path is computed in a complex way but we can retain 4 important criteria: (1) the
+#' cube distance between the points favoring movement between close points (2) extra cost penalties
+#' assigmed to mouvement between foliage to foliage points to favor movement in wood. (3) massive extra
+#' cost penalties assigmed to mouvement between wood to foliage points to favor movement in wood and (4)
+#' extra cost penalties for upward movement to favor downward movement to the seeds
+#'
+#' @param las LAS object from lidR previously segmented with segment foliage
+#' @param seeds sf object with points corresponding to seeds. It can be produced by \link{find_seeds}
+#' or by any other mean.
+#' @param res resolution. The point cloud is decimated first in order to work with few points. Ideally keeping
+#' one point every 5 cm would be optimal. In practice it increases the computation times. Every 10 cm
+#' works well actually and compute fast. The default is 8 cm as a trade-off between 5 and 10 cm.
+#' @param max_gap When connecting the points to create a network in which the algorithm searches for
+#' the least cost path, points with a distance superior than this threshold cannot be connected. Default
+#' 20 cm.
+#' @param ... unused. Serves only to separate easy parameters to complex ones that should not need to
+#' be modified
+#' @param k each point is connected to k nearest neighboors to buid a network.
+#' @param th_anisotropy point with an anisotropy higher than this value are assigned wood
+#' @param z_factor The point cloud can be squished on Z axis to reduce gaps on Z axis while maintaining
+#' real size gaps in XY axes. This help capturing more foliage in higher canopy
 #' @export
 #' @importFrom Rcpp sourceCpp
-segment_vegetation = function(las, seeds, res = 0.08, k = 10, max_gap = 0.2, z_factor = 0.8)
+segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2, z_factor = 0.8)
 {
   ti = tic()
 
