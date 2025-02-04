@@ -2,15 +2,16 @@
 % Please edit documentation in R/clean.R
 \name{clean_small_cluster}
 \alias{clean_small_cluster}
-\title{Remove small trees that are likely badly segmented and clean the low understory}
+\title{Remove Small Trees and Clean Low Understory}
 \usage{
 clean_small_cluster(las, max_heigh = 3)
 }
 \arguments{
-\item{las}{LAS object from lidR}
+\item{las}{A LAS object from lidR.}
 
-\item{max_height}{remove every tree instance smaller than this height}
+\item{max_height}{Trees with a height less than this threshold (in meters) will be removed.}
 }
 \description{
-Remove small trees that are likely badly segmented and clean the low understory
+This function removes small trees that are likely to be poorly segmented and filters out
+low understory vegetation based on height.
 }

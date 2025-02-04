@@ -1,32 +1,33 @@
-#' Wood foliage semantic segmentation
+#' Wood-Foliage Semantic Segmentation
 #'
-#' Wood foliage semantic segmentation. The points are connected to their knn to build a networks in which
-#' a path finder can navigate. The path finder starts for every point in space and try to reach the ground
-#' by the least cost path. This allow to find the skeleton of the trees. The point are assigned a class
-#' wood foliage based on two main criteria. Are they close to the skeleton? Is their anisotropy above
-#' a threshold? Last a connected component step cleans small cluster wrongly assigned as wood class because
-#' some foliage points usually have high anisotropy\cr\cr
-#' This function has numerous parameters. Those after `...` have minor impact and
-#' useful only on very specific contexts. In the general case, if the scene have regular trees, do not
-#' change these parameters.
+#' This function performs wood-foliage semantic segmentation by constructing a network of points
+#' using k-nearest neighbors (KNN). A pathfinding algorithm navigates this network to identify the
+#' tree skeleton by finding the least-cost path from every point in space to the ground. Each point
+#' is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
+#' (2) Anisotropy exceeding a given threshold. The function \link{compute_anisotropy} must be applied
+#' first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
+#' Finally, a connected component step removes small clusters incorrectly classified as wood,
+#' since some foliage points may exhibit high anisotropy.\cr\cr
+#' This function has multiple parameters. Those beyond `...` generally have a minor impact
+#' and should only be adjusted in specific cases. If the scene contains regular trees, the
+#' default values should be sufficient.
 #'
-#' @param las LAS object from lidR
-#' @param res resolution. The point cloud is decimated first in order to work with few points. Ideally keeping
-#' one point every 5 cm would be optimal. In practice it increases the computation times. Every 10 cm
-#' works well actually and compute fast. The default is 8 cm as a trade-off between 5 and 10 cm.
-#' @param max_gap When connecting the points to create a network in which the algorithm searches for
-#' the least cost path, points with a distance superior than this threshold cannot be connected. Default
-#' 20 cm.
-#' @param ... unused. Serves only to separate easy parameters to complex ones that should not need to
-#' be modified
-#' @param k each point is connected to k nearest neighboors to buid a network.
-#' @param th_anisotropy point with an anisotropy higher than this value are assigned wood
-#' @param min_passage The path finder than tries to reach the ground from every point in space in
-#' order to build the skeleton of the trees. For a point to be part of the tree skeletons, it must
-#' be a point of passage more than once. Default is 5 times
-#' @param space_res The path finder than tries to reach the ground from every point in space in
-#' order to build the skeleton of the trees. Of course "every point in space" is not  actually possible.
-#' This is the resolution of the space. Default is one point every 40 cm.
+#' @param las A LAS object from lidR.
+#' @param dtm A SpatRaster object. Digital Terrain Model
+#' @param res Resolution (in meters). The point cloud is initially downsampled to reduce
+#'   computational cost. Ideally, retaining one point every 5 cm provides optimal results,
+#'   but in practice, 10 cm works well and computes faster. The default is 8 cm as a
+#'   trade-off between accuracy and speed.
+#' @param max_gap Maximum allowable distance (in meters) between connected points in the
+#'   network. Points farther apart than this threshold will not be linked. Default: 20 cm.
+#' @param ... Unused. Serves only to distinguish common parameters from advanced parameters
+#'   that typically do not require modification.
+#' @param k Number of nearest neighbors used to construct the network.
+#' @param th_anisotropy Threshold for anisotropy. Points exceeding this value are classified as wood.
+#' @param min_passage Minimum number of times a point must be part of a valid path to be
+#'   considered part of the tree skeleton. Default: 5.
+#' @param space_res Spatial resolution (in meters) for pathfinding. The algorithm does not
+#'   evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.
 #' @export
 segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passage = 5, th_anisotropy = 0.75, k = 10, space_res = 0.4)
 {
@@ -39,14 +40,16 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   wood_extra_reasignation_k = 10
   wood_extra_reasignation_dist = 0.03
 
-  las@data$pointID = 1:npoints(las)
+  las@data$pointID = 1:lidR::npoints(las)
 
-  ti = tic()
+  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID
 
   # The point cloud must have hag and anisotropy computed
   attributes = names(las)
   stopifnot("anisotropy" %in% attributes)
   stopifnot("hag" %in% attributes)
+
+  ti = tic()
 
   cat("Point cloud decimation... (Step 1/9)\n") ; t0 = tic()
 
@@ -62,7 +65,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   dec@data$Z <- dec@data$Z * z_factor
   dec@header@VLR$Extra_Bytes = NULL
   dec@data = dec@data[, .(X,Y,Z, anisotropy, pointID)]
-  num_points <- npoints(dec)
+  num_points <- lidR::npoints(dec)
 
   # The target points spread on the volume
   target =  lidR::decimate_points(las, lidR::barycenter_per_voxel(space_res))
@@ -70,21 +73,21 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   target@data$Y <- target@data$Y - y_translation
   target@data$Z <- target@data$Z * z_factor
   target@data = target@data[, .(X,Y,Z, anisotropy, pointID)]
-  num_target = npoints(target)
+  num_target = lidR::npoints(target)
 
   # A layer of ground points used as a connector to the unique seed
   gnd = seed_from_dtm(dtm)
   gnd$X <- gnd$X - x_translation
   gnd$Y <- gnd$Y - y_translation
   gnd$Z <- gnd$Z * z_factor
-  quantize(gnd[["X"]], 0.01, las@header$`X offset`)
-  quantize(gnd[["Y"]], 0.01, las@header$`Y offset`)
-  quantize(gnd[["Z"]], 0.01, las@header$`Z offset`)
+  lidR::quantize(gnd[["X"]], 0.01, las@header$`X offset`)
+  lidR::quantize(gnd[["Y"]], 0.01, las@header$`Y offset`)
+  lidR::quantize(gnd[["Z"]], 0.01, las@header$`Z offset`)
   gnd$anisotropy = 1
   gnd$pointID = 0
   header <- rlas::header_create(gnd)
   gnd = suppressWarnings(lidR::LAS(gnd, header))
-  num_gnd <- npoints(gnd)
+  num_gnd <- lidR::npoints(gnd)
 
   # The seed
   x = mean(gnd$X)
@@ -212,7 +215,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   # Shortest distance in order to find reachable 'target' points
   # I don't remember why we need that. In theory cppRouting::get_path_pair() should be enough but maybe non reachable targets pose an issue
   #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = seed_id, to = target_ids, allcores = FALSE)
-  distance_matrix <- lidRtls:::get_distance_matrix(combined_network, seed_id, target_ids)
+  distance_matrix <- get_distance_matrix(combined_network, seed_id, target_ids)
   distance_matrix[is.infinite(distance_matrix)] = NA_real_
 
   i = colMins(distance_matrix)
@@ -241,7 +244,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
     #path <- lapply(path, function(x) as.integer(x)[-1])
     #path <- unname(do.call(c, path))
 
-    path = lidRtls:::findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path = findPaths(combined_network, from[seq_along(current_to)], current_to)
     path = path$paths
     path <- lapply(path, function(x) x[-1])
     path <- do.call(c, path)
@@ -272,12 +275,12 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
 
   cat("Assigning wood to small structure... (Step 8/9)\n") ; t0 = tic()
 
-  skeleton = filter_poi(dec, count > log(min_passage))
+  skeleton = lidR::filter_poi(dec, count > log(min_passage))
 
   # For visualization and debugging mainly
   las@data$skeleton = 0
   las@data$skeleton[skeleton$pointID] = 1
-  las = add_lasattribute_manual(las, name = "skeleton", desc = "skeleton points", type = "char")
+  las = lidR::add_lasattribute_manual(las, name = "skeleton", desc = "skeleton points", type = "char")
   #plot(las, color = "skeleton")
 
   #x = plot(dec, color = "count", legend = T)
@@ -289,7 +292,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   skeleton$Y <- skeleton$Y + y_translation
   skeleton$Z <- skeleton$Z / z_factor
 
-  skeleton_neighbors  <- knnx(las, skeleton, k = wood_assignation_k)
+  skeleton_neighbors  <- lidR::knnx(las, skeleton, k = wood_assignation_k)
   rm = skeleton_neighbors$nn.dist > wood_assignation_dist
   id = skeleton_neighbors$nn.index[!rm]
 
@@ -307,15 +310,15 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
 
   cat("Filter anisotropy... (Step 7/6)\n") ; t0 = tic()
 
-  nofoliage = filter_poi(las, anisotropy > th_anisotropy | wood == TRUE)
-  #foliage = filter_poi(las, anisotropy <= th_anisotropy & wood == FALSE)
+  nofoliage = lidR::filter_poi(las, anisotropy > th_anisotropy | wood == TRUE)
+  #foliage = lidR::filter_poi(las, anisotropy <= th_anisotropy & wood == FALSE)
 
   toc(t0)
 
   cat("Connected component cleaning... (Step 8/9)\n") ; t0 = tic()
 
   nofoliage$Z = nofoliage$Z * 0.8
-  nofoliage = connected_components(nofoliage, connected_components_res, connected_components_min)
+  nofoliage = lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
   #foliage2 = nofoliage[nofoliage$clusterID == 0 & nofoliage$wood == FALSE]
   nofoliage = nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
   nofoliage$Z = nofoliage$Z / 0.8
@@ -328,14 +331,14 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
 
   cat("Extra wood reasignation... (Step 9/9)\n") ; t0 = tic()
 
-  wood_neighbors  <- knnx(las, nofoliage, k = wood_extra_reasignation_k)
+  wood_neighbors  <- lidR::knnx(las, nofoliage, k = wood_extra_reasignation_k)
   rm = wood_neighbors$nn.dist > wood_extra_reasignation_dist
   id = wood_neighbors$nn.index[!rm]
 
   las@data$foliage = TRUE
   las@data$foliage[id] = FALSE
   las@data$foliage = as.integer(las$foliage)
-  las = add_lasattribute_manual(las, name = "foliage", desc = "foliage 1 wood 0", type = "char")
+  las = lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage 1 wood 0", type = "char")
 
   free(nofoliage, rm, id, wood_neighbors)
 

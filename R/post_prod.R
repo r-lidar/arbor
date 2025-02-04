@@ -9,11 +9,19 @@
 #' @param las LAS object from lidR
 #' @param max_height maximum height above the lowest point of a tree to fit circles
 #' @param slice_thickness slice thickness to fit circles
-#' @param maximum_radius a threshold to protect against bad circle fitting. If a circle is bigger than
-#' that it is not valid. Set it the maximum expected radius of a tree.
+#' @param max_diameter a threshold to protect against bad circle fitting. If a circle is bigger than
+#' that it is not valid. Set it the maximum expected diameter of a tree.
 #' @export
-fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_radius = 0.25)
+fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diameter = 0.5)
 {
+  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage
+
+  attributes = names(las)
+  stopifnot("foliage" %in% attributes)
+  stopifnot("hag" %in% attributes)
+
+  max_radius = max_diameter/2
+
   # Define a function to fit circle
   fit_circle_to_seed = function(id)
   {
@@ -21,12 +29,12 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_
     keep = slice$treeID == id
     keep[is.na(keep)] = FALSE
     cl = slice[keep]
-    if (npoints(cl) < 10)
+    if (lidR::npoints(cl) < 10)
     {
       #cat(" not enought points\n")
       return(NULL)
     }
-    circle = fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
+    circle = lidR::fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
     #cat(" radius =", round(circle$radius, 2))
     if (!is.null(circle$radius) && circle$radius < maximum_radius && circle$angle_range > 90)
     {
@@ -47,7 +55,7 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_
   # if two circle intersect they are from the same tree
   for (k in 1:length(offsets))
   {
-    slice = filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
+    slice = lidR::filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
 
     #x = plot(slice, color = "treeID")
 
@@ -91,19 +99,19 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, maximum_
 #' @export
 fix_small_isolated_low_clusters = function(las)
 {
-  las@data$pointID = 1:npoints(las)
+  las@data$pointID = 1:lidR::npoints(las)
 
   for (id in unique(las$treeID))
   {
     cat("Tree", id)
-    tt = filter_poi(las, treeID == id, foliage == FALSE, hag < 3)
+    tt = lidR::filter_poi(las, treeID == id, foliage == FALSE, hag < 3)
     if (is.empty(tt))
     {
       cat("\n")
       next
     }
     tt$Z = tt$Z * 0.1
-    tt = connected_components(tt, 0.05, 200)
+    tt = lidR::connected_components(tt, 0.05, 200)
     tt$Z = tt$Z * 10
 
     ids = 1
@@ -115,7 +123,7 @@ fix_small_isolated_low_clusters = function(las)
       cat(" :", n, "clusters found. Smaller cluster(s) re-assigned as foliage")
       pid = tt$pointID[tt$clusterID != ids]
       las$foliage[pid] = TRUE
-      tt = filter_poi(tt, clusterID == ids)
+      tt = lidR::filter_poi(tt, clusterID == ids)
       #plot(tt, color = "clusterID")
       #cat("  ", id, "\n")
       #plot(tt, color = "foliage", pal = c("chocolate4", "darkgreen"))

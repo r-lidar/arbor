@@ -82,9 +82,9 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2
   attributes = names(las)
   stopifnot("anisotropy" %in% attributes)
   stopifnot("foliage" %in% attributes)
-  stopifnot("foliage" %in% attributes)
 
   seed_coordinates <- sf::st_coordinates(seeds)
+
   seeds <- as.data.frame(seeds)
   seeds$X <- seed_coordinates[, "X"]
   seeds$Y <- seed_coordinates[, "Y"]

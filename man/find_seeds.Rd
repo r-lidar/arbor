@@ -4,21 +4,33 @@
 \alias{find_seeds}
 \title{Find a seed for each tree}
 \usage{
-find_seeds(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0.06)
+find_seeds(
+  las,
+  ...,
+  max_diameter = 50,
+  slice_seeds_at = c(0.5, 0.8),
+  res = 0.025
+)
 }
 \arguments{
-\item{las}{LAS object from lidR}
+\item{las}{A LAS object from lidR.}
 
-\item{slice_seeds_at}{vector. Two number to slice the point cloud.}
+\item{...}{Unused. Additional parameters beyond \code{...} should generally remain unchanged,
+except in edge cases.}
 
-\item{res}{resolution for connected component clustering}
+\item{max_diameter}{Maximum expected tree diameter (in meters). Used to filter out invalid
+RANSAC-fitted circles.}
 
-\item{smooth}{the slice is smoothed in order to improve a bit the connected component clustering.
-This is the smoothing radius of the sphere.}
+\item{slice_seeds_at}{A numeric vector of two values defining the height range (in meters)
+for slicing the point cloud.}
+
+\item{res}{Resolution for connected component clustering.}
 }
 \description{
-In order to segment each individual instance of trees, we must first find seeds for each tree.
-This is performed by extracting a slice close to the ground. The wood foliage semantic segmentation
-must have been performed first for the method to be able to extract wood points. Then it performs
-a connected component clustering.
+To segment individual tree instances, the first step is to identify seed points for each tree.
+This is achieved by extracting a slice of points near the ground. The wood/foliage
+semantic segmentation must be performed first using \link{segment_foliage} to ensure
+that wood points are correctly identified. The method uses only points that are labelled 'wood'.
+The method then applies connected component clustering followed by RANSAC circle fitting to reliably
+assign a single seed to each tree.
 }

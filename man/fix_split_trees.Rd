@@ -8,7 +8,7 @@ fix_split_trees(
   las,
   max_height = 1,
   slice_thickness = 0.25,
-  maximum_radius = 0.25
+  max_diameter = 0.5
 )
 }
 \arguments{
@@ -18,8 +18,8 @@ fix_split_trees(
 
 \item{slice_thickness}{slice thickness to fit circles}
 
-\item{maximum_radius}{a threshold to protect against bad circle fitting. If a circle is bigger than
-that it is not valid. Set it the maximum expected radius of a tree.}
+\item{max_diameter}{a threshold to protect against bad circle fitting. If a circle is bigger than
+that it is not valid. Set it the maximum expected diameter of a tree.}
 }
 \description{
 Apply this function to fix some issue in the instance segmentation. If you have no issue but apply

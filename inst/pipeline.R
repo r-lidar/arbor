@@ -21,10 +21,10 @@ file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1.laz
 file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part2.laz"
 file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part3.laz"
 file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz"
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Referencesite1_part1.laz"
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Referencesite1_part2.laz"
-
-
+file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz"
+file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
 
 # ====== READ POINT CLOUD =======
 
@@ -63,7 +63,7 @@ las = height_above_ground(las, algorithm = tin(), dtm = dtm)
 bottom = filter_poi(las, hag <= cut_above_ground)
 las = filter_poi(las, hag > cut_above_ground)
 
-if (display) plot(las)
+if (display) plot(las) |> add_dtm3d(dtm)
 
 # ===== COMPUTE ANISOTROPY =======
 
@@ -117,13 +117,14 @@ if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d
 #     (and clean the understory)
 
 trees = clean_small_cluster(las, max_heigh = 5)
+if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 
 # ====== FIX SEGMENTATION ISSUES =======
 # Segmentation is not always perfect especially complex environment.
 # The seed dectection may have assign two seed to a single trees or an additionnal
 # patch of wood may be assigned the id of a big tree because of a missing seed.
 # For example in the example plot we have
-if (display) plot(filter_poi(las, treeID %in% c(1856, 1898)), color = "treeID")
+if (display) plot(filter_poi(las, treeID %in% c(581,600)), color = "treeID")
 
 trees = fix_split_trees(trees)
 trees = fix_small_isolated_low_clusters(trees)
@@ -194,3 +195,7 @@ for (i in unique(trees_no_foliage$treeID))
   writeLAS(tree, olas)
   data.table::fwrite(xyz, oxyz, sep = " ", col.names = FALSE)
 }
+
+cmd = paste0("/home/jr/Logiciels/AdTree/Release/bin/AdTree " , out, "/ITS ", out ,"/QSM -radius 0.003 -alpha 0.8 -subtree 0.02")
+
+

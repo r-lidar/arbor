@@ -1,18 +1,31 @@
 #' Find a seed for each tree
 #'
-#' In order to segment each individual instance of trees, we must first find seeds for each tree.
-#' This is performed by extracting a slice close to the ground. The wood foliage semantic segmentation
-#' must have been performed first for the method to be able to extract wood points. Then it performs
-#' a connected component clustering.
+#' To segment individual tree instances, the first step is to identify seed points for each tree.
+#' This is achieved by extracting a slice of points near the ground. The wood/foliage
+#' semantic segmentation must be performed first using \link{segment_foliage} to ensure
+#' that wood points are correctly identified. The method uses only points that are labelled 'wood'.
+#' The method then applies connected component clustering followed by RANSAC circle fitting to reliably
+#' assign a single seed to each tree.
 #'
-#' @param las LAS object from lidR
-#' @param slice_seeds_at vector. Two number to slice the point cloud.
-#' @param res resolution for connected component clustering
-#' @param smooth the slice is smoothed in order to improve a bit the connected component clustering.
-#' This is the smoothing radius of the sphere.
+#' @param las A LAS object from lidR.
+#' @param ... Unused. Additional parameters beyond \code{...} should generally remain unchanged,
+#'   except in edge cases.
+#' @param max_diameter Maximum expected tree diameter (in meters). Used to filter out invalid
+#'   RANSAC-fitted circles.
+#' @param slice_seeds_at A numeric vector of two values defining the height range (in meters)
+#'   for slicing the point cloud.
+#' @param res Resolution for connected component clustering.
+# @param smooth Smoothing radius (in meters) applied to the slice to improve the clustering process.
 #' @export
-find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0.06)
+find_seeds = function(las, ..., max_diameter = 50, slice_seeds_at = c(0.5, 0.8), res = 0.025)
 {
+  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage
+
+  # The point cloud must have hag, anisotropy and foliage computed
+  attributes = names(las)
+  stopifnot("foliage" %in% attributes)
+  stopifnot("hag" %in% attributes)
+
   cat("Finding seeds with a clusetring approach\n")
 
   seed = lidR::filter_poi(las, hag > slice_seeds_at[1], hag < slice_seeds_at[2], foliage == FALSE)
@@ -23,18 +36,18 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0
   seed$Z = seed$Z * 100
   #plot(seed, color = "clusterID", pal = pastel.colors(500)) |> add_dtm3d(dtm)
 
-  fit_circle_to_seed = function(id)
+  fit_circle_to_seed = function(id, max_radius)
   {
     cl = seed[seed$clusterID == id]
-    if (npoints(cl) < 10) return(NULL)
+    if (lidR::npoints(cl) < 10) return(NULL)
     circle = fit_circle(cl, num_iterations = 400)
-    if (!is.null(circle$radius) && circle$radius < 0.25 && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
+    if (!is.null(circle$radius) && circle$radius < max_radius && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
     else return(NULL)
   }
 
   cat("Fitting RANSAC circles to each trees\n")
 
-  circles = lapply(unique(seed$clusterID), fit_circle_to_seed)
+  circles = lapply(unique(seed$clusterID), fit_circle_to_seed, max_radius = max_diameter/2)
   circles = do.call(rbind, circles)
   circles = sf::st_as_sf(circles, coords = c("X", "Y"))
   circles = sf::st_buffer(circles, circles$R*1.20)
@@ -47,8 +60,8 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0
     bottom = z < Z[2] - dZ/2
     top = z > Z[1] + dZ/2
 
-    X = c(round(median(x[bottom]), 3), round(median(x[top]), 3))
-    Y = c(round(median(y[bottom]), 3), round(median(y[top]), 3))
+    X = c(round(stats::median(x[bottom]), 3), round(stats::median(x[top]), 3))
+    Y = c(round(stats::median(y[bottom]), 3), round(stats::median(y[top]), 3))
 
     return(list(X = X,Y = Y,Z = Z))
   }
@@ -56,7 +69,7 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), res = 0.025, smooth = 0
   cat("Seed correction with RANSAC circles\n")
 
   seeds = seed@data[, f(X,Y,Z), by = clusterID]
-  seeds = na.omit(seeds)
+  seeds = stats::na.omit(seeds)
 
   sfseeds = sf::st_as_sf(seeds, coords = c("X", "Y", "Z"))
 

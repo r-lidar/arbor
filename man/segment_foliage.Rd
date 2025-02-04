@@ -2,7 +2,7 @@
 % Please edit documentation in R/segment_foliage.R
 \name{segment_foliage}
 \alias{segment_foliage}
-\title{Wood foliage semantic segmentation}
+\title{Wood-Foliage Semantic Segmentation}
 \usage{
 segment_foliage(
   las,
@@ -17,39 +17,41 @@ segment_foliage(
 )
 }
 \arguments{
-\item{las}{LAS object from lidR}
+\item{las}{A LAS object from lidR.}
 
-\item{res}{resolution. The point cloud is decimated first in order to work with few points. Ideally keeping
-one point every 5 cm would be optimal. In practice it increases the computation times. Every 10 cm
-works well actually and compute fast. The default is 8 cm as a trade-off between 5 and 10 cm.}
+\item{dtm}{A SpatRaster object. Digital Terrain Model}
 
-\item{max_gap}{When connecting the points to create a network in which the algorithm searches for
-the least cost path, points with a distance superior than this threshold cannot be connected. Default
-20 cm.}
+\item{res}{Resolution (in meters). The point cloud is initially downsampled to reduce
+computational cost. Ideally, retaining one point every 5 cm provides optimal results,
+but in practice, 10 cm works well and computes faster. The default is 8 cm as a
+trade-off between accuracy and speed.}
 
-\item{...}{unused. Serves only to separate easy parameters to complex ones that should not need to
-be modified}
+\item{max_gap}{Maximum allowable distance (in meters) between connected points in the
+network. Points farther apart than this threshold will not be linked. Default: 20 cm.}
 
-\item{min_passage}{The path finder than tries to reach the ground from every point in space in
-order to build the skeleton of the trees. For a point to be part of the tree skeletons, it must
-be a point of passage more than once. Default is 5 times}
+\item{...}{Unused. Serves only to distinguish common parameters from advanced parameters
+that typically do not require modification.}
 
-\item{th_anisotropy}{point with an anisotropy higher than this value are assigned wood}
+\item{min_passage}{Minimum number of times a point must be part of a valid path to be
+considered part of the tree skeleton. Default: 5.}
 
-\item{k}{each point is connected to k nearest neighboors to buid a network.}
+\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are classified as wood.}
 
-\item{space_res}{The path finder than tries to reach the ground from every point in space in
-order to build the skeleton of the trees. Of course "every point in space" is not  actually possible.
-This is the resolution of the space. Default is one point every 40 cm.}
+\item{k}{Number of nearest neighbors used to construct the network.}
+
+\item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not
+evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.}
 }
 \description{
-Wood foliage semantic segmentation. The points are connected to their knn to build a networks in which
-a path finder can navigate. The path finder starts for every point in space and try to reach the ground
-by the least cost path. This allow to find the skeleton of the trees. The point are assigned a class
-wood foliage based on two main criteria. Are they close to the skeleton? Is their anisotropy above
-a threshold? Last a connected component step cleans small cluster wrongly assigned as wood class because
-some foliage points usually have high anisotropy\cr\cr
-This function has numerous parameters. Those after `...` have minor impact and
-useful only on very specific contexts. In the general case, if the scene have regular trees, do not
-change these parameters.
+This function performs wood-foliage semantic segmentation by constructing a network of points
+using k-nearest neighbors (KNN). A pathfinding algorithm navigates this network to identify the
+tree skeleton by finding the least-cost path from every point in space to the ground. Each point
+is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
+(2) Anisotropy exceeding a given threshold. The function \link{compute_anisotropy} must be applied
+first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
+Finally, a connected component step removes small clusters incorrectly classified as wood,
+since some foliage points may exhibit high anisotropy.\cr\cr
+This function has multiple parameters. Those beyond `...` generally have a minor impact
+and should only be adjusted in specific cases. If the scene contains regular trees, the
+default values should be sufficient.
 }

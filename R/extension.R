@@ -36,9 +36,9 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
   for (id in unique(trees$treeID))
   {
     cat("Tree", id, ": ")
-    tt = filter_poi(trees, treeID == id, foliage == FALSE)
+    tt = lidR::filter_poi(trees, treeID == id, foliage == FALSE)
     min_hag = min(tt$hag)
-    tt = filter_poi(tt, hag < min_hag + max_height)
+    tt = lidR::filter_poi(tt, hag < min_hag + max_height)
 
     #xyz = sf::st_coordinates(tt)
     #pca <- prcomp(xyz, center = TRUE, scale. = FALSE)
@@ -63,28 +63,28 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
 
     circles = apply(ranges, 1, function(x)
     {
-      bottom = filter_poi(tt, hag  >= x[1], hag <= x[2])
-      if (is.empty(bottom)) return(NULL)
+      bottom = lidR::filter_poi(tt, hag  >= x[1], hag <= x[2])
+      if (lidR::is.empty(bottom)) return(NULL)
 
       bottom$Z = bottom$Z * 0.01
-      bottom = connected_components(bottom, 0.01, 5)
+      bottom = lidR::connected_components(bottom, 0.01, 5)
       ids = table(bottom$clusterID)
       ids = as.numeric(names(ids[which.max(ids)]))
       bottom = bottom[bottom$clusterID == ids]
 
-      if (npoints(bottom) < 10) return(NULL)
+      if (lidR::npoints(bottom) < 10) return(NULL)
 
       bottom$Z = bottom$Z * 100
-      circle = fit_circle(bottom)
+      circle = lidR::fit_circle(bottom)
       inliner = length(circle$inliers)/npoints(bottom) * 100
 
       if (debug)
       {
         plot(sf::st_coordinates(bottom), asp = 1, main = id)
-        symbols(circle$center_x, circle$center_y, circles = circle$radius,  add = TRUE, fg = "red", inches = FALSE)
-        symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01,  add = TRUE, fg = "red", lty=3, inches = FALSE)
-        symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01,  add = TRUE, fg = "red", lty= 3, inches = FALSE)
-        mtext(paste0("Radius = ", round(circle$radius, 3), " inliner = ", round(inliner), "% sector ", circle$angle_range, " deg"))
+        graphics::symbols(circle$center_x, circle$center_y, circles = circle$radius,  add = TRUE, fg = "red", inches = FALSE)
+        graphics::symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01,  add = TRUE, fg = "red", lty=3, inches = FALSE)
+        graphics::symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01,  add = TRUE, fg = "red", lty= 3, inches = FALSE)
+        graphics::mtext(paste0("Radius = ", round(circle$radius, 3), " inliner = ", round(inliner), "% sector ", circle$angle_range, " deg"))
       }
       circle$pinlier = inliner
       circle$inliers = NULL
@@ -112,10 +112,10 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
     if (n == 0) next
 
     circles = circles[1:n,]
-    x = median(circles$center_x)
-    y = median(circles$center_y)
+    x = stats::median(circles$center_x)
+    y = stats::median(circles$center_y)
     z = min(circles$z)+0.05
-    r = median((circles$radius))
+    r = stats::median((circles$radius))
     circle = list(center_x = x, center_y = y, z = z, radius = r)
 
     loc = matrix(c(x,y), ncol = 2)
@@ -133,9 +133,9 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
       #extension <- extension %*% rotation_matrix
       #extension = as.data.frame(extension)
       #names(extension) = c("X", 'Y', "Z")
-      quantize(extension$X, tt@header[["X scale factor"]], tt@header[["X offset"]])
-      quantize(extension$Y, tt@header[["Y scale factor"]], tt@header[["Y offset"]])
-      quantize(extension$Z, tt@header[["Z scale factor"]], tt@header[["Z offset"]])
+      lidR::quantize(extension$X, tt@header[["X scale factor"]], tt@header[["X offset"]])
+      lidR::quantize(extension$Y, tt@header[["Y scale factor"]], tt@header[["Y offset"]])
+      lidR::quantize(extension$Z, tt@header[["Z scale factor"]], tt@header[["Z offset"]])
       extension$treeID = id
       extensions[[as.character(id)]] = extension
 
@@ -152,14 +152,20 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
   extensions$wood = TRUE
   data.table::setDT(extensions)
 
-  extensions = LAS(extensions)
+  extensions = lidR::LAS(extensions)
 
   return(extensions)
 }
 
+#' @rdname tree_extension
+#' @param tree LAS object
+#' @param extension object returned by \link{tree_extension}
+#' @param fill_value default value to fill missing attributes when merging
 #' @export
 weld_extension <- function(trees, extensions, fill_value = 0L)
 {
+  ..all_cols <- NULL
+
   df1 = trees@data
   df2 = extensions@data
 
