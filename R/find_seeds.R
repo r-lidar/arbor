@@ -19,7 +19,7 @@
 #' @export
 find_seeds = function(las, ..., max_diameter = 50, slice_seeds_at = c(0.5, 0.8), res = 0.025)
 {
-  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage
+  treeID <- clusterID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
 
   # The point cloud must have hag, anisotropy and foliage computed
   attributes = names(las)
@@ -40,7 +40,7 @@ find_seeds = function(las, ..., max_diameter = 50, slice_seeds_at = c(0.5, 0.8),
   {
     cl = seed[seed$clusterID == id]
     if (lidR::npoints(cl) < 10) return(NULL)
-    circle = fit_circle(cl, num_iterations = 400)
+    circle = lidR::fit_circle(cl, num_iterations = 400)
     if (!is.null(circle$radius) && circle$radius < max_radius && circle$angle_range > 90) return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
     else return(NULL)
   }
@@ -63,7 +63,7 @@ find_seeds = function(las, ..., max_diameter = 50, slice_seeds_at = c(0.5, 0.8),
     X = c(round(stats::median(x[bottom]), 3), round(stats::median(x[top]), 3))
     Y = c(round(stats::median(y[bottom]), 3), round(stats::median(y[top]), 3))
 
-    return(list(X = X,Y = Y,Z = Z))
+    return(list(X = X, Y = Y,Z = Z))
   }
 
   cat("Seed correction with RANSAC circles\n")

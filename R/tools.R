@@ -13,12 +13,12 @@ compute_network = function(data, query, k = 5)
   if (missing(query))
   {
     nn = lidR::knn(data, k = k)
-    n = npoints(data)
+    n = lidR::npoints(data)
   }
   else
   {
     nn = lidR::knnx(data, query, k = k)
-    n = npoints(query)
+    n = lidR::npoints(query)
   }
 
   from <- rep(1:n, each = k)
@@ -33,7 +33,7 @@ expand_treeid_to_neighbors = function(unclustered, clustered, max_gap = 0.5, z_f
   ID = "treeID"
   clustered$Z = clustered$Z*z_factor
   unclustered$Z = unclustered$Z*z_factor
-  seed_to_dense_lookup <- knnx(clustered, unclustered, k = 1)
+  seed_to_dense_lookup <- lidR::knnx(clustered, unclustered, k = 1)
   full_tree_id_vector <- clustered@data[[ID]][seed_to_dense_lookup[[1]]]
   distances = seed_to_dense_lookup[[2]]
   full_tree_id_vector[distances > max_gap] <- NA_integer_
@@ -68,7 +68,7 @@ free = function(...)
 
   bytes = 0
   for (obj in list(...)) {
-    bytes = bytes + object.size(obj)
+    bytes = bytes + utils::object.size(obj)
   }
   mb = format(bytes, "MB")
 

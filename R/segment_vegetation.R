@@ -94,9 +94,9 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2
   y = mean(las$Y)
   z = mean(las$Z)-100
   master_seed = data.frame(X = x, Y = y, Z = z)
-  quantize(master_seed[["X"]], 0.01, las@header$`X offset`)
-  quantize(master_seed[["Y"]], 0.01, las@header$`Y offset`)
-  quantize(master_seed[["Z"]], 0.01, las@header$`Z offset`)
+  lidR::quantize(master_seed[["X"]], 0.01, las@header$`X offset`)
+  lidR::quantize(master_seed[["Y"]], 0.01, las@header$`Y offset`)
+  lidR::quantize(master_seed[["Z"]], 0.01, las@header$`Z offset`)
   header = rlas::header_create(master_seed)
   master_seed = suppressWarnings(lidR::LAS(master_seed, header))
 
@@ -214,7 +214,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2
   cat("Calculating shortest paths from tree origins (can take a few minutes)... (Step 4/7)\n") ; t0 = tic()
 
   #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = from, to = to)
-  distance_matrix <- lidRtls:::get_distance_matrix(combined_network, from, to)
+  distance_matrix <- get_distance_matrix(combined_network, from, to)
   distance_matrix[is.infinite(distance_matrix)] = NA_real_
 
   i = colMins(distance_matrix)
@@ -231,7 +231,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2
   chunks <- split(to, ceiling(seq_along(to) / chunk_size))
   pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
 
-  treeID <- rep(NA_integer_, npoints(dec))
+  treeID <- rep(NA_integer_, lidR::npoints(dec))
 
   for (i in seq_along(chunks))
   {
@@ -241,7 +241,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2
     #path <- lapply(path, function(x) as.integer(x)[-1])
     #path <- unname(do.call(c, path))
 
-    path = lidRtls:::findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path = findPaths(combined_network, from[seq_along(current_to)], current_to)
     path = path$paths
     path <- lapply(path, function(x) x[2])
     tree_id_vector <- unlist(path)

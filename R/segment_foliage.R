@@ -28,8 +28,12 @@
 #'   considered part of the tree skeleton. Default: 5.
 #' @param space_res Spatial resolution (in meters) for pathfinding. The algorithm does not
 #'   evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.
+#' @param z_factor Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
+#'   reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
+#'   Default is 0.8.
+#' @md
 #' @export
-segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passage = 5, th_anisotropy = 0.75, k = 10, space_res = 0.4)
+segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 0.75, ...,  min_passage = 5, k = 10, space_res = 0.4, z_factor = 0.8)
 {
   # Other parameters hard coded
   upward_cost_factor = 100
@@ -42,7 +46,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
 
   las@data$pointID = 1:lidR::npoints(las)
 
-  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID
+  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- NULL
 
   # The point cloud must have hag and anisotropy computed
   attributes = names(las)
@@ -94,9 +98,9 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, ...,  min_passag
   y = mean(gnd$Y)
   z = mean(gnd$Z)-100
   seed = data.frame(X= x, Y = y, Z = z, anisotropy = 1, pointID = 0)
-  quantize(seed[["X"]], 0.01, las@header$`X offset`)
-  quantize(seed[["Y"]], 0.01, las@header$`Y offset`)
-  quantize(seed[["Z"]], 0.01, las@header$`Z offset`)
+  lidR::quantize(seed[["X"]], 0.01, las@header$`X offset`)
+  lidR::quantize(seed[["Y"]], 0.01, las@header$`Y offset`)
+  lidR::quantize(seed[["Z"]], 0.01, las@header$`Z offset`)
   header = rlas::header_create(seed)
   seed = suppressWarnings(lidR::LAS(seed, header))
 

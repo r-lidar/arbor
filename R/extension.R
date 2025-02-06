@@ -1,28 +1,29 @@
-#' Extent the trees to the DTM
+#' Extend the trees to the DTM
 #'
-#' Extent the trees to the DTM. It fits circles using a RANSAC approach to measure the bottom diameter
-#' of each tree. In practice fitting one circle on a low slice of a stem works only in easy contexts with
-#' vertical and perfectly segmented wood and no noise or mistake. Actaully the method fit numerous
-#' circles at different height and with different thicknesses to be more robust and avoid edge cases
-#' and pit-falls.
+#' Extend the trees to the DTM. It fits circles using a RANSAC approach to measure the bottom diameter
+#' of each tree. In practice, fitting one circle on a low slice of a stem works only in easy contexts with
+#' vertical and perfectly segmented wood, and no noise or mistakes. To be more robust, the method fits numerous
+#' circles at different heights and with different thicknesses.
 #'
 #' @param trees LAS object from lidR
 #' @param dtm SpatRaster from terra. The DTM.
-#' @param max_diameter The maximum diameter of a tree. This only serve to protect against bad fitting
-#' with small trees where RANSAC fitting could easy find too large diameters. Input a number that
-#' correspond realistically to the size of a biggest tree in your context.
-#' @param ... unused. Only useful to separate important parameters from those that should only be change
-#' in very specific contexts
-#' @param name description
-#' @param max_height make slices for the bottom of the tree (i.e. 50 cm if ou sliced at 50 cm) up to
-#' +max_height above that point (i.e. 1.5 m in this example).
-#' @param min_slice_thickness,max_slice_thickness the algorithm fits circles on many slices with various
-#' thicknesses. This control the thicknesses limits
-#' @param extra_height the trees can be prolongated a below the ground
-#' @param debug boolean. Some debugging display.
+#' @param max_diameter The maximum diameter of a tree. This only serves to protect against bad fitting
+#' with small trees, where RANSAC fitting could easily find too large diameters. Input a number that
+#' corresponds realistically to the size of the largest tree in your context.
+#' @param ... unused. Only useful to separate important parameters from those that should only be changed
+#' in very specific contexts.
+#' @param max_height Make slices for the bottom of the tree (i.e., 50 cm if you slice at 50 cm) up to
+#' +max_height above that point (i.e., 1.5 m in this example).
+#' @param min_slice_thickness, max_slice_thickness The algorithm fits circles on many slices with various
+#' thicknesses. These control the thickness limits.
+#' @param extra_height The trees can be prolonged below the ground.
+#' @param debug Boolean. Some debugging display.
 #' @export
-tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1, min_slice_thickness = 0.1, max_slice_thickness = 0.6, extra_height = 0, debug = FALSE)
+
+tree_extensions = function(trees, dtm, max_diameter = 0.5, ..., max_height = 1, min_slice_thickness = 0.1, max_slice_thickness = 0.6, extra_height = 0, debug = FALSE)
 {
+  treeID <- foliage <- hag <- NULL
+
   max_radius = max_diameter/2
 
   # Generate multiple slices
@@ -76,7 +77,7 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
 
       bottom$Z = bottom$Z * 100
       circle = lidR::fit_circle(bottom)
-      inliner = length(circle$inliers)/npoints(bottom) * 100
+      inliner = length(circle$inliers)/lidR::npoints(bottom) * 100
 
       if (debug)
       {
@@ -157,9 +158,9 @@ tree_extensions = function(trees, dtm, max_diameter = 0.5, ...., max_height = 1,
   return(extensions)
 }
 
-#' @rdname tree_extension
-#' @param tree LAS object
-#' @param extension object returned by \link{tree_extension}
+#' @rdname tree_extensions
+#' @param trees LAS object
+#' @param extensions object returned by \link{tree_extensions}
 #' @param fill_value default value to fill missing attributes when merging
 #' @export
 weld_extension <- function(trees, extensions, fill_value = 0L)

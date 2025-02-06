@@ -14,7 +14,7 @@
 #' @export
 fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diameter = 0.5)
 {
-  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage
+  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
 
   attributes = names(las)
   stopifnot("foliage" %in% attributes)
@@ -36,7 +36,7 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
     }
     circle = lidR::fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
     #cat(" radius =", round(circle$radius, 2))
-    if (!is.null(circle$radius) && circle$radius < maximum_radius && circle$angle_range > 90)
+    if (!is.null(circle$radius) && circle$radius < max_radius && circle$angle_range > 90)
     {
       #cat("\n")
       return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
@@ -99,13 +99,16 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
 #' @export
 fix_small_isolated_low_clusters = function(las)
 {
+  treeID <- clusterID <- foliage <- hag <- foliage <- NULL
+
   las@data$pointID = 1:lidR::npoints(las)
+  sub = lidR::filter_poi(las, foliage == FALSE, hag < 3)
 
   for (id in unique(las$treeID))
   {
     cat("Tree", id)
-    tt = lidR::filter_poi(las, treeID == id, foliage == FALSE, hag < 3)
-    if (is.empty(tt))
+    tt = lidR::filter_poi(sub, treeID == id)
+    if (lidR::is.empty(tt))
     {
       cat("\n")
       next
@@ -154,8 +157,8 @@ generate_cylinder_points <- function(circle, height = 0.5, n_points = 1000)
   cylinder_points <- data.frame(
     X = 0,
     Y = 0,
-    theta = runif(n_points, 0, 2*pi),
-    Z = runif(n_points, z_bottom, z_top)
+    theta = stats::runif(n_points, 0, 2*pi),
+    Z = stats::runif(n_points, z_bottom, z_top)
   )
 
   # Convert to Cartesian coordinates
@@ -210,6 +213,8 @@ align_to_z <- function(main_axis)
 
 combine_with_fill <- function(df1, df2, fill_value = 0L)
 {
+  ..all_cols <- NULL
+
   all_cols <- union(names(df1), names(df2))
 
   # Add missing columns with the fill value

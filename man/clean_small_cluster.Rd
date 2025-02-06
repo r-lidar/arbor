@@ -4,7 +4,7 @@
 \alias{clean_small_cluster}
 \title{Remove Small Trees and Clean Low Understory}
 \usage{
-clean_small_cluster(las, max_heigh = 3)
+clean_small_cluster(las, max_height = 3)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

@@ -9,11 +9,12 @@ segment_foliage(
   dtm,
   res = 0.08,
   max_gap = 0.2,
+  th_anisotropy = 0.75,
   ...,
   min_passage = 5,
-  th_anisotropy = 0.75,
   k = 10,
-  space_res = 0.4
+  space_res = 0.4,
+  z_factor = 0.8
 )
 }
 \arguments{
@@ -29,18 +30,22 @@ trade-off between accuracy and speed.}
 \item{max_gap}{Maximum allowable distance (in meters) between connected points in the
 network. Points farther apart than this threshold will not be linked. Default: 20 cm.}
 
+\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are classified as wood.}
+
 \item{...}{Unused. Serves only to distinguish common parameters from advanced parameters
 that typically do not require modification.}
 
 \item{min_passage}{Minimum number of times a point must be part of a valid path to be
 considered part of the tree skeleton. Default: 5.}
 
-\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are classified as wood.}
-
 \item{k}{Number of nearest neighbors used to construct the network.}
 
 \item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not
 evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.}
+
+\item{z_factor}{Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
+reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
+Default is 0.8.}
 }
 \description{
 This function performs wood-foliage semantic segmentation by constructing a network of points
@@ -51,7 +56,7 @@ is classified as wood or foliage based on two main criteria: (1) Proximity to th
 first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
 Finally, a connected component step removes small clusters incorrectly classified as wood,
 since some foliage points may exhibit high anisotropy.\cr\cr
-This function has multiple parameters. Those beyond `...` generally have a minor impact
+This function has multiple parameters. Those beyond \code{...} generally have a minor impact
 and should only be adjusted in specific cases. If the scene contains regular trees, the
 default values should be sufficient.
 }
