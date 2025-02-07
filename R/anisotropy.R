@@ -10,10 +10,19 @@
 #' sensor accuracy of 2–4 cm, `k = 50` is suitable. For highly accurate TLS data (millimeter precision)
 #' `k` can be reduced. If the density is very high (e.g., 40,000 points/m²), `k` should be increased.
 #' The key consideration is that `k` must be large enough to capture local geometric structures but
-#' small enough to remain "local."
+#' small enough to remain "local." The default is 0 meaning that is uses an auto-adaptive value.
 #' @export
-compute_anisotropy = function(las, k = 50)
+compute_anisotropy = function(las, k = 0)
 {
+  if (k  <= 0)
+  {
+    area <- lidR::st_area(las)
+    count <- lidR::npoints(las)
+    constant = 50/15000
+    k = round(((count/area) * constant), 0)
+    cat('Auto-adaptive k =', k, "\n")
+  }
+
   t0 = tic()
   eigen = lidR::point_eigenvalues(las, k = k, metrics = T)
   las = lidR::add_lasattribute_manual(las, eigen$anisotropy, "anisotropy", "anisotropy", "float")

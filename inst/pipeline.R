@@ -1,9 +1,11 @@
 library(lidR)
 library(lidRtls)
 
+set_lidr_threads(12)
+
 foliage.colors = c("chocolate4", "darkgreen")
 
-slice_seeds_at = c(0.5, 1)
+slice_seeds_at = c(0.25, 1)
 
 display = FALSE
 
@@ -70,7 +72,7 @@ if (display) plot(las) |> add_dtm3d(dtm)
 #f <- ecdf(las$distance)
 #las@data$anisotropy <- 1-f(las$distance)
 
-las = compute_anisotropy(las, k = 50)
+las = compute_anisotropy(las, k = 0)
 
 if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 
@@ -89,10 +91,6 @@ if (display)
   sk = filter_poi(las, skeleton == T)
   plot(sk, add = x, pal = "red", size = 3)
 }
-
-
-#writeLAS(las, "~/Téléchargements/segmented.las")
-#las = readLAS("~/Téléchargements/segmented.las", select = "xyz01234")
 
 # ====== FIND TREE SEEDS =======
 
@@ -118,7 +116,7 @@ if (display)
 # For issue #1, there is a post-processing function available.
 # For issue #2, this is a major challenge with no easy solution.
 
-seeds = find_seeds(las, slice_seeds_at)
+seeds = find_seeds(las, slice_seeds_at = slice_seeds_at)
 
 if (display)
 {
@@ -151,13 +149,15 @@ if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 # The seed detection may assign two seeds to a single tree, or an additional
 # patch of wood may be assigned the ID of a large tree due to a missing seed.
 
+# plot(filter_poi(las, treeID %in% c(2177, 2178)), color = "treeID")
+
 trees = fix_split_trees(trees)
 trees = fix_small_isolated_low_clusters(trees)
 
 if (display)
 {
   plot(trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(dtm)
+  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
   plot(filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.1)
 }
 
@@ -179,7 +179,7 @@ trees = weld_extension(trees, extensions)
 if (display)
 {
   plot(trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = c("chocolate4", "darkgreen")) |> add_dtm3d(dtm)
+  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
 }
 
 # ==== CLIP BUFFER ======

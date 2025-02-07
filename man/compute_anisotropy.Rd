@@ -4,7 +4,7 @@
 \alias{compute_anisotropy}
 \title{Compute Local Anisotropy}
 \usage{
-compute_anisotropy(las, k = 50)
+compute_anisotropy(las, k = 0)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
@@ -14,7 +14,7 @@ depends on point density and sensor accuracy. For datasets with ~15,000–20,000
 sensor accuracy of 2–4 cm, `k = 50` is suitable. For highly accurate TLS data (millimeter precision)
 `k` can be reduced. If the density is very high (e.g., 40,000 points/m²), `k` should be increased.
 The key consideration is that `k` must be large enough to capture local geometric structures but
-small enough to remain "local."}
+small enough to remain "local." The default is 0 meaning that is uses an auto-adaptive value.}
 }
 \description{
 This function calculates the local anisotropy of each point in a LAS object using

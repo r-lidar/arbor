@@ -6,14 +6,18 @@
 \usage{
 find_seeds(
   las,
+  slice_seeds_at = c(0.5, 0.8),
   ...,
   max_diameter = 50,
-  slice_seeds_at = c(0.5, 0.8),
-  res = 0.025
+  res = 0.025,
+  tree_spacing = NULL
 )
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
+
+\item{slice_seeds_at}{A numeric vector of two values defining the height range (in meters)
+for slicing the point cloud.}
 
 \item{...}{Unused. Additional parameters beyond \code{...} should generally remain unchanged,
 except in edge cases.}
@@ -21,10 +25,11 @@ except in edge cases.}
 \item{max_diameter}{Maximum expected tree diameter (in meters). Used to filter out invalid
 RANSAC-fitted circles.}
 
-\item{slice_seeds_at}{A numeric vector of two values defining the height range (in meters)
-for slicing the point cloud.}
-
 \item{res}{Resolution for connected component clustering.}
+
+\item{tree_spacing}{numeric. If the scene is a plantation, providing the spacing of the trees
+guarantee much better seeds finding by providing prior information. We now know that trees are
+regularly spaced.}
 }
 \description{
 To segment individual tree instances, the first step is to identify seed points for each tree.

@@ -75,11 +75,18 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
 
     for (i in intersect)
     {
-      ids = circles[i,]$id
-      #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
-      #plot(filter_poi(las, treeID %in% ids), color = "foliage")
-      cat("Combining trees", ids, "into tree", ids[1], "\n")
-      las$treeID[las$treeID %in% ids] = ids[1]
+      intersecting_circles = circles[i,]
+      area1 = sum(sf::st_area(intersecting_circles))
+      area2 = sf::st_area(sf::st_union(intersecting_circles))
+      ids = intersecting_circles$id
+
+      if (area2 < area1*0.5)
+      {
+        #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
+        #plot(filter_poi(las, treeID %in% ids), color = "foliage")
+        cat("Combining trees", ids, "into tree", ids[1], "\n")
+        las$treeID[las$treeID %in% ids] = ids[1]
+      }
     }
   }
 

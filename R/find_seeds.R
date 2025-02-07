@@ -16,10 +16,18 @@
 #'   for slicing the point cloud.
 #' @param res Resolution for connected component clustering.
 # @param smooth Smoothing radius (in meters) applied to the slice to improve the clustering process.
+#' @param tree_spacing numeric. If the scene is a plantation, providing the spacing of the trees
+#' guarantee much better seeds finding by providing prior information. We now know that trees are
+#' regularly spaced.
 #' @export
-find_seeds = function(las, ..., max_diameter = 50, slice_seeds_at = c(0.5, 0.8), res = 0.025)
+find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 50, res = 0.025, tree_spacing = NULL)
 {
   treeID <- clusterID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
+
+  if (!is.null(tree_spacing) && tree_spacing > 0)
+  {
+    res = tree_spacing/4
+  }
 
   # The point cloud must have hag, anisotropy and foliage computed
   attributes = names(las)
