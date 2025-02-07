@@ -1,7 +1,7 @@
 Package: lidRtls
 Type: Package
 Title: Tree Segmentation in TLS MLS point cloud
-Version: 0.1.0
+Version: 0.1.1
 Author: Jean-Romain Roussel
 Maintainer: Jean-Romain Roussel <info@r-lidar.com>
 Description: Tree Segmentation in TLS MLS point cloud.
