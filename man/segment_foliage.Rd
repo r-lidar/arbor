@@ -30,18 +30,20 @@ trade-off between accuracy and speed.}
 \item{max_gap}{Maximum allowable distance (in meters) between connected points in the
 network. Points farther apart than this threshold will not be linked. Default: 20 cm.}
 
-\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are classified as wood.}
+\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are likely to be
+classified as wood.}
 
 \item{...}{Unused. Serves only to distinguish common parameters from advanced parameters
 that typically do not require modification.}
 
-\item{min_passage}{Minimum number of times a point must be part of a valid path to be
+\item{min_passage}{Minimum number of times a point must be part of a least cost path to be
 considered part of the tree skeleton. Default: 5.}
 
 \item{k}{Number of nearest neighbors used to construct the network.}
 
-\item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not
-evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.}
+\item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not actually
+evaluate "every point in space" as decribed above, but instead considers points at this interval.
+Default: 40 cm.}
 
 \item{z_factor}{Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
 reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.

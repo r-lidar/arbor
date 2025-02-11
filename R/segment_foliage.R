@@ -23,11 +23,13 @@
 #' @param ... Unused. Serves only to distinguish common parameters from advanced parameters
 #'   that typically do not require modification.
 #' @param k Number of nearest neighbors used to construct the network.
-#' @param th_anisotropy Threshold for anisotropy. Points exceeding this value are classified as wood.
-#' @param min_passage Minimum number of times a point must be part of a valid path to be
+#' @param th_anisotropy Threshold for anisotropy. Points exceeding this value are likely to be
+#'   classified as wood.
+#' @param min_passage Minimum number of times a point must be part of a least cost path to be
 #'   considered part of the tree skeleton. Default: 5.
-#' @param space_res Spatial resolution (in meters) for pathfinding. The algorithm does not
-#'   evaluate "every point in space" but instead considers points at this interval. Default: 40 cm.
+#' @param space_res Spatial resolution (in meters) for pathfinding. The algorithm does not actually
+#'   evaluate "every point in space" as decribed above, but instead considers points at this interval.
+#'   Default: 40 cm.
 #' @param z_factor Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
 #'   reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
 #'   Default is 0.8.

@@ -68,7 +68,7 @@
 #' @export
 #' @importFrom Rcpp sourceCpp
 #' @seealso \link{find_seeds}, \link{segment_foliage}
-segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.2, z_factor = 0.8)
+segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5, z_factor = 0.8)
 {
   ti = tic()
 

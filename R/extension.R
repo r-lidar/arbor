@@ -14,7 +14,7 @@
 #' in very specific contexts.
 #' @param max_height Make slices for the bottom of the tree (i.e., 50 cm if you slice at 50 cm) up to
 #' +max_height above that point (i.e., 1.5 m in this example).
-#' @param min_slice_thickness, max_slice_thickness The algorithm fits circles on many slices with various
+#' @param min_slice_thickness,max_slice_thickness The algorithm fits circles on many slices with various
 #' thicknesses. These control the thickness limits.
 #' @param extra_height The trees can be prolonged below the ground.
 #' @param debug Boolean. Some debugging display.

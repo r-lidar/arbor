@@ -1,7 +1,7 @@
 library(lidR)
 library(lidRtls)
 
-set_lidr_threads(12)
+set_lidr_threads(0)
 
 foliage.colors = c("chocolate4", "darkgreen")
 
@@ -89,7 +89,7 @@ if (display)
   plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)
   x = plot(las, color = "foliage", pal = foliage.colors, size = 2) |> add_dtm3d(dtm)
   sk = filter_poi(las, skeleton == T)
-  plot(sk, add = x, pal = "red", size = 3)
+  plot(sk, pal = "red", size = 3)
 }
 
 # ====== FIND TREE SEEDS =======
@@ -131,7 +131,12 @@ if (display)
 
 las = segment_vegetation(las, seeds)
 
-if (display) x = plot(las, color = "treeID") |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.08)
+if (display)
+{
+  col = pastel.colors(length(unique(seeds$treeID)))
+  col = col[as.integer(as.factor(seeds$treeID))]
+  x = plot(las, color = "treeID", pal = col) |> add_dtm3d(dtm)
+}
 
 # ====== RETAIN ONLY MAIN TREES =======
 
