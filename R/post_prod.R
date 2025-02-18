@@ -12,7 +12,7 @@
 #' @param max_diameter a threshold to protect against bad circle fitting. If a circle is bigger than
 #' that it is not valid. Set it the maximum expected diameter of a tree.
 #' @export
-fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diameter = 0.5)
+fix_split_trees = function(las, max_height = 2, slice_thickness = 0.25, max_diameter = 0.6)
 {
   treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
 
@@ -34,7 +34,7 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
       #cat(" not enought points\n")
       return(NULL)
     }
-    circle = lidR::fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
+    circle = .fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
     #cat(" radius =", round(circle$radius, 2))
     if (!is.null(circle$radius) && circle$radius < max_radius && circle$angle_range > 90)
     {
@@ -76,11 +76,18 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
     for (i in intersect)
     {
       intersecting_circles = circles[i,]
-      area1 = sum(sf::st_area(intersecting_circles))
-      area2 = sf::st_area(sf::st_union(intersecting_circles))
       ids = intersecting_circles$id
 
-      if (area2 < area1*0.5)
+      intersecting_circles = sf::st_geometry(intersecting_circles)
+
+      if (length(intersecting_circles) > 2)
+        warning("More than 2 rings intersecting. This case is not handled yet.")
+
+      area1 = mean(sf::st_area(intersecting_circles))
+      area2 = sf::st_area(sf::st_intersection(intersecting_circles[1],intersecting_circles[2]))
+
+
+      if (area2 > area1*0.5)
       {
         #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
         #plot(filter_poi(las, treeID %in% ids), color = "foliage")
@@ -92,6 +99,94 @@ fix_split_trees = function(las, max_height = 1, slice_thickness = 0.25, max_diam
 
   return(las)
 }
+
+fix_split_trees_v2 = function(las, ...)
+{
+  treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
+
+  attributes = names(las)
+  stopifnot("foliage" %in% attributes)
+  stopifnot("hag" %in% attributes)
+
+  circles = measure_diameters(las, ...)
+
+  circles = sf::st_as_sf(circles, coords = c("center_x", "center_y"))
+  circles = sf::st_buffer(circles, circles$radius)
+
+  intersect = sf::st_intersects(circles)
+  intersect = Filter(function(x) length(x) > 1, intersect)
+  intersect = unique(intersect)
+
+  if (length(intersect) == 0)
+    return(las)
+
+  for (i in seq_along(intersect))
+  {
+    ii = intersect[[i]]
+    intersecting_circles = circles[ii,]
+    area1 = mean(sf::st_area(intersecting_circles))
+    area2 = sf::st_area(sf::st_union(intersecting_circles))
+    ids = intersecting_circles$treeID
+
+    if (area2 > area1*0.5)
+    {
+      #plot(intersecting_circles$geometry)
+      #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
+      #plot(filter_poi(las, treeID %in% ids), color = "foliage")
+      cat("Combining trees", ids, "into tree", ids[1], "\n")
+      las$treeID[las$treeID %in% ids] = ids[1]
+    }
+  }
+
+
+  # For each slice apply the fit to each tree
+  # if two circle intersect they are from the same tree
+  for (k in 1:length(offsets))
+  {
+    slice = lidR::filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
+
+    #x = plot(slice, color = "treeID")
+
+    circles = lapply(unique(slice$treeID), fit_circle_to_seed)
+    circles = do.call(rbind, circles)
+
+    #for (i in 1:nrow(circles)) add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], 0)
+
+    circles = sf::st_as_sf(circles, coords = c("X", "Y"))
+    circles = sf::st_buffer(circles, circles$R*1.20)
+
+    intersect = sf::st_intersects(circles)
+    intersect = Filter(function(x) length(x) > 1, intersect)
+    intersect = unique(intersect)
+
+    if (length(intersect) == 0) next
+
+    for (i in intersect)
+    {
+      intersecting_circles = circles[i,]
+      ids = intersecting_circles$id
+
+      intersecting_circles = sf::st_geometry(intersecting_circles)
+
+      if (length(intersecting_circles) > 2)
+        warning("More than 2 rings intersecting. This case is not handled yet.")
+
+      area1 = mean(sf::st_area(intersecting_circles))
+      area2 = sf::st_area(sf::st_intersection(intersecting_circles[1],intersecting_circles[2]))
+
+      if (area2 > area1*0.5)
+      {
+        #plot(filter_poi(las, treeID %in% ids), color = "treeID", axis = T)
+        #plot(filter_poi(las, treeID %in% ids), color = "foliage")
+        cat("Combining trees", ids, "into tree", ids[1], "\n")
+        las$treeID[las$treeID %in% ids] = ids[1]
+      }
+    }
+  }
+
+  return(las)
+}
+
 
 #' Post production tool
 #'
@@ -151,7 +246,7 @@ fix_small_isolated_low_clusters = function(las)
   return(las)
 }
 
-generate_cylinder_points <- function(circle, height = 0.5, n_points = 1000)
+generate_cylinder_points <- function(circle, height = 0.5, n_points = 2000)
 {
   # Extract circle parameters
   center_x <- circle$center_x

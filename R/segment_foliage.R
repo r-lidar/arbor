@@ -46,6 +46,8 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   wood_extra_reasignation_k = 10
   wood_extra_reasignation_dist = 0.03
 
+
+
   las@data$pointID = 1:lidR::npoints(las)
 
   . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- NULL

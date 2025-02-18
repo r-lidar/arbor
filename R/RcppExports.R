@@ -13,6 +13,14 @@ get_distance_matrix <- function(graph_df, start_node_ids, goal_node_ids) {
     .Call(`_lidRtls_get_distance_matrix`, graph_df, start_node_ids, goal_node_ids)
 }
 
+fit_circle_on_3_points_stl <- function(points_subset) {
+    .Call(`_lidRtls_fit_circle_on_3_points_stl`, points_subset)
+}
+
+fit_circle_stl <- function(points, num_iterations = 100L, inlier_threshold = 0.01) {
+    .Call(`_lidRtls_fit_circle_stl`, points, num_iterations, inlier_threshold)
+}
+
 cpp_smooth3d <- function(las, radius, weight, ncpu, pgbar, verbose) {
     .Call(`_lidRtls_cpp_smooth3d`, las, radius, weight, ncpu, pgbar, verbose)
 }
