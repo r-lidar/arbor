@@ -35,11 +35,11 @@ fix_split_trees = function(las, max_height = 2, slice_thickness = 0.25, max_diam
       return(NULL)
     }
     circle = .fit_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
-    #cat(" radius =", round(circle$radius, 2))
-    if (!is.null(circle$radius) && circle$radius < max_radius && circle$angle_range > 90)
+    valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100)
+    if (valid)
     {
       #cat("\n")
-      return(data.frame(X = circle$center_x, Y = circle$center_y, R = circle$radius, id = id))
+      return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
     }
     else
     {
@@ -75,6 +75,7 @@ fix_split_trees = function(las, max_height = 2, slice_thickness = 0.25, max_diam
 
     for (i in intersect)
     {
+      print(i)
       intersecting_circles = circles[i,]
       ids = intersecting_circles$id
 
