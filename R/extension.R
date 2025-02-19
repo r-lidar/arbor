@@ -7,22 +7,15 @@
 #'
 #' @param trees LAS object from lidR
 #' @param dtm SpatRaster from terra. The DTM.
-#' @param max_diameter The maximum diameter of a tree. This only serves to protect against bad fitting
-#' with small trees, where RANSAC fitting could easily find too large diameters. Input a number that
-#' corresponds realistically to the size of the largest tree in your context.
-#' @param ... unused. Only useful to separate important parameters from those that should only be changed
-#' in very specific contexts.
-#' @param max_height Make slices for the bottom of the tree (i.e., 50 cm if you slice at 50 cm) up to
-#' +max_height above that point (i.e., 1.5 m in this example).
-#' @param min_slice_thickness,max_slice_thickness The algorithm fits circles on many slices with various
-#' thicknesses. These control the thickness limits.
+#' @param circles data.frame produced by \link{measure_diameters}
 #' @param extra_height The trees can be prolonged below the ground.
-#' @param debug Boolean. Some debugging display.
 #' @export
 tree_extensions = function(trees, dtm, circles, extra_height = 0.15)
 {
+  pointID <- treeID <- Z <- NULL
+
   extensions = list()
-  trees@data$pointID = 1:npoints(trees)
+  trees@data$pointID = 1:lidR::npoints(trees)
 
   for (i in 1:nrow(circles))
   {
@@ -92,11 +85,6 @@ tree_extensions = function(trees, dtm, circles, extra_height = 0.15)
   return(trees)
 }
 
-#' @rdname tree_extensions
-#' @param trees LAS object
-#' @param extensions object returned by \link{tree_extensions}
-#' @param fill_value default value to fill missing attributes when merging
-#' @export
 weld_extension <- function(trees, extensions, fill_value = 0L)
 {
   ..all_cols <- NULL

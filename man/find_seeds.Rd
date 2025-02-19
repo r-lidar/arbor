@@ -8,7 +8,7 @@ find_seeds(
   las,
   slice_seeds_at = c(0.5, 0.8),
   ...,
-  max_diameter = 50,
+  max_diameter = 0.6,
   res = 0.025,
   tree_spacing = NULL
 )

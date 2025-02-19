@@ -2,48 +2,18 @@
 % Please edit documentation in R/extension.R
 \name{tree_extensions}
 \alias{tree_extensions}
-\alias{weld_extension}
 \title{Extend the trees to the DTM}
 \usage{
-tree_extensions(
-  trees,
-  dtm,
-  max_diameter = 0.5,
-  ...,
-  max_height = 1,
-  min_slice_thickness = 0.1,
-  max_slice_thickness = 0.6,
-  extra_height = 0,
-  debug = FALSE
-)
-
-weld_extension(trees, extensions, fill_value = 0L)
+tree_extensions(trees, dtm, circles, extra_height = 0.15)
 }
 \arguments{
-\item{trees}{LAS object}
+\item{trees}{LAS object from lidR}
 
 \item{dtm}{SpatRaster from terra. The DTM.}
 
-\item{max_diameter}{The maximum diameter of a tree. This only serves to protect against bad fitting
-with small trees, where RANSAC fitting could easily find too large diameters. Input a number that
-corresponds realistically to the size of the largest tree in your context.}
-
-\item{...}{unused. Only useful to separate important parameters from those that should only be changed
-in very specific contexts.}
-
-\item{max_height}{Make slices for the bottom of the tree (i.e., 50 cm if you slice at 50 cm) up to
-+max_height above that point (i.e., 1.5 m in this example).}
-
-\item{min_slice_thickness, max_slice_thickness}{The algorithm fits circles on many slices with various
-thicknesses. These control the thickness limits.}
+\item{circles}{data.frame produced by \link{measure_diameters}}
 
 \item{extra_height}{The trees can be prolonged below the ground.}
-
-\item{debug}{Boolean. Some debugging display.}
-
-\item{extensions}{object returned by \link{tree_extensions}}
-
-\item{fill_value}{default value to fill missing attributes when merging}
 }
 \description{
 Extend the trees to the DTM. It fits circles using a RANSAC approach to measure the bottom diameter

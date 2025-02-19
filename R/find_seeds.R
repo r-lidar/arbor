@@ -48,7 +48,7 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 0.6
   {
     cl = seed[seed$clusterID == id]
     if (lidR::npoints(cl) < 10) return(NULL)
-    circle = .fit_circle(cl, num_iterations = 400)
+    circle = ransac_circle(cl, num_iterations = 400)
     valid  = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100)
     if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
     else return(NULL)

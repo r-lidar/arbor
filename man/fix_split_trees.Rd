@@ -6,9 +6,9 @@
 \usage{
 fix_split_trees(
   las,
-  max_height = 1,
+  max_height = 2,
   slice_thickness = 0.25,
-  max_diameter = 0.5
+  max_diameter = 0.6
 )
 }
 \arguments{
