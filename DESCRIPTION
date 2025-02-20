@@ -11,3 +11,4 @@ LazyData: true
 RoxygenNote: 7.3.2
 LinkingTo: Rcpp, RcppProgress, lidR
 Imports: utils, sf, Rcpp, terra, lidR, rlas, graphics, Morpho, methods, data.table, rgl
+Suggests: tinytest

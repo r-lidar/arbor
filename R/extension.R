@@ -1,9 +1,8 @@
 #' Extend the trees to the DTM
 #'
-#' Extend the trees to the DTM. It fits circles using a RANSAC approach to measure the bottom diameter
-#' of each tree. In practice, fitting one circle on a low slice of a stem works only in easy contexts with
-#' vertical and perfectly segmented wood, and no noise or mistakes. To be more robust, the method fits numerous
-#' circles at different heights and with different thicknesses.
+#' Extend the trees to the DTM. It uses fit circle produced by \link{measure_diameters} and remove,
+#' for each tree, every point below this circle and replace by a synthetic cylinder. This ensure a
+#' proper cleaning of the bottom of the tree, the extension to the ground and a more robust QSM.
 #'
 #' @param trees LAS object from lidR
 #' @param dtm SpatRaster from terra. The DTM.

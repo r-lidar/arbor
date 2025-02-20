@@ -17,7 +17,7 @@ select = ""
 # I recommend aiming for 15,000 to 20,000 pts/m². Loading more points makes everything slower but not
 # necessarily more accurate.
 
-file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.2"
+file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
@@ -58,7 +58,8 @@ if (display) plot(las) |> add_dtm3d(dtm)
 
 # ====== CLEAN NOISE BOTTOM ======
 
-# [TIPS] Removing noise only on the lowest layer to preserve foliage and high branches
+# [TIPS] Removing noise only on the lowest layer to preserve foliage and high branches. Not
+# recommended if the understory has a lot of foliage, a lot of sapling, a lot of mess.
 
 if (FALSE)
 {
@@ -136,20 +137,20 @@ if (display)
 # For issue #1, there is a post-processing function available.
 # For issue #2, this is a major challenge with no easy solution.
 
-seeds = find_seeds(las, slice_seeds_at = slice_seeds_at)
+seeds = find_seeds(las, slice_seeds_at = slice_seeds_at, tree_spacing = 1)
 
 if (display)
 {
   col = pastel.colors(length(unique(seeds$treeID)))
   col = col[as.integer(as.factor(seeds$treeID))]
-  plot(filter_poi(las, hag < slice_seeds_at[2]), color = "foliage", pal = foliage.colors) |> add_treetops3d(seeds, radius = 0.05, color = col) |> add_dtm3d(dtm)
+  plot(filter_poi(las,  hag > slice_seeds_at[1], hag < slice_seeds_at[2]), color = "foliage", pal = foliage.colors) |> add_treetops3d(seeds, radius = 0.05, color = col) |> add_dtm3d(dtm)
 }
 
 # ====== SEGMENT TREES =======
 
 # [TIPS] `find_seeds` is the critical step here.
 
-las = segment_vegetation(las, seeds, res = 0.05, max_gap = 0.1)
+las = segment_vegetation(las, seeds, res = 0.05, max_gap = 0.2)
 
 if (display)
 {
@@ -172,7 +173,8 @@ if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 # The seed detection may assign two seeds to a single tree, or an additional
 # patch of wood may be assigned the ID of a large tree due to a missing seed.
 
-# plot(filter_poi(las, treeID %in% c(5354, 5366)), color = "treeID")
+# plot(filter_poi(las, treeID %in% c(59, 64)), color = "treeID")
+# plot(filter_poi(las, treeID %in% c(18, 26)), color = "treeID")
 
 trees = fix_split_trees(trees)
 trees = fix_small_isolated_low_clusters(trees)
@@ -191,8 +193,8 @@ if (display)
 # - When the tree forks lower than 1.3 m
 # - When is is too small to robustly measure a DBH
 # - Many other cases actually
-# It fits a circle on the tree somewhere it fits well. In might be on the bottom
-# it might be upper.
+# It fits a circle on the trees somewhere it fits well. In might be on the bottom
+# it might be upper if the bottom is to noisy and obfuscated
 
 circles = measure_diameters(trees)
 
@@ -200,15 +202,14 @@ if (display)
 {
   x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
   #x =   plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  for (i in 1:nrow(circles))
-    add_circle3d(x, circles$center_x[i], circles$center_y[i], circles$radius[i]+0.01, circles$center_z[i])
+  add_circles3d(x, circles$center_x, circles$center_y, circles$radius+0.01, circles$center_z)
 }
 
 # ======= REPROCESS TREE WITHOUT CIRCLE ===========
 
 # [TIPS] We can split the trees where a good diameter had been found from the others
 # ones and reprocess the other ones. We are typically expecting the trees with no good circle fitting
-# to be very small an close by each other. We will reprocess these tree to give tem a chance of
+# to be very small an close by each other. We will reprocess these tree to give tHem a chance of
 # not being removed
 
 nocircle = filter_poi(trees, !treeID %in% circles$treeID)
@@ -247,6 +248,14 @@ if (npoints(nocircle) < 0)
   nocircle2 = filter_poi(nocircle, !treeID %in% circles2$treeID)
   trees2 = filter_poi(nocircle, treeID %in% circles2$treeID)
 
+  if (display)
+  {
+    x = plot(trees2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+    add_circles3d(x, circles2$center_x, circles2$center_y, circles$radius+0.01, circles2$center_z)
+
+    plot(nocircle2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+  }
+
   circles = rbind(circles, circles2)
   trees = rbind(trees, trees2)
 }
@@ -255,8 +264,8 @@ if (npoints(nocircle) < 0)
 if (display)
 {
   x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
-  for (i in 1:nrow(circles))
-    add_circle3d(x, circles$center_x[i], circles$center_y[i], circles$radius[i]+0.01, circles$center_z[i])
+  #x =   plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  add_circles3d(x, circles$center_x, circles$center_y, circles$radius+0.01, circles$center_z)
 }
 
 
@@ -276,13 +285,35 @@ if (display)
 
 # ==== CLIP BUFFER ======
 
-valid_trees = clip_buffer(trees, seeds, -2)
-
-if (display)
+if (FALSE)
 {
-  plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot(filter_poi(valid_trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+  trees = clip_buffer(trees, seeds, -2)
+
+  if (display)
+  {
+    plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+    plot(filter_poi(valid_trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+  }
 }
+
+# ==== QSM ======
+
+# QSM for a random tree
+
+id = sample(unique(trees$treeID), 1)
+tree = filter_poi(trees, treeID == id)
+
+qsm <- qsm(tree, 1)
+plot(tree, color = "foliage", pal = c("chocolate4", "darkgreen"), bg = "white", axis = T) |> add_qsm3d(qsm)
+
+plot_qsm3d(qsm)
+rgl::axes3d()
+
+# Because it looks nice
+x = plot_qsm3d(qsm, bottom_to_zero = FALSE)
+plot(filter_poi(tree, foliage == TRUE), pal = "darkgreen", add = x, size = 2)
+rgl::axes3d()
+
 
 # ==== VARIOUS EXPORTS ====
 

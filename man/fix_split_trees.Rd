@@ -6,7 +6,7 @@
 \usage{
 fix_split_trees(
   las,
-  max_height = 2,
+  max_height = 4,
   slice_thickness = 0.25,
   max_diameter = 0.6
 )

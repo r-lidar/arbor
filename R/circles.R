@@ -142,8 +142,6 @@ add_circles3d <- function(x, center_x, center_y, radius, height)
   cos_theta <- cos(theta)
   sin_theta <- sin(theta)
 
-  rings <- list()
-
   for (i in seq_along(center_x))
   {
     xc <- center_x[i]
@@ -151,12 +149,11 @@ add_circles3d <- function(x, center_x, center_y, radius, height)
     r <- radius[i]
     h <- height[i]
 
-    xx <- center_x - x[1] + radius * cos_theta
-    yy <- center_y - x[2] + radius * sin_theta
-    zz <- rep(height, length(theta))
+    xx <- xc - x[1] + r * cos_theta
+    yy <- yc - x[2] + r * sin_theta
+    zz <- rep(h, length(theta))
 
-    rings[[i]] <- rgl::lines3d(xx, yy, zz)
+    rgl::lines3d(xx, yy, zz, col = "red", lwd = 2)
   }
-
-  rgl::shade3d(rgl::shapelist3d(rings, plot = FALSE), col = "red")
 }
+

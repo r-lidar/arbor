@@ -33,7 +33,7 @@
 #' rgl::shade3d(qsm, col="brown4")
 #' }
 #' @export
-qsm = function(tree, alpha = 0.5, subtree = 0.02, min_radius = 0.003)
+qsm = function(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
 {
   . <- X <- Y <- Z <- foliage <- NULL
 
@@ -76,4 +76,41 @@ qsm = function(tree, alpha = 0.5, subtree = 0.02, min_radius = 0.003)
 
   mesh = Morpho::obj2mesh(iobj)
   mesh
+}
+
+
+#' Plot and Add 3D QSM Objects
+#'
+#' These functions allow you to visualize 3D Quantitative Structure Models (QSM) using `rgl`.
+#' `plot_qsm3d()` initializes a new 3D plot and displays the QSM, while `add_qsm3d()` adds another QSM to the existing plot.
+#'
+#' @param qsm A mesh object representing the QSM, produced by \link{qsm}.
+#' @param bottom_to_zero Logical. If `TRUE`, shifts the QSM so that the lowest z-coordinate is at zero. Default is `TRUE`.
+#' @param x A numeric vector of length 2 containing x and y offsets to align QSMs and point cloud.
+#'
+#' @return `plot_qsm3d()` returns an invisible numeric vector of length 2 containing the original minimum x and y coordinates.
+#' `add_qsm3d()` does not return a value.
+#'
+#' @md
+#' @export
+plot_qsm3d = function(qsm, bottom_to_zero = TRUE)
+{
+  x = min(qsm$vb[1,])
+  y = min(qsm$vb[2,])
+  z = min(qsm$vb[3,])
+  qsm$vb[1,] = qsm$vb[1,] - x
+  qsm$vb[2,] = qsm$vb[2,] - y
+  if (bottom_to_zero) qsm$vb[3,] = qsm$vb[3,] - z
+  rgl::open3d()
+  rgl::shade3d(qsm, col="brown4")
+  return(invisible(c(x,y)))
+}
+
+#' @rdname plot_qsm3d
+#' @export
+add_qsm3d = function(x, qsm)
+{
+  qsm$vb[1,] =   qsm$vb[1,] - x[1]
+  qsm$vb[2,] =   qsm$vb[2,] - x[2]
+  rgl::shade3d(qsm, col="brown4")
 }

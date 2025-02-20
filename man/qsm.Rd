@@ -4,7 +4,7 @@
 \alias{qsm}
 \title{Generate a QSM from a single tree point cloud}
 \usage{
-qsm(tree, alpha = 0.5, subtree = 0.02, min_radius = 0.003)
+qsm(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
 }
 \arguments{
 \item{tree}{A `LAS` object containing a single tree point cloud with required attributes. Only

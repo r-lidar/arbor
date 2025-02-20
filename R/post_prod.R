@@ -12,7 +12,7 @@
 #' @param max_diameter a threshold to protect against bad circle fitting. If a circle is bigger than
 #' that it is not valid. Set it the maximum expected diameter of a tree.
 #' @export
-fix_split_trees = function(las, max_height = 2, slice_thickness = 0.25, max_diameter = 0.6)
+fix_split_trees = function(las, max_height = 4, slice_thickness = 0.25, max_diameter = 0.6)
 {
   treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
 
@@ -75,7 +75,6 @@ fix_split_trees = function(las, max_height = 2, slice_thickness = 0.25, max_diam
 
     for (i in intersect)
     {
-      print(i)
       intersecting_circles = circles[i,]
       ids = intersecting_circles$id
 
@@ -159,7 +158,7 @@ fix_small_isolated_low_clusters = function(las)
   return(las)
 }
 
-generate_cylinder_points <- function(circle, height = 0.5, n_points = 2000)
+generate_cylinder_points <- function(circle, height = 0.5, n_points = 5000)
 {
   # Extract circle parameters
   center_x <- circle$center_x

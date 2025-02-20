@@ -47,27 +47,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// fit_circle_on_3_points_stl
-std::vector<double> fit_circle_on_3_points_stl(const std::vector<std::vector<double>>& points_subset);
-RcppExport SEXP _lidRtls_fit_circle_on_3_points_stl(SEXP points_subsetSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector<std::vector<double>>& >::type points_subset(points_subsetSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_circle_on_3_points_stl(points_subset));
-    return rcpp_result_gen;
-END_RCPP
-}
-// fit_circle_stl
-List fit_circle_stl(NumericMatrix points, int num_iterations, double inlier_threshold);
-RcppExport SEXP _lidRtls_fit_circle_stl(SEXP pointsSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP) {
+// ransac_circle_cpp
+List ransac_circle_cpp(NumericMatrix points, int num_iterations, double inlier_threshold, double early_exit);
+RcppExport SEXP _lidRtls_ransac_circle_cpp(SEXP pointsSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP early_exitSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type points(pointsSEXP);
     Rcpp::traits::input_parameter< int >::type num_iterations(num_iterationsSEXP);
     Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_circle_stl(points, num_iterations, inlier_threshold));
+    Rcpp::traits::input_parameter< double >::type early_exit(early_exitSEXP);
+    rcpp_result_gen = Rcpp::wrap(ransac_circle_cpp(points, num_iterations, inlier_threshold, early_exit));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -92,8 +82,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_colMins", (DL_FUNC) &_lidRtls_colMins, 1},
     {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 3},
     {"_lidRtls_get_distance_matrix", (DL_FUNC) &_lidRtls_get_distance_matrix, 3},
-    {"_lidRtls_fit_circle_on_3_points_stl", (DL_FUNC) &_lidRtls_fit_circle_on_3_points_stl, 1},
-    {"_lidRtls_fit_circle_stl", (DL_FUNC) &_lidRtls_fit_circle_stl, 3},
+    {"_lidRtls_ransac_circle_cpp", (DL_FUNC) &_lidRtls_ransac_circle_cpp, 4},
     {"_lidRtls_cpp_smooth3d", (DL_FUNC) &_lidRtls_cpp_smooth3d, 6},
     {NULL, NULL, 0}
 };
