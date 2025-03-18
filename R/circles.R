@@ -136,6 +136,18 @@ is.valid.circle = function(radius, angle_range, pinliner)
   return(angle_range > 180 & pinliner > 30)
 }
 
+#' Add 3D Circles to an rgl Plot
+#'
+#' This function adds multiple 3D circles to an existing rgl plot.
+#'
+#' @param x A numeric vector of length 2, representing the reference point (x, y).
+#' @param center_x A numeric vector of x-coordinates for the circle centers.
+#' @param center_y A numeric vector of y-coordinates for the circle centers.
+#' @param radius A numeric vector of radii for the circles.
+#' @param height A numeric vector specifying the z-coordinate (height) for each circle.
+#'
+#' @return No return value. This function modifies the rgl plot by adding 3D circles.
+#' @export
 add_circles3d <- function(x, center_x, center_y, radius, height)
 {
   theta <- seq(0, 2 * pi, length.out = 50)
@@ -153,7 +165,7 @@ add_circles3d <- function(x, center_x, center_y, radius, height)
     yy <- yc - x[2] + r * sin_theta
     zz <- rep(h, length(theta))
 
-    rgl::lines3d(xx, yy, zz, col = "red", lwd = 2)
+    rgl::lines3d(xx, yy, zz, col = "red", lwd = 3)
   }
 }
 

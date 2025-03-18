@@ -35,7 +35,16 @@
 #' @export
 qsm = function(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
 {
+  res = adtree(tree, alpha, subtree, min_radius)
+
+  mesh = Morpho::obj2mesh(res[[1]])
+  mesh
+}
+
+adtree = function(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
+{
   . <- X <- Y <- Z <- foliage <- NULL
+
 
   attributes = names(tree)
   stopifnot("anisotropy" %in% attributes)
@@ -46,11 +55,18 @@ qsm = function(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
 
   ofile = tempfile(fileext = ".xyz")
   odir = tempdir()
-  iobj = tools::file_path_sans_ext(ofile)
-  iobj = paste0(iobj, "_branches.obj")
+  i = tools::file_path_sans_ext(ofile)
+  iobj = paste0(i, "_branches.obj")
+  iske = paste0(i, "_skeleton.ply")
 
   no_foliage = lidR::filter_poi(tree, foliage == FALSE)
+
   xyz = no_foliage@data[, .(X,Y,Z)]
+
+  xyz$X <- xyz$X - mean(xyz$X)
+  xyz$Y <- xyz$Y - mean(xyz$Y)
+  xyz$Z <- xyz$Z - min(xyz$Z)
+
   data.table::fwrite(xyz, ofile, sep = " ", col.names = FALSE)
 
   os = tolower(Sys.info()["sysname"])
@@ -67,15 +83,14 @@ qsm = function(tree, alpha = 0.8, subtree = 0.02, min_radius = 0.003)
   if (os == "windows")
     adtree = paste0('"', adtree, '.exe"')
 
-  args = paste0("-radius ", min_radius, " -alpha ", alpha, " -subtree ", subtree)
+  args = paste0("-s -radius ", min_radius, " -alpha ", alpha, " -subtree ", subtree)
   cmd = paste(adtree, ofile, odir, args)
 
   suppressWarnings(system(cmd, TRUE))
 
   if (!file.exists(iobj)) stop("Failed to produced QSM .obj file")
 
-  mesh = Morpho::obj2mesh(iobj)
-  mesh
+  return(list(iobj, iske))
 }
 
 

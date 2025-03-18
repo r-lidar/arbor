@@ -59,8 +59,12 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 0.6
   circles = lapply(unique(seed$clusterID), fit_circle_to_seed, max_radius = max_diameter/2)
   circles = do.call(rbind, circles)
 
-  sfcenters = sf::st_as_sf(circles, coords = c("X", "Y", "Z"))
-  sfcircles = sf::st_buffer(sfcenters, circles$R*1.20, nQuadSegs = 10)
+  sfcircles = NULL
+  if (!is.null(circles))
+  {
+    sfcenters = sf::st_as_sf(circles, coords = c("X", "Y", "Z"))
+    sfcircles = sf::st_buffer(sfcenters, circles$R*1.20, nQuadSegs = 10)
+  }
 
   f = function(x,y,z)
   {
@@ -83,27 +87,32 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 0.6
 
   sfseeds = sf::st_as_sf(seeds, coords = c("X", "Y", "Z"))
 
-  intersect = sf::st_intersects(sfcircles, sfseeds)
-  ii = lapply(intersect, length)
-  ii = which(ii > 2)
+  extraseed = NULL
 
-  for (iii in ii)
+  if (!is.null(sfcircles))
   {
-    ids = sfseeds[intersect[[iii]],]$clusterID
-    sfseeds$clusterID[sfseeds$clusterID %in% ids] = ids[1]
+    intersect = sf::st_intersects(sfcircles, sfseeds)
+    ii = lapply(intersect, length)
+    ii = which(ii > 2)
+
+    for (iii in ii)
+    {
+      ids = sfseeds[intersect[[iii]],]$clusterID
+      sfseeds$clusterID[sfseeds$clusterID %in% ids] = ids[1]
+    }
+
+    cat("Seed generation from RANSAC circles\n")
+
+    sfcenters = sfcenters[sfcenters$id %in% sfseeds$clusterID,]
+    extraseed = sf::st_buffer(sfcenters, sfcenters$R*0.9, nQuadSegs = 3)
+    extraseed$Z = sf::st_coordinates(sfcenters)[,3]
+    extraseed = sf::st_cast(extraseed, "POINT")
+    extraseed$R = NULL
+    coord = as.data.frame(sf::st_coordinates(extraseed))
+    coord$Z = extraseed$Z
+    coord$clusterID = extraseed$id
+    extraseed = sf::st_as_sf(coord, coords = c("X", "Y", "Z"))
   }
-
-  cat("Seed generation from RANSAC circles\n")
-
-  sfcenters = sfcenters[sfcenters$id %in% sfseeds$clusterID,]
-  extraseed = sf::st_buffer(sfcenters, sfcenters$R*0.9, nQuadSegs = 3)
-  extraseed$Z = sf::st_coordinates(sfcenters)[,3]
-  extraseed = sf::st_cast(extraseed, "POINT")
-  extraseed$R = NULL
-  coord = as.data.frame(sf::st_coordinates(extraseed))
-  coord$Z = extraseed$Z
-  coord$clusterID = extraseed$id
-  extraseed = sf::st_as_sf(coord, coords = c("X", "Y", "Z"))
 
   fullseed = rbind(sfseeds, extraseed)
 

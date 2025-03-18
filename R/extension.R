@@ -11,10 +11,15 @@
 #' @export
 tree_extensions = function(trees, dtm, circles, extra_height = 0.15)
 {
-  pointID <- treeID <- Z <- NULL
+  pointID <- treeID <- Z <- . <- NULL
 
   extensions = list()
   trees@data$pointID = 1:lidR::npoints(trees)
+
+  data.table::setindex(trees@data, treeID)
+
+  # Initialize progress bar
+  pb <- utils::txtProgressBar(min = 0, max = nrow(circles), style = 3)
 
   for (i in 1:nrow(circles))
   {
@@ -26,50 +31,26 @@ tree_extensions = function(trees, dtm, circles, extra_height = 0.15)
     HAG = circles$center_hag[i]
     circle = list(center_x = x, center_y = y, z = z, radius = r)
 
-    loc = matrix(c(x,y), ncol = 2)
+    loc = matrix(c(x, y), ncol = 2)
     zgnd = terra::extract(dtm, loc, method = "bilinear")
-    hcyl = as.numeric(z-zgnd+extra_height)
+    hcyl = as.numeric(z - zgnd + extra_height)
 
-    cat("Tree", id, "\n")
-
-    tt = lidR::filter_poi(trees, treeID == id, Z < z)
-    trees$pointID[tt$pointID] = 0
-
-    #xyz = sf::st_coordinates(tt)
-    #pca <- prcomp(xyz, center = TRUE, scale. = FALSE)
-    #main_axis <- pca$rotation[, 1]  # First principal component
-
-    # Compute the rotation matrix
-    #rotation_matrix <- align_to_z(main_axis)
-
-    # Apply the rotation to the point cloud
-    #rotated_xyz = xyz %*% t(rotation_matrix)
-    #rotated_xyz <- scale(rotated_xyz, center = TRUE, scale = FALSE)
-    #ttt <- as.data.frame(rotated_xyz)
-    #names(ttt) = c("X", "Y", "Z")
-    #ttt$clusterID = tt$clusterID
-    #ttt = LAS(ttt)
-
-
-    # Plot the point cloud
-    #rgl::plot3d(centered_xyz, col = "blue", size = 2)
-    #rgl::points3d(rotated_xyz, col = "red", size = 2)
-    ##rgl::arrow3d(p0 = c(0,0,0), p1 =  main_axis, type = "lines",  col = "red", length = 2)
+    ids = trees@data[.(id), on = "treeID"][Z < z]$pointID
+    trees$pointID[ids] = 0
 
     extension = generate_cylinder_points(circle, height = hcyl)
-    #extension = as.matrix(extension)
-    #extension <- extension %*% rotation_matrix
-    #extension = as.data.frame(extension)
-    #names(extension) = c("X", 'Y', "Z")
-    lidR::quantize(extension$X, tt@header[["X scale factor"]], tt@header[["X offset"]])
-    lidR::quantize(extension$Y, tt@header[["Y scale factor"]], tt@header[["Y offset"]])
-    lidR::quantize(extension$Z, tt@header[["Z scale factor"]], tt@header[["Z offset"]])
+    lidR::quantize(extension$X, trees@header[["X scale factor"]], trees@header[["X offset"]])
+    lidR::quantize(extension$Y, trees@header[["Y scale factor"]], trees@header[["Y offset"]])
+    lidR::quantize(extension$Z, trees@header[["Z scale factor"]], trees@header[["Z offset"]])
     extension$treeID = id
     extensions[[as.character(id)]] = extension
 
-    #x = plot(tt)
-    #plot(LAS(extension), add = x)
+    # Update progress bar
+    utils::setTxtProgressBar(pb, i)
   }
+
+  # Close progress bar
+  close(pb)
 
   extensions = do.call(rbind, extensions)
   extensions$anisotropy = 1
@@ -79,10 +60,12 @@ tree_extensions = function(trees, dtm, circles, extra_height = 0.15)
   extensions = lidR::LAS(extensions)
 
   trees = lidR::filter_poi(trees, pointID > 0)
+  trees@data$pointID = NULL
   trees = weld_extension(trees, extensions)
 
   return(trees)
 }
+
 
 weld_extension <- function(trees, extensions, fill_value = 0L)
 {

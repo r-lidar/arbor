@@ -5,7 +5,7 @@ set_lidr_threads(0)
 
 foliage.colors = c("chocolate4", "darkgreen")
 
-slice_seeds_at = c(0.5, 1)
+slice_seeds_at = c(0.75, 1)
 cut_above_ground = 0.25
 
 display = FALSE
@@ -18,26 +18,14 @@ select = ""
 # necessarily more accurate. Of course 20.000 pts/m² means nothing in 3D and depends on the forest density
 # but the idea is too drastically reduce the number of points.
 
-file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1_poisson.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/Waykambawalk1RTK_01.las" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.2"
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Usherbrooke/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.3"
+#file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside_poisson.laz"
 
 # ====== READ POINT CLOUD =======
 
 # [TIPS] Do not use readLAS!
 
 las = readTLS(file, select = select, filter = filter)
-las
 
 # ====== GROUND CLASSIFICATION ====
 
@@ -52,6 +40,7 @@ ground$Classification = lidR::LASGROUND
 
 dtm = rasterize_terrain(ground, 0.5, tin())
 las = height_above_ground(las, algorithm = tin(), dtm = dtm)
+las@data$pointID = 1:npoints(las)
 
 # ====== KEEP ABOVE DTM ======
 
@@ -93,13 +82,12 @@ if (FALSE)
 
 
 # Personal edge case. Not for public use
-#olas = sf::st_coordinates(las)
-#las = lidRtls:::smooth3d(las, 0.04)
-#las = lidR::knn_distance(las, k = 20)
-#f <- ecdf(las$distance)
-#las@data$anisotropy <- 1-f(las$distance)
+olas = sf::st_coordinates(las)
+las = lidRtls:::smooth3d(las, 0.04)
+las = lidR::knn_distance(las, k = 20)
+f <- ecdf(las$distance)
+las@data$anisotropy <- 1-f(las$distance)
 
-las = compute_anisotropy(las, k = 0)
 
 if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 
@@ -108,7 +96,7 @@ if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 # [TIPS] segment_foliage relies on a good anisotropy measurement. The method is described
 # in the documentation
 
-las = segment_foliage(las, dtm)
+las = segment_foliage(las, dtm, res = 0.05, space_res = 0.1)
 
 if (display)
 {
@@ -163,13 +151,19 @@ if (display)
   x = plot(las, color = "treeID") |> add_dtm3d(dtm)
 }
 
+# ====== RESTORE UNSMOOTHED COORDIANTES ======
+
+las@data$X = olas[,1]
+las@data$Y = olas[,2]
+las@data$Z = olas[,3]
+
 # ====== RETAIN ONLY MAIN TREES =======
 
 # [TIPS] Low understory is unlikely to be properly segmented in complex contexts.
 # In simpler contexts, this threshold can be set to a lower value.
 # The goal is to retain the main trees and clean up the understory.
 
-trees = clean_small_cluster(las, max_heigh = 6)
+trees = clean_small_cluster(las, max_heigh = 3)
 
 if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 
@@ -179,119 +173,7 @@ if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 # The seed detection may assign two seeds to a single tree, or an additional
 # patch of wood may be assigned the ID of a large tree due to a missing seed.
 
-trees = fix_split_trees(trees)
 trees = fix_small_isolated_low_clusters(trees)
-
-if (display)
-{
-  plot(trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  plot(filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm) |> add_treetops3d(seeds, radius = 0.1)
-}
-
-
-# ======= TREE MESUREMENTS ===========
-
-# [TIPS] This is NOT a DBH measurement. DBH is ill-defined in too many cases
-# - When the tree forks lower than 1.3 m
-# - When it is too small to robustly measure a DBH
-# - Many other cases actually
-# It fits a circle on the trees somewhere it fits well. In might be on the bottom
-# it might be upper if the bottom is to noisy and obfuscated to fit a good circle
-
-circles = measure_diameters(trees)
-
-if (display)
-{
-  x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
-  #x =   plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  lidRtls:::add_circles3d(x, circles$center_x, circles$center_y, circles$radius+0.01, circles$center_z)
-}
-
-# ======= REPROCESS TREES WITHOUT CIRCLE ===========
-
-# [TIPS] From the previous step, some trees may not have a good circle fit and were not assigned a circle
-# We reprocess these trees. We are typically expecting the trees with no good circle fitting
-# to be very small an close by each other. By reprocess these trees we give them a chance of
-# not being removed.
-
-nocircle = filter_poi(trees, !treeID %in% circles$treeID)
-
-if (npoints(nocircle) < 0)
-{
-  trees = filter_poi(trees, treeID %in% circles$treeID)
-
-  plot(nocircle, color =  "treeID", legend = T, axis = T)
-
-  # Select a slice
-  slice = filter_poi(nocircle, hag >= slice_seeds_at[1], hag <= slice_seeds_at[2])
-
-  # Extremely aggressive SOR because we are expecting to retain only few points to more robustly find
-  # seeds in these edge cases
-  slice = classify_noise(slice, sor(k = 5, m = 0.05))
-  if (display) plot(slice, color = "Classification")
-  slice.denoised = remove_noise(slice)
-
-  seeds = find_seeds(slice.denoised, slice_seeds_at, res = 0.015)
-  seeds$treeID = seeds$treeID + max(trees$treeID)
-
-  if (display)
-  {
-    col = pastel.colors(length(unique(seeds$treeID)))
-    col = col[as.integer(as.factor(seeds$treeID))]
-    plot(slice, color = "foliage", pal = foliage.colors) |> add_treetops3d(seeds, radius = 0.05, color = col) |> add_dtm3d(dtm)
-  }
-
-  # Redo the segmentation
-  nocircle = segment_vegetation(nocircle, seeds, res = 0.05)
-  if (display) plot(nocircle, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-
-  nocircle = clean_small_cluster(nocircle, max_heigh = 6)
-
-  circles2 = measure_diameters(nocircle, max_height = 3)
-  nocircle2 = filter_poi(nocircle, !treeID %in% circles2$treeID)
-  trees2 = filter_poi(nocircle, treeID %in% circles2$treeID)
-
-  if (npoints(nocircle2) == 0) {
-    cat("All trees were asigned a circle")
-  } else {
-    cat("Some trees still have no circle")
-  }
-
-  if (display)
-  {
-    x = plot(trees2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-    lidRtls:::add_circles3d(x, circles2$center_x, circles2$center_y, circles$radius+0.01, circles2$center_z)
-
-    plot(nocircle2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  }
-
-  circles = rbind(circles, circles2)
-  trees = rbind(trees, trees2)
-}
-
-
-if (display)
-{
-  x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
-  #x =   plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  lidRtls:::add_circles3d(x, circles$center_x, circles$center_y, circles$radius+0.01, circles$center_z)
-}
-
-
-# ====== BUILD TREE EXTENSIONS =======
-
-# [TIPS] non mandatory stages. The goal is to reinforce AdTree and clean the tree butts
-# It relies on good circle fit. If the circles are not good the extension will not be good
-
-trees = tree_extensions(trees, dtm, circles, extra_height = 0.15)
-
-if (display)
-{
-  plot(trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-}
-
 
 # ==== CLIP BUFFER ======
 
@@ -312,8 +194,9 @@ if (FALSE)
 
 id = sample(unique(trees$treeID), 1)
 tree = filter_poi(trees, treeID == id)
+plot(tree, color = "foliage", pal = foliage.colors)
 
-qsm <- qsm(tree, .8, 0.03, 0.005)
+qsm <- qsm(tree, 1, 0.019, 0.002)
 plot(tree, color = "foliage", pal = c("chocolate4", "darkgreen"), bg = "white", axis = T) |> add_qsm3d(qsm)
 
 plot_qsm3d(qsm)

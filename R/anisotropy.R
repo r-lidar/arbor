@@ -16,7 +16,7 @@ compute_anisotropy = function(las, k = 0)
 {
   if (k  <= 0)
   {
-    area <- lidR::st_area(las)
+    area <- as.numeric(lidR::st_area(las))
     count <- lidR::npoints(las)
     constant = 50/15000
     k = round(((count/area) * constant), 0)

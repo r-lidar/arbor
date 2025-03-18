@@ -37,7 +37,7 @@ measure_heights = function(trees)
 #' @export
 measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0.1, max_slice_thickness = 0.6, debug = FALSE)
 {
-  .<- X <- Y<- Z <- treeID <- foliage <- hag <- z <- radius <- NULL
+  .<- X <- Y<- Z <- treeID <- foliage <- hag <- z <- radius <- bottom <- NULL
 
   attributes = names(trees)
   stopifnot("foliage" %in% attributes)
@@ -45,9 +45,11 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
   stopifnot("treeID" %in% attributes)
 
   # Generate multiple slices
-  ranges = expand.grid(bottom = seq(0.1, max_height, 0.05), top = seq(0.1, max_height, 0.05))
+  ranges = expand.grid(bottom = seq(0.1, max_height, 0.1), top = seq(0.1, max_height, 0.1))
   ranges = ranges[ranges$top - ranges$bottom >= min_slice_thickness,]
   ranges = ranges[ranges$top - ranges$bottom <= max_slice_thickness,]
+  data.table::setDT(ranges)
+  data.table::setorder(ranges, bottom)
 
   cat("RANSAC fitting on", nrow(ranges), "slices per trees\n")
 
@@ -79,19 +81,23 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
     #rgl::plot3d(centered_xyz, col = "blue", size = 2)
     #rgl::points3d(rotated_xyz, col = "red", size = 2)
     ##rgl::arrow3d(p0 = c(0,0,0), p1 =  main_axis, type = "lines",  col = "red", length = 2)
-
+    sum_valid = 0
     circles = apply(ranges, 1, function(x)
     {
+      if (sum_valid > 10) return(NULL)
+
       bottom = tt@data[hag  >= x[1] & hag <= x[2], .(X,Y, Z)]
       bottom = as.matrix(bottom)
       if (nrow(bottom) < 10) return(NULL)
 
-      circle = ransac_circle(bottom)
+      circle = ransac_circle_cpp(bottom, early_exit = 0.7)
       valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100)
+
+      if (valid) sum_valid <<- sum_valid+1
 
       circle$valid = valid
       circle$z = circle$z + diff(x)/2
-
+      circle$inliers = NULL
 
       if (debug)
       {
@@ -122,7 +128,7 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
     }
 
     circles = circles[circles$valid,]
-    data.table::setorder(circles, z, -radius)
+    data.table::setorder(circles, -radius)
     n = min(c(5, n))
 
     if (n == 0) next

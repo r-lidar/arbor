@@ -93,7 +93,7 @@ List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double in
       inlier_indices.swap(temp_inliers);
 
       // Early exit if 80% of points are inliers
-      //if (max_inliers >= early_exit_threshold) break;
+      if (max_inliers >= early_exit_threshold) break;
     }
   }
 
