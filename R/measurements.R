@@ -60,6 +60,8 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
     tt = lidR::filter_poi(trees, treeID == id, foliage == FALSE)
     min_hag = min(tt$hag)
     tt = lidR::filter_poi(tt, hag < min_hag + max_height)
+    tt = decimate_points(tt, random_per_voxel(0.02))
+
 
     #xyz = sf::st_coordinates(tt)
     #pca <- prcomp(xyz, center = TRUE, scale. = FALSE)
@@ -86,12 +88,12 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
     {
       if (sum_valid > 10) return(NULL)
 
-      bottom = tt@data[hag  >= x[1] & hag <= x[2], .(X,Y, Z)]
+      bottom = tt@data[hag  >= x[1] & hag <= x[2], .(X,Y,Z)]
       bottom = as.matrix(bottom)
       if (nrow(bottom) < 10) return(NULL)
 
       circle = ransac_circle_cpp(bottom, early_exit = 0.7)
-      valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100)
+      valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
 
       if (valid) sum_valid <<- sum_valid+1
 

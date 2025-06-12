@@ -1,3 +1,4 @@
+library(sf)
 library(lidR)
 library(lidRtls)
 
@@ -5,12 +6,12 @@ set_lidr_threads(0)
 
 foliage.colors = c("chocolate4", "darkgreen")
 
-slice_seeds_at = c(0.75, 1)
+slice_seeds_at = c(0.45, 0.65)
 cut_above_ground = 0.25
 
 display = FALSE
 
-select = ""
+select = "i"
 
 
 # [TIPS] The `filter` option is critical. Do not load the full point density, but rather only 20 to 30%.
@@ -18,8 +19,7 @@ select = ""
 # necessarily more accurate. Of course 20.000 pts/m² means nothing in 3D and depends on the forest density
 # but the idea is too drastically reduce the number of points.
 
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.3"
-#file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside_poisson.laz"
+file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/HageniaPlantation/Hagenia_2025-04-27_cliped_denoised.laz" ; filter = "-keep_random_fraction 0.25"
 
 # ====== READ POINT CLOUD =======
 
@@ -29,7 +29,7 @@ las = readTLS(file, select = select, filter = filter)
 
 # ====== GROUND CLASSIFICATION ====
 
-las = classify_ground(las, lidR::csf(rigidness = 1, class_threshold = 0.05, cloth_resolution = 0.1), last_returns = FALSE)
+las = classify_ground(las, lidR::csf(rigidness = 3, class_threshold = 0.05, cloth_resolution = 0.05), last_returns = FALSE)
 ground = filter_poi(las, Classification == LASGROUND)
 ground = decimate_points(ground, lowest(0.25))
 ground = classify_noise(ground, sor(k = 10, m = 2))
@@ -38,35 +38,41 @@ ground$Classification = lidR::LASGROUND
 
 # ====== DTM & HAG =======
 
-dtm = rasterize_terrain(ground, 0.5, tin())
+dtm = rasterize_terrain(ground, 0.25, tin())
 las = height_above_ground(las, algorithm = tin(), dtm = dtm)
 las@data$pointID = 1:npoints(las)
 
 # ====== KEEP ABOVE DTM ======
-
 
 bottom = filter_poi(las, hag <= cut_above_ground)
 las = filter_poi(las, hag > cut_above_ground)
 
 if (display) plot(las) |> add_dtm3d(dtm)
 
+chm = rasterize_canopy(las, 0.25)
+las = merge_spatial(las, chm, "chm")
+dz = las$Z - las$chm
+las = filter_poi(las, Z - chm < -0.8)
 
 # ====== CLEAN BOTTOM NOISE  ======
 
 # [TIPS] Removing noise only on the lowest layer to preserve foliage and high branches.
 # Not recommended if the understory has a lot of foliage, a lot of sapling, a lot of mess!
 
-if (FALSE)
-{
-  las = classify_noise(las, sor(m = 0.5))
+las = classify_noise(las, sor(m = 1))
+plot(las, color = "Classification")
 
-  if (display)
-  {
-    plot(las, color = "Classification")
-  }
+las = remove_noise(las)
 
-  las = filter_poi(las, ! (Classification == LASNOISE & hag < 2))
-}
+#las = classify_noise(las, sor(k = 10, m = 0.25))
+
+#if (display)
+#{
+#  plot(las, color = "Classification")
+#}
+
+#las = filter_poi(las, ! (Classification == LASNOISE & hag < slice_seeds_at[2]))
+
 
 
 # ===== COMPUTE ANISOTROPY =======
@@ -83,11 +89,15 @@ if (FALSE)
 
 # Personal edge case. Not for public use
 olas = sf::st_coordinates(las)
-las = lidRtls:::smooth3d(las, 0.04)
-las = lidR::knn_distance(las, k = 20)
+las = lidR::knn_distance(las, k = 10)
 f <- ecdf(las$distance)
 las@data$anisotropy <- 1-f(las$distance)
 
+kkn = knn(las)
+ann = las$anisotropy[kkn$nn.index]
+ann = matrix(ann, ncol = ncol(kkn$nn.index),  nrow = nrow(kkn$nn.index))
+ann = rowMeans(ann)
+las@data$anisotropy = ann
 
 if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 
@@ -96,7 +106,7 @@ if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 # [TIPS] segment_foliage relies on a good anisotropy measurement. The method is described
 # in the documentation
 
-las = segment_foliage(las, dtm, res = 0.05, space_res = 0.1)
+las = segment_foliage(las, dtm, res = 0.05, space_res = 0.1, min_passage = 2, th_anisotropy = 0.65)
 
 if (display)
 {
@@ -144,7 +154,7 @@ if (display)
 
 # [TIPS] `find_seeds` is the critical step here.
 
-las = segment_vegetation(las, seeds, res = 0.05, max_gap = 0.2)
+las = segment_vegetation(las, seeds, res = 0.025, max_gap = 0.1)
 
 if (display)
 {
@@ -153,9 +163,9 @@ if (display)
 
 # ====== RESTORE UNSMOOTHED COORDIANTES ======
 
-las@data$X = olas[,1]
-las@data$Y = olas[,2]
-las@data$Z = olas[,3]
+#as@data$X = olas[,1]
+#las@data$Y = olas[,2]
+#las@data$Z = olas[,3]
 
 # ====== RETAIN ONLY MAIN TREES =======
 
@@ -163,9 +173,9 @@ las@data$Z = olas[,3]
 # In simpler contexts, this threshold can be set to a lower value.
 # The goal is to retain the main trees and clean up the understory.
 
-trees = clean_small_cluster(las, max_heigh = 3)
+trees = clean_small_cluster(las, max_heigh = 2)
 
-if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
+if (display) x = plot(trees[keep], color = "treeID") |> add_dtm3d(dtm)
 
 # ====== FIX SEGMENTATION ISSUES =======
 
@@ -175,52 +185,39 @@ if (display) x = plot(trees, color = "treeID") |> add_dtm3d(dtm)
 
 trees = fix_small_isolated_low_clusters(trees)
 
-# ==== CLIP BUFFER ======
-
-if (FALSE)
+if (display)
 {
-  trees = clip_buffer(trees, seeds, -2)
-
-  if (display)
-  {
-    plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-    plot(filter_poi(valid_trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  }
+  plot(trees, color = "treeID") |> add_dtm3d(dtm)
+  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
 }
 
-# ==== QSM ======
+seeds = find_seeds(trees, slice_seeds_at = slice_seeds_at-0.1)
+trees = segment_vegetation(trees, seeds, res = 0.025, max_gap = 0.2)
+trees = clean_small_cluster(las, max_heigh = 2)
+trees = fix_small_isolated_low_clusters(trees)
 
-# QSM for a random tree
-
-id = sample(unique(trees$treeID), 1)
-tree = filter_poi(trees, treeID == id)
-plot(tree, color = "foliage", pal = foliage.colors)
-
-qsm <- qsm(tree, 1, 0.019, 0.002)
-plot(tree, color = "foliage", pal = c("chocolate4", "darkgreen"), bg = "white", axis = T) |> add_qsm3d(qsm)
-
-plot_qsm3d(qsm)
-rgl::axes3d()
-
-# Because it looks nice
-x = plot_qsm3d(qsm, bottom_to_zero = FALSE)
-plot(filter_poi(tree, foliage == TRUE), pal = "darkgreen", add = x, size = 2)
-rgl::axes3d()
+if (display)
+{
+  plot(trees, color = "treeID") |> add_dtm3d(dtm)
+  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+}
 
 
 # ==== VARIOUS EXPORTS ====
+
+las_export = TRUE
+xyz_export = FALSE
 
 o =  tools::file_path_sans_ext(file)
 r = paste0(o, "_dtm.tif")
 s = paste0(o, "_seeds.shp")
 o = paste0(o, "_segmented.laz")
-
-xyz = sf::st_coordinates(seeds)
-seeds$Z = xyz[,3]
+odir = dirname(o)
+odir = paste0(odir, "/ITS/")
+if (!dir.exists(odir)) dir.create(odir, recursive = TRUE)
 
 writeLAS(las, o)
-terra::writeRaster(dtm, r)
-#sf::st_write(sf::st_zm(seeds), s, append = FALSE)
+terra::writeRaster(dtm, r, overwrite = T)
 
 trees_no_foliage = filter_poi(trees, foliage == FALSE)
 plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
@@ -229,12 +226,19 @@ for (i in unique(trees_no_foliage$treeID))
   print(i)
   uid =  paste0(sample(c(letters, 0:9), 4, replace = TRUE), collapse = "")
   tree = filter_poi(trees_no_foliage, treeID == i)
-  out = dirname(o)
-  olas = paste0(out, "/ITS/tree_", i, "_", uid, ".las")
-  oxyz = paste0(out, "/ITS/tree_", i, "_", uid, ".xyz")
-  xyz = tree@data[, .(X,Y,Z)]
-  writeLAS(tree, olas)
-  data.table::fwrite(xyz, oxyz, sep = " ", col.names = FALSE)
+
+  if (las_export)
+  {
+    olas = paste0(odir, "tree_", i,".las")
+    writeLAS(tree, olas)
+  }
+
+  if (xyz_export)
+  {
+    oxyz = paste0(odir, "tree_", i,".xyz")
+    xyz = tree@data[, .(X,Y,Z)]
+    data.table::fwrite(xyz, oxyz, sep = " ", col.names = FALSE)
+  }
 }
 
 # ==== QSM ====

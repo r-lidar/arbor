@@ -19,18 +19,28 @@ select = ""
 # but the idea is too drastically reduce the number of points.
 
 file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part1_poisson.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/ST-X-ZamPlot/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
+
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1_poisson.laz" ; filter = ""
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
+
 file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/Waykambawalk1RTK_01.las" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/Walk1Area2/Walk1area2slam_20x20plot.laz" ; filter = "-keep_random_fraction 0.3"
+file = "/home/jr/Documents/Entreprise/clients/fsinvestor/Indonesia/MasiveButtroot/Waykananbindotree_01_isolated.laz" ; filter="-keep_random_fraction 0.6"
+
 file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.2"
 file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz" ; filter = ""
+file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Eucalyptus/Eucalyptuswalk2_01_subsampled_50.laz" ; filter = "-keep_random_fraction 0.333"
+
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
+
 file = "~/Documents/Usherbrooke/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.3"
+
 
 # ====== READ POINT CLOUD =======
 
@@ -99,7 +109,7 @@ if (FALSE)
 #f <- ecdf(las$distance)
 #las@data$anisotropy <- 1-f(las$distance)
 
-las = compute_anisotropy(las, k = 0)
+las = compute_anisotropy(las)
 
 if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 
@@ -108,7 +118,7 @@ if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 # [TIPS] segment_foliage relies on a good anisotropy measurement. The method is described
 # in the documentation
 
-las = segment_foliage(las, dtm)
+las = segment_foliage(las, dtm, res = .05, min_passage = 5, max_gap = 0.3)
 
 if (display)
 {
@@ -217,7 +227,7 @@ if (display)
 
 nocircle = filter_poi(trees, !treeID %in% circles$treeID)
 
-if (npoints(nocircle) < 0)
+if (npoints(nocircle) > 0)
 {
   trees = filter_poi(trees, treeID %in% circles$treeID)
 
@@ -261,7 +271,7 @@ if (npoints(nocircle) < 0)
   if (display)
   {
     x = plot(trees2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-    lidRtls:::add_circles3d(x, circles2$center_x, circles2$center_y, circles$radius+0.01, circles2$center_z)
+    lidRtls:::add_circles3d(x, circles2$center_x, circles2$center_y, circles2$radius+0.01, circles2$center_z)
 
     plot(nocircle2, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
   }
@@ -297,7 +307,7 @@ if (display)
 
 if (FALSE)
 {
-  trees = clip_buffer(trees, seeds, -2)
+  valid_trees = clip_buffer(trees, circles, -2)
 
   if (display)
   {
@@ -313,31 +323,35 @@ if (FALSE)
 id = sample(unique(trees$treeID), 1)
 tree = filter_poi(trees, treeID == id)
 
-qsm <- qsm(tree, .8, 0.03, 0.005)
+qsm <- lidRqsm::qsm_adtree(tree)
 plot(tree, color = "foliage", pal = c("chocolate4", "darkgreen"), bg = "white", axis = T) |> add_qsm3d(qsm)
 
 plot_qsm3d(qsm)
 rgl::axes3d()
 
 # Because it looks nice
-x = plot_qsm3d(qsm, bottom_to_zero = FALSE)
-plot(filter_poi(tree, foliage == TRUE), pal = "darkgreen", add = x, size = 2)
-rgl::axes3d()
-
+if (FALSE)
+{
+  x = plot_qsm3d(qsm, bottom_to_zero = FALSE)
+  plot(filter_poi(tree, foliage == TRUE), pal = "darkgreen", add = x, size = 2)
+  add_dtm3d(x, dtm)
+  rgl::axes3d()
+}
 
 # ==== VARIOUS EXPORTS ====
 
 o =  tools::file_path_sans_ext(file)
 r = paste0(o, "_dtm.tif")
 s = paste0(o, "_seeds.shp")
+t = paste0(o, "_trees.laz")
+v = paste0(o, "_validtrees.laz")
 o = paste0(o, "_segmented.laz")
 
-xyz = sf::st_coordinates(seeds)
-seeds$Z = xyz[,3]
 
 writeLAS(las, o)
+writeLAS(trees, t)
+writeLAS(valid_trees, v)
 terra::writeRaster(dtm, r)
-#sf::st_write(sf::st_zm(seeds), s, append = FALSE)
 
 trees_no_foliage = filter_poi(trees, foliage == FALSE)
 plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
@@ -358,7 +372,7 @@ for (i in unique(trees_no_foliage$treeID))
 
 # Personal use only
 
-cmd = paste0("/home/jr/Logiciels/AdTree/Release/bin/AdTree " , out, "/ITS ", out ,"/QSM -radius 0.003 -alpha 0.8 -subtree 0.02")
+cmd = paste0("/home/jr/Logiciels/AdTree/Release/bin/AdTree " , out, "/ITS ", out ,"/QSM -radius 0.003 -alpha 0.8 -subtree 0.019")
 system(cmd)
 
 

@@ -40,6 +40,7 @@ List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double in
 
   std::array<double, 3> best_circle = {0, 0, 0};
   int max_inliers = 0;
+  int max_insiders = 0;
   std::vector<int> inlier_indices;
   double sum_z = 0.0;
 
@@ -71,18 +72,25 @@ List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double in
     if (r == 0) continue;
 
     int inliers = 0;
+    int insiders = 0;
 
 
     for (int j = 0; j < n; ++j)
     {
       double dx = points(j, 0) - cx, dy = points(j, 1) - cy;
       double dist2 = dx * dx + dy * dy;
-      double res = std::abs(std::sqrt(dist2) - r);
+      double dist = std::sqrt(dist2);
+      double res = std::abs(dist - r);
 
       if (res < inlier_threshold)
       {
         temp_inliers.push_back(j + 1); // Store 1-based index
         ++inliers;
+      }
+
+      if (dist < r - inlier_threshold)
+      {
+        ++insiders;
       }
     }
 
@@ -114,6 +122,7 @@ List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double in
     _["z"] = avg_z,
     _["covered_arc_degree"] = unique_bins.size() * 3,
     _["percentage_inlier"] = (double)max_inliers / n,
+    _["percentage_inside"] = (double)max_insiders / n,
     _["inliers"] = inlier_indices
   );
 }

@@ -4,13 +4,10 @@
 \alias{clip_buffer}
 \title{Clip Trees Using a Buffered Convex Hull}
 \usage{
-clip_buffer(las, seeds, buffer = -5)
+clip_buffer(las, circles, buffer = -5)
 }
 \arguments{
 \item{las}{A LAS object from lidR containing segmented trees.}
-
-\item{seeds}{A spatial object (e.g., `sf` or `SpatialPointsDataFrame`) containing tree seed points
-with a `treeID` column.}
 
 \item{buffer}{Numeric value (in meters). The distance by which the convex hull is shrunk
 before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).}

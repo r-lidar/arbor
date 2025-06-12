@@ -35,7 +35,7 @@ fix_split_trees = function(las, max_height = 4, slice_thickness = 0.25, max_diam
       return(NULL)
     }
     circle = ransac_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
-    valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100)
+    valid = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
     if (valid)
     {
       #cat("\n")
@@ -58,9 +58,10 @@ fix_split_trees = function(las, max_height = 4, slice_thickness = 0.25, max_diam
     slice = lidR::filter_poi(las, hag > zmin+offsets[k], hag < zmin+offsets[k]+slice_thickness, foliage == FALSE)
 
     #x = plot(slice, color = "treeID")
-
     circles = lapply(unique(slice$treeID), fit_circle_to_seed)
     circles = do.call(rbind, circles)
+
+    if (is.null(circles)) next
 
     #for (i in 1:nrow(circles)) add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], 0)
 
@@ -158,7 +159,7 @@ fix_small_isolated_low_clusters = function(las)
   return(las)
 }
 
-generate_cylinder_points <- function(circle, height = 0.5, n_points = 5000)
+generate_cylinder_points <- function(circle, height = 0.5, n_points = 15000)
 {
   # Extract circle parameters
   center_x <- circle$center_x
