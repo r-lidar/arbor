@@ -77,6 +77,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_voxel_barycenter_decimate
+LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y, NumericVector Z, NumericVector id);
+RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type X(XSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type id(idSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, id));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_colMins", (DL_FUNC) &_lidRtls_colMins, 1},
@@ -84,6 +98,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_get_distance_matrix", (DL_FUNC) &_lidRtls_get_distance_matrix, 3},
     {"_lidRtls_ransac_circle_cpp", (DL_FUNC) &_lidRtls_ransac_circle_cpp, 4},
     {"_lidRtls_cpp_smooth3d", (DL_FUNC) &_lidRtls_cpp_smooth3d, 6},
+    {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
     {NULL, NULL, 0}
 };
 

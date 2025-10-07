@@ -37,6 +37,8 @@
 #' @export
 segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 0.75, ...,  min_passage = 5, k = 10, space_res = 0.4, z_factor = 0.8)
 {
+  #res = 0.05; min_passage = 5; max_gap = 1;th_anisotropy = 0.75;k = 10; space_res = 0.4; z_factor = 0.8
+
   # Other parameters hard coded
   upward_cost_factor = 100
   connected_components_res = 0.05
@@ -46,73 +48,80 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   wood_extra_reasignation_k = 10
   wood_extra_reasignation_dist = 0.03
 
-
-
-  las@data$pointID = 1:lidR::npoints(las)
-
-  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- NULL
-
   # The point cloud must have hag and anisotropy computed
-  attributes = names(las)
+  attributes <- names(las)
   stopifnot("anisotropy" %in% attributes)
   stopifnot("hag" %in% attributes)
 
-  ti = tic()
+  if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
+  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- decimated <- NULL
+
+  ti <- tic()
   cat("Point cloud decimation... (Step 1/9)\n") ; t0 = tic()
 
-  dec = lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
+  if (!"decimated" %in% names(las))
+    dec <- lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
+  else
+    dec <- lidR::filter_poi(las, decimated == TRUE)
 
-  # Calculate translation to origin for computation stability in the path finder
-  x_translation <- mean(las$X)
-  y_translation <- mean(las$Y)
+  # Calculate translation to origin for computation stability
+  x_translation <- round(mean(las$X))
+  y_translation <- round(mean(las$Y))
 
-  # The decimated points cloud of the scene
+  # The decimated points cloud of the scene used to build a network
   dec@data$X <- dec@data$X - x_translation
   dec@data$Y <- dec@data$Y - y_translation
   dec@data$Z <- dec@data$Z * z_factor
-  dec@header@VLR$Extra_Bytes = NULL
-  dec@data = dec@data[, .(X,Y,Z, anisotropy, pointID)]
+  dec@header@VLR$Extra_Bytes <- NULL
+  dec@data   <- dec@data[, .(X,Y,Z, anisotropy, pointID)]
   num_points <- lidR::npoints(dec)
 
-  # The target points spread on the volume
-  target =  lidR::decimate_points(las, lidR::barycenter_per_voxel(space_res))
+  # The target points spread on the volume. These are end points
+  # for the pathfinder
+  target <- barycentric_predecimation(dec, space_res)
+  target <- lidR::filter_poi(target, decimated == TRUE)
   target@data$X <- target@data$X - x_translation
   target@data$Y <- target@data$Y - y_translation
   target@data$Z <- target@data$Z * z_factor
-  target@data = target@data[, .(X,Y,Z, anisotropy, pointID)]
-  num_target = lidR::npoints(target)
+  target@data   <- target@data[, .(X,Y,Z, anisotropy, pointID)]
+  num_target    <- lidR::npoints(target)
 
   # A layer of ground points used as a connector to the unique seed
-  gnd = seed_from_dtm(dtm)
+  gnd   <- seed_from_dtm(dtm)
   gnd$X <- gnd$X - x_translation
   gnd$Y <- gnd$Y - y_translation
   gnd$Z <- gnd$Z * z_factor
   lidR::quantize(gnd[["X"]], 0.01, las@header$`X offset`)
   lidR::quantize(gnd[["Y"]], 0.01, las@header$`Y offset`)
   lidR::quantize(gnd[["Z"]], 0.01, las@header$`Z offset`)
-  gnd$anisotropy = 1
-  gnd$pointID = 0
-  header <- rlas::header_create(gnd)
-  gnd = suppressWarnings(lidR::LAS(gnd, header))
+  gnd$anisotropy <- 1
+  gnd$pointID    <- 0
+  header  <- rlas::header_create(gnd)
+  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
   num_gnd <- lidR::npoints(gnd)
 
-  # The seed
-  x = mean(gnd$X)
-  y = mean(gnd$Y)
-  z = mean(gnd$Z)-100
-  seed = data.frame(X= x, Y = y, Z = z, anisotropy = 1, pointID = 0)
+  # The master seed
+  x <- mean(gnd$X)
+  y <- mean(gnd$Y)
+  z <- mean(gnd$Z)-1
+  seed <- data.frame(X= x, Y = y, Z = z, anisotropy = 1, pointID = 0)
   lidR::quantize(seed[["X"]], 0.01, las@header$`X offset`)
   lidR::quantize(seed[["Y"]], 0.01, las@header$`Y offset`)
   lidR::quantize(seed[["Z"]], 0.01, las@header$`Z offset`)
-  header = rlas::header_create(seed)
-  seed = suppressWarnings(lidR::LAS(seed, header))
+  header <- rlas::header_create(seed)
+  seed   <- suppressWarnings(lidR::LAS(seed, header))
 
-  # Bind the cloud with the target point for the path finder
-  #point_coordinates = rbind(dec, target)
+  # Plot for debugging
+  if (FALSE)
+  {
+    x = plot(dec)
+    plot(target, add = x, pal = "red", size = 4)
+    plot(gnd, add = x, pal = "green", size = 6)
+    plot(seed, add = x, pal = "white", size = 8)
+  }
 
   toc(t0)
-
   cat("Building point cloud connectivity... (Step 2/9)\n") ; t0 = tic()
 
   # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
@@ -123,27 +132,31 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   gc()
 
   # Gaps have an infinite cost
-  gaps = point_network$cost > max_gap
-  point_network$cost[gaps] = Inf
+  gaps <- point_network$cost > max_gap
+  point_network$cost[gaps] <- Inf
 
   # It is more expensive to move in large steps
   point_network$cost <- point_network$cost^3
 
-  # It is more expensive to move upward  (downward actually because we are starting from the seeds)
-  X1 = dec$X[point_network$from]
-  X2 = dec$X[point_network$to]
-  Y1 = dec$Y[point_network$from]
-  Y2 = dec$Y[point_network$to]
-  Z1 = dec$Z[point_network$from]
-  Z2 = dec$Z[point_network$to]
-  dx = X1-X2
-  dy = Y1-Y2
-  dz = Z1-Z2
-  magnitude = sqrt(dx^2+dy^2+dz^2)
-  dot_product <- -dz
-  cos_theta = dot_product/magnitude
+  # It is more expensive to move downward. The path finder starts from
+  # a seed below the ground. If should reach any target points by moving upward
+  # preferentially. If it moves downward it is not following a tree. Maybe a
+  # branch bending. It is ok but expensive.
+  X1 <- dec$X[point_network$from]
+  X2 <- dec$X[point_network$to]
+  Y1 <- dec$Y[point_network$from]
+  Y2 <- dec$Y[point_network$to]
+  Z1 <- dec$Z[point_network$from]
+  Z2 <- dec$Z[point_network$to]
+  dx <- X1-X2
+  dy <- Y1-Y2
+  dz <- Z1-Z2
+  magnitude    <- sqrt(dx^2+dy^2+dz^2)
+  dot_product  <- -dz
+  cos_theta    <- dot_product/magnitude
   angle_degree <- acos(cos_theta)*180/pi
 
+  # We have a moving angle for each node. This is the cost factor as a function of the moving angle
   f = function(x)
   {
     y = exp(log(100)/100*x)
@@ -151,9 +164,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
     y
   }
 
-  #upward = Z1-Z2 > 0
-  #point_network$cost[upward] = point_network$cost[upward]*upward_cost_factor
-  point_network$cost = point_network$cost*f(angle_degree)
+  point_network$cost <- point_network$cost*f(angle_degree)
 
   free(dx, dy, dz, X1, X2, Y1, Y2, Z1, Z2, magnitude, dot_product, cos_theta, angle_degree)
 
@@ -165,48 +176,47 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
 
-  points_ids = 1:num_points
+  points_ids <- 1:num_points
 
   toc(t0)
-
-  cat("Building target connectivity... (Step 3/9)\n")
+  cat("Building target connectivity... (Step 3/9)\n") ; t0 = tic()
 
   # Point cloud is connected to targets to reach. The connection is undirectional. It is possible to
   # move from the point cloud to the targets not the opposite. The cost of the connection is
-  # virtually null because the target are subsampled from the point cloud
+  # null because the target are subsampled from the point cloud so distances are 0
+
 
   target_network <- compute_network(dec, target, k = 1)
-  from = target_network$from
-  target_network$from = target_network$to # switch direction
-  target_network$to = from
+  from <- target_network$from
+  target_network$from <- target_network$to # switch direction
+  target_network$to <- from
   target_network$to <- target_network$to + num_points
-  target_ids = (num_points+1):(num_points+1+num_target)
+  target_ids <- (num_points+1):(num_points+1+num_target)
 
+  toc(t0)
   cat("Building ground connectivity... (Step 3/9)\n") ; t0 = tic()
 
   # The ground points are connected to their knn points in the scene. The connection is undirectional.
   # it is possible to move from the ground to the scene not the oppositite. The cost of the connection
   # is the euclidean distance.
 
-  ground_network = compute_network(dec, gnd, k = k*5)
+  ground_network <- compute_network(dec, gnd, k = k*10)
   ground_network$from <- ground_network$from + num_points + num_target
-  ground_ids = (num_points+num_target+1):(num_points+num_target+1+num_gnd)
+  ground_ids <- (num_points+num_target+1):(num_points+num_target+1+num_gnd)
 
   toc(t0)
-
   cat("Building connectivity of a single seed to the ground... (Step 4/9)\n") ; t0 = tic()
 
   # The unique seed is connected to all the ground points in the scene. The connection cost is constant
   # and virtually 0. It allows to start from a single point to reach all the targets
 
-  seed_network  <- compute_network(gnd, seed, k = num_gnd)
+  seed_network <- compute_network(gnd, seed, k = num_gnd)
   seed_network$from <- seed_network$from + max(ground_ids)
   seed_network$to <- seed_network$to + min(ground_ids)
   seed_network$cost <- 0.001
-  seed_id = seed_network[1,1]
+  seed_id <- seed_network[1,1]
 
   toc(t0)
-
   cat("Constructing the graph object... (Step 5/9)\n") ; t0 = tic()
 
   combined_network <- rbind(point_network, target_network, ground_network, seed_network)
@@ -214,10 +224,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
 
   #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
 
-  #free(combined_network)
-
   toc(t0)
-
   cat("Calculating shortest paths to ground... (Step 6/9)\n") ; t0 = tic()
 
   # Shortest distance in order to find reachable 'target' points
@@ -226,42 +233,45 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   distance_matrix <- get_distance_matrix(combined_network, seed_id, target_ids)
   distance_matrix[is.infinite(distance_matrix)] = NA_real_
 
-  i = colMins(distance_matrix)
-  j = which(!is.na(i))
+  i <- colMins(distance_matrix)
+  j <- which(!is.na(i))
 
   free(distance_matrix, i)
-  toc(t0)
 
+  toc(t0)
   cat("Calculating paths (can take a few minutes)... (Step 7/9)\n") ; t0 = tic()
 
-  dec@data$count = 0
+  # We maintain a counter for each point to count how many times the path find moved
+  # by this point
+  dec@data$count <- 0
 
-  from = rep(seed_id, length(j))
-  to = target_ids[j]
+  # We are moving from THE seed (repeated to match target size) to the targets
+  from <- rep(seed_id, length(j))
+  to   <- target_ids[j]
+
+  # We are moving from THE seed (repeated to match target size) to the targets
+  from <- rep(seed_id, length(target_ids))
+  to   <- target_ids
 
   # For loop by chunk to reduce memory usage and have an estimated progression
   chunk_size <- 50000
-  chunks <- split(to, ceiling(seq_along(to) / chunk_size))
+  chunks     <- split(to, ceiling(seq_along(to) / chunk_size))
   pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
 
   for (i in seq_along(chunks))
   {
     current_to <- chunks[[i]]
 
-    #path <- cppRouting::get_path_pair(graph_object, from = from[seq_along(current_to)], to = current_to)
-    #path <- lapply(path, function(x) as.integer(x)[-1])
-    #path <- unname(do.call(c, path))
-
-    path = findPaths(combined_network, from[seq_along(current_to)], current_to)
-    path = path$paths
+    path <- findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path <- path$paths
     path <- lapply(path, function(x) x[-1])
     path <- do.call(c, path)
 
     count <- table(path)
-    id <- as.numeric(names(count))
+    id    <- as.numeric(names(count))
 
-    rm <- id > num_points
-    id <- id[!rm]
+    rm    <- id > num_points
+    id    <- id[!rm]
     count <- count[!rm]
 
     dec@data$count[id] <- dec@data$count[id] + count
@@ -272,28 +282,20 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
 
   free(combined_network)
 
+  # We now know, for each point, ow many times the pathfinder moved by this points
 
-  dec@data$count[dec@data$count > 0] = log(dec@data$count[dec@data$count > 0])
-  #x = plot(dec, color = "count", legend = T)
-  #plot(dec, color = "anisotropy", legend = T, breaks = "quantile")
+  dec@data$count[dec@data$count > 0] <- log(dec@data$count[dec@data$count > 0])
 
   free(path, count, id, rm, from, to)
 
   toc(t0)
-
   cat("Assigning wood to small structure... (Step 8/9)\n") ; t0 = tic()
 
-  skeleton = lidR::filter_poi(dec, count > log(min_passage))
+  skeleton <- lidR::filter_poi(dec, count > log(min_passage))
 
-  # For visualization and debugging mainly
-  las@data$skeleton = 0
-  las@data$skeleton[skeleton$pointID] = 1
-  las = lidR::add_lasattribute_manual(las, name = "skeleton", desc = "skeleton points", type = "char")
-  #plot(las, color = "skeleton")
-
-  #x = plot(dec, color = "count", legend = T)
-  #plot(skeleton, add = x, pal = "red", size = 2)
-
+  las@data$passage <- 0
+  las@data$passage[skeleton$pointID] <- exp(skeleton$count)
+  las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
   # The decimated points
   skeleton$X <- skeleton$X + x_translation
@@ -301,59 +303,54 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   skeleton$Z <- skeleton$Z / z_factor
 
   skeleton_neighbors  <- lidR::knnx(las, skeleton, k = wood_assignation_k)
-  rm = skeleton_neighbors$nn.dist > wood_assignation_dist
-  id = skeleton_neighbors$nn.index[!rm]
+  rm <- skeleton_neighbors$nn.dist > wood_assignation_dist
+  id <- skeleton_neighbors$nn.index[!rm]
 
   las@data$wood = FALSE
   las@data$wood[id] = TRUE
 
   free(skeleton_neighbors, rm, id)
 
-  #plot(las, color = "wood", pal =c("gray", "chocolate4"))
-
   toc(t0)
-
-  #x = plot(las)
-  #plot(skeleton, pal = "red", size = 4, add = x)
-
   cat("Filter anisotropy... (Step 7/6)\n") ; t0 = tic()
+
+  # Remove foliage based on anisotropy only
 
   nofoliage = lidR::filter_poi(las, anisotropy > th_anisotropy | wood == TRUE)
   #foliage = lidR::filter_poi(las, anisotropy <= th_anisotropy & wood == FALSE)
 
   toc(t0)
-
   cat("Connected component cleaning... (Step 8/9)\n") ; t0 = tic()
 
-  nofoliage$Z = nofoliage$Z * 0.8
-  nofoliage = lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
-  #foliage2 = nofoliage[nofoliage$clusterID == 0 & nofoliage$wood == FALSE]
-  nofoliage = nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
-  nofoliage$Z = nofoliage$Z / 0.8
+  # Looking only at wood points (high anisotropy), perform a connected component
+  # scan, remove patches with not enough points. They are reasigned as foliage
+
+  nofoliage$Z <- nofoliage$Z * 0.8
+  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
+  #foliage2   <- nofoliage[nofoliage$clusterID == 0 & nofoliage$wood == FALSE]
+  nofoliage   <- nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
+  nofoliage$Z <- nofoliage$Z / 0.8
 
   toc(t0)
-
-  #x = plot(nofoliage, pal = "chocolate4")
-  #plot(foliage, pal = "forestgreen", add = x)
-  #plot(foliage2, pal = "forestgreen", add = x)
-
   cat("Extra wood reasignation... (Step 9/9)\n") ; t0 = tic()
 
-  wood_neighbors  <- lidR::knnx(las, nofoliage, k = wood_extra_reasignation_k)
-  rm = wood_neighbors$nn.dist > wood_extra_reasignation_dist
-  id = wood_neighbors$nn.index[!rm]
+  # We look at the neighboring points of the wood.  Points close to the wood
+  # are wood points too. This assigns extra wood point is the branches and remove
+  # some false negatives
 
-  las@data$foliage = TRUE
-  las@data$foliage[id] = FALSE
-  las@data$foliage = as.integer(las$foliage)
-  las = lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage 1 wood 0", type = "char")
+  wood_neighbors <- lidR::knnx(las, nofoliage, k = wood_extra_reasignation_k)
+  rm <- wood_neighbors$nn.dist > wood_extra_reasignation_dist
+  id <- wood_neighbors$nn.index[!rm]
+
+  las@data$foliage <- TRUE
+  las@data$foliage[id] <- FALSE
+  las@data$foliage <- as.integer(las$foliage)
+  las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage 1 wood 0", type = "char")
 
   free(nofoliage, rm, id, wood_neighbors)
 
   toc(t0)
-
   toc(ti, space = "")
-
   gc()
 
   return(las)

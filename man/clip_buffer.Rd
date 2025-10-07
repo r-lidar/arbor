@@ -4,7 +4,7 @@
 \alias{clip_buffer}
 \title{Clip Trees Using a Buffered Convex Hull}
 \usage{
-clip_buffer(las, circles, buffer = -5)
+clip_buffer(las, buffer = -5)
 }
 \arguments{
 \item{las}{A LAS object from lidR containing segmented trees.}

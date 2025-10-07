@@ -104,7 +104,10 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
 
   t0 = tic()
 
-  dec = lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
+  if (!"decimated" %in% names(las))
+    dec = lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
+  else
+    dec = lidR::filter_poi(las, decimated == TRUE)
 
   # Calculate translation to origin
   x_translation <- mean(las$X)

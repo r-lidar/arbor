@@ -24,8 +24,9 @@ compute_anisotropy = function(las, k = 0)
   }
 
   t0 = tic()
-  eigen = lidR::point_eigenvalues(las, k = k, metrics = T)
-  las = lidR::add_lasattribute_manual(las, eigen$anisotropy, "anisotropy", "anisotropy", "float")
+  eigen = lidR::point_eigenvalues(las, k = k, coeffs = FALSE)
+  anisotropy <- (eigen[["eigen_largest"]] - eigen[["eigen_smallest"]]) / eigen[["eigen_largest"]]
+  las = lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")
   free(eigen)
   toc(t0)
   return(las)

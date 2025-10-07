@@ -21,3 +21,7 @@ cpp_smooth3d <- function(las, radius, weight, ncpu, pgbar, verbose) {
     .Call(`_lidRtls_cpp_smooth3d`, las, radius, weight, ncpu, pgbar, verbose)
 }
 
+C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
+    .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
+}
+

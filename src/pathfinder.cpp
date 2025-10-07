@@ -2,6 +2,7 @@
 #include <queue>
 #include <limits>
 #include <algorithm>
+#include <chrono>
 #include <unordered_map>
 
 #include "myomp.h" // Include OpenMP header for parallel processing
@@ -14,17 +15,21 @@ typedef std::vector<std::vector<float>> Matrix;
  Pathfinding Logic Explanation:
 
  Dijkstra's Algorithm (compute_distances):
- The core of the pathfinding logic uses Dijkstra's algorithm, which computes the shortest path from a start node to all other nodes in the graph.
+ The core of the pathfinding logic uses Dijkstra's algorithm, which computes the shortest path from
+ a start node to all other nodes in the graph.
  It uses a priority queue (min-heap) to always expand the node with the smallest known distance.
  For each node, it checks all its neighbors and updates their distances if a shorter path is found.
  The algorithm continues until all nodes are processed or the queue is empty.
 
  Reconstructing the Path (findPath):
- After computing the shortest distances, the function findPath reconstructs the path from the start node to the goal node by following the predecessors.
- If a path exists, the nodes are added to the path in reverse order and then reversed at the end to obtain the correct order.
+ After computing the shortest distances, the function findPath reconstructs the path from the start
+ node to the goal node by following the predecessors.
+ If a path exists, the nodes are added to the path in reverse order and then reversed at the end to
+ obtain the correct order.
 
  Distance Matrix Calculation (getDistanceMatrix):
- This method computes the shortest paths for multiple start and goal nodes and returns a distance matrix, where each entry represents the shortest path between a start node and a goal node.
+ This method computes the shortest paths for multiple start and goal nodes and returns a distance
+ matrix, where each entry represents the shortest path between a start node and a goal node.
  It uses OpenMP to parallelize the calculation for efficiency when dealing with multiple nodes.
  */
 
@@ -63,6 +68,9 @@ public:
   // Dijkstra's Algorithm to compute the shortest distances from the start node to all other nodes
   std::pair<std::vector<float>, std::unordered_map<int, int>> compute_distances(int start_node_id)
   {
+    using namespace std::chrono;
+    auto t0 = high_resolution_clock::now();
+
     std::vector<float> distances(adjacency_list.size(), std::numeric_limits<float>::infinity()); // Initialize distances to infinity
     distances[start_node_id] = 0.0f;                                                             // Distance from the start node to itself is 0
 
@@ -94,6 +102,10 @@ public:
         }
       }
     }
+
+    auto t1 = high_resolution_clock::now();
+    double elapsed_ms = duration_cast<seconds>(t1 - t0).count();
+    //Rcpp::Rcout << "[Dijkstra] Computation time: " << elapsed_ms << " s" << std::endl;
 
     return {distances, predecessors}; // Return the distances and predecessors
   }

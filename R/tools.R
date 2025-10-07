@@ -82,6 +82,5 @@ free = function(...)
   }
 
   gc()
-
   cat("  Memory freed:", mb, "\n")
 }
