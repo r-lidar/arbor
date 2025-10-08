@@ -147,7 +147,7 @@ find_seeds2 <- function(las, heights)
   somewood <- lidR::remove_noise(somewood)
 
   th = max(heights)+0.1
-  passages <- lidR::filter_poi(las, passage > 0, hag < th)
+  passages <- lidR::filter_poi(las, passage > 1, hag < th)
   temp <- rbind(somewood, passages)
   temp$Z <- temp$Z * z_factor
   temp <- lidR::connected_components(temp, 0.1, 1, name = "treeID", connectivity = 26)
@@ -155,7 +155,7 @@ find_seeds2 <- function(las, heights)
   seeds <- lidR::filter_poi(temp, passage > 0)
   seeds$Z <- seeds$Z / z_factor
 
-  seeds
+  lidR::filter_poi(seeds, hag < 2)
 }
 
 slice_poi = function(las, heights, thinkness = 0.02)

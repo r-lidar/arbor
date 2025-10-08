@@ -132,7 +132,7 @@ if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
 # segment_foliage relies, at least partially, on a good anisotropy measurement.
 # If the previous step is bad this step will be bad too.
 
-las <- segment_foliage(las, dtm)
+las <- segment_foliage(las, dtm, min_passage = 2)
 
 if (display)
 {
@@ -143,7 +143,7 @@ if (display)
   plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)
 
   # Pathfinder passages
-  passage <- filter_poi(las, passage > 0)
+  passage <- filter_poi(las, passage > 1)
   passage@data$passage <- log(passage$passage)
   plot(passage, color = "passage", legend = T)
 
@@ -162,8 +162,8 @@ if (display)
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
 
-seeds <- find_seeds2(las, slice_seeds_at)
-seeds@data = seeds@data[, .SD[sample(.N, min(.N, 10))], by = treeID]
+seeds <- find_seeds2(las, 4)
+seeds@data = seeds@data[, .SD[sample(.N, max(1, .N/4))], by = treeID]
 
 if (display)
 {
@@ -258,15 +258,34 @@ writeLAS(las, o)
 writeLAS(trees, t)
 writeLAS(valid_trees, v)
 
+local_geohash <- function(x, y, precision = 2)
+{
+  # Normalize and discretize coordinates
+  scale_factor <- 10^(precision / 2)  # precision controls grid resolution
+  ix <- as.integer(round(x * scale_factor))
+  iy <- as.integer(round(y * scale_factor))
+
+  # Interleave bits or just mix coordinates compactly
+  paste0(as.hexmode(abs(ix %% 1048576)), as.hexmode(abs(iy %% 1048576)))
+}
+
 trees_no_foliage = lidR::filter_poi(trees, foliage == FALSE)
 plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
 for (i in unique(trees_no_foliage$treeID))
 {
   print(i)
-  uid  <-  paste0(sample(c(letters, 0:9), 4, replace = TRUE), collapse = "")
+
   tree <- filter_poi(trees_no_foliage, treeID == i)
-  out  <- dirname(o)
-  olas <- paste0(out, "/ITS/tree_", i, "_", uid, ".las")
+
+  # Estimate trunk coordinates: average of low points (HAG < 1.5 m)
+  # to generate a geo-id
+  trunk_points <- tree@data[hag < 1.5, , drop = FALSE]
+  if (nrow(trunk_points) == 0) trunk_points = tree@data
+  x_mean <- round(mean(trunk_points$X), 2)
+  y_mean <- round(mean(trunk_points$Y), 2)
+  geo_id <- local_geohash(x_mean, y_mean)
+
+  olas <- paste0(dirname(o), "/ITS/tree_", geo_id, ".las")
   writeLAS(tree, olas)
 }
 

@@ -173,7 +173,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
 
   # We maintain a counter for each point to count how many times the path find moved
   # by this point
-  dec@data$count <- 0
+  dec@data$passage <- 0
 
   # We are moving from THE seed (repeated to match target size) to the targets
   from <- rep(master_seed_id, length(target_ids))
@@ -200,7 +200,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
     id    <- id[!rm]
     count <- count[!rm]
 
-    dec@data$count[id] <- dec@data$count[id] + count
+    dec@data$passage[id] <- dec@data$passage[id] + count
 
     utils::setTxtProgressBar(pb, i)
   }
@@ -208,21 +208,17 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
 
   free(combined_network)
 
-  # We now know, for each point, how many times the pathfinder moved by this points
-  dec@data$count[dec@data$count > 0] <- log(dec@data$count[dec@data$count > 0])
-
   free(path, count, id, rm, from, to)
 
   toc(t0)
   cat("Assigning wood to small structure... (8/11)\n") ; t0 = tic()
 
-  skeleton <- lidR::filter_poi(dec, count > log(min_passage))
-
   las@data$passage <- 0
-  las@data$passage[skeleton$pointID] <- exp(skeleton$count)
+  las@data$passage[dec$pointID] <- dec$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
   # The decimated points
+  skeleton   <- lidR::filter_poi(dec, passage > min_passage)
   skeleton$X <- skeleton$X + x_translation
   skeleton$Y <- skeleton$Y + y_translation
   skeleton$Z <- skeleton$Z / z_factor
