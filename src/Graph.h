@@ -4,39 +4,35 @@
 #include <vector>
 #include <unordered_map>
 #include <queue>
-#include <limits>
-#include <algorithm>
-#include <chrono>
 
 #include "myomp.h"
 
-typedef std::vector<std::vector<float>> Matrix;
+using NodeId = int;
+using Cost = float;
+using EdgeCost = float;
 
 struct Node
 {
-  int destination_node_id;
-  float edge_cost;
+  NodeId destination;
+  EdgeCost cost;
 };
+
+using AdjacencyList = std::vector<std::vector<Node>>;
+using DistanceVector = std::vector<Cost>;
+using PredecessorMap = std::unordered_map<NodeId, NodeId>;
+using Matrix = std::vector<std::vector<Cost>>;
+using Path = std::vector<NodeId>;
 
 class Graph
 {
 public:
-  std::vector<std::vector<Node>> adjacency_list;
+  AdjacencyList adjacency_list;
 
   Graph(const int* from, const int* to, const double* cost, size_t n_edges);
-
-  inline void add_edge(int source_node_id, int destination_node_id, float edge_cost);
-
-  std::pair<std::vector<float>, std::unordered_map<int, int>> compute_distances(int start_node_id);
-
-  std::pair<std::vector<int>, float> findPath(
-      int start_node_id,
-      int goal_node_id,
-      const std::pair<std::vector<float>, std::unordered_map<int, int>>& precomputed_data);
-
-  std::vector<std::vector<float>> getDistanceMatrix(
-      const std::vector<int>& start_node_ids,
-      const std::vector<int>& goal_node_ids);
+  inline void add_edge(NodeId source, NodeId destination, EdgeCost cost);
+  std::pair<DistanceVector, PredecessorMap> compute_distances(NodeId start) const;
+  std::pair<Path, Cost> findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const;
+  Matrix getDistanceMatrix(const std::vector<NodeId>& start_nodes, const std::vector<NodeId>& goal_nodes) const;
 };
 
-#endif
+#endif // GRAPH_H

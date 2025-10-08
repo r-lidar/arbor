@@ -131,7 +131,40 @@ find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 0.6
   return(fullseed)
 }
 
-seeds_to_sf_point = function(seed)
+#' @export
+find_seeds2 <- function(las, heights)
 {
+  z_factor <- 0.5
 
+  attributes <- names(las)
+  stopifnot("hag" %in% attributes)
+  stopifnot("passage" %in% attributes)
+  stopifnot("foliage" %in% attributes)
+
+  slices   <- slice_poi(las, heights, 0.02)
+  somewood <- lidR::filter_poi(slices, foliage == 0)
+  somewood <- lidR::classify_noise(somewood, lidR::sor(k = 10, m = 0.5))
+  somewood <- lidR::remove_noise(somewood)
+
+  th = max(heights)+0.1
+  passages <- lidR::filter_poi(las, passage > 0, hag < th)
+  temp <- rbind(somewood, passages)
+  temp$Z <- temp$Z * z_factor
+  temp <- lidR::connected_components(temp, 0.1, 1, name = "treeID", connectivity = 26)
+
+  seeds <- lidR::filter_poi(temp, passage > 0)
+  seeds$Z <- seeds$Z / z_factor
+
+  seeds
+}
+
+slice_poi = function(las, heights, thinkness = 0.02)
+{
+  # Build dynamic filter for slices
+  slice_filter <- Reduce(`|`, lapply(heights, function(s)
+  {
+    (las$hag > (s-thinkness/2) & las$hag < (s + thinkness/2))
+  }))
+
+  lidR::filter_poi(las, slice_filter)
 }

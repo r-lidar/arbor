@@ -8,26 +8,6 @@ seed_from_dtm = function(dtm)
   seeds
 }
 
-compute_network = function(data, query, k = 5)
-{
-  if (missing(query))
-  {
-    nn = lidR::knn(data, k = k)
-    n = lidR::npoints(data)
-  }
-  else
-  {
-    nn = lidR::knnx(data, query, k = k)
-    n = lidR::npoints(query)
-  }
-
-  from <- rep(1:n, each = k)
-  to <- as.vector(t(nn$nn.index))
-  cost <- as.vector(t(nn$nn.dist))
-  edges <- data.frame(from, to, cost)
-  edges
-}
-
 expand_treeid_to_neighbors = function(unclustered, clustered, max_gap = 0.5, z_factor = 1)
 {
   ID = "treeID"
@@ -82,5 +62,5 @@ free = function(...)
   }
 
   gc()
-  cat("  Memory freed:", mb, "\n")
+  #cat("  Memory freed:", mb, "\n")
 }
