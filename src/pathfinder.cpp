@@ -29,10 +29,10 @@
 #include <Rcpp.h>
 #include "Graph.h"
 
-// Type aliases for clarity in Rcpp bindings
+// Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;
-using PrecomputedData = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
-using PrecomputedPtr = Rcpp::XPtr<PrecomputedData>;
+using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
+using PrecomputedPtr = Rcpp::XPtr<GraphCache>;
 
 // [[Rcpp::export]]
 SEXP build_graph(Rcpp::DataFrame graph_df)
@@ -41,7 +41,7 @@ SEXP build_graph(Rcpp::DataFrame graph_df)
   Rcpp::IntegerVector to_nodes   = graph_df["to"];
   Rcpp::NumericVector edge_costs = graph_df["cost"];
 
-  auto* g = new Graph(from_nodes.begin(), to_nodes.begin(), edge_costs.begin(), from_nodes.size());
+  Graph* g = new Graph(from_nodes.begin(), to_nodes.begin(), edge_costs.begin(), from_nodes.size());
   GraphPtr ptr(g, true);  // 'true' ensures auto-delete on garbage collection
   return ptr;
 }
@@ -50,7 +50,7 @@ SEXP build_graph(Rcpp::DataFrame graph_df)
 SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
 {
   GraphPtr graph(graph_ptr);
-  auto* precomputed = new PrecomputedData();
+  GraphCache* precomputed = new GraphCache();
 
   for (int start_node : start_node_ids)
   {
@@ -62,10 +62,7 @@ SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
 }
 
 // [[Rcpp::export]]
-Rcpp::List findPaths(SEXP graph_ptr,
-                     SEXP precomputed_ptr,
-                     Rcpp::IntegerVector start_node_ids,
-                     Rcpp::IntegerVector goal_node_ids)
+Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
 {
   GraphPtr graph(graph_ptr);
   PrecomputedPtr precomputed(precomputed_ptr);
