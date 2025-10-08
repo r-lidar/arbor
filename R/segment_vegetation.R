@@ -198,7 +198,6 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
   master_seed_id = master_seed_network[1,1]
 
   toc(t0)
-
   cat("Constructing the graph object... (Step 3/7)\n") ; t0 = tic()
 
   # Extract unique tree location IDs
@@ -206,14 +205,10 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
   combined_network <- rbind(point_network, seed_network, master_seed_network)
   free(point_network, seed_network)
 
-  #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
-  #free(combined_network)
+  graph <- build_graph(combined_network)
+  cache <- compute_distances(graph, master_seed_id)
 
   toc(t0)
-
-  from = master_seed_id
-  to = points_ids
-
   cat("Path finder... (Step 4/7)\n") ; t0 = tic()
 
   from = rep(master_seed_id, length(points_ids))
@@ -235,7 +230,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
     #path <- lapply(path, function(x) as.integer(x)[-1])
     #path <- unname(do.call(c, path))
 
-    path = findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path = findPaths(graph, cache, from[seq_along(current_to)], current_to)
     path = path$paths
     path <- lapply(path, function(x) x[2])
     tree_id_vector <- unlist(path)

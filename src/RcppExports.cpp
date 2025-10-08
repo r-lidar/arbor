@@ -21,16 +21,40 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// findPaths
-Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
-RcppExport SEXP _lidRtls_findPaths(SEXP graph_dfSEXP, SEXP start_node_idsSEXP, SEXP goal_node_idsSEXP) {
+// build_graph
+SEXP build_graph(Rcpp::DataFrame graph_df);
+RcppExport SEXP _lidRtls_build_graph(SEXP graph_dfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_graph(graph_df));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_distances
+SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids);
+RcppExport SEXP _lidRtls_compute_distances(SEXP graph_ptrSEXP, SEXP start_node_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_distances(graph_ptr, start_node_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// findPaths
+Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
+RcppExport SEXP _lidRtls_findPaths(SEXP graph_ptrSEXP, SEXP precomputed_ptrSEXP, SEXP start_node_idsSEXP, SEXP goal_node_idsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type precomputed_ptr(precomputed_ptrSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_node_ids(goal_node_idsSEXP);
-    rcpp_result_gen = Rcpp::wrap(findPaths(graph_df, start_node_ids, goal_node_ids));
+    rcpp_result_gen = Rcpp::wrap(findPaths(graph_ptr, precomputed_ptr, start_node_ids, goal_node_ids));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -81,7 +105,9 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_colMins", (DL_FUNC) &_lidRtls_colMins, 1},
-    {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 3},
+    {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
+    {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
+    {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
     {"_lidRtls_ransac_circle_cpp", (DL_FUNC) &_lidRtls_ransac_circle_cpp, 4},
     {"_lidRtls_cpp_smooth3d", (DL_FUNC) &_lidRtls_cpp_smooth3d, 6},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},

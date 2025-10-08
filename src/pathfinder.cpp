@@ -24,24 +24,43 @@
 #include "Graph.h"
 
 // [[Rcpp::export]]
-Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
+SEXP build_graph(Rcpp::DataFrame graph_df)
 {
   Rcpp::IntegerVector from_nodes = graph_df["from"];
   Rcpp::IntegerVector to_nodes   = graph_df["to"];
   Rcpp::NumericVector edge_costs = graph_df["cost"];
 
-  // Construct Graph using raw pointers (no data copy)
-  Graph graph(from_nodes.begin(), to_nodes.begin(), edge_costs.begin(), from_nodes.size());
+  Graph* g = new Graph(from_nodes.begin(), to_nodes.begin(), edge_costs.begin(), from_nodes.size());
+  Rcpp::XPtr<Graph> ptr(g, true); // true = automatically delete when garbage collected
+  return ptr;
+}
 
-  // Precompute distances
+// [[Rcpp::export]]
+SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
+{
+  Rcpp::XPtr<Graph> graph(graph_ptr);
   std::unordered_map<int, std::pair<std::vector<float>, std::unordered_map<int, int>>> precomputed_data;
+
   for (int start_node_id : start_node_ids)
   {
-    if (precomputed_data.find(start_node_id) == precomputed_data.end())
-    {
-      precomputed_data[start_node_id] = graph.compute_distances(start_node_id);
-    }
+    precomputed_data[start_node_id] = graph->compute_distances(start_node_id);
   }
+
+  // Serialize the precomputed data into an external pointer for re-use
+  auto* stored = new decltype(precomputed_data)(std::move(precomputed_data));
+  Rcpp::XPtr<decltype(precomputed_data)> pptr(stored, true);
+
+  return pptr;
+}
+
+// [[Rcpp::export]]
+Rcpp::List findPaths(SEXP graph_ptr,
+                     SEXP precomputed_ptr,
+                     Rcpp::IntegerVector start_node_ids,
+                     Rcpp::IntegerVector goal_node_ids)
+{
+  Rcpp::XPtr<Graph> graph(graph_ptr);
+  Rcpp::XPtr<std::unordered_map<int, std::pair<std::vector<float>, std::unordered_map<int, int>>>> precomputed(precomputed_ptr);
 
   int num_pairs = start_node_ids.size();
   Rcpp::List paths(num_pairs);
@@ -49,13 +68,17 @@ Rcpp::List findPaths(Rcpp::DataFrame graph_df, Rcpp::IntegerVector start_node_id
 
   for (int i = 0; i < num_pairs; ++i)
   {
-    auto result = graph.findPath(start_node_ids[i], goal_node_ids[i],
-                                 precomputed_data[start_node_ids[i]]);
+    int start = start_node_ids[i];
+    int goal  = goal_node_ids[i];
+    auto& data = precomputed->at(start);
+    auto result = graph->findPath(start, goal, data);
     paths[i] = result.first;
     total_costs[i] = result.second;
   }
 
   return Rcpp::List::create(
     Rcpp::_["paths"] = paths,
-    Rcpp::_["total_costs"] = total_costs);
+    Rcpp::_["total_costs"] = total_costs
+  );
 }
+

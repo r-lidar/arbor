@@ -5,8 +5,16 @@ colMins <- function(mat) {
     .Call(`_lidRtls_colMins`, mat)
 }
 
-findPaths <- function(graph_df, start_node_ids, goal_node_ids) {
-    .Call(`_lidRtls_findPaths`, graph_df, start_node_ids, goal_node_ids)
+build_graph <- function(graph_df) {
+    .Call(`_lidRtls_build_graph`, graph_df)
+}
+
+compute_distances <- function(graph_ptr, start_node_ids) {
+    .Call(`_lidRtls_compute_distances`, graph_ptr, start_node_ids)
+}
+
+findPaths <- function(graph_ptr, precomputed_ptr, start_node_ids, goal_node_ids) {
+    .Call(`_lidRtls_findPaths`, graph_ptr, precomputed_ptr, start_node_ids, goal_node_ids)
 }
 
 ransac_circle_cpp <- function(points, num_iterations = 100L, inlier_threshold = 0.01, early_exit = 0.8) {

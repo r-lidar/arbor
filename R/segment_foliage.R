@@ -219,10 +219,11 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   combined_network <- rbind(point_network, target_network, ground_network, seed_network)
   free(point_network, target_network, ground_network, seed_network)
 
-  #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
+  graph <- build_graph(combined_network)
+  cache <- compute_distances(graph, seed_id)
 
   toc(t0)
-  cat("Calculating paths (can take a few minutes)... (Step 7/9)\n") ; t0 = tic()
+  cat("Path finder... (Step 7/9)\n") ; t0 = tic()
 
   # We maintain a counter for each point to count how many times the path find moved
   # by this point
@@ -241,7 +242,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   {
     current_to <- chunks[[i]]
 
-    path <- findPaths(combined_network, from[seq_along(current_to)], current_to)
+    path <- findPaths(graph, cache, from[seq_along(current_to)], current_to)
     path <- path$paths
     path <- lapply(path, function(x) x[-1])
     path <- do.call(c, path)
