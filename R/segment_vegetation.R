@@ -70,11 +70,9 @@
 #' @seealso \link{find_seeds}, \link{segment_foliage}
 segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5, z_factor = 0.8)
 {
-  ti = tic()
-
-  # Other parameters hard coded
+  # Other parameters are hard coded
   upward_cost_factor = 100
-  wood2wood_cost_fact = 0.1
+  wood2wood_cost_factor = 0.1
   leaf2leaf_cost_factor = 20
   wood2leaf_cost_factor = 1000
 
@@ -82,6 +80,8 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
   attributes = names(las)
   stopifnot("anisotropy" %in% attributes)
   stopifnot("foliage" %in% attributes)
+
+  ti = tic()
 
   seed_coordinates <- sf::st_coordinates(seeds)
 
@@ -177,7 +177,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
   wood2wood = is_wood1 & is_wood2
   leaf2leaf = !is_wood1 & !is_wood2
   wood2leaf = is_wood1 & !is_wood2
-  point_network$cost[wood2wood] = point_network$cost[wood2wood] * wood2wood_cost_fact
+  point_network$cost[wood2wood] = point_network$cost[wood2wood] * wood2wood_cost_factor
   point_network$cost[leaf2leaf] = point_network$cost[leaf2leaf] * leaf2leaf_cost_factor
   point_network$cost[wood2leaf] = point_network$cost[wood2leaf] * wood2leaf_cost_factor
   free(is_wood1, is_wood2, wood2wood, wood2leaf)
@@ -214,19 +214,10 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
   from = master_seed_id
   to = points_ids
 
-  cat("Calculating shortest paths from tree origins (can take a few minutes)... (Step 4/7)\n") ; t0 = tic()
+  cat("Path finder... (Step 4/7)\n") ; t0 = tic()
 
-  #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = from, to = to)
-  distance_matrix <- get_distance_matrix(combined_network, from, to)
-  distance_matrix[is.infinite(distance_matrix)] = NA_real_
-
-  i = colMins(distance_matrix)
-  j = which(!is.na(i))
-
-  gc()
-
-  from = rep(master_seed_id, length(j))
-  to = points_ids[j]
+  from = rep(master_seed_id, length(points_ids))
+  to = points_ids
 
   t = tic()
   # For loop by chunk to reduce memory usage and have an estimated progression

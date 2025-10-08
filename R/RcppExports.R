@@ -9,10 +9,6 @@ findPaths <- function(graph_df, start_node_ids, goal_node_ids) {
     .Call(`_lidRtls_findPaths`, graph_df, start_node_ids, goal_node_ids)
 }
 
-get_distance_matrix <- function(graph_df, start_node_ids, goal_node_ids) {
-    .Call(`_lidRtls_get_distance_matrix`, graph_df, start_node_ids, goal_node_ids)
-}
-
 ransac_circle_cpp <- function(points, num_iterations = 100L, inlier_threshold = 0.01, early_exit = 0.8) {
     .Call(`_lidRtls_ransac_circle_cpp`, points, num_iterations, inlier_threshold, early_exit)
 }

@@ -39,7 +39,7 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
 {
   #res = 0.05; min_passage = 5; max_gap = 1;th_anisotropy = 0.75;k = 10; space_res = 0.4; z_factor = 0.8
 
-  # Other parameters hard coded
+  # Other parameters are hard coded
   upward_cost_factor = 100
   connected_components_res = 0.05
   connected_components_min = 1000
@@ -81,9 +81,6 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   # for the pathfinder
   target <- barycentric_predecimation(dec, space_res)
   target <- lidR::filter_poi(target, decimated == TRUE)
-  target@data$X <- target@data$X - x_translation
-  target@data$Y <- target@data$Y - y_translation
-  target@data$Z <- target@data$Z * z_factor
   target@data   <- target@data[, .(X,Y,Z, anisotropy, pointID)]
   num_target    <- lidR::npoints(target)
 
@@ -225,29 +222,11 @@ segment_foliage = function(las, dtm, res = 0.08, max_gap = 0.2, th_anisotropy = 
   #graph_object <- cppRouting::makegraph(combined_network, directed = TRUE)
 
   toc(t0)
-  cat("Calculating shortest paths to ground... (Step 6/9)\n") ; t0 = tic()
-
-  # Shortest distance in order to find reachable 'target' points
-  # I don't remember why we need that. In theory cppRouting::get_path_pair() should be enough but maybe non reachable targets pose an issue
-  #distance_matrix <- cppRouting::get_distance_matrix(graph_object, from = seed_id, to = target_ids, allcores = FALSE)
-  distance_matrix <- get_distance_matrix(combined_network, seed_id, target_ids)
-  distance_matrix[is.infinite(distance_matrix)] = NA_real_
-
-  i <- colMins(distance_matrix)
-  j <- which(!is.na(i))
-
-  free(distance_matrix, i)
-
-  toc(t0)
   cat("Calculating paths (can take a few minutes)... (Step 7/9)\n") ; t0 = tic()
 
   # We maintain a counter for each point to count how many times the path find moved
   # by this point
   dec@data$count <- 0
-
-  # We are moving from THE seed (repeated to match target size) to the targets
-  from <- rep(seed_id, length(j))
-  to   <- target_ids[j]
 
   # We are moving from THE seed (repeated to match target size) to the targets
   from <- rep(seed_id, length(target_ids))
