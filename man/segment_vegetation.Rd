@@ -8,8 +8,8 @@ segment_vegetation(
   las,
   seeds,
   ...,
-  res = 0.08,
-  k = 10,
+  res = 0.05,
+  k = 5,
   max_gap = 0.5,
   z_factor = 0.8
 )

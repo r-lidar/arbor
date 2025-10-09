@@ -20,7 +20,7 @@ file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_la
 # Zambia
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1_poisson.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.15"
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonFarm/JasonFarm.laz" ; filter = ""
@@ -58,6 +58,15 @@ las <- readTLS(file, select = "0", filter = filter)
 # Print to see your density. Target is between 10.000 and 20.000
 print(las)
 plot(header(las))
+
+r = 8
+x = 269600 ; y = 5168580
+x = 269615 ; y = 5168590
+p = sf::st_point(c(x, y))
+p = sf::st_buffer(p, r)
+plot(p, add = T)
+las = clip_circle(las, x, y, r)
+print(las)
 
 # ===== GROUND CLASSIFICATION ======
 
@@ -162,8 +171,8 @@ if (display)
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
 
-seeds <- find_seeds2(las, 4)
-seeds@data = seeds@data[, .SD[sample(.N, max(1, .N/4))], by = treeID]
+seeds <- find_seeds2(las, slice_seeds_at)
+seeds@data <- seeds@data[, .SD[sample(.N, max(min(.N, 3), .N/4))], by = treeID]
 
 if (display)
 {
@@ -173,8 +182,8 @@ if (display)
   slices   <- lidRtls:::slice_poi(las, slice_seeds_at)
   slices   <- lidR::filter_poi(slices, foliage == 0)
 
-  x <- plot(filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  plot(seeds, color = "treeID", add = x, size = 4)
+  x <- plot(filter_poi(las,  hag < 4), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  plot(seeds, color = "treeID", add = x, size = 8)
 }
 
 # ====== SEGMENT TREES =======

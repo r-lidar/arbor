@@ -1,139 +1,8 @@
-#' Find a seed for each tree
-#'
-#' To segment individual tree instances, the first step is to identify seed points for each tree.
-#' This is achieved by extracting a slice of points near the ground. The wood/foliage
-#' semantic segmentation must be performed first using \link{segment_foliage} to ensure
-#' that wood points are correctly identified. The method uses only points that are labelled 'wood'.
-#' The method then applies connected component clustering followed by RANSAC circle fitting to reliably
-#' assign a single seed to each tree.
-#'
-#' @param las A LAS object from lidR.
-#' @param ... Unused. Additional parameters beyond \code{...} should generally remain unchanged,
-#'   except in edge cases.
-#' @param max_diameter Maximum expected tree diameter (in meters). Used to filter out invalid
-#'   RANSAC-fitted circles.
-#' @param slice_seeds_at A numeric vector of two values defining the height range (in meters)
-#'   for slicing the point cloud.
-#' @param res Resolution for connected component clustering.
-# @param smooth Smoothing radius (in meters) applied to the slice to improve the clustering process.
-#' @param tree_spacing numeric. If the scene is a plantation, providing the spacing of the trees
-#' guarantee much better seeds finding by providing prior information. We now know that trees are
-#' regularly spaced.
-#' @export
-find_seeds = function(las, slice_seeds_at = c(0.5, 0.8), ..., max_diameter = 0.6, res = 0.025, tree_spacing = NULL)
-{
-  treeID <- clusterID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- foliage <- NULL
-
-  if (!is.null(tree_spacing) && tree_spacing > 0)
-  {
-    res = tree_spacing/4
-  }
-
-  # The point cloud must have hag, anisotropy and foliage computed
-  attributes = names(las)
-  stopifnot("foliage" %in% attributes)
-  stopifnot("hag" %in% attributes)
-
-  cat("Finding seeds with a clusetring approach\n")
-
-  seed = lidR::filter_poi(las, hag > slice_seeds_at[1], hag < slice_seeds_at[2], foliage == FALSE)
-  seed = smooth3d(seed, 0.03)
-  seed$Z = seed$Z * 0.01
-  seed = lidR::connected_components(seed, res, 10)
-  seed = lidR::filter_poi(seed, clusterID != 0)
-  seed$Z = seed$Z * 100
-  #plot(seed, color = "clusterID", pal = pastel.colors(500)) |> add_dtm3d(dtm)
-
-  fit_circle_to_seed = function(id, max_radius)
-  {
-    cl = seed[seed$clusterID == id]
-    if (lidR::npoints(cl) < 10) return(NULL)
-    circle = ransac_circle(cl, num_iterations = 400)
-    valid  = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
-    if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
-    else return(NULL)
-  }
-
-  cat("Fitting RANSAC circles to each seed\n")
-
-  circles = lapply(unique(seed$clusterID), fit_circle_to_seed, max_radius = max_diameter/2)
-  circles = do.call(rbind, circles)
-
-  sfcircles = NULL
-  if (!is.null(circles))
-  {
-    sfcenters = sf::st_as_sf(circles, coords = c("X", "Y", "Z"))
-    sfcircles = sf::st_buffer(sfcenters, circles$R*1.20, nQuadSegs = 10)
-  }
-
-  f = function(x,y,z)
-  {
-    Z = c(round(min(z), 3), round(max(z), 3))
-    dZ = diff(Z)
-
-    bottom = z < Z[2] - dZ/2
-    top = z > Z[1] + dZ/2
-
-    X = c(round(stats::median(x[bottom]), 3), round(stats::median(x[top]), 3))
-    Y = c(round(stats::median(y[bottom]), 3), round(stats::median(y[top]), 3))
-
-    return(list(X = X, Y = Y,Z = Z))
-  }
-
-  cat("Seed correction with RANSAC circles\n")
-
-  seeds = seed@data[, f(X,Y,Z), by = clusterID]
-  seeds = stats::na.omit(seeds)
-
-  sfseeds = sf::st_as_sf(seeds, coords = c("X", "Y", "Z"))
-
-  extraseed = NULL
-
-  if (!is.null(sfcircles))
-  {
-    intersect = sf::st_intersects(sfcircles, sfseeds)
-    ii = lapply(intersect, length)
-    ii = which(ii > 2)
-
-    for (iii in ii)
-    {
-      ids = sfseeds[intersect[[iii]],]$clusterID
-      sfseeds$clusterID[sfseeds$clusterID %in% ids] = ids[1]
-    }
-
-    cat("Seed generation from RANSAC circles\n")
-
-    sfcenters = sfcenters[sfcenters$id %in% sfseeds$clusterID,]
-    extraseed = sf::st_buffer(sfcenters, sfcenters$R*0.9, nQuadSegs = 3)
-    extraseed$Z = sf::st_coordinates(sfcenters)[,3]
-    extraseed = sf::st_cast(extraseed, "POINT")
-    extraseed$R = NULL
-    coord = as.data.frame(sf::st_coordinates(extraseed))
-    coord$Z = extraseed$Z
-    coord$clusterID = extraseed$id
-    extraseed = sf::st_as_sf(coord, coords = c("X", "Y", "Z"))
-  }
-
-  fullseed = rbind(sfseeds, extraseed)
-
-
-
-  #circ = circles[61,]
-  #see = sfseeds[intersect[[61]],]
-  #plot(sf::st_geometry(circ), axes = T)
-  #plot(see, add = T, pch = as.numeric(as.factor(see$clusterID)), col = "black")
-  #plot(seed[seed$clusterID %in% see$clusterID], color = "clusterID")
-
-  names(fullseed)[1] = "treeID"
-
-  #plot(seed, color = "clusterID", pal = pastel.colors(500)) |> add_dtm3d(dtm) |> add_treetops3d(sfseeds, radius = 0.05)
-
-  return(fullseed)
-}
-
 #' @export
 find_seeds2 <- function(las, heights)
 {
+  foliage <- clusterID <- max_diameter <- passage  <- hag <- NULL
+
   z_factor <- 0.5
 
   attributes <- names(las)
@@ -141,21 +10,89 @@ find_seeds2 <- function(las, heights)
   stopifnot("passage" %in% attributes)
   stopifnot("foliage" %in% attributes)
 
-  slices   <- slice_poi(las, heights, 0.02)
+  # Extract some slices of wood (thikcness 3cm)
+  slices   <- slice_poi(las, heights, 0.03)
   somewood <- lidR::filter_poi(slices, foliage == 0)
   somewood <- lidR::classify_noise(somewood, lidR::sor(k = 10, m = 0.5))
   somewood <- lidR::remove_noise(somewood)
 
-  th = max(heights)+0.1
+  # Connect the point into clusters
+  seed = lidR::connected_components(somewood, 0.1, 10, connectivity = 26)
+  seed = lidR::filter_poi(seed, clusterID != 0)
+
+  # For each cluster search for circle. If we have a nice circle we have a tree
+  is.valid.circle = function(radius, angle_range, pinliner, pinside)
+  {
+    if (radius < 0.02)  return(TRUE)
+    if (radius < 0.05)  return(angle_range > 180 & pinliner > 30)
+    if (pinside > 20) return(FALSE)
+    if (radius < 0.10)  return(angle_range > 90 & pinliner > 50)
+    return(angle_range > 180 & pinliner > 30)
+  }
+  fit_circle_to_seed = function(id)
+  {
+    cl = seed[seed$clusterID == id]
+    if (lidR::npoints(cl) < 10) return(NULL)
+    circle = ransac_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
+
+    valid  = is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
+
+    #if (valid) col = "darkgreen" else col = "red"
+    #plot(cl$X, cl$Y, asp = 1, main = id)
+    #symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = col)
+    #symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01, inches = FALSE, add = TRUE, fg = col)
+    #symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01, inches = FALSE, add = TRUE, fg = col)
+
+    if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
+    else return(NULL)
+  }
+  circles = lapply(unique(seed$clusterID), fit_circle_to_seed)
+  circles = do.call(rbind, circles)
+
+  if (FALSE)
+  {
+    x = plot(seed, color = 'clusterID', pal = pastel.colors(500))
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
+
+  # For each circle we exclude wood a safe zone beyond the circles.
+  # This allow to clean false positive around important trees
+  px = somewood$X
+  py = somewood$Y
+  pz = somewood$Z
+  rm = rep(FALSE, lidR::npoints(somewood))
+  safe_zone = 0.2
+  for (i in 1:nrow(circles))
+  {
+    cx = circles$X[i]
+    cy = circles$Y[i]
+    cz = circles$Z[i]
+    r = circles$R[i]
+    d = sqrt((px-cx)^2 + (py-cy)^2 +(pz-cz)^2)
+    rm[d > (r + 0.02) & d  < (r + safe_zone)] = TRUE
+  }
+
+  somewood = somewood[!rm]
+
+  th = max(heights) + 0.1
   passages <- lidR::filter_poi(las, passage > 1, hag < th)
-  temp <- rbind(somewood, passages)
-  temp$Z <- temp$Z * z_factor
-  temp <- lidR::connected_components(temp, 0.1, 1, name = "treeID", connectivity = 26)
+
+
+  temp <- suppressWarnings(rbind(somewood, passages))
+  temp$Z <- temp$Z
+  temp <- lidR::connected_components(temp, 0.06, 1, name = "treeID", connectivity = 26)
+
+  if (FALSE)
+  {
+    x = plot(temp, color = "treeID")
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
 
   seeds <- lidR::filter_poi(temp, passage > 0)
-  seeds$Z <- seeds$Z / z_factor
-
-  lidR::filter_poi(seeds, hag < 2)
+  seeds <- lidR::filter_poi(seeds, hag < 1.37)
+  seeds
 }
 
 slice_poi = function(las, heights, thinkness = 0.02)

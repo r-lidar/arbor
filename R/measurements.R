@@ -34,7 +34,7 @@ measure_heights = function(trees)
 #' thicknesses. These control the thickness limits.
 #' @param debug Boolean. Some debugging display.
 #' @param trees LAS object with individual tree segmented.
-#' @export
+#' @noRd
 measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0.1, max_slice_thickness = 0.6, debug = FALSE)
 {
   .<- X <- Y<- Z <- treeID <- foliage <- hag <- z <- radius <- bottom <- NULL
@@ -60,7 +60,7 @@ measure_diameters = function(trees, ..., max_height = 2, min_slice_thickness = 0
     tt = lidR::filter_poi(trees, treeID == id, foliage == FALSE)
     min_hag = min(tt$hag)
     tt = lidR::filter_poi(tt, hag < min_hag + max_height)
-    tt = decimate_points(tt, random_per_voxel(0.02))
+    tt = lidR::decimate_points(tt, lidR::random_per_voxel(0.02))
 
 
     #xyz = sf::st_coordinates(tt)

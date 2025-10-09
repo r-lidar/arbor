@@ -28,7 +28,7 @@
 #' @param min_passage Minimum number of times a point must be part of a least cost path to be
 #'   considered part of the tree skeleton. Default: 5.
 #' @param space_res Spatial resolution (in meters) for pathfinding. The algorithm does not actually
-#'   evaluate "every point in space" as decribed above, but instead considers points at this interval.
+#'   evaluate "every point in space" as describe above, but instead considers points at this interval.
 #'   Default: 40 cm.
 #' @param z_factor Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
 #'   reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
@@ -41,7 +41,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
 
   # Other parameters are hard coded
   connected_components_res = 0.05
-  connected_components_min = 1000
+  connected_components_min = 2000
   wood_assignation_k = 50
   wood_assignation_dist = 0.05
   wood_extra_reasignation_k = 10
@@ -57,7 +57,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- decimated <- NULL
 
   ti <- tic()
-  cat("Point cloud decimation... (1/11)\n") ; t0 = tic()
+  cat("Point cloud decimation... (1/12)\n") ; t0 = tic()
 
   # We will apply path finding to a decimated point cloud
   ans <- decimate_translate(las, res, z_factor)
@@ -104,7 +104,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   }
 
   toc(t0)
-  cat("Building point cloud connectivity... (2/11)\n") ; t0 = tic()
+  cat("Building point cloud connectivity... (2/12)\n") ; t0 = tic()
 
   # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
   # is based on the euclidean distance with some variation in order to specifically follow the wood
@@ -123,7 +123,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   #free(W, A1, A2)
 
   toc(t0)
-  cat("Building target connectivity... (3/11)\n") ; t0 = tic()
+  cat("Building target connectivity... (3/12)\n") ; t0 = tic()
 
   # Point cloud is connected to targets to reach. The connection is undirectional. It is possible to
   # move from the point cloud to the targets not the opposite. The cost of the connection is
@@ -137,7 +137,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   target_ids <- (num_points+1):(num_points+1+num_target)
 
   toc(t0)
-  cat("Building ground connectivity... (4/11)\n") ; t0 = tic()
+  cat("Building ground connectivity... (4/12)\n") ; t0 = tic()
 
   # The ground points are connected to their knn points in the scene. The connection is undirectional.
   # it is possible to move from the ground to the scene not the opposite. The cost of the connection
@@ -148,7 +148,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   ground_ids <- (num_points+num_target+1):(num_points+num_target+1+num_gnd)
 
   toc(t0)
-  cat("Building master seed connectivity... (5/11)\n") ; t0 = tic()
+  cat("Building master seed connectivity... (5/12)\n") ; t0 = tic()
 
   # The MASTER seed is connected to all the ground points in the scene. The connection cost is constant
   # and virtually 0. It allows to start from a single point to reach all the targets
@@ -160,7 +160,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   master_seed_id <- master_seed_network[1,1]
 
   toc(t0)
-  cat("Constructing the graph... (6/11)\n") ; t0 = tic()
+  cat("Constructing the graph... (6/12)\n") ; t0 = tic()
 
   combined_network <- rbind(point_network, target_network, ground_network, master_seed_network)
   free(point_network, target_network, ground_network, master_seed_network)
@@ -169,7 +169,7 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   cache <- compute_distances(graph, master_seed_id)
 
   toc(t0)
-  cat("Pathfinder... (7/11)\n") ; t0 = tic()
+  cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
   # We maintain a counter for each point to count how many times the path find moved
   # by this point
@@ -211,13 +211,14 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   free(path, count, id, rm, from, to)
 
   toc(t0)
-  cat("Assigning wood to small structure... (8/11)\n") ; t0 = tic()
+  cat("Assigning wood to small structure... (8/12)\n") ; t0 = tic()
 
   las@data$passage <- 0
   las@data$passage[dec$pointID] <- dec$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
   # The decimated points
+  passage    <- NULL
   skeleton   <- lidR::filter_poi(dec, passage > min_passage)
   skeleton$X <- skeleton$X + x_translation
   skeleton$Y <- skeleton$Y + y_translation
@@ -227,46 +228,108 @@ segment_foliage = function(las, dtm, res = 0.05, max_gap = 1, th_anisotropy = 0.
   rm <- skeleton_neighbors$nn.dist > wood_assignation_dist
   id <- skeleton_neighbors$nn.index[!rm]
 
+  # 100% sure those ones are wood
+  path_finder_based_wood <- rep(FALSE, lidR::npoints(las))
+  path_finder_based_wood[id] <- TRUE
+
   las@data$wood = FALSE
   las@data$wood[id] = TRUE
+
+  # Plot for debugging
+  if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors))
 
   free(skeleton_neighbors, rm, id)
 
   toc(t0)
-  cat("Filter anisotropy... (Step 9/11)\n") ; t0 = tic()
+  cat("Filter high anisotropy... (Step 9/12)\n") ; t0 = tic()
 
   # Remove foliage based on anisotropy only
 
-  nofoliage = lidR::filter_poi(las, anisotropy > th_anisotropy | wood == TRUE)
+  nofoliage = lidR::filter_poi(las, anisotropy > 0.9 | wood == TRUE)
 
-  toc(t0)
-  cat("Connected component cleaning... (10/11)\n") ; t0 = tic()
+  # Plot for debuging
+  if (FALSE)
+  {
+    foliage = lidR::filter_poi(las, anisotropy < 0.75)
+    foliage = compute_anisotropy(foliage, k = 50)
+    plot(foliage, color = "anisotropy", legend = T, breaks = "quantile")
+
+    plot(foliage)
+    plot(nofoliage, pal = foliage.colors[1])
+    plot(nofoliage, color = "anisotropy", legend = T, breaks = "quantile")
+    plot(foliage, pal = foliage.colors[2])
+  }
 
   # Looking only at wood points (high anisotropy), perform a connected component
   # scan, remove patches with not enough points. They are reasigned as foliage
 
   nofoliage$Z <- nofoliage$Z * 0.8
   nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
+  nofoliage$clusterID[nofoliage$clusterID == 0] = NA_integer_
+  if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
+  nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]
   nofoliage   <- nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
   nofoliage$Z <- nofoliage$Z / 0.8
 
+
+  if (FALSE) plot(nofoliage) # Plot for debuging
+
+  # 100% sure those ones are wood
+  high_anisotropy_wood <- rep(FALSE, lidR::npoints(las))
+  high_anisotropy_wood[nofoliage$pointID] <- TRUE
+
   toc(t0)
-  cat("Extra wood reasignation... (11/11)\n") ; t0 = tic()
+  cat("Filter medium anisotropy... (Step 10/12)\n") ; t0 = tic()
+
+  nofoliage <- lidR::filter_poi(las, (anisotropy > 0.8 & anisotropy < 0.9)  | wood == TRUE)
+  nofoliage <- lidR::classify_noise(nofoliage, lidR::sor(50,0.05))
+  if (FALSE) plot(nofoliage, color = "Classification") # Plot for debuging
+  nofoliage <- lidR::remove_noise(nofoliage)
+  nofoliage$Z <- nofoliage$Z * 0.8
+  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
+  nofoliage$clusterID[nofoliage$clusterID == 0] = NA_integer_
+  if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
+  nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]
+  nofoliage$Z <- nofoliage$Z / 0.8
+
+  # Those ones are likely wood
+  medium_anistropy_wood <- rep(FALSE, lidR::npoints(las))
+  medium_anistropy_wood[nofoliage$pointID] <- TRUE
+
+  las@data$wood = path_finder_based_wood | medium_anistropy_wood | high_anisotropy_wood
+
+  if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors)) # Plot for debuging
+
+  toc(t0)
+  cat("Extra wood reasignation... (11/12)\n") ; t0 = tic()
 
   # We look at the neighboring points of the wood.  Points close to the wood
   # are wood points too. This assigns extra wood point is the branches and remove
   # some false negatives
 
+  nofoliage = lidR::filter_poi(las, wood == TRUE)
+
   wood_neighbors <- lidR::knnx(las, nofoliage, k = wood_extra_reasignation_k)
   rm <- wood_neighbors$nn.dist > wood_extra_reasignation_dist
   id <- wood_neighbors$nn.index[!rm]
 
-  las@data$foliage <- TRUE
-  las@data$foliage[id] <- FALSE
-  las@data$foliage <- as.integer(las$foliage)
-  las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage 1 wood 0", type = "char")
+  las@data$foliage <- 1
+  las@data$foliage[id] <- 0
+  las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
+
+  if (FALSE) plot(las, color = "foliage", pal = foliage.colors) # Plot for debuging
 
   free(nofoliage, rm, id, wood_neighbors)
+
+  toc(t0)
+  cat("Extra foliage reasignation... (12/12)\n") ; t0 = tic()
+
+  foliage = lidR::filter_poi(las, foliage == 1)
+  if (FALSE) plot(foliage, color = "anisotropy", legend = T, breaks = "quantile")
+  high_ani = lidR::filter_poi(foliage, anisotropy > 0.9)
+  las@data$foliage[high_ani$pointID] <- 2
+
+  free(high_ani)
 
   toc(t0)
   toc(ti, space = "")

@@ -20,6 +20,8 @@ compute_network = function(data, query, k = 5)
 
 decimate_translate <- function(las, res, z_factor)
 {
+  decimated <- NULL
+
   if (!"decimated" %in% names(las))
     dec <- lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
   else

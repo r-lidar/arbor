@@ -7,12 +7,12 @@
 segment_foliage(
   las,
   dtm,
-  res = 0.08,
-  max_gap = 0.2,
+  res = 0.05,
+  max_gap = 1,
   th_anisotropy = 0.75,
   ...,
   min_passage = 5,
-  k = 10,
+  k = 5,
   space_res = 0.4,
   z_factor = 0.8
 )
@@ -42,7 +42,7 @@ considered part of the tree skeleton. Default: 5.}
 \item{k}{Number of nearest neighbors used to construct the network.}
 
 \item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not actually
-evaluate "every point in space" as decribed above, but instead considers points at this interval.
+evaluate "every point in space" as describe above, but instead considers points at this interval.
 Default: 40 cm.}
 
 \item{z_factor}{Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to

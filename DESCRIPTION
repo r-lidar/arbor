@@ -10,5 +10,6 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
 LinkingTo: Rcpp, RcppProgress, lidR (>= 4.2.2)
+Depends: R (>= 4.1.0)
 Imports: utils, sf, Rcpp, terra, lidR (>= 4.2.2), rlas, graphics, methods, data.table, rgl
 Suggests: tinytest

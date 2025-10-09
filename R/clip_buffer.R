@@ -12,6 +12,8 @@
 #' @export
 clip_buffer = function(las, buffer = -5)
 {
+  X <- Y <- Z <- treeID <- NULL
+
   root = function(x, y, z)
   {
     i = order(z)

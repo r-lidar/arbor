@@ -68,8 +68,12 @@
 #' @export
 #' @importFrom Rcpp sourceCpp
 #' @seealso \link{find_seeds}, \link{segment_foliage}
-segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5, z_factor = 0.8)
+segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5, z_factor = 0.8)
 {
+  #res = 0.05; k = 5; max_gap = 0.5; z_factor = 0.8
+
+  . <- X <- Y <- Z <- foliage <- pointID <- NULL
+
   cost_factors = list(
     wood2wood = 0.1,
     leaf2leaf = 20,
@@ -105,14 +109,14 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
 
   # Compute the single master seed that rule them all. the real spatial position
   # does not matter since the cost is 0 but having a position is better for rendering
-  master_seed <- make_master_seed(las)
+  master_seed <- make_master_seed(dec)
 
   # Plot for debugging
   if (FALSE)
   {
     x = plot(dec)
     plot(seeds, add = x, pal = "green", size = 6)
-    plot(seed, add = x, pal = "white", size = 8)
+    plot(master_seed, add = x, pal = "white", size = 8)
   }
 
   toc(t0)
@@ -178,9 +182,9 @@ segment_vegetation = function(las, seeds, ..., res = 0.08, k = 10, max_gap = 0.5
 
   free(combined_network)
 
-  trueTreeID = treeID - min(seeds_ids) + 1 # +1 because there is an index error somewhere
-  treeID = seeds$treeID[trueTreeID]
-  dec <- lidR::add_lasattribute(dec, treeID, name = "treeID", desc = "tree ID")
+  trueTreeID = treeID - min(seeds_ids)  +1 #because there is an index error somewhere
+  ID = seeds$treeID[trueTreeID]
+  dec <- lidR::add_lasattribute(dec, ID, name = "treeID", desc = "tree ID")
 
   toc(t0)
   cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()

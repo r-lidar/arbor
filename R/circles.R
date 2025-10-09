@@ -92,7 +92,7 @@ ransac_circle <- function(points, num_iterations = 100, inlier_threshold = 0.01)
     inliers <- residuals < inlier_threshold
 
     # Angular range
-    angle_res = 3
+    angle_res = 10
     angles <- atan2(points[inliers, 2] - center_y, points[inliers, 1] - center_x)
     angles <- ifelse(angles < 0, angles + 2 * pi, angles)
     angles <- sort(angles*180/pi)
