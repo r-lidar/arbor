@@ -14,19 +14,19 @@
 #' @export
 compute_anisotropy = function(las, k = 0)
 {
-  if (k  <= 0)
+  if (k <= 0)
   {
     area <- as.numeric(lidR::st_area(las))
     count <- lidR::npoints(las)
-    constant = 50/15000
-    k = round(((count/area) * constant), 0)
+    constant <- 50/15000
+    k <- round(((count/area) * constant), 0)
     cat('Auto-adaptive k =', k, "\n")
   }
 
-  t0 = tic()
-  eigen = lidR::point_eigenvalues(las, k = k, coeffs = FALSE)
+  t0 <- tic()
+  eigen <- lidR::point_eigenvalues(las, k = k, coeffs = FALSE)
   anisotropy <- (eigen[["eigen_largest"]] - eigen[["eigen_smallest"]]) / eigen[["eigen_largest"]]
-  las = lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")
+  las <- lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")
   free(eigen)
   toc(t0)
   return(las)

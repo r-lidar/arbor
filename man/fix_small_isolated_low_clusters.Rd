@@ -14,6 +14,6 @@ Apply this function to fix some issue in the instance segmentation. If you have 
 this function this should not have any effect. This function look at the wood part of each trees
 an test with a connected component algorithm if there are more than one big cluster. This can
 happen when a seed is missing with \link{find_seeds}. In this case a few wood point may be assigned
-to the wrong tree because this was the best seed to reach. Those point are reasigned to foliage class
+to the wrong tree because this was the best seed to reach. Those points are reasigned to foliage class
 in order to do not mess-up QSM software
 }

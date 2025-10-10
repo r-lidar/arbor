@@ -43,11 +43,14 @@ file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_so
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
 
 # Richard's data
-file = "~/Documents/Usherbrooke/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.3"
-file = "/home/jr/Documents/Usherbrooke/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.2"
+file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.2"
+file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
 # MRNF Oak plantations
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/StAnselme/test_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+
+# Batien's data
+file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
 
 # ====== READ POINT CLOUD =======
 
@@ -58,15 +61,6 @@ las <- readTLS(file, select = "0", filter = filter)
 # Print to see your density. Target is between 10.000 and 20.000
 print(las)
 plot(header(las))
-
-r = 8
-x = 269600 ; y = 5168580
-x = 269615 ; y = 5168590
-p = sf::st_point(c(x, y))
-p = sf::st_buffer(p, r)
-plot(p, add = T)
-las = clip_circle(las, x, y, r)
-print(las)
 
 # ===== GROUND CLASSIFICATION ======
 
@@ -82,6 +76,8 @@ ground$Classification <- lidR::LASGROUND
 dtm <- lidR::rasterize_terrain(ground, 0.5, lidR::tin())
 las <- lidR::height_above_ground(las, algorithm = lidR::tin(), dtm = dtm)
 
+plot_dtm3d(dtm)
+
 # ====== KEEP ABOVE DTM ======
 
 # We remove points close to the ground. It is impossible to segment
@@ -92,9 +88,14 @@ las <- lidR::height_above_ground(las, algorithm = lidR::tin(), dtm = dtm)
 
 bottom <- lidR::filter_poi(las, hag <= cut_above_ground)
 las    <- lidR::filter_poi(las, hag > cut_above_ground)
-gc()
+
+d <- density(las)
+if (d < 10000 | d > 20000)
+  warning("The density of the point cloud may be inccorrect. Try to target something closer to 15.000 pts/m²")
 
 if (display) plot(las) |> add_dtm3d(dtm)
+
+gc()
 
 # ===== PRECOMPUTE DECIMATION =====
 
@@ -132,31 +133,25 @@ if (FALSE)
 # This is not the actual segmentation, so it is not intended to be perfect,
 # but this step should make sense and look roughly correct.
 
-las <- compute_anisotropy(las, k = 50)
+las <- compute_anisotropy(las, k = 80)
 
-if (display) plot(las, color = "anisotropy", legend = T, breaks = "quantile")
+if (display) plot_anisotropy(las)
 
 # ====== SEGMENT FOLIAGE/WOOD ======
 
 # segment_foliage relies, at least partially, on a good anisotropy measurement.
 # If the previous step is bad this step will be bad too.
 
-las <- segment_foliage(las, dtm, min_passage = 2)
+las <- segment_foliage(las, dtm, min_passage = 1, max_gap = 2)
 
 if (display)
 {
-  # Wood/foliage
-  plot(las, color = "foliage", pal = foliage.colors, size = 2) |> add_dtm3d(dtm)
+  plot_foliage(las, dtm) # Wood/foliage
+  plot(filter_poi(las, foliage == FALSE), pal = "gray", size = 2) |> add_dtm3d(dtm)   # Wood only
+  plot_passage(las, dtm)   # Pathfinder passages
 
-  # Wood
-  plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)
-
-  # Pathfinder passages
-  passage <- filter_poi(las, passage > 1)
-  passage@data$passage <- log(passage$passage)
-  plot(passage, color = "passage", legend = T)
-
-  # Pathfinder passages +  scene < 2m
+  # Pathfinder passages + scene < 2m
+  passage <- lidR::filter_poi(las, passage > 1)
   x <- plot(filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
   plot(filter_poi(passage, hag < 2), add = x, legend = T, size = 4)
 }
@@ -171,18 +166,15 @@ if (display)
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
 
-seeds <- find_seeds2(las, slice_seeds_at)
+seeds <- find_seeds(las, slice_seeds_at)
 seeds@data <- seeds@data[, .SD[sample(.N, max(min(.N, 3), .N/4))], by = treeID]
 
 if (display)
 {
-  col <- pastel.colors(length(unique(seeds$treeID)))
-  col <- col[as.integer(as.factor(seeds$treeID))]
+  slices <- lidRtls:::slice_poi(las, slice_seeds_at)
+  slices <- lidR::filter_poi(slices, foliage == 0)
 
-  slices   <- lidRtls:::slice_poi(las, slice_seeds_at)
-  slices   <- lidR::filter_poi(slices, foliage == 0)
-
-  x <- plot(filter_poi(las,  hag < 4), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  x <- plot(lidR::filter_poi(las,  hag < 4), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
 
@@ -190,7 +182,7 @@ if (display)
 
 # Finding seed is THE critical step here.
 
-las <- segment_vegetation(las, seeds, res = 0.05, max_gap = 0.6, k = 5)
+las <- segment_vegetation(las, seeds, res = 0.05, max_gap = 10, k = 5)
 
 if (display) x <- plot(las, color = "treeID") |> add_dtm3d(dtm)
 
@@ -199,15 +191,15 @@ if (display) x <- plot(las, color = "treeID") |> add_dtm3d(dtm)
 # Low understory is unlikely to be properly segmented in complex contexts.
 # In simpler contexts, this threshold can be set to a lower value.
 # The goal is to retain the main trees and clean up the understory. It also
-# remove blob of pointa with no ID
+# remove blob of points with no ID
 
-trees <- clean_small_cluster(las, max_heigh = 6)
+trees <- remove_small_trees(las, max_heigh = 2)
 
 if (display)
 {
   plot(trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  plot(filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+  plot_foliage(trees, dtm)
+  plot(lidR::filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
 }
 
 # ====== FIX SEGMENTATION ISSUES =======
@@ -229,7 +221,7 @@ if (display)
 # Edge trees are necessarily bad by construction. We need to remove a buffer large enough
 # to exclude trees connected to partially visible edge trees.
 
-valid_trees <- clip_buffer(trees, -4)
+valid_trees <- clip_buffer(trees, -2)
 
 if (display)
 {
@@ -243,7 +235,7 @@ if (require(lidRqsm))
   # QSM for a random tree
 
   id   <- sample(unique(trees$treeID), 1)
-  tree <- filter_poi(trees, treeID == id)
+  tree <- lidR::filter_poi(trees, treeID == id)
 
   qsm  <- lidRqsm::qsm_lidrqsm(tree)
   xoff <- qsm$startX[1]
