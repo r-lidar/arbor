@@ -3,7 +3,6 @@ library(lidRtls)
 
 set_lidr_threads(0)
 
-slice_seeds_at = c(1, 2, 3)
 cut_above_ground = 0.25
 
 display = FALSE
@@ -47,7 +46,8 @@ file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz"
 file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
 # MRNF Oak plantations
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/StAnselme/test_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/sta_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/god_plot1.laz" ; filter = "-keep_random_fraction 0.8"
 
 # Batien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"

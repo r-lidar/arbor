@@ -28,7 +28,7 @@ default_parameters_v1 = list(
     ground_res = 0.2
   ),
   seed = list (
-    slice_at = c(0.75,1,1.25),
+    slice_at = c(0.7,9),
     slice_thickness = 0.03,
     sor_k = 10,
     sor_m = 0.5,

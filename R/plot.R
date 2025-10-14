@@ -27,27 +27,31 @@ plot_semantic_instance = function(las, dtm = NULL, ...)
 {
   p1 <- las@data$foliage    # 0 = wood, 1/2 = foliage
   p2 <- las@data$treeID     # tree IDs (non-continuous)
-  n <- length(unique(p2))   # number of unique trees
+  n <- max(p2, na.rm = TRUE)   # number of unique trees
 
   # Example pastel palette
   pal <- pastel.colors(n)   # or any vector of colors per tree
-
-  # Map tree IDs to palette colors
-  id_unique <- sort(unique(p2))
-  id_to_color <- setNames(pal, id_unique)
+  pal <- t(grDevices::col2rgb(pal))
 
   # Create vector to store RGB for each point
-  cols <- id_to_color[as.character(p2)]
+  cols <- pal[p2, ]
 
   # Darken foliage points
-  cols = t(col2rgb(cols))
   foliage = p1 >= 1
   cols[foliage,] =   cols[foliage,] * 0.7
+  R = as.integer(cols[,1])
+  G = as.integer(cols[,2])
+  B = as.integer(cols[,3])
+  R[is.na(R)] = 150L
+  G[is.na(G)] = 150L
+  B[is.na(B)] = 150L
 
   # Assign to LAS
-  las@data$R = cols[,1]
-  las@data$G = cols[,2]
-  las@data$B = cols[,3]
+  las@data$R = R
+  las@data$G = G
+  las@data$B = B
+
+  free(cols)
 
   x <- lidR::plot(las, color = "RGB")
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
