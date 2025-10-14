@@ -1,6 +1,6 @@
-seed_from_dtm = function(dtm)
+seed_from_dtm = function(dtm, res)
 {
-  seeds = terra::rast(terra::ext(dtm), res = 0.25)
+  seeds = terra::rast(terra::ext(dtm), res = res)
   seeds = terra::resample(dtm, seeds)
   seeds = as.data.frame(seeds, xy = T)
   seeds = data.table::as.data.table(seeds)
@@ -8,19 +8,6 @@ seed_from_dtm = function(dtm)
   seeds
 }
 
-expand_treeid_to_neighbors = function(unclustered, clustered, max_gap = 0.5, z_factor = 1)
-{
-  ID = "treeID"
-  clustered$Z = clustered$Z*z_factor
-  unclustered$Z = unclustered$Z*z_factor
-  seed_to_dense_lookup <- lidR::knnx(clustered, unclustered, k = 1)
-  full_tree_id_vector <- clustered@data[[ID]][seed_to_dense_lookup[[1]]]
-  distances = seed_to_dense_lookup[[2]]
-  full_tree_id_vector[distances > max_gap] <- NA_integer_
-  unclustered <- lidR::add_lasattribute(unclustered, full_tree_id_vector, name = "treeID", desc = "tree ID")
-  unclustered$Z = unclustered$Z/z_factor
-  return(unclustered)
-}
 
 tic = function()
 {
@@ -29,6 +16,7 @@ tic = function()
 
 toc = function(t0, space = "  ")
 {
+  gc()
   units = "secs"
   tf = Sys.time()
   dt = difftime(tf, t0, units = units)

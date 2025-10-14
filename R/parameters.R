@@ -1,16 +1,16 @@
-#' @export
-default_parameters = list(
+default_parameters_v1 = list(
   decimation = list(
     barycentric_predecimation_resolution = 0.05,
     cut_above_ground = 0.25
   ),
   anistotropy = list(
-    k = 50
+    k = 80
   ),
   path_finder = list(
     k_neighborhood_connectivity = 10,
+    res = 0.2,
     max_gap = 1,
-    min_passage = 2,
+    min_passage = 3,
     angle_penalty_function = function(x){ y = exp(log(100)/100*x); y[x>100]=100; y }
   ),
   semantic = list(
@@ -24,15 +24,15 @@ default_parameters = list(
     wood_extra_reasignation_k = 10,
     wood_extra_reasignation_dist = 0.03,
     medium_anisotropy_sor_k = 50,
-    medium_anisotropy_sor_m = 0.05
+    medium_anisotropy_sor_m = 0.05,
+    ground_res = 0.2
   ),
   seed = list (
-    slice_at = c(1,2,3),
+    slice_at = c(0.75,1,1.25),
     slice_thickness = 0.03,
     sor_k = 10,
     sor_m = 0.5,
-    connected_components_res = 0.06,
-    connected_components_min = 1,
+    min_passage = 15,
     safe_zone = 0.2
   ),
   instance = list(
@@ -49,3 +49,6 @@ default_parameters = list(
     )
   )
 )
+
+#' @export
+default_parameters = default_parameters_v1

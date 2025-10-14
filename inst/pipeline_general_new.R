@@ -52,6 +52,10 @@ file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/StAnselme/test_plot1.las"
 # Batien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
 
+# ===== PROCESSING PARAMETERS =====
+
+params = default_parameters
+
 # ====== READ POINT CLOUD =======
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
@@ -76,7 +80,7 @@ ground$Classification <- lidR::LASGROUND
 dtm <- lidR::rasterize_terrain(ground, 0.5, lidR::tin())
 las <- lidR::height_above_ground(las, algorithm = lidR::tin(), dtm = dtm)
 
-plot_dtm3d(dtm)
+if (display) plot_dtm3d(dtm)
 
 # ====== KEEP ABOVE DTM ======
 
@@ -104,7 +108,7 @@ gc()
 # computationally demanding. Since the decimation is computed several times we can precompute it once
 # and avoid recomputation by labeling retained points. Default 5 cm decimation is good.
 
-las <- barycentric_predecimation(las, 0.05)
+las <- barycentric_predecimation(las, params)
 
 if (display) plot(filter_poi(las, decimated == TRUE))
 
@@ -133,7 +137,7 @@ if (FALSE)
 # This is not the actual segmentation, so it is not intended to be perfect,
 # but this step should make sense and look roughly correct.
 
-las <- compute_anisotropy(las, k = 80)
+las <- compute_anisotropy(las, params)
 
 if (display) plot_anisotropy(las)
 
@@ -142,18 +146,18 @@ if (display) plot_anisotropy(las)
 # segment_foliage relies, at least partially, on a good anisotropy measurement.
 # If the previous step is bad this step will be bad too.
 
-las <- segment_foliage(las, dtm, min_passage = 1, max_gap = 2)
+las <- segment_foliage(las, dtm, params)
 
 if (display)
 {
-  plot_foliage(las, dtm) # Wood/foliage
-  plot(filter_poi(las, foliage == FALSE), pal = "gray", size = 2) |> add_dtm3d(dtm)   # Wood only
+  plot_semantic(las, dtm) # Wood/foliage
+  plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)   # Wood only
   plot_passage(las, dtm)   # Pathfinder passages
 
   # Pathfinder passages + scene < 2m
   passage <- lidR::filter_poi(las, passage > 1)
-  x <- plot(filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  plot(filter_poi(passage, hag < 2), add = x, legend = T, size = 4)
+  x <- plot(filter_poi(las,  hag < 3), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  plot(filter_poi(passage, hag < 3), add = x, legend = T, size = 4)
 }
 
 # ====== FIND TREE SEEDS =======
@@ -166,14 +170,11 @@ if (display)
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
 
-seeds <- find_seeds(las, slice_seeds_at)
+seeds <- find_seeds(las, params)
 seeds@data <- seeds@data[, .SD[sample(.N, max(min(.N, 3), .N/4))], by = treeID]
 
 if (display)
 {
-  slices <- lidRtls:::slice_poi(las, slice_seeds_at)
-  slices <- lidR::filter_poi(slices, foliage == 0)
-
   x <- plot(lidR::filter_poi(las,  hag < 4), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
@@ -182,9 +183,13 @@ if (display)
 
 # Finding seed is THE critical step here.
 
-las <- segment_vegetation(las, seeds, res = 0.05, max_gap = 10, k = 5)
+las <- segment_vegetation(las, seeds, params)
 
-if (display) x <- plot(las, color = "treeID") |> add_dtm3d(dtm)
+if (display)
+{
+  plot_instance(las, dtm)
+  plot_semantic_instance(las, dtm)
+}
 
 # ====== RETAIN ONLY MAIN TREES =======
 
@@ -193,12 +198,13 @@ if (display) x <- plot(las, color = "treeID") |> add_dtm3d(dtm)
 # The goal is to retain the main trees and clean up the understory. It also
 # remove blob of points with no ID
 
-trees <- remove_small_trees(las, max_heigh = 2)
+trees <- remove_small_trees(las, max_heigh = 4)
 
 if (display)
 {
-  plot(trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot_foliage(trees, dtm)
+  plot_instance(trees, dtm)
+  plot_semantic(trees, dtm)
+  plot_semantic_instance(trees, dtm)
   plot(lidR::filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
 }
 
@@ -212,8 +218,8 @@ trees <- fix_small_isolated_low_clusters(trees)
 
 if (display)
 {
-  plot(trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-  plot(trees, color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  plot_semantic_instance(trees, dtm)
+  plot_foliage(trees, dtm)
 }
 
 # ==== CLIP BUFFER ======

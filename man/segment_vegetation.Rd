@@ -4,15 +4,7 @@
 \alias{segment_vegetation}
 \title{Individual Tree Instance Segmentation}
 \usage{
-segment_vegetation(
-  las,
-  seeds,
-  ...,
-  res = 0.05,
-  k = 5,
-  max_gap = 0.5,
-  z_factor = 0.8
-)
+segment_vegetation(las, seeds, params)
 }
 \arguments{
 \item{las}{A \code{LAS} object (from the \code{lidR} package) containing the point cloud data. It must have
@@ -21,24 +13,7 @@ an attribute \code{foliage}, which can be generated using prior semantic segment
 \item{seeds}{An \code{sf} object containing points that represent tree seeds. Each point must have
 xyz coordinates and a \code{treeID}. Seeds can be generated using \link{find_seeds}.}
 
-\item{...}{unused. Serves only to separate easy parameters to complex ones that should not need to
-be modified.}
-
-\item{res}{Numeric. The resolution for decimating the point cloud. Smaller resolutions retain more
-points but increase computational cost. Ideally keeping one point every 5 cm would be optimal.
-In practice it increases the computation times. Every 10 cm works well actually and compute fast.
-The default is 0.08 meters (8 cm), a trade-off between 5 and 10 cm.}
-
-\item{k}{Integer. Number of nearest neighbors used to build the k-NN graph for the network. Default
-is 10.}
-
-\item{max_gap}{Numeric. Maximum allowed distance (in meters) between points for them to be connected
-in the network. Points separated by larger gaps are disconnected, effectively creating barriers.
-Default is 0.2 meters.}
-
-\item{z_factor}{Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
-reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
-Default is 0.8.}
+\item{params}{list See \link{parameters}.}
 }
 \value{
 A \code{LAS} object with an additional attribute \code{treeID}, indicating the ID of the tree to

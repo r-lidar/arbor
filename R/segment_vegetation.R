@@ -30,20 +30,7 @@
 #'   an attribute `foliage`, which can be generated using prior semantic segmentation.
 #' @param seeds An `sf` object containing points that represent tree seeds. Each point must have
 #'   xyz coordinates and a `treeID`. Seeds can be generated using \link{find_seeds}.
-#' @param res Numeric. The resolution for decimating the point cloud. Smaller resolutions retain more
-#'   points but increase computational cost. Ideally keeping one point every 5 cm would be optimal.
-#'   In practice it increases the computation times. Every 10 cm works well actually and compute fast.
-#'   The default is 0.08 meters (8 cm), a trade-off between 5 and 10 cm.
-#' @param max_gap Numeric. Maximum allowed distance (in meters) between points for them to be connected
-#'   in the network. Points separated by larger gaps are disconnected, effectively creating barriers.
-#'   Default is 0.2 meters.
-#' @param k Integer. Number of nearest neighbors used to build the k-NN graph for the network. Default
-#'  is 10.
-#' @param z_factor Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
-#'   reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
-#'   Default is 0.8.
-#' @param ... unused. Serves only to separate easy parameters to complex ones that should not need to
-#' be modified.
+#' @param params list See \link{parameters}.
 #'
 #' @return A `LAS` object with an additional attribute `treeID`, indicating the ID of the tree to
 #'   which each point belongs.
@@ -68,9 +55,10 @@
 #' @export
 #' @importFrom Rcpp sourceCpp
 #' @seealso \link{find_seeds}, \link{segment_foliage}
-segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5, z_factor = 0.8)
+segment_vegetation = function(las, seeds, params)
 {
   #res = 0.05; k = 5; max_gap = 0.5; z_factor = 0.8
+  z_factor <- params$instance$z_scale
 
   . <- X <- Y <- Z <- foliage <- pointID <- NULL
 
@@ -91,9 +79,10 @@ segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5,
   cat("Decimating the point cloud... (1/6)\n") ; t0 = tic()
 
   # We will apply path finding to a decimated point cloud
-  ans <- decimate_translate(las, res, z_factor)
-  dec <- ans$dec
-  dec@data <- dec@data[, .(X,Y,Z, foliage, pointID)]
+  ans        <- decimate_translate(las, params)
+  dec        <- ans$dec
+  dec$Z      <- dec$Z * z_factor
+  dec@data   <- dec@data[, .(X,Y,Z, foliage, pointID)]
   num_points <- lidR::npoints(dec)
 
   # Global translation to origin for computation stability
@@ -105,7 +94,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5,
   seeds@data$X <- seeds@data$X - x_translation
   seeds@data$Y <- seeds@data$Y - y_translation
   seeds@data$Z <- seeds@data$Z * z_factor
-  num_trees <- nrow(seeds)
+  num_trees    <- nrow(seeds)
 
   # Compute the single master seed that rule them all. the real spatial position
   # does not matter since the cost is 0 but having a position is better for rendering
@@ -114,7 +103,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5,
   # Plot for debugging
   if (FALSE)
   {
-    x = plot(dec)
+    x <- plot(dec)
     plot(seeds, add = x, pal = "green", size = 6)
     plot(master_seed, add = x, pal = "white", size = 8)
   }
@@ -125,6 +114,8 @@ segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5,
   # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
   # is based on the euclidean distance with some variation in order to specifically follow the wood
   # and not foliage. The cost is not the same in both directions
+  k <- params$path_finder$k_neighborhood_connectivity
+  max_gap <- params$path_finder$max_gap
 
   point_network <- compute_point_network(dec, k = k, max_gap = max_gap, wood_mask = dec$foliage, cost_factors = cost_factors)
   points_ids = 1:num_points
@@ -193,7 +184,7 @@ segment_vegetation = function(las, seeds, ..., res = 0.05, k = 5, max_gap = 0.5,
   dec$Y <- dec$Y + y_translation
   dec$Z <- dec$Z / z_factor
 
-  las <- expand_treeid_to_neighbors(las, dec, z_factor = z_factor)
+  las <- transfer_attributes(dec, las, "treeID")
 
   toc(ti, space = "")
   gc()

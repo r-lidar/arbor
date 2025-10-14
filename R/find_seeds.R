@@ -1,5 +1,5 @@
 #' @export
-find_seeds <- function(las, heights)
+find_seeds <- function(las, params)
 {
   foliage <- clusterID <- max_diameter <- passage <- hag <- NULL
 
@@ -10,10 +10,15 @@ find_seeds <- function(las, heights)
   stopifnot("foliage" %in% attributes)
 
   # Extract some slices of wood (thikcness 3cm)
-  slices   <- slice_poi(las, heights, 0.03)
+  heights  <- c(min(las$hag), params$seed$slice_at)
+  thick    <- params$seed$slice_thickness
+  sor_k    <- params$seed$sor_k
+  sor_m    <- params$seed$sor_m
+  slices   <- slice_poi(las, heights, thick)
   somewood <- lidR::filter_poi(slices, foliage == 0)
-  somewood <- lidR::classify_noise(somewood, lidR::sor(k = 10, m = 0.5)) # very very aggressive sor
+  somewood <- lidR::classify_noise(somewood, lidR::sor(k = sor_k, m = sor_m)) # very very aggressive sor
   somewood <- lidR::remove_noise(somewood)
+  somewood@data <- somewood@data[, .(X,Y,Z, passage, hag)]
 
   # Connect the point into clusters
   seed <- lidR::connected_components(somewood, 0.1, 10, connectivity = 26)
@@ -77,27 +82,79 @@ find_seeds <- function(las, heights)
   }
   somewood <- somewood[!rm]
 
-  # Keep point with passage (passage > 1). And lower than max slicing
+  # Keep point with passage. And lower than max slicing
+  # Increasing min passage reduce branches included in passage, But
+  # wee keep any passage close to the ground to segment bushes
   th <- max(heights) + 0.1
-  passages <- lidR::filter_poi(las, passage > 1, hag < th)
+  min_passage     <- params$seed$min_passage
+  tree_passages   <- lidR::filter_poi(las, passage > min_passage, hag < th)
+  bushes_passages <- lidR::filter_poi(las, passage > 1, hag < min(hag) + 0.5, passage < 10)
+  tree_passages@data <- tree_passages@data[, .(X,Y,Z, passage, hag)]
+  bushes_passages@data <- bushes_passages@data[, .(X,Y,Z, passage, hag)]
+  all_passages   <- suppressWarnings(rbind(tree_passages, bushes_passages))
+
+  if (FALSE)
+  {
+    x = plot(tree_passages, pal = "green")
+    plot(bushes_passages, add = x, pal = "red")
+    plot(somewood, add = x, pal = foliage.colors[1])
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
+
+  if (FALSE)
+  {
+    x = plot(all_passages, pal = "green")
+    plot(somewood, add = x, pal = foliage.colors[1])
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
+
+  # Convert to points
+  generate_circle_points <- function(x, y, z, r, step = 0.1)
+  {
+    # Circumference
+    circumference <- 2 * pi * r
+    # Number of points for approximately every `step` meters
+    n_points <- ceiling(circumference / step)
+    # Angles for points
+    theta <- seq(0, 2*pi, length.out = n_points + 1)[-1]  # remove last point to avoid duplicate
+    # Generate points
+    data.frame(
+      X = x + r * cos(theta),
+      Y = y + r * sin(theta),
+      Z = rep(z, n_points)
+    )
+  }
+  circle_points_list <- lapply(1:nrow(circles), function(i) {
+    generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = 0.05)
+  })
+  circle_points = do.call(rbind, circle_points_list)
+  circle_points$passage = 1000
+  circle_points$hag = 0
+  circle_points = suppressWarnings(LAS(circle_points, header(las)))
 
 
   # Bind the wood and the passage in order to compute
   # connected component and merge passage from the same trees
-  temp   <- suppressWarnings(rbind(somewood, passages))
-  temp$Z <- temp$Z
-  temp   <- lidR::connected_components(temp, 0.06, 1, name = "treeID", connectivity = 26)
+
+  temp = suppressWarnings(rbind(somewood, tree_passages, bushes_passages, circle_points))
+  res    <- round(params$decimation$barycentric_predecimation_resolution*1.5, 2)
+  temp$Z <- temp$Z * params$semantic$z_scale
+  temp   <- lidR::connected_components(temp, res, 1, name = "treeID", connectivity = 26)
+  temp$Z <- temp$Z / params$semantic$z_scale
 
   if (FALSE)
   {
     x <- plot(temp, color = "treeID")
+    #plot(passage, add = x)
     for (i in 1:nrow(circles))
       add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
   }
 
   # Retain only the seed below BH
   seeds <- lidR::filter_poi(temp, passage > 0)
-  seeds <- lidR::filter_poi(seeds, hag > min(heights), hag < 1.37)
+  seeds <- lidR::filter_poi(seeds, hag < 1)
   seeds
 }
 

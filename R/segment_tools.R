@@ -18,12 +18,12 @@ compute_network = function(data, query, k = 5)
   edges
 }
 
-decimate_translate <- function(las, res, z_factor)
+decimate_translate <- function(las, params = default_parameters)
 {
   decimated <- NULL
 
   if (!"decimated" %in% names(las))
-    dec <- lidR::decimate_points(las, lidR::barycenter_per_voxel(res))
+    dec <- barycentric_predecimation(las, params)
   else
     dec <- lidR::filter_poi(las, decimated == TRUE)
 
@@ -31,7 +31,6 @@ decimate_translate <- function(las, res, z_factor)
   y_translation <- round(mean(las$Y))
   dec@data$X <- dec@data$X - x_translation
   dec@data$Y <- dec@data$Y - y_translation
-  dec@data$Z <- dec@data$Z * z_factor
   dec@header@VLR$Extra_Bytes <- NULL
   return(list(dec = dec, x_translation = x_translation, y_translation = y_translation))
 }

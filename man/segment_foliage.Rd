@@ -4,50 +4,14 @@
 \alias{segment_foliage}
 \title{Wood-Foliage Semantic Segmentation}
 \usage{
-segment_foliage(
-  las,
-  dtm,
-  res = 0.05,
-  max_gap = 1,
-  th_anisotropy = 0.75,
-  ...,
-  min_passage = 5,
-  k = 5,
-  space_res = 0.4,
-  z_factor = 0.8
-)
+segment_foliage(las, dtm, params = default_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
 
 \item{dtm}{A SpatRaster object. Digital Terrain Model}
 
-\item{res}{Resolution (in meters). The point cloud is initially downsampled to reduce
-computational cost. Ideally, retaining one point every 5 cm provides optimal results,
-but in practice, 10 cm works well and computes faster. The default is 8 cm as a
-trade-off between accuracy and speed.}
-
-\item{max_gap}{Maximum allowable distance (in meters) between connected points in the
-network. Points farther apart than this threshold will not be linked. Default: 20 cm.}
-
-\item{th_anisotropy}{Threshold for anisotropy. Points exceeding this value are likely to be
-classified as wood.}
-
-\item{...}{Unused. Serves only to distinguish common parameters from advanced parameters
-that typically do not require modification.}
-
-\item{min_passage}{Minimum number of times a point must be part of a least cost path to be
-considered part of the tree skeleton. Default: 5.}
-
-\item{k}{Number of nearest neighbors used to construct the network.}
-
-\item{space_res}{Spatial resolution (in meters) for pathfinding. The algorithm does not actually
-evaluate "every point in space" as describe above, but instead considers points at this interval.
-Default: 40 cm.}
-
-\item{z_factor}{Numeric. Scaling factor for the Z-axis. The point cloud is compressed vertically to
-reduce the effect of large vertical gaps in the canopy while preserving horizontal distances.
-Default is 0.8.}
+\item{params}{list See \link{parameters}.}
 }
 \description{
 This function performs wood-foliage semantic segmentation by constructing a network of points
