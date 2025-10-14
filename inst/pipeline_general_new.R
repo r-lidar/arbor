@@ -3,7 +3,6 @@ library(lidRtls)
 
 set_lidr_threads(0)
 
-slice_seeds_at = c(1, 2, 3)
 cut_above_ground = 0.25
 
 display = FALSE
