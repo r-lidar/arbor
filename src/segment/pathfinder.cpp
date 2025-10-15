@@ -34,7 +34,6 @@ using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
 using PrecomputedPtr = Rcpp::XPtr<GraphCache>;
 
-// [[Rcpp::export]]
 SEXP build_graph(Rcpp::DataFrame graph_df)
 {
   Rcpp::IntegerVector from_nodes = graph_df["from"];
@@ -46,7 +45,6 @@ SEXP build_graph(Rcpp::DataFrame graph_df)
   return ptr;
 }
 
-// [[Rcpp::export]]
 SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
 {
   GraphPtr graph(graph_ptr);
@@ -61,7 +59,6 @@ SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
   return pptr;
 }
 
-// [[Rcpp::export]]
 Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
 {
   GraphPtr graph(graph_ptr);

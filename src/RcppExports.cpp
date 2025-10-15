@@ -10,17 +10,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// colMins
-IntegerVector colMins(NumericMatrix mat);
-RcppExport SEXP _lidRtls_colMins(SEXP matSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(colMins(mat));
-    return rcpp_result_gen;
-END_RCPP
-}
 // build_graph
 SEXP build_graph(Rcpp::DataFrame graph_df);
 RcppExport SEXP _lidRtls_build_graph(SEXP graph_dfSEXP) {
@@ -58,58 +47,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// ransac_circle_cpp
-List ransac_circle_cpp(NumericMatrix points, int num_iterations, double inlier_threshold, double early_exit);
-RcppExport SEXP _lidRtls_ransac_circle_cpp(SEXP pointsSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP early_exitSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericMatrix >::type points(pointsSEXP);
-    Rcpp::traits::input_parameter< int >::type num_iterations(num_iterationsSEXP);
-    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
-    Rcpp::traits::input_parameter< double >::type early_exit(early_exitSEXP);
-    rcpp_result_gen = Rcpp::wrap(ransac_circle_cpp(points, num_iterations, inlier_threshold, early_exit));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_smooth3d
-DataFrame cpp_smooth3d(S4 las, NumericVector radius, NumericVector weight, int ncpu, bool pgbar, bool verbose);
-RcppExport SEXP _lidRtls_cpp_smooth3d(SEXP lasSEXP, SEXP radiusSEXP, SEXP weightSEXP, SEXP ncpuSEXP, SEXP pgbarSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< S4 >::type las(lasSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type radius(radiusSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type weight(weightSEXP);
-    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    Rcpp::traits::input_parameter< bool >::type pgbar(pgbarSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_smooth3d(las, radius, weight, ncpu, pgbar, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
 // C_voxel_barycenter_decimate
-LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y, NumericVector Z, NumericVector id);
+Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
 RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< NumericVector >::type X(XSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type id(idSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type id(idSEXP);
     rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, id));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lidRtls_colMins", (DL_FUNC) &_lidRtls_colMins, 1},
     {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
     {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
     {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
-    {"_lidRtls_ransac_circle_cpp", (DL_FUNC) &_lidRtls_ransac_circle_cpp, 4},
-    {"_lidRtls_cpp_smooth3d", (DL_FUNC) &_lidRtls_cpp_smooth3d, 6},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
     {NULL, NULL, 0}
 };

@@ -3,7 +3,6 @@
 #include <vector>
 using namespace Rcpp;
 
-// [[Rcpp::export]]
 LogicalVector C_voxel_barycenter_decimate(
     NumericVector X,
     NumericVector Y,
