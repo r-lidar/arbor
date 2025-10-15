@@ -335,3 +335,13 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   return(las)
 }
+
+seed_from_dtm = function(dtm, res)
+{
+  seeds = terra::rast(terra::ext(dtm), res = res)
+  seeds = terra::resample(dtm, seeds)
+  seeds = as.data.frame(seeds, xy = T)
+  seeds = data.table::as.data.table(seeds)
+  names(seeds) = c("X", "Y", "Z")
+  seeds
+}
