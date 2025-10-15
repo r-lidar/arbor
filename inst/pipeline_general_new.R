@@ -234,26 +234,6 @@ if (display)
   plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
 }
 
-# ==== QSM ======
-
-if (require(lidRqsm))
-{
-  # QSM for a random tree
-
-  id   <- sample(unique(trees$treeID), 1)
-  tree <- lidR::filter_poi(trees, treeID == id)
-
-  qsm  <- lidRqsm::qsm_lidrqsm(tree)
-  xoff <- qsm$startX[1]
-  yoff <- qsm$startY[1]
-  qsm$startX <- qsm$startX-xoff
-  qsm$startY <- qsm$startY-yoff
-  qsm$endX   <- qsm$endX-xoff
-  qsm$endY   <- qsm$endY-yoff
-  x <- plot(tree, color = "foliage", pal = c("chocolate4", "darkgreen"), bg = "white", axis = T, add = c(xoff, yoff))
-  lidRqsm::plot_qsm(qsm, add = c(0,0), color = "branch_order")
-}
-
 # ==== VARIOUS EXPORTS ====
 
 o <- tools::file_path_sans_ext(file)
@@ -295,5 +275,18 @@ for (i in unique(trees_no_foliage$treeID))
   olas <- paste0(dirname(o), "/ITS/tree_", geo_id, ".las")
   writeLAS(tree, olas)
 }
+
+# ==== QSM ======
+
+# QSM for a random tree
+
+id   <- sample(unique(trees$treeID), 1)
+tree <- lidR::filter_poi(trees, treeID == id)
+plot_semantic(tree)
+
+qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
+x <- plot_semantic(tree)
+plot_qsm(qsm, color = "branch_order", add = x)
+
 
 

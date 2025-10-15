@@ -61,12 +61,90 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_compute_architecture
+Rcpp::DataFrame cpp_compute_architecture(Rcpp::DataFrame qsm, int root_id);
+RcppExport SEXP _lidRtls_cpp_compute_architecture(SEXP qsmSEXP, SEXP root_idSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
+    Rcpp::traits::input_parameter< int >::type root_id(root_idSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_compute_architecture(qsm, root_id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_build_skeleton
+Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
+RcppExport SEXP _lidRtls_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_compute_layers
+Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
+RcppExport SEXP _lidRtls_cpp_compute_layers(SEXP coordsSEXP, SEXP DSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< double >::type D(DSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_compute_layers(coords, D));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_compute_topology
+Rcpp::DataFrame cpp_compute_topology(Rcpp::DataFrame skel);
+RcppExport SEXP _lidRtls_cpp_compute_topology(SEXP skelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type skel(skelSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_compute_topology(skel));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_simplify_cpp
+Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length);
+RcppExport SEXP _lidRtls_qsm_simplify_cpp(SEXP qsmSEXP, SEXP max_lengthSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
+    Rcpp::traits::input_parameter< double >::type max_length(max_lengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_simplify_cpp(qsm, max_length));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_smooth_skeleton
+Rcpp::List cpp_smooth_skeleton(Rcpp::DataFrame qsm, int niter, double th);
+RcppExport SEXP _lidRtls_cpp_smooth_skeleton(SEXP qsmSEXP, SEXP niterSEXP, SEXP thSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
+    Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
+    Rcpp::traits::input_parameter< double >::type th(thSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_smooth_skeleton(qsm, niter, th));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
     {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
     {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
+    {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
+    {"_lidRtls_cpp_build_skeleton", (DL_FUNC) &_lidRtls_cpp_build_skeleton, 2},
+    {"_lidRtls_cpp_compute_layers", (DL_FUNC) &_lidRtls_cpp_compute_layers, 2},
+    {"_lidRtls_cpp_compute_topology", (DL_FUNC) &_lidRtls_cpp_compute_topology, 1},
+    {"_lidRtls_qsm_simplify_cpp", (DL_FUNC) &_lidRtls_qsm_simplify_cpp, 2},
+    {"_lidRtls_cpp_smooth_skeleton", (DL_FUNC) &_lidRtls_cpp_smooth_skeleton, 3},
     {NULL, NULL, 0}
 };
 

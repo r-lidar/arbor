@@ -17,3 +17,27 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
     .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
 }
 
+cpp_compute_architecture <- function(qsm, root_id = 1L) {
+    .Call(`_lidRtls_cpp_compute_architecture`, qsm, root_id)
+}
+
+cpp_build_skeleton <- function(data, max_d) {
+    .Call(`_lidRtls_cpp_build_skeleton`, data, max_d)
+}
+
+cpp_compute_layers <- function(coords, D) {
+    .Call(`_lidRtls_cpp_compute_layers`, coords, D)
+}
+
+cpp_compute_topology <- function(skel) {
+    .Call(`_lidRtls_cpp_compute_topology`, skel)
+}
+
+qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
+    .Call(`_lidRtls_qsm_simplify_cpp`, qsm, max_length)
+}
+
+cpp_smooth_skeleton <- function(qsm, niter = 1L, th = 0) {
+    .Call(`_lidRtls_cpp_smooth_skeleton`, qsm, niter, th)
+}
+
