@@ -120,7 +120,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
       if (FALSE)
       {
         tmp = data[iter == i]
-        plot(tmp[, .(X,Y)], asp = 1)
+        plot(tmp[, .(X,Y)], asp = 1, cex = 0.25)
         points(mean(tmp$X), mean(tmp$Y), col = "red")
       }
     }
@@ -138,6 +138,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
         # clustering
         cl = dbscan::dbscan(data[in_iter,1:3], eps = cl_dist, minPts = 1)
         cl_id = cl$cluster
+
         #cl = fastcluster::hclust(stats::dist(data[in_iter,1:3]), method = "single")
         #cl_id = stats::cutree(cl, h = cl_d)
         data[in_iter, cluster := cl_id]
@@ -165,7 +166,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
 
   if (FALSE)
   {
-   col = lidR:::set.colors(data$cluster, random.colors(5000))
+   col = lidR:::set.colors(data$cluster+data$iter, pastel.colors(50000))
    rgl::points3d(data$X, data$Y, data$Z, col = col)
    col = lidR:::set.colors(data$radius, height.colors(500))
    rgl::points3d(data$X, data$Y, data$Z, col = col)

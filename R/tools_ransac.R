@@ -130,7 +130,7 @@ ransac_circle <- function(points, num_iterations = 100, inlier_threshold = 0.01)
 #' @importFrom methods is
 is.valid.circle = function(radius, angle_range, pinliner, pinside)
 {
-  if (radius < 0.02)  return(TRUE)
+  if (radius < 0.04)  return(FALSE)
   if (radius < 0.05)  return(angle_range > 180 & pinliner > 30)
   if (pinside > 20) return(FALSE)
   if (radius < 0.12)  return(angle_range > 90 & pinliner > 50)

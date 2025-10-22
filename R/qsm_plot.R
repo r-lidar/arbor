@@ -40,14 +40,25 @@ plot_qsm = function(qsm, add = NULL, sides = 16, color = "cyl_ID", skeleton = TR
   color_palette <- grDevices::colorRampPalette(c("blue", "green", "yellow", "orange", "red"))
   colattr = qsm[[color]]
 
-  if (color == "branch_order") {
-    colattr = colattr + 1
-  } else if (is.logical(colattr)) {
-    colattr = colattr+1
-  } else {
-    colattr = findInterval(colattr, seq(min(colattr), max(colattr), length.out = 20))
+  if (!"radius" %in% names(qsm))
+    cylinder = FALSE
+
+  if (color %in% names(qsm))
+  {
+    if (color == "branch_order") {
+      colattr = colattr + 1
+    } else if (is.logical(colattr)) {
+      colattr = colattr+1
+    } else {
+      colattr = findInterval(colattr, seq(min(colattr), max(colattr), length.out = 20))
+    }
+    colors <- color_palette(max(colattr))
   }
-  colors <- color_palette(max(colattr))
+  else
+  {
+    colattr = rep(1, nrow(qsm))
+    colors = "black"
+  }
 
   if (!"translateX" %in% names(qsm))
       qsm$translateX = min(qsm$startX)
