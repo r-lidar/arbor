@@ -9,6 +9,8 @@
 
 using namespace Rcpp;
 
+List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 0.8);
+
 struct ClusterCenter
 {
   double x, y, z;
@@ -39,57 +41,82 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
   // The code groups all points sharing the same combination of (iter, cluster)
   // and computes their mean X, Y, Z coordinates — i.e., the cluster "centroid" for that iteration.
 
-  typedef std::pair<int, int> ClusterKey;  // Defines a key type combining iteration and cluster IDs.
+  typedef std::pair<int, int> ClusterKey;
+  std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
 
-  // Structure to hold the running sum of coordinates for one cluster,
-  // and how many points were aggregated (count).
-  struct ClusterSum
-  {
-    double x = 0, y = 0, z = 0; // accumulate sums of coordinates
-    int count = 0;              // count number of points in this cluster
-  };
-
-  // This unordered_map stores a mapping: (iter, cluster) → ClusterSum
-  // The custom hash function 'pair_hash' must be defined elsewhere in the code.
-  std::unordered_map<ClusterKey, ClusterSum, pair_hash> cluster_sums;
-
-  // Loop through all points to accumulate their coordinates per (iter, cluster)
+  // group indices by (iter, cluster)
   for (int i = 0; i < X.size(); ++i)
   {
-    ClusterKey key = std::make_pair(iter[i], cluster[i]);  // Build the key
-    cluster_sums[key].x += X[i];                           // Add to X sum
-    cluster_sums[key].y += Y[i];                           // Add to Y sum
-    cluster_sums[key].z += Z[i];                           // Add to Z sum
-    cluster_sums[key].count++;                             // Increment count
+    cluster_indices[std::make_pair(iter[i], cluster[i])].push_back(i);
   }
 
-  // Build cluster centers
-  // Each entry in 'cluster_sums' becomes a new ClusterCenter object representing one averaged position.
+  // build centers using RANSAC
   std::vector<ClusterCenter> centers;
-  std::unordered_map<int, ClusterCenter*> centerByID;  // Used to quickly look up a center by its numeric ID.
-  int id = 1;  // Assign incremental IDs to each center (starting from 1)
+  int id = 1;
 
-  for (auto& entry : cluster_sums)
+  for (auto& entry : cluster_indices)
   {
-    auto& key = entry.first;   // (iter, cluster)
-    auto& sum = entry.second;  // Accumulated sums for that key
-    ClusterCenter center;      // Temporary cluster center object
-    center.x = sum.x / sum.count;   // Mean X
-    center.y = sum.y / sum.count;   // Mean Y
-    center.z = sum.z / sum.count;   // Mean Z
-    center.iter = key.first;        // Iteration value
-    center.id = id++;               // Assign unique ID
-    centers.push_back(center);      // Store in list
-  }
+    auto key = entry.first;
+    auto& indices = entry.second;
+    ClusterCenter c;
+    c.iter = key.first;
+    c.id = id++;
 
+    if (indices.size() >= 100)
+    {
+      NumericMatrix pts(indices.size(), 3);
+      for (size_t i = 0; i < indices.size(); ++i)
+      {
+        int idx = indices[i];
+        pts(i, 0) = X[idx];
+        pts(i, 1) = Y[idx];
+        pts(i, 2) = Z[idx];
+      }
+
+      try
+      {
+        List res = ransac_circle_cpp(pts);
+        c.x = as<double>(res["center_x"]);
+        c.y = as<double>(res["center_y"]);
+        c.z = as<double>(res["z"]);
+      }
+      catch (...)
+      {
+        // fallback to average
+        double sumx = 0, sumy = 0, sumz = 0;
+        for (int idx : indices)
+        {
+          sumx += X[idx];
+          sumy += Y[idx];
+          sumz += Z[idx];
+        }
+        c.x = sumx / indices.size();
+        c.y = sumy / indices.size();
+        c.z = sumz / indices.size();
+      }
+    }
+    else
+    {
+      // fallback to average for small groups
+      double sumx = 0, sumy = 0, sumz = 0;
+      for (int idx : indices)
+      {
+        sumx += X[idx];
+        sumy += Y[idx];
+        sumz += Z[idx];
+      }
+      c.x = sumx / indices.size();
+      c.y = sumy / indices.size();
+      c.z = sumz / indices.size();
+    }
+
+    centers.push_back(c);
+  }
   // Prepare for neighbor searching.
   // We create a vector of pointers to the actual centers (so we can modify them in place).
   std::vector<ClusterCenter*> searchSpace;
   for (auto& c : centers)
-  {
-    centerByID[c.id] = &c;         // Keep quick lookup by ID
-    searchSpace.push_back(&c);     // Add pointer to the search pool
-  }
+    searchSpace.push_back(&c);
 
   // Find initial root: cluster center with minimum Z value (lowest in space).
   // This acts as the starting point for building the skeleton structure.
