@@ -13,6 +13,8 @@
 #' @export
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power = 1.1, pure_model = FALSE, ..., verbose = FALSE)
 {
+  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005; power = 1.1; pure_model = FALSE; verbose = FALSE
+
   #attributes <- names(tree)
   #stopifnot("passage" %in% attributes)
 

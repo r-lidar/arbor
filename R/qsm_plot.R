@@ -120,7 +120,7 @@ plot_qsm = function(qsm, add = NULL, sides = 16, color = "cyl_ID", skeleton = TR
     qq$startX = qq$startX - tx
     qq$startY = qq$startY - ty
     qq$startZ = qq$startZ - tz
-    rgl::segments3d(sktln, col = colors[colattr])
+    rgl::segments3d(sktln, col = rep(colors[colattr], each = 2))
     rgl::points3d(qq, col = colors[colattr])
   }
   if (cylinder)
