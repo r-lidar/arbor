@@ -17,12 +17,20 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
     .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
 }
 
+compute_real_distances <- function(graph_ptr, precomputed_ptr, coords) {
+    .Call(`_lidRtls_compute_real_distances`, graph_ptr, precomputed_ptr, coords)
+}
+
 cpp_compute_architecture <- function(qsm, root_id = 1L) {
     .Call(`_lidRtls_cpp_compute_architecture`, qsm, root_id)
 }
 
 cpp_build_skeleton <- function(data, max_d) {
     .Call(`_lidRtls_cpp_build_skeleton`, data, max_d)
+}
+
+cpp_build_skeleton_old <- function(data, max_d) {
+    .Call(`_lidRtls_cpp_build_skeleton_old`, data, max_d)
 }
 
 cpp_compute_layers <- function(coords, D) {

@@ -70,10 +70,7 @@ DataFrame cpp_compute_layers(NumericMatrix coords, double D)
       layer_cloud.pts.push_back({coords(idx, 0), coords(idx, 1), coords(idx, 2)});
     }
 
-    typedef KDTreeSingleIndexAdaptor<
-      L2_Simple_Adaptor<double, SimpleCloud>,
-      SimpleCloud, 3
-    > KDTree;
+    typedef KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<double, SimpleCloud>, SimpleCloud, 3> KDTree;
 
     // Construct KD-tree from current layer
     KDTree index(3, layer_cloud, KDTreeSingleIndexAdaptorParams(10));

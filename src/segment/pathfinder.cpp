@@ -86,4 +86,80 @@ Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector s
   );
 }
 
+Rcpp::NumericMatrix compute_real_distances(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::DataFrame coords)
+{
+  GraphPtr graph(graph_ptr);
+  PrecomputedPtr precomputed(precomputed_ptr);
+
+  Rcpp::NumericVector x = coords["X"];
+  Rcpp::NumericVector y = coords["Y"];
+  Rcpp::NumericVector z = coords["Z"];
+
+  const size_t num_nodes = x.size();
+  const size_t num_start = precomputed->size();
+
+  Rcpp::NumericMatrix result(num_start, num_nodes);
+  Rcpp::IntegerVector start_ids(num_start);
+
+  size_t i = 0;
+  for (const auto& kv : *precomputed)
+  {
+    NodeId start = kv.first;
+    const auto& [distances, predecessors] = kv.second;
+    start_ids[i] = start;
+
+    for (size_t target = 0; target < num_nodes; ++target)
+    {
+      // If unreachable
+      if (distances[target] == std::numeric_limits<Cost>::infinity())
+      {
+        result(i, target) = NA_REAL;
+        continue;
+      }
+
+      // Reconstruct path from target to start
+      std::vector<NodeId> path;
+      NodeId node = target;
+      while (node != start)
+      {
+        auto it = predecessors.find(node);
+        if (it == predecessors.end()) break;
+        path.push_back(node);
+        node = it->second;
+      }
+      path.push_back(start);
+
+      if (path.size() < 2)
+      {
+        result(i, target) = 0.0;
+        continue;
+      }
+
+      // Compute real Euclidean length
+      double total_length = 0.0;
+      for (size_t k = 1; k < path.size(); ++k)
+      {
+        NodeId a = path[k - 1];
+        NodeId b = path[k];
+        double dx = x[a] - x[b];
+        double dy = y[a] - y[b];
+        double dz = z[a] - z[b];
+        total_length += std::sqrt(dx * dx + dy * dy + dz * dz);
+      }
+
+      result(i, target) = total_length;
+    }
+
+    ++i;
+  }
+
+  // Add names for convenience
+  result.attr("dimnames") = Rcpp::List::create(
+    start_ids,
+    Rcpp::seq(0, num_nodes - 1)
+  );
+
+  return result;
+}
+
 

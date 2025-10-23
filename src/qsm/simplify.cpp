@@ -1,10 +1,11 @@
 #include <Rcpp.h>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 #include <cmath>
+#include <unordered_map>
+#include <unordered_set>
 using namespace Rcpp;
 
+// [[Rcpp::export]]
 DataFrame qsm_simplify_cpp(DataFrame qsm, double max_length = 0.3)
 {
   IntegerVector cyl_ID = qsm["cyl_ID"];
@@ -41,8 +42,9 @@ DataFrame qsm_simplify_cpp(DataFrame qsm, double max_length = 0.3)
   }
 
   for (int i = 0; i < n; ++i)
-  {  if (children.find(cyl_ID[i]) == children.end())
-    tips.insert(cyl_ID[i]);
+  {
+    if (children.find(cyl_ID[i]) == children.end())
+      tips.insert(cyl_ID[i]);
   }
 
   std::unordered_set<int> important;
@@ -53,7 +55,7 @@ DataFrame qsm_simplify_cpp(DataFrame qsm, double max_length = 0.3)
   }
 
   std::vector<bool> visited(n, false);
-  std::vector<int> new_cyl_ID, new_parent_ID;
+  std::vector<int> new_cyl_ID, new_parent_ID, new_original_row;
   std::vector<double> new_startX, new_startY, new_startZ, new_endX, new_endY, new_endZ, new_radius, new_length;
 
   std::unordered_map<int, int> old_to_new_id;
@@ -121,6 +123,9 @@ DataFrame qsm_simplify_cpp(DataFrame qsm, double max_length = 0.3)
       new_radius.push_back(r);
       new_length.push_back(len);
 
+      // Preserve original row index (1-based for R)
+      new_original_row.push_back(chain[last] + 1);
+
       ++next_id;
       start = last + 1;
     }
@@ -153,6 +158,7 @@ DataFrame qsm_simplify_cpp(DataFrame qsm, double max_length = 0.3)
     Named("endZ") = new_endZ,
     Named("radius") = new_radius,
     Named("cyl_ID") = new_cyl_ID,
-    Named("parent_ID") = new_parent_ID
+    Named("parent_ID") = new_parent_ID,
+    Named("original_row") = new_original_row  // <-- added column
   );
 }

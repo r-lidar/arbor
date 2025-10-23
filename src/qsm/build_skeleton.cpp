@@ -7,9 +7,9 @@
 #include <algorithm>
 #include <sstream>
 
-using namespace Rcpp;
+#include "ransac.h"
 
-List ransac_circle_cpp(NumericMatrix points, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 0.8);
+using namespace Rcpp;
 
 struct ClusterCenter
 {
@@ -50,7 +50,7 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
     cluster_indices[std::make_pair(iter[i], cluster[i])].push_back(i);
   }
 
-  // build centers using RANSAC
+  // build centers using RANSAC and our new class
   std::vector<ClusterCenter> centers;
   int id = 1;
 
@@ -58,31 +58,29 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
   {
     auto key = entry.first;
     auto& indices = entry.second;
+
     ClusterCenter c;
     c.iter = key.first;
     c.id = id++;
 
     if (indices.size() >= 100)
     {
-      NumericMatrix pts(indices.size(), 3);
-      for (size_t i = 0; i < indices.size(); ++i)
-      {
-        int idx = indices[i];
-        pts(i, 0) = X[idx];
-        pts(i, 1) = Y[idx];
-        pts(i, 2) = Z[idx];
-      }
+      RansacCircle rc(100, 0.02); // iterations, inlier threshold, early exit ratio
 
-      try
+      for (int idx : indices) rc.add_point(X[idx], Y[idx], Z[idx]);
+
+      rc.find_circle();
+
+      if (rc.is_valid(0.5, 0.3, 120.0))
       {
-        List res = ransac_circle_cpp(pts);
-        c.x = as<double>(res["center_x"]);
-        c.y = as<double>(res["center_y"]);
-        c.z = as<double>(res["z"]);
+        auto center = rc.get_center();
+        c.x = center[0];
+        c.y = center[1];
+        c.z = center[2];
       }
-      catch (...)
+      else
       {
-        // fallback to average
+        // fallback to average if RANSAC fails validation
         double sumx = 0, sumy = 0, sumz = 0;
         for (int idx : indices)
         {
@@ -97,7 +95,7 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
     }
     else
     {
-      // fallback to average for small groups
+      // fallback to average for small clusters
       double sumx = 0, sumy = 0, sumz = 0;
       for (int idx : indices)
       {
@@ -112,6 +110,7 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
 
     centers.push_back(c);
   }
+
   // Prepare for neighbor searching.
   // We create a vector of pointers to the actual centers (so we can modify them in place).
   std::vector<ClusterCenter*> searchSpace;

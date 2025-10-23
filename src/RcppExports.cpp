@@ -61,6 +61,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_real_distances
+Rcpp::NumericMatrix compute_real_distances(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::DataFrame coords);
+RcppExport SEXP _lidRtls_compute_real_distances(SEXP graph_ptrSEXP, SEXP precomputed_ptrSEXP, SEXP coordsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type precomputed_ptr(precomputed_ptrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type coords(coordsSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_real_distances(graph_ptr, precomputed_ptr, coords));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_compute_architecture
 Rcpp::DataFrame cpp_compute_architecture(Rcpp::DataFrame qsm, int root_id);
 RcppExport SEXP _lidRtls_cpp_compute_architecture(SEXP qsmSEXP, SEXP root_idSEXP) {
@@ -82,6 +95,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_build_skeleton_old
+Rcpp::DataFrame cpp_build_skeleton_old(Rcpp::DataFrame data, double max_d);
+RcppExport SEXP _lidRtls_cpp_build_skeleton_old(SEXP dataSEXP, SEXP max_dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton_old(data, max_d));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -139,8 +164,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
     {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
+    {"_lidRtls_compute_real_distances", (DL_FUNC) &_lidRtls_compute_real_distances, 3},
     {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
     {"_lidRtls_cpp_build_skeleton", (DL_FUNC) &_lidRtls_cpp_build_skeleton, 2},
+    {"_lidRtls_cpp_build_skeleton_old", (DL_FUNC) &_lidRtls_cpp_build_skeleton_old, 2},
     {"_lidRtls_cpp_compute_layers", (DL_FUNC) &_lidRtls_cpp_compute_layers, 2},
     {"_lidRtls_cpp_compute_topology", (DL_FUNC) &_lidRtls_cpp_compute_topology, 1},
     {"_lidRtls_qsm_simplify_cpp", (DL_FUNC) &_lidRtls_qsm_simplify_cpp, 2},

@@ -227,7 +227,7 @@ if (display)
 # Edge trees are necessarily bad by construction. We need to remove a buffer large enough
 # to exclude trees connected to partially visible edge trees.
 
-valid_trees <- clip_buffer(trees, -2)
+valid_trees <- clip_buffer(trees, -4)
 
 if (display)
 {
@@ -256,7 +256,7 @@ local_geohash <- function(x, y, precision = 2)
   paste0(as.hexmode(abs(ix %% 1048576)), as.hexmode(abs(iy %% 1048576)))
 }
 
-trees_no_foliage = lidR::filter_poi(trees, foliage == FALSE)
+trees_no_foliage = lidR::filter_poi(valid_trees, foliage == FALSE)
 plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
 for (i in unique(trees_no_foliage$treeID))
 {
@@ -275,18 +275,12 @@ for (i in unique(trees_no_foliage$treeID))
   olas <- paste0(dirname(o), "/ITS/tree_", geo_id, ".las")
   writeLAS(tree, olas)
 }
-
 # ==== QSM ======
 
 # QSM for a random tree
-
 id   <- sample(unique(trees$treeID), 1)
 tree <- lidR::filter_poi(trees, treeID == id)
 plot_semantic(tree)
-
 qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
 x <- plot_semantic(tree)
 plot_qsm(qsm, color = "branch_order", add = x)
-
-
-
