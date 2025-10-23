@@ -101,7 +101,10 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
     q = quantile(data$iter, probs = 0.95)
     v = data$iter
     #v[v>q] = q+1
-    col = lidR:::set.colors(v, viridis::viridis(2500))
+    col = lidR:::set.colors(v, lidR::random.colors(2500))
+    rgl::points3d(data, col = col)
+
+    col = lidR:::set.colors(v, lidR::height.colors(2500))
     rgl::points3d(data, col = col)
 
     v = data$dist
@@ -150,8 +153,11 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
       if (length(in_iter) >= 2)
       {
         # clustering
+        #temp = LAS(data[in_iter,1:3])
         cl = dbscan::dbscan(data[in_iter,1:3], eps = cl_dist, minPts = 1)
+        #cl = lidR::connected_components(temp, res = cl_dist, min_pts = 1, connectivity = 26)
         cl_id = cl$cluster
+        #cl_id = cl@data$clusterID
 
         #cl = fastcluster::hclust(stats::dist(data[in_iter,1:3]), method = "single")
         #cl_id = stats::cutree(cl, h = cl_d)
@@ -163,8 +169,6 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
         {
           tmp = data[in_iter]
           plot(tmp[, 1:2], asp = 1, col = cl_id, cex = 0.25)
-          points(tmp[passage>0], cex = 1)
-          points(mean(tmp$X), mean(tmp$Y), col = "red")
         }
 
         # if the computed clustering distance is too small -> replace by the user defined minimum distance

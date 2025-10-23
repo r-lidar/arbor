@@ -48,6 +48,8 @@ file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.
 # MRNF Oak plantations
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/sta_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/god_plot1.laz" ; filter = "-keep_random_fraction 0.8"
+file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot1.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.55
 
 # Batien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
@@ -74,6 +76,7 @@ ground <- lidR::decimate_points(ground, lowest(0.25))
 ground <- lidR::classify_noise(ground, sor(k = 10, m = 2))
 ground <- lidR::remove_noise(ground)
 ground$Classification <- lidR::LASGROUND
+gc()
 
 # ====== DTM & HAG ======
 
@@ -219,7 +222,7 @@ trees <- fix_small_isolated_low_clusters(trees)
 if (display)
 {
   plot_semantic_instance(trees, dtm)
-  plot_foliage(trees, dtm)
+  plot_semantic(trees, dtm)
 }
 
 # ==== CLIP BUFFER ======
@@ -256,13 +259,12 @@ local_geohash <- function(x, y, precision = 2)
   paste0(as.hexmode(abs(ix %% 1048576)), as.hexmode(abs(iy %% 1048576)))
 }
 
-trees_no_foliage = lidR::filter_poi(valid_trees, foliage == FALSE)
-plot(trees_no_foliage, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
-for (i in unique(trees_no_foliage$treeID))
+plot(valid_trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
+for (i in unique(valid_trees$treeID))
 {
   print(i)
 
-  tree <- filter_poi(trees_no_foliage, treeID == i)
+  tree <- filter_poi(valid_trees, treeID == i)
 
   # Estimate trunk coordinates: average of low points (HAG < 1.5 m)
   # to generate a geo-id

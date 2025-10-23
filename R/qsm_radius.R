@@ -228,8 +228,11 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
     list(xc = xc, yc = yc, radius = r)
   }
 
-  subs = split(xyz, by = "cyl_ID")
-  axis = split(qsm, by = "cyl_ID")
+  subs = split(xyz, by = "cyl_ID",  keep.by = FALSE)
+  starts = qsm[, c(1:3, 7)]
+  ends = qsm[, c(4:6, 7)]
+  starts = split(starts, by = "cyl_ID",  keep.by = FALSE)
+  ends = split(ends, by = "cyl_ID",  keep.by = FALSE)
 
   for (i in 1:nrow(qsm))
   {
@@ -239,19 +242,16 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 
     id = as.character(id)
 
-    axe = qsm[[id]]
     sub = subs[[id]]
 
     if (is.null(sub)) next
-
-    sub = sub[,1:3]
 
     if (nrow(sub) < 100) next
 
     sub = as.matrix(sub)
 
-    start = as.numeric(axe[,1:3])
-    end = as.numeric(axe[,4:6])
+    start = as.numeric(starts[[id]])
+    end = as.numeric(ends[[id]])
 
     if (FALSE)
     {
@@ -273,6 +273,7 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
       col = if(valid) "darkgreen" else "red"
       title = paste0("ID = ",  i, " | arc = ", round(r$covered_arc_degree, 1),  " | inline = ", round(r$percentage_inlier*100), "% | R = ", round(r$radius, 2))
       plot(sub, asp = 1, pch = 19, cex = 0.5, main = title)
+      points(r$center_x, r$center_y, pch = 4)
       symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = col, inches = FALSE, lwd = 2)
       symbols(r$center_x, r$center_y, circles = r$radius+0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
       symbols(r$center_x, r$center_y, circles = r$radius-0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
