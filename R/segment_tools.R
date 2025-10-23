@@ -49,7 +49,7 @@ make_master_seed = function(las)
   seed
 }
 
-compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_factors = NULL)
+compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_factors = NULL, power = 3)
 {
   if (!is.null(wood_mask))
   {
@@ -71,7 +71,7 @@ compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_fa
   net$cost[net$cost > max_gap] <- Inf
 
   # It is more expensive to move in large steps
-  net$cost <- net$cost^3
+  net$cost <- net$cost^power
 
   # It is more expensive to move downward. The path finder starts from
   # a seed below the ground. If should reach any target points by moving upward

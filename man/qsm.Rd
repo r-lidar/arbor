@@ -6,6 +6,7 @@
 \usage{
 qsm(
   tree,
+  step = 0.2,
   cl_dist = 0.1,
   max_d = 0.1,
   apex = 0.005,

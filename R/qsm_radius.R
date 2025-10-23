@@ -202,10 +202,11 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 
   if (plot)
   {
-    x = plot_qsm(qsm, cylinder = FALSE)
+    x = plot_qsm(qsm, cylinder = FALSE, add = c(0,0))
     cc = centroid
     rgl::points3d(cc, size = 3)
     rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, pal = lidR::random.colors(nrow(centroid))))
+    lidR:::.pan3d(2)
   }
 
   data.table::setkey(qsm, cyl_ID)
@@ -227,16 +228,32 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
     list(xc = xc, yc = yc, radius = r)
   }
 
+  subs = split(xyz, by = "cyl_ID")
+  axis = split(qsm, by = "cyl_ID")
+
   for (i in 1:nrow(qsm))
   {
     id = qsm$cyl_ID[i]
-    axis = qsm[.(id)]
-    sub = as.matrix(xyz[.(id), 1:3])
 
-    start = as.numeric(axis[,1:3])
-    end = as.numeric(axis[,4:6])
+    if (id < 1) next
 
-    if (plot)
+    id = as.character(id)
+
+    axe = qsm[[id]]
+    sub = subs[[id]]
+
+    if (is.null(sub)) next
+
+    sub = sub[,1:3]
+
+    if (nrow(sub) < 100) next
+
+    sub = as.matrix(sub)
+
+    start = as.numeric(axe[,1:3])
+    end = as.numeric(axe[,4:6])
+
+    if (FALSE)
     {
       rgl::points3d(sub)
       rgl::segments3d(rbind(start, end), lwd = 3)
@@ -249,13 +266,19 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 
     r = lidRtls:::ransac_circle(sub, num_iterations = 100, inlier_threshold = 0.02)
 
-    if (plot)
+    valid = is.valid.circle(r$radius, r$covered_arc_degree, r$percentage_inlier*100, r$percentage_inside*100)
+
+    if (plot & valid)
     {
-      plot(sub, asp = 1, pch = 19, cex = 0.5)
-      symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = "red", inches = FALSE)
+      col = if(valid) "darkgreen" else "red"
+      title = paste0("ID = ",  i, " | arc = ", round(r$covered_arc_degree, 1),  " | inline = ", round(r$percentage_inlier*100), "% | R = ", round(r$radius, 2))
+      plot(sub, asp = 1, pch = 19, cex = 0.5, main = title)
+      symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = col, inches = FALSE, lwd = 2)
+      symbols(r$center_x, r$center_y, circles = r$radius+0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
+      symbols(r$center_x, r$center_y, circles = r$radius-0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
     }
 
-    if (r$covered_arc_degree < 100 | r$percentage_inlier*100 < 50 | r$percentage_inside > 25 | r$radius < 0.03)
+    if (!valid)
     {
       r_rescue[i] = fit_circle_least_squares(sub)$radius
     }
@@ -278,8 +301,8 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 
   if (plot)
   {
-    plot_qsm(qsm, cylinder = TRUE)
-    plot(tree, add = c(0,0), size = 2, pal = "brown")
+    x = plot_qsm(qsm, cylinder = TRUE)
+    plot(tree, add = x, size = 2, pal = "brown")
   }
 
   # Maybe we have no bottom radius for this tree at all.

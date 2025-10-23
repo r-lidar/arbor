@@ -13,6 +13,7 @@
 #' @export
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power = 1.1, pure_model = FALSE, ..., verbose = FALSE)
 {
+  t0 = tic()
   #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005; power = 1.1; pure_model = FALSE; verbose = FALSE
 
   #attributes <- names(tree)
@@ -33,18 +34,24 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
 
   #passage = lidR::filter_poi(tree, passage > 0)
 
+  cat("(1/3) Build skeleton\n") ; ti = tic()
   qsm = build_skeleton(tree, step, cl_dist, max_d, verbose)
+  toc(ti)
 
+  cat("(2/3) Architecture\n")  ; ti = tic()
   qsm = qsm_architecture(qsm)
-  qsm = qsm_smooth(qsm, niter = 2)
+  qsm = qsm_smooth(qsm, niter = 1)
   qsm = qsm_architecture(qsm)
   R0  = find_root_radius(tree, qsm, verbose)
   qsm = qsm_prolongation(qsm, d)
+  toc(ti)
 
+  cat("(2/3) Diameters\n") ; ti = tic()
   if (pure_model)
     qsm = qsm_radius_model(qsm, tree, R0, tip_radius = apex, power = power)
   else
     qsm = qsm_radius(qsm, tree, R0, tip_radius = apex, power = power)
+  toc(ti)
 
   qsm$startX  = qsm$startX+tx
   qsm$startY  = qsm$startY+ty
@@ -55,6 +62,8 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
   tree@data$X = tree@data$X+tx
   tree@data$Y = tree@data$Y+ty
   tree@data$Z = tree@data$Z+tz
+
+  toc(t0, space = "")
 
   return(qsm)
 
@@ -83,7 +92,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # Step 1. iteratively compute layers
   # =--------------------------------=
 
-  if (verbose) cat("(1/4) Computing layers\n")
+  cat("  (1/4) Computing layers\n") ; ti = tic()
   data = cpp_compute_layers(as.matrix(pc), D)
   data.table::setDT(data)
 
@@ -91,19 +100,22 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   {
     q = quantile(data$iter, probs = 0.95)
     v = data$iter
-    v[v>q] = q+1
-    col = lidR:::set.colors(v, lidR::pastel.colors(250))
-    data$passage = pc$passage
-    passage = data[passage > 0]
+    #v[v>q] = q+1
+    col = lidR:::set.colors(v, viridis::viridis(2500))
     rgl::points3d(data, col = col)
-    rgl::points3d(passage, col = col[data$passage > 0])
+
+    v = data$dist
+    col = lidR:::set.colors(v, lidR::height.colors(250))
+    rgl::points3d(data, col = col)
   }
+
+  toc(ti, space =  "      ")
 
   # =--------------------------------------------------------=
   # Step 2. clustering non connected components in each layer
   # =--------------------------------------------------------=
 
-  if (verbose) cat("(2/4) Clustering layers\n")
+  cat("  (2/4) Clustering layers\n")  ; ti = tic()
 
   first = TRUE
   for (i in sort(unique(data$iter)))
@@ -174,12 +186,20 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
    rgl::points3d(data$X, data$Y, data$Z, col = col)
   }
 
+  toc(ti, space =  "      ")
+
   # =--------------------------=
   # Step 3. Build the skeleton
   # =--------------------------=
 
-  if (verbose) cat("(3/4) Building skeleton\n")
+  cat("  (3/4) Building skeleton\n")  ; ti = tic()
   skel = cpp_build_skeleton(data, max_d)
+
+  if (FALSE)
+  {
+    x = plot(tree, bg = "white")
+    plot_qsm(skel, add = x)
+  }
 
   # segments length
   skel = qsm_length(skel)
@@ -190,11 +210,13 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # rgl::open3d()
   # rgl::segments3d(coords, color = "blue", lwd = 2)
 
+  toc(ti, space =  "      ")
+
   # =------------------------=
   # Step 4. compute qsm_topology
   # =------------------------=
 
-  if (verbose) cat("(4/4) Computing qsm_topology\n")
+  if (verbose) cat("  (4/4) Computing qsm_topology\n")  ; ti = tic()
 
   skel = qsm_topology(skel)
 
@@ -231,6 +253,8 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
     cyl_ID = skel$cyl_ID,
     parent_ID = skel$parent_ID
   )
+
+  toc(ti, space =  "      ")
 
   return(qsm)
 }
