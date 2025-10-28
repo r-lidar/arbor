@@ -54,18 +54,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   num_target  <- lidR::npoints(target)
 
   # A layer of ground points used as a connector to the master seed
-  gnd_res <- params$semantic$ground_res
-  gnd   <- seed_from_dtm(dtm, res = gnd_res)
-  gnd$X <- gnd$X - x_translation
-  gnd$Y <- gnd$Y - y_translation
-  gnd$Z <- gnd$Z * z_factor
-  lidR::quantize(gnd[["X"]], 0.01, las@header[["X offset"]])
-  lidR::quantize(gnd[["Y"]], 0.01, las@header[["Y offset"]])
-  lidR::quantize(gnd[["Z"]], 0.01, las@header[["Z offset"]])
-  gnd$anisotropy <- 1
-  gnd$pointID    <- 0
-  header  <- rlas::header_create(gnd)
-  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
+  gnd <- make_ground_points(dtm, x_translation, y_translation, z_factor, params$semantic$ground_res)
   num_gnd <- lidR::npoints(gnd)
 
   # The master seed
@@ -89,8 +78,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  point_network = compute_point_network_cpp(dec@data, k, max_gap, NULL, NULL)
-  #point_network <- compute_point_network(dec, k = k, max_gap = max_gap)
+  point_network <- compute_point_network_cpp(dec@data, k, max_gap, NULL, NULL)
   points_ids <- 1:num_points
 
   # The cost is weighted by the anisotropy
@@ -298,6 +286,20 @@ segment_foliage = function(las, dtm, params = default_parameters)
   gc()
 
   return(las)
+}
+
+make_ground_points = function(dtm, xoffset, yoffset, zscale, res)
+{
+  gnd   <- seed_from_dtm(dtm, res = res)
+  gnd$X <- gnd$X - xoffset
+  gnd$Y <- gnd$Y - yoffset
+  gnd$Z <- gnd$Z * zscale
+  lidR::quantize(gnd[["X"]], 0.01, las@header[["X offset"]])
+  lidR::quantize(gnd[["Y"]], 0.01, las@header[["Y offset"]])
+  lidR::quantize(gnd[["Z"]], 0.01, las@header[["Z offset"]])
+  header  <- rlas::header_create(gnd)
+  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
+  gnd
 }
 
 seed_from_dtm = function(dtm, res)
