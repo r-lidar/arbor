@@ -32,7 +32,7 @@
 #include <limits>
 #include <algorithm>
 
-#include "nanoflann.hpp"
+#include "nanoflann.h"
 #include "myomp.h"
 #include "Graph.h"
 
@@ -223,7 +223,7 @@ Rcpp::DataFrame compute_point_network_cpp(
       nanoflann::KNNResultSet<double> resultSet(k);
       resultSet.init(&ret_index[0], &out_dist_sqr[0]);
       double query_pt[3] = { X[from], Y[from], Z[from] };
-      index.findNeighbors(resultSet, query_pt, nanoflann::SearchParams(k));
+      index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters(k));
 
       for (int j = 0; j < k; ++j)
       {
