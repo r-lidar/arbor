@@ -17,8 +17,12 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
     .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
 }
 
-compute_real_distances <- function(graph_ptr, precomputed_ptr, coords) {
-    .Call(`_lidRtls_compute_real_distances`, graph_ptr, precomputed_ptr, coords)
+find_closest_ground <- function(graph_ptr, ground_node_ids) {
+    .Call(`_lidRtls_find_closest_ground`, graph_ptr, ground_node_ids)
+}
+
+compute_point_network_cpp <- function(dec, k, max_gap = 1.0, wood_mask = NULL, cost_factors = NULL, power = 3.0, downward = FALSE) {
+    .Call(`_lidRtls_compute_point_network_cpp`, dec, k, max_gap, wood_mask, cost_factors, power, downward)
 }
 
 cpp_compute_architecture <- function(qsm, root_id = 1L) {

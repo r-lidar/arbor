@@ -1,5 +1,6 @@
 #include <limits>
 #include <algorithm>
+#include <iostream>
 
 #include "Graph.h"
 
@@ -97,3 +98,59 @@ Matrix Graph::getDistanceMatrix(const std::vector<NodeId>& start_nodes, const st
 
   return distance_matrix;
 }
+
+
+void Graph::shortest_paths_from_ground(
+    const std::vector<NodeId>& ground_nodes,
+    std::vector<double>& distances,
+    std::vector<NodeId>& closest_ground
+) const {
+  const double INF = std::numeric_limits<double>::infinity();
+  size_t N = adjacency_list.size();
+
+  distances.assign(N, INF);
+  closest_ground.assign(N, N); // invalid default
+
+  using PQElement = std::pair<double, NodeId>;
+  std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;
+
+  // Initialize ground nodes
+  for (NodeId g : ground_nodes) {
+    distances[g] = 0.0;
+    closest_ground[g] = g;
+    pq.push({0.0, g});
+  }
+
+  size_t processed = 0;
+  size_t next_report = N / 20; // report every 5%
+  if (next_report == 0) next_report = 1; // avoid division by zero
+
+  while (!pq.empty()) {
+    auto [dist_u, u] = pq.top();
+    pq.pop();
+
+    if (dist_u > distances[u])
+      continue; // outdated entry
+
+    // Progress tracking
+    ++processed;
+    if (processed % next_report == 0) {
+      double pct = 100.0 * processed / N;
+      std::cout << "Progress: " << static_cast<int>(pct) << "% (" << processed << "/" << N << " nodes processed)\r";
+      std::cout.flush();
+    }
+
+    for (const auto& e : adjacency_list[u]) {
+      NodeId v = e.destination;
+      double new_dist = dist_u + e.cost;
+      if (new_dist < distances[v]) {
+        distances[v] = new_dist;
+        closest_ground[v] = closest_ground[u];
+        pq.push({new_dist, v});
+      }
+    }
+  }
+
+  std::cout << "\nDone. Processed " << processed << " nodes.\n";
+}
+

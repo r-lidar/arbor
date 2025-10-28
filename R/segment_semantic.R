@@ -97,7 +97,8 @@ segment_foliage = function(las, dtm, params = default_parameters)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  point_network <- compute_point_network(dec, k = k, max_gap = max_gap)
+  point_network = compute_point_network_cpp(dec@data, k, max_gap, NULL, NULL)
+  #point_network <- compute_point_network(dec, k = k, max_gap = max_gap)
   points_ids <- 1:num_points
 
   # The cost is weighted by the anisotropy
@@ -153,6 +154,8 @@ segment_foliage = function(las, dtm, params = default_parameters)
   graph <- build_graph(combined_network)
   cache <- compute_distances(graph, master_seed_id)
 
+  free(combined_network)
+
   toc(t0)
   cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
@@ -188,14 +191,18 @@ segment_foliage = function(las, dtm, params = default_parameters)
     dec@data$passage[id] <- dec@data$passage[id] + count
 
     utils::setTxtProgressBar(pb, i)
+
+    free(path)
   }
   close(pb)
 
-  free(combined_network, path, count, id, rm, from, to)
+  free(count, id, rm, from, to)
+  free(graph, cache)
 
   las@data$passage <- 0
   las@data$passage[dec$pointID] <- dec$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
+  gc()
 
   toc(t0)
   cat("Assigning wood to small structure... (8/12)\n") ; t0 = tic()

@@ -17,7 +17,17 @@ Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector s
 Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
 
 // [[Rcpp::export]]
-Rcpp::NumericMatrix compute_real_distances(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::DataFrame coords);
+Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids);
+
+// [[Rcpp::export]]
+Rcpp::DataFrame compute_point_network_cpp(
+    Rcpp::DataFrame dec,
+    int k,
+    double max_gap = 1.0,
+    Rcpp::Nullable<Rcpp::LogicalVector> wood_mask = R_NilValue,
+    Rcpp::Nullable<Rcpp::List> cost_factors = R_NilValue,
+    double power = 3.0,
+    bool downward = false);
 
 // ========================
 // QSM

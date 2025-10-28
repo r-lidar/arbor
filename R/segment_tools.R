@@ -49,7 +49,7 @@ make_master_seed = function(las)
   seed
 }
 
-compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_factors = NULL, power = 3)
+compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_factors = NULL, power = 3, downward = FALSE)
 {
   if (!is.null(wood_mask))
   {
@@ -83,6 +83,9 @@ compute_point_network <- function(dec, k, max_gap = 1, wood_mask = NULL, cost_fa
   dz <- Z1-Z2
   magnitude <- sqrt((X1-X2)^2 + (Y1-Y2)^2 + dz^2)
   cos_theta <- -dz / magnitude
+
+  if (downward) cos_theta = -cos_theta
+
   angle_degree <- acos(pmin(pmax(cos_theta, -1), 1)) * 180/pi
 
   f <- function(x){ y = exp(log(100)/100*x); y[x>100]=100; y }

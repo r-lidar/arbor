@@ -61,16 +61,32 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_real_distances
-Rcpp::NumericMatrix compute_real_distances(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::DataFrame coords);
-RcppExport SEXP _lidRtls_compute_real_distances(SEXP graph_ptrSEXP, SEXP precomputed_ptrSEXP, SEXP coordsSEXP) {
+// find_closest_ground
+Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids);
+RcppExport SEXP _lidRtls_find_closest_ground(SEXP graph_ptrSEXP, SEXP ground_node_idsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type precomputed_ptr(precomputed_ptrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type coords(coordsSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_real_distances(graph_ptr, precomputed_ptr, coords));
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type ground_node_ids(ground_node_idsSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_closest_ground(graph_ptr, ground_node_ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_point_network_cpp
+Rcpp::DataFrame compute_point_network_cpp(Rcpp::DataFrame dec, int k, double max_gap, Rcpp::Nullable<Rcpp::LogicalVector> wood_mask, Rcpp::Nullable<Rcpp::List> cost_factors, double power, bool downward);
+RcppExport SEXP _lidRtls_compute_point_network_cpp(SEXP decSEXP, SEXP kSEXP, SEXP max_gapSEXP, SEXP wood_maskSEXP, SEXP cost_factorsSEXP, SEXP powerSEXP, SEXP downwardSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::LogicalVector> >::type wood_mask(wood_maskSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cost_factors(cost_factorsSEXP);
+    Rcpp::traits::input_parameter< double >::type power(powerSEXP);
+    Rcpp::traits::input_parameter< bool >::type downward(downwardSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_point_network_cpp(dec, k, max_gap, wood_mask, cost_factors, power, downward));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -164,7 +180,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
     {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
-    {"_lidRtls_compute_real_distances", (DL_FUNC) &_lidRtls_compute_real_distances, 3},
+    {"_lidRtls_find_closest_ground", (DL_FUNC) &_lidRtls_find_closest_ground, 2},
+    {"_lidRtls_compute_point_network_cpp", (DL_FUNC) &_lidRtls_compute_point_network_cpp, 7},
     {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
     {"_lidRtls_cpp_build_skeleton", (DL_FUNC) &_lidRtls_cpp_build_skeleton, 2},
     {"_lidRtls_cpp_build_skeleton_old", (DL_FUNC) &_lidRtls_cpp_build_skeleton_old, 2},
