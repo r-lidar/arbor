@@ -1,23 +1,29 @@
 #include <Rcpp.h>
 
+// =======================
+// PRE-PROCESSING
+// =======================
+
+// [[Rcpp::export]]
+Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
+
 // ========================
 // SEGMENTATION
 // ========================
 
 // [[Rcpp::export]]
+SEXP init_graph();
+
+// [[Rcpp::export]]
 SEXP build_graph(Rcpp::DataFrame graph_df);
 
 // [[Rcpp::export]]
-SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids);
-
-// [[Rcpp::export]]
-Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
-
-// [[Rcpp::export]]
-Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
+Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points);
 
 // [[Rcpp::export]]
 Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids);
+
+
 
 // [[Rcpp::export]]
 Rcpp::DataFrame compute_point_network_cpp(

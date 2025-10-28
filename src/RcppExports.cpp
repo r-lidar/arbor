@@ -10,43 +10,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// build_graph
-SEXP build_graph(Rcpp::DataFrame graph_df);
-RcppExport SEXP _lidRtls_build_graph(SEXP graph_dfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_graph(graph_df));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_distances
-SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids);
-RcppExport SEXP _lidRtls_compute_distances(SEXP graph_ptrSEXP, SEXP start_node_idsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_distances(graph_ptr, start_node_ids));
-    return rcpp_result_gen;
-END_RCPP
-}
-// findPaths
-Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids);
-RcppExport SEXP _lidRtls_findPaths(SEXP graph_ptrSEXP, SEXP precomputed_ptrSEXP, SEXP start_node_idsSEXP, SEXP goal_node_idsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type precomputed_ptr(precomputed_ptrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_node_ids(start_node_idsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_node_ids(goal_node_idsSEXP);
-    rcpp_result_gen = Rcpp::wrap(findPaths(graph_ptr, precomputed_ptr, start_node_ids, goal_node_ids));
-    return rcpp_result_gen;
-END_RCPP
-}
 // C_voxel_barycenter_decimate
 Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
 RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP idSEXP) {
@@ -58,6 +21,41 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Z(ZSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type id(idSEXP);
     rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// init_graph
+SEXP init_graph();
+RcppExport SEXP _lidRtls_init_graph() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(init_graph());
+    return rcpp_result_gen;
+END_RCPP
+}
+// build_graph
+SEXP build_graph(Rcpp::DataFrame graph_df);
+RcppExport SEXP _lidRtls_build_graph(SEXP graph_dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_graph(graph_df));
+    return rcpp_result_gen;
+END_RCPP
+}
+// accumulate_passages
+Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points);
+RcppExport SEXP _lidRtls_accumulate_passages(SEXP graph_ptrSEXP, SEXP start_nodesSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type start_nodes(start_nodesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_nodes(goal_nodesSEXP);
+    Rcpp::traits::input_parameter< int >::type num_points(num_pointsSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_passages(graph_ptr, start_nodes, goal_nodes, num_points));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -176,10 +174,10 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
-    {"_lidRtls_compute_distances", (DL_FUNC) &_lidRtls_compute_distances, 2},
-    {"_lidRtls_findPaths", (DL_FUNC) &_lidRtls_findPaths, 4},
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
+    {"_lidRtls_init_graph", (DL_FUNC) &_lidRtls_init_graph, 0},
+    {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
+    {"_lidRtls_accumulate_passages", (DL_FUNC) &_lidRtls_accumulate_passages, 4},
     {"_lidRtls_find_closest_ground", (DL_FUNC) &_lidRtls_find_closest_ground, 2},
     {"_lidRtls_compute_point_network_cpp", (DL_FUNC) &_lidRtls_compute_point_network_cpp, 7},
     {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},

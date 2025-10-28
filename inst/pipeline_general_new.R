@@ -64,10 +64,10 @@ params = default_parameters
 
 las <- readTLS(file, select = "0", filter = filter)
 plot(header(las))
-#las = clip_circle(las, 269600, 5168580, 6)
-#p = sf::st_point(c(269600, 5168580))
-#p = sf::st_buffer(p, 6)
-#plot(p, add = T)
+las = clip_circle(las, 269600, 5168580, 7)
+p = sf::st_point(c(269600, 5168580))
+p = sf::st_buffer(p, 7)
+plot(p, add = T)
 
 
 # Print to see your density. Target is between 10.000 and 20.000

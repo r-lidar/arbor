@@ -28,6 +28,7 @@ class Graph
 public:
   AdjacencyList adjacency_list;
 
+  Graph() = default;
   Graph(const int* from, const int* to, const double* cost, size_t n_edges);
   inline void add_edge(NodeId source, NodeId destination, EdgeCost cost);
   std::pair<DistanceVector, PredecessorMap> compute_distances(NodeId start) const;

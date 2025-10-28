@@ -27,6 +27,13 @@
  */
 
 #include <Rcpp.h>
+
+#include <cmath>
+#include <limits>
+#include <algorithm>
+
+#include "nanoflann.hpp"
+#include "myomp.h"
 #include "Graph.h"
 
 // Type aliases for clarity
@@ -34,6 +41,15 @@ using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
 using PrecomputedPtr = Rcpp::XPtr<GraphCache>;
 
+// Init a graph object and return an R external pointer
+SEXP init_graph()
+{
+  Graph* g = new Graph();
+  GraphPtr ptr(g, true);  // 'true' ensures auto-delete on garbage collection
+  return ptr;
+}
+
+// Build a graph from a data frame of edges
 SEXP build_graph(Rcpp::DataFrame graph_df)
 {
   Rcpp::IntegerVector from_nodes = graph_df["from"];
@@ -45,45 +61,53 @@ SEXP build_graph(Rcpp::DataFrame graph_df)
   return ptr;
 }
 
-SEXP compute_distances(SEXP graph_ptr, Rcpp::IntegerVector start_node_ids)
+// For a set of start_node (usually only one) and a set of target nodes.
+// Accumulate for each node the number of passage
+Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points)
 {
   GraphPtr graph(graph_ptr);
-  GraphCache* precomputed = new GraphCache();
+  const int n_goals = goal_nodes.size();
 
-  for (int start_node : start_node_ids)
+  // Global count vector
+  std::vector<int> passage(num_points, 0);
+
+  // Precompute distances for all start nodes once
+  GraphCache cache;
+  for (int s : start_nodes)
+    cache.emplace(s, graph->compute_distances(s));
+
+  // Parallel loop over goal nodes
+  #pragma omp parallel
   {
-    precomputed->emplace(start_node, graph->compute_distances(start_node));
+    std::vector<int> local_passage(num_points, 0);  // thread-local counts
+
+    #pragma omp for schedule(dynamic, 100)
+    for (int i = 0; i < n_goals; ++i)
+    {
+      NodeId start = start_nodes[0];  // assuming single master seed
+      NodeId goal  = goal_nodes[i];
+
+      const auto& data = cache.at(start);
+      auto [path, cost] = graph->findPath(start, goal, data);
+
+      // Skip start node itself
+      for (size_t j = 1; j < path.size(); ++j)
+      {
+        NodeId id = path[j];
+        if (id >= 1 && id <= num_points)
+          local_passage[id - 1] += 1;
+      }
+    }
+
+    // Merge results into global passage safely
+    #pragma omp critical
+    {
+      for (int i = 0; i < num_points; ++i)
+        passage[i] += local_passage[i];
+    }
   }
 
-  PrecomputedPtr pptr(precomputed, true);
-  return pptr;
-}
-
-Rcpp::List findPaths(SEXP graph_ptr, SEXP precomputed_ptr, Rcpp::IntegerVector start_node_ids, Rcpp::IntegerVector goal_node_ids)
-{
-  GraphPtr graph(graph_ptr);
-  PrecomputedPtr precomputed(precomputed_ptr);
-
-  const int num_pairs = start_node_ids.size();
-  Rcpp::List paths(num_pairs);
-  Rcpp::NumericVector total_costs(num_pairs);
-
-  for (int i = 0; i < num_pairs; ++i)
-  {
-    NodeId start = start_node_ids[i];
-    NodeId goal  = goal_node_ids[i];
-
-    const auto& data = precomputed->at(start);
-    auto [path, cost] = graph->findPath(start, goal, data);
-
-    paths[i] = path;
-    total_costs[i] = cost;
-  }
-
-  return Rcpp::List::create(
-    Rcpp::_["paths"] = paths,
-    Rcpp::_["total_costs"] = total_costs
-  );
+  return Rcpp::wrap(passage);
 }
 
 Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids)
@@ -106,11 +130,6 @@ Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_i
   );
 }
 
-#include "nanoflann.hpp"
-#include "myomp.h"
-#include <cmath>
-#include <limits>
-#include <algorithm>
 
 class DataFrameAdaptor
 {

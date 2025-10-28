@@ -23,14 +23,6 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   z_factor <- params$semantic$z_scale
 
-  # Other parameters are hard coded
-  #connected_components_res = 0.05
-  #connected_components_min = 2000
-  #wood_assignation_k = 50
-  #wood_assignation_dist = 0.05
-  #wood_extra_reasignation_k = 10
-  #wood_extra_reasignation_dist = 0.03
-
   # The point cloud must have hag and anisotropy computed
   attributes <- names(las)
   stopifnot("anisotropy" %in% attributes)
@@ -152,52 +144,17 @@ segment_foliage = function(las, dtm, params = default_parameters)
   free(point_network, target_network, ground_network, master_seed_network)
 
   graph <- build_graph(combined_network)
-  cache <- compute_distances(graph, master_seed_id)
 
   free(combined_network)
 
   toc(t0)
   cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
-  # We maintain a counter for each point to count how many times the pathfinder moved
-  # by this point
-  dec@data$passage <- 0
+  dec@data$passage <- accumulate_passages(graph, master_seed_id, target_ids, num_points)
 
-  # We are moving from the master seed (repeated to match target size) to the targets
-  from <- rep(master_seed_id, length(target_ids))
-  to   <- target_ids
+  if (FALSE) plot_passage(dec)
 
-  # For loop by chunk to reduce memory footprint and have an estimated progression
-  chunk_size <- 50000
-  chunks     <- split(to, ceiling(seq_along(to) / chunk_size))
-  pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
-
-  for (i in seq_along(chunks))
-  {
-    current_to <- chunks[[i]]
-
-    path <- findPaths(graph, cache, from[seq_along(current_to)], current_to)
-    path <- path$paths
-    path <- lapply(path, function(x) x[-1])
-    path <- do.call(c, path)
-
-    count <- table(path)
-    id    <- as.numeric(names(count))
-
-    rm    <- id > num_points
-    id    <- id[!rm]
-    count <- count[!rm]
-
-    dec@data$passage[id] <- dec@data$passage[id] + count
-
-    utils::setTxtProgressBar(pb, i)
-
-    free(path)
-  }
-  close(pb)
-
-  free(count, id, rm, from, to)
-  free(graph, cache)
+  free(graph)
 
   las@data$passage <- 0
   las@data$passage[dec$pointID] <- dec$passage
