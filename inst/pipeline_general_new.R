@@ -51,7 +51,7 @@ file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/god_plot1.laz" ;
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot1.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.55
 
-# Batien's data
+# Bastien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
 
 # ===== PROCESSING PARAMETERS =====
