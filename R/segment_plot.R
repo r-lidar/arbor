@@ -59,12 +59,12 @@ plot_semantic_instance = function(las, dtm = NULL, ...)
 }
 
 #' @export
-plot_passage = function(las, dtm = NULL)
+plot_passage = function(las, dtm = NULL, ...)
 {
   passage <- NULL
-  passage <- lidR::filter_poi(las, passage > 1)
+  passage <- lidR::filter_poi(las, passage > 0)
   passage@data$passage <- log(passage$passage)
-  x <- lidR::plot(passage, color = "passage", legend = T)
+  x <- lidR::plot(passage, color = "passage", legend = T, ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
 }

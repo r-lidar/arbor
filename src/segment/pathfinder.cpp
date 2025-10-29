@@ -48,6 +48,8 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
   GraphPtr graph(graph_ptr);
   const int n_goals = goal_nodes.size();
 
+  NodeId start = start_nodes[0];  // assuming single master seed
+
   // Global count vector
   std::vector<int> passage(num_points, 0);
 
@@ -57,21 +59,20 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
     cache.emplace(s, graph->compute_distances(s));
 
   // Parallel loop over goal nodes
-  //#pragma omp parallel
+  #pragma omp parallel
   {
     std::vector<int> local_passage(num_points, 0);  // thread-local counts
 
-    //#pragma omp for schedule(dynamic, 100)
+    #pragma omp for schedule(dynamic, 100)
     for (int i = 0; i < n_goals; ++i)
     {
-      NodeId start = start_nodes[0];  // assuming single master seed
       NodeId goal  = goal_nodes[i];
 
       const auto& data = cache.at(start);
       auto [path, cost] = graph->findPath(start, goal, data);
 
       // Skip start node itself
-      for (size_t j = 1; j < path.size(); ++j)
+      for (size_t j = 0; j < path.size(); ++j)
       {
         NodeId id = path[j];
         if (id >= 0 && id < num_points)

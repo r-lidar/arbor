@@ -9,7 +9,7 @@ default_parameters_v1 = list(
   path_finder = list(
     k_neighborhood_connectivity = 10,
     res = 0.2,
-    max_gap = 1,
+    max_gap = 0.2,
     min_passage = 3,
     angle_penalty_function = function(x){ y = exp(log(100)/100*x); y[x>100]=100; y }
   ),

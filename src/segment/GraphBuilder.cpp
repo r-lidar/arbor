@@ -63,13 +63,12 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
     #pragma omp for schedule(static)
     for (int from = 0; from < n_points; ++from)
     {
-
       // Get the knn
       nanoflann::KNNResultSet<double> result(k);
       result.init(&idx[0], &dist[0]);
       double q[3];
       dec.get_point(from, q);
-      index.findNeighbors(result, q, nanoflann::SearchParameters(k));
+      index.findNeighbors(result, q, nanoflann::SearchParameters());
 
       // For each knn, compute the cost to connect 'from' and 'to'
       for (int j = 0; j < k; ++j)
@@ -151,7 +150,7 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
     target.get_point(i, q);
     nanoflann::KNNResultSet<double> result(k);
     result.init(&idx[0], &dist[0]);
-    index.findNeighbors(result, q, nanoflann::SearchParameters(1));
+    index.findNeighbors(result, q, nanoflann::SearchParameters());
 
     // Connection between point 'from' in the core network
     // to 'to' which is i + an offset to account for the existing
@@ -190,7 +189,7 @@ void GraphBuilder::add_ground_layer(const PointCloud& dec, const PointCloud& gro
     ground.get_point(i, q);
     nanoflann::KNNResultSet<double> result(k);
     result.init(&idx[0], &dist[0]);
-    index.findNeighbors(result, q, nanoflann::SearchParameters(k));
+    index.findNeighbors(result, q, nanoflann::SearchParameters());
 
     for (int j = 0; j < k; ++j)
     {
@@ -205,6 +204,7 @@ void GraphBuilder::add_ground_layer(const PointCloud& dec, const PointCloud& gro
 
 void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds)
 {
+  int k = this->k*10;
   int n_gnd = seeds.point_count();
 
   offset_ground = total_nodes;
@@ -224,7 +224,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
     seeds.get_point(i, q);
     nanoflann::KNNResultSet<double> result(k);
     result.init(&idx[0], &dist[0]);
-    index.findNeighbors(result, q, nanoflann::SearchParameters(k));
+    index.findNeighbors(result, q, nanoflann::SearchParameters());
 
     for (int j = 0; j < k; ++j)
     {
@@ -283,8 +283,6 @@ SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, doub
 
 SEXP build_instance_graph(DF dec, DF seed, DF master_seed, int k, double max_gap)
 {
-
-
   if (!dec.containsElementNamed("foliage"))
     Rcpp::stop("No wood/foliage segmentation found");
 

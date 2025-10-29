@@ -91,10 +91,22 @@ segment_foliage = function(las, dtm, params = default_parameters)
   num_target <- lidR::npoints(target)
   num_gnd    <- lidR::npoints(gnd)
   target_ids <- 1:num_target + num_points - 1
+  ground_ids <- 1:num_gnd + num_target + num_points - 1
+  ground_offset = ground_ids[1]
   master_id  <- num_points + num_target + num_gnd
   dec@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
 
-  if (FALSE) plot_passage(dec)
+  if (FALSE)
+  {
+    temp = target[8925]
+    id = 636125-ground_offset+1
+    g = gnd[id]
+    x = plot(dec, pal = "gray")
+    plot(temp, add = x, pal = "yellow", size = 5)
+    try(plot_passage(dec, add = x, size = 3))
+    plot(gnd, add = x, pal = "darkgreen", size = 3)
+    plot(g, add = x, pal = "purple", size = 6)
+  }
 
   free(graph)
 
@@ -229,7 +241,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   cat("Extra foliage reasignation... (12/12)\n") ; t0 = tic()
 
   foliage <- lidR::filter_poi(las, foliage == 1)
-  if (FALSE) plot(foliage, color = "anisotropy", legend = T, breaks = "quantile")
+  if (FALSE) plot_anisotropy(foliage)
   high_ani <- lidR::filter_poi(foliage, anisotropy > th_high_)
   las@data$foliage[high_ani$pointID] <- 2
 

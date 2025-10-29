@@ -64,7 +64,8 @@ params = default_parameters
 
 las <- readTLS(file, select = "0", filter = filter)
 plot(header(las))
-#las = clip_circle(las, 269600, 5168580, 7)
+
+las = clip_circle(las, mean(las$X), mean(las$Y), 10)
 #p = sf::st_point(c(269600, 5168580))
 #p = sf::st_buffer(p, 7)
 #plot(p, add = T)
@@ -163,6 +164,10 @@ if (display)
   plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)   # Wood only
   plot_passage(las, dtm)   # Pathfinder passages
 
+  passage <- lidR::filter_poi(las, passage > 3)
+  x <- plot_semantic(las, dtm)
+  plot(passage, add = x, legend = T, size = 4)
+
   # Pathfinder passages + scene < 2m
   passage <- lidR::filter_poi(las, passage > 1)
   x <- plot(filter_poi(las,  hag < 3), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
@@ -181,6 +186,7 @@ if (display)
 
 seeds <- find_seeds(las, params)
 seeds@data <- seeds@data[, .SD[sample(.N, max(min(.N, 3), .N/4))], by = treeID]
+seeds@data
 
 if (display)
 {
@@ -196,8 +202,10 @@ las <- segment_vegetation(las, seeds, params)
 
 if (display)
 {
-  plot_instance(las, dtm)
+  x = plot_instance(las, dtm)
+  plot(seeds, color = "treeID", add = x, size = 8)
   plot_semantic_instance(las, dtm)
+
 }
 
 # ====== RETAIN ONLY MAIN TREES =======

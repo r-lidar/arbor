@@ -128,9 +128,15 @@ segment_vegetation = function(las, seeds, params)
 
   treeID     <- ans$closest_ground
   trueTreeID <- treeID[1:lidR::npoints(dec)]
-  trueTreeID <- trueTreeID - min(seeds_ids) + 1 # because there is an index error somewhere
+  trueTreeID <- trueTreeID - min(seeds_ids) + 1
   ID         <- seeds$treeID[trueTreeID]
-  dec <- lidR::add_lasattribute(dec, ID, name = "treeID", desc = "tree ID")
+  dec        <- lidR::add_lasattribute(dec, ID, name = "treeID", desc = "tree ID")
+
+  if (FALSE)
+  {
+    x = plot(dec, color = "treeID", size =2)
+    plot(seeds, add = x, pal = "red", size = 6)
+  }
 
   toc(t0)
   cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
