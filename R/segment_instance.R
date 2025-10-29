@@ -108,8 +108,9 @@ segment_vegetation = function(las, seeds, params)
     plot(master_seed, add = x, pal = "white", size = 8)
   }
 
+
   toc(t0)
-  cat("Identifying neighbors... (2/6)\n") ; t0 = tic()
+  cat("Constructing the graph object... (Step 4/6)\n") ; t0 = tic()
 
   # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
   # is based on the euclidean distance with some variation in order to specifically follow the wood
@@ -117,75 +118,18 @@ segment_vegetation = function(las, seeds, params)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  point_network <- compute_point_network_cpp(dec@data, k = k, max_gap = max_gap, wood_mask = dec$foliage, cost_factors = cost_factors)
-  #point_network <- compute_point_network(dec, k = k, max_gap = max_gap, wood_mask = dec$foliage, cost_factors = cost_factors)
-  points_ids = 1:num_points
-
-  toc(t0)
-  cat("Building target connectivity... (3/6)\n") ; t0 = tic()
-
-  # Each seed is connected to the knn in the point cloud. The connection is undirectional.
-  # it is possible to move from the seed to the scene not the opposite. The cost is the distance
-  seed_network  <- compute_network(dec, seeds, k = k)
-  seed_network$from <- seed_network$from + num_points
-  seeds_ids <- (num_points+1):(num_points+num_trees)
-
-  master_seed_network  <- compute_network(seeds, master_seed, k = num_trees)
-  master_seed_network$from <- master_seed_network$from + max(seeds_ids)
-  master_seed_network$to <- master_seed_network$to + min(seeds_ids)
-  master_seed_network$cost <- 0.001
-  master_seed_id <- master_seed_network[1,1]
-
-  toc(t0)
-  cat("Constructing the graph object... (Step 4/6)\n") ; t0 = tic()
-
-
-  combined_network <- rbind(point_network, seed_network)#, master_seed_network)
-  free(point_network, seed_network, master_seed_network)
-
-  combined_network$from = combined_network$from-1
-  combined_network$to = combined_network$to-1
-
-  graph <- build_graph(combined_network)
-  free(combined_network)
-
-
-  #distance = u$distance
-  #cache <- compute_distances(graph, master_seed_id)
+  graph <- build_instance_graph(dec@data, seeds@data, master_seed@data, k = k, max_gap = max_gap);
 
   toc(t0)
   cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
 
-  ans = find_closest_ground(graph, seeds_ids-1)
-  treeID = ans$closest_ground
+  seeds_ids <- (num_points):(num_points+num_trees-1)
+  ans = find_closest_ground(graph, seeds_ids)
 
-  #from <- rep(master_seed_id, length(points_ids))
-  #to   <- points_ids
-
-  # For loop by chunk to reduce memory usage and have an estimated progression
-  #chunk_size <- 50000
-  #chunks <- split(to, ceiling(seq_along(to) / chunk_size))
-  #pb <- utils::txtProgressBar(min = 0, max = length(chunks), style = 3, width = 50)
-
-  #treeID <- rep(NA_integer_, lidR::npoints(dec))
-
-  #for (i in seq_along(chunks))
-  #{
-  #  current_to <- chunks[[i]]
-
-  #  path = findPaths(graph, cache, from[seq_along(current_to)], current_to)
-  #  path = path$paths
-  #  path <- lapply(path, function(x) x[2])
-  #  tree_id_vector <- unlist(path)
-  #  treeID[current_to] = tree_id_vector
-  #  utils::setTxtProgressBar(pb, i)
-  #}
-  #close(pb)
-
-  trueTreeID = treeID[points_ids]
-  trueTreeID = trueTreeID - min(seeds_ids) +1#because there is an index error somewhere
-  #trueTreeID = treeID - min(seeds_ids)  +1 #because there is an index error somewhere
-  ID = seeds$treeID[trueTreeID+1]
+  treeID     <- ans$closest_ground
+  trueTreeID <- treeID[1:lidR::npoints(dec)]
+  trueTreeID <- trueTreeID - min(seeds_ids) + 1 # because there is an index error somewhere
+  ID         <- seeds$treeID[trueTreeID]
   dec <- lidR::add_lasattribute(dec, ID, name = "treeID", desc = "tree ID")
 
   toc(t0)

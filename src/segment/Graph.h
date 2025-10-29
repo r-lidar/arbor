@@ -30,7 +30,8 @@ public:
 
   Graph() = default;
   Graph(const int* from, const int* to, const double* cost, size_t n_edges);
-  inline void add_edge(NodeId source, NodeId destination, EdgeCost cost);
+  void ensure_size(size_t n);
+  void add_edge(NodeId source, NodeId destination, EdgeCost cost);
   std::pair<DistanceVector, PredecessorMap> compute_distances(NodeId start) const;
   std::pair<Path, Cost> findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const;
   Matrix getDistanceMatrix(const std::vector<NodeId>& start_nodes, const std::vector<NodeId>& goal_nodes) const;

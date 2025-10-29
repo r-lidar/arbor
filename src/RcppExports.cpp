@@ -24,24 +24,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// init_graph
-SEXP init_graph();
-RcppExport SEXP _lidRtls_init_graph() {
+// build_semantic_graph
+SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, int k_points, double max_gap);
+RcppExport SEXP _lidRtls_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP k_pointsSEXP, SEXP max_gapSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(init_graph());
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type target(targetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
+    Rcpp::traits::input_parameter< int >::type k_points(k_pointsSEXP);
+    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, master_seed, k_points, max_gap));
     return rcpp_result_gen;
 END_RCPP
 }
-// build_graph
-SEXP build_graph(Rcpp::DataFrame graph_df);
-RcppExport SEXP _lidRtls_build_graph(SEXP graph_dfSEXP) {
+// build_instance_graph
+SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, int k, double max_gap);
+RcppExport SEXP _lidRtls_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP kSEXP, SEXP max_gapSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type graph_df(graph_dfSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_graph(graph_df));
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, master_seed, k, max_gap));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -68,23 +78,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type ground_node_ids(ground_node_idsSEXP);
     rcpp_result_gen = Rcpp::wrap(find_closest_ground(graph_ptr, ground_node_ids));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_point_network_cpp
-Rcpp::DataFrame compute_point_network_cpp(Rcpp::DataFrame dec, int k, double max_gap, Rcpp::Nullable<Rcpp::LogicalVector> wood_mask, Rcpp::Nullable<Rcpp::List> cost_factors, double power, bool downward);
-RcppExport SEXP _lidRtls_compute_point_network_cpp(SEXP decSEXP, SEXP kSEXP, SEXP max_gapSEXP, SEXP wood_maskSEXP, SEXP cost_factorsSEXP, SEXP powerSEXP, SEXP downwardSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::LogicalVector> >::type wood_mask(wood_maskSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::List> >::type cost_factors(cost_factorsSEXP);
-    Rcpp::traits::input_parameter< double >::type power(powerSEXP);
-    Rcpp::traits::input_parameter< bool >::type downward(downwardSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_point_network_cpp(dec, k, max_gap, wood_mask, cost_factors, power, downward));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -175,11 +168,10 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
-    {"_lidRtls_init_graph", (DL_FUNC) &_lidRtls_init_graph, 0},
-    {"_lidRtls_build_graph", (DL_FUNC) &_lidRtls_build_graph, 1},
+    {"_lidRtls_build_semantic_graph", (DL_FUNC) &_lidRtls_build_semantic_graph, 6},
+    {"_lidRtls_build_instance_graph", (DL_FUNC) &_lidRtls_build_instance_graph, 5},
     {"_lidRtls_accumulate_passages", (DL_FUNC) &_lidRtls_accumulate_passages, 4},
     {"_lidRtls_find_closest_ground", (DL_FUNC) &_lidRtls_find_closest_ground, 2},
-    {"_lidRtls_compute_point_network_cpp", (DL_FUNC) &_lidRtls_compute_point_network_cpp, 7},
     {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
     {"_lidRtls_cpp_build_skeleton", (DL_FUNC) &_lidRtls_cpp_build_skeleton, 2},
     {"_lidRtls_cpp_build_skeleton_old", (DL_FUNC) &_lidRtls_cpp_build_skeleton_old, 2},

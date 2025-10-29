@@ -19,9 +19,15 @@ Graph::Graph(const int* from, const int* to, const double* cost, size_t n_edges)
     add_edge(from[i], to[i], static_cast<EdgeCost>(cost[i]));
 }
 
-inline void Graph::add_edge(NodeId source, NodeId destination, EdgeCost cost)
+void Graph::add_edge(NodeId source, NodeId destination, EdgeCost cost)
 {
   adjacency_list[source].push_back({destination, cost});
+}
+
+void Graph::ensure_size(size_t n)
+{
+  if (adjacency_list.size() < n)
+    adjacency_list.resize(n);
 }
 
 // --- Dijkstra’s algorithm ---

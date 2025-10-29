@@ -5,12 +5,12 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
     .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
 }
 
-init_graph <- function() {
-    .Call(`_lidRtls_init_graph`)
+build_semantic_graph <- function(dec, target, gnd, master_seed, k_points = 10L, max_gap = 1.0) {
+    .Call(`_lidRtls_build_semantic_graph`, dec, target, gnd, master_seed, k_points, max_gap)
 }
 
-build_graph <- function(graph_df) {
-    .Call(`_lidRtls_build_graph`, graph_df)
+build_instance_graph <- function(dec, seed, master_seed, k, max_gap) {
+    .Call(`_lidRtls_build_instance_graph`, dec, seed, master_seed, k, max_gap)
 }
 
 accumulate_passages <- function(graph_ptr, start_nodes, goal_nodes, num_points) {
@@ -19,10 +19,6 @@ accumulate_passages <- function(graph_ptr, start_nodes, goal_nodes, num_points) 
 
 find_closest_ground <- function(graph_ptr, ground_node_ids) {
     .Call(`_lidRtls_find_closest_ground`, graph_ptr, ground_node_ids)
-}
-
-compute_point_network_cpp <- function(dec, k, max_gap = 1.0, wood_mask = NULL, cost_factors = NULL, power = 3.0, downward = FALSE) {
-    .Call(`_lidRtls_compute_point_network_cpp`, dec, k, max_gap, wood_mask, cost_factors, power, downward)
 }
 
 cpp_compute_architecture <- function(qsm, root_id = 1L) {

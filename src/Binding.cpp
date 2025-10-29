@@ -12,28 +12,17 @@ Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::Num
 // ========================
 
 // [[Rcpp::export]]
-SEXP init_graph();
+SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, int k_points = 10, double max_gap = 1.0);
 
 // [[Rcpp::export]]
-SEXP build_graph(Rcpp::DataFrame graph_df);
+SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, int k, double max_gap);
+
 
 // [[Rcpp::export]]
 Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points);
 
 // [[Rcpp::export]]
 Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids);
-
-
-
-// [[Rcpp::export]]
-Rcpp::DataFrame compute_point_network_cpp(
-    Rcpp::DataFrame dec,
-    int k,
-    double max_gap = 1.0,
-    Rcpp::Nullable<Rcpp::LogicalVector> wood_mask = R_NilValue,
-    Rcpp::Nullable<Rcpp::List> cost_factors = R_NilValue,
-    double power = 3.0,
-    bool downward = false);
 
 // ========================
 // QSM
@@ -59,4 +48,3 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
 
 // [[Rcpp::export]]
 Rcpp::List cpp_smooth_skeleton(Rcpp::DataFrame qsm, int niter = 1, double th = 0);
-

@@ -41,26 +41,6 @@ using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
 using PrecomputedPtr = Rcpp::XPtr<GraphCache>;
 
-// Init a graph object and return an R external pointer
-SEXP init_graph()
-{
-  Graph* g = new Graph();
-  GraphPtr ptr(g, true);  // 'true' ensures auto-delete on garbage collection
-  return ptr;
-}
-
-// Build a graph from a data frame of edges
-SEXP build_graph(Rcpp::DataFrame graph_df)
-{
-  Rcpp::IntegerVector from_nodes = graph_df["from"];
-  Rcpp::IntegerVector to_nodes   = graph_df["to"];
-  Rcpp::NumericVector edge_costs = graph_df["cost"];
-
-  Graph* g = new Graph(from_nodes.begin(), to_nodes.begin(), edge_costs.begin(), from_nodes.size());
-  GraphPtr ptr(g, true);  // 'true' ensures auto-delete on garbage collection
-  return ptr;
-}
-
 // For a set of start_node (usually only one) and a set of target nodes.
 // Accumulate for each node the number of passage
 Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points)
@@ -77,11 +57,11 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
     cache.emplace(s, graph->compute_distances(s));
 
   // Parallel loop over goal nodes
-  #pragma omp parallel
+  //#pragma omp parallel
   {
     std::vector<int> local_passage(num_points, 0);  // thread-local counts
 
-    #pragma omp for schedule(dynamic, 100)
+    //#pragma omp for schedule(dynamic, 100)
     for (int i = 0; i < n_goals; ++i)
     {
       NodeId start = start_nodes[0];  // assuming single master seed
@@ -94,8 +74,8 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
       for (size_t j = 1; j < path.size(); ++j)
       {
         NodeId id = path[j];
-        if (id >= 1 && id <= num_points)
-          local_passage[id - 1] += 1;
+        if (id >= 0 && id < num_points)
+          local_passage[id] += 1;
       }
     }
 
@@ -130,160 +110,6 @@ Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_i
   );
 }
 
+#include "Adaptor.h"
 
-class DataFrameAdaptor
-{
-public:
-  std::vector<Rcpp::NumericVector> coords;
-  size_t dim;
-
-  DataFrameAdaptor(const Rcpp::DataFrame& df, std::vector<std::string> col_names)
-  {
-    dim = col_names.size();
-    coords.reserve(dim);
-    for (const auto& name : col_names)
-      coords.push_back(df[name]);
-  }
-
-  inline size_t kdtree_get_point_count() const { return coords[0].size(); }
-  inline double kdtree_get_pt(const size_t idx, const size_t d) const {
-    return coords[d][idx];
-  }
-  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
-};
-
-using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, DataFrameAdaptor>, DataFrameAdaptor, 3>;
-
-// ------------------ Rcpp Exported Function ------------------
-// [[Rcpp::export]]
-Rcpp::DataFrame compute_point_network_cpp(
-    Rcpp::DataFrame dec,
-    int k,
-    double max_gap = 1.0,
-    Rcpp::Nullable<Rcpp::LogicalVector> wood_mask = R_NilValue,
-    Rcpp::Nullable<Rcpp::List> cost_factors = R_NilValue,
-    double power = 3.0,
-    bool downward = false)
-{
-  // Because self point is included in knn
-  k++;
-
-  // Extract XYZ from the data.frame
-  Rcpp::NumericVector X = dec["X"];
-  Rcpp::NumericVector Y = dec["Y"];
-  Rcpp::NumericVector Z = dec["Z"];
-  const int n_points = X.size();
-
-  // Prepare wood mask
-  std::vector<bool> wood;
-  const bool use_wood = wood_mask.isNotNull() && cost_factors.isNotNull();
-  if (use_wood) {
-    Rcpp::LogicalVector w(wood_mask);
-    wood.assign(w.begin(), w.end());
-  }
-
-  // Prepare cost factors
-  float wood2wood = 1.0f, leaf2leaf = 1.0f, wood2leaf = 1.0f;
-  if (use_wood) {
-    Rcpp::List cf = cost_factors.get();
-    wood2wood = Rcpp::as<float>(cf["wood2wood"]);
-    leaf2leaf = Rcpp::as<float>(cf["leaf2leaf"]);
-    wood2leaf = Rcpp::as<float>(cf["wood2leaf"]);
-  }
-
-  // Angle cost factor lambda
-  auto angle_factor = [](double angle_deg) {
-    double y = std::exp(std::log(100.0) / 100.0 * angle_deg);
-    if (angle_deg > 100.0) y = 100.0;
-    return y;
-  };
-
-  // Build point cloud type erasure class for nanoflann
-  DataFrameAdaptor cloud(dec, {"X", "Y", "Z"});
-
-  // Build the KD-tree index
-  KDTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  index.buildIndex();
-
-  // Per-thread storage
-  int n_threads = omp_get_max_threads();
-  std::vector<std::vector<int>> from_thr(n_threads);
-  std::vector<std::vector<int>> to_thr(n_threads);
-  std::vector<std::vector<float>> cost_thr(n_threads);
-
-  #pragma omp parallel
-  {
-    int tid = omp_get_thread_num();
-    std::vector<size_t> ret_index(k);
-    std::vector<double> out_dist_sqr(k);
-
-    #pragma omp for schedule(static)
-    for (int from = 0; from < n_points; ++from)
-    {
-      nanoflann::KNNResultSet<double> resultSet(k);
-      resultSet.init(&ret_index[0], &out_dist_sqr[0]);
-      double query_pt[3] = { X[from], Y[from], Z[from] };
-      index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters(k));
-
-      for (int j = 0; j < k; ++j)
-      {
-        float cost = std::sqrt(out_dist_sqr[j]);
-        if (cost > max_gap) cost = std::numeric_limits<float>::infinity();
-        else cost = std::pow(cost, power);
-
-        int to = ret_index[j];
-        if (from == to) continue;
-
-        float dx = X[from] - X[to];
-        float dy = Y[from] - Y[to];
-        float dz = Z[from] - Z[to];
-        float magnitude = std::sqrt((dx*dx) + (dy*dy) + (dz*dz));
-        float cos_theta = -dz / magnitude;
-        if (downward) cos_theta = -cos_theta;
-        float angle_deg = std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI;
-        cost *= angle_factor(angle_deg);
-
-        if (use_wood)
-        {
-          bool is_wood1 = !wood[from];
-          bool is_wood2 = !wood[to];
-          if (is_wood1 && is_wood2) cost *= wood2wood;
-          else if (!is_wood1 && !is_wood2) cost *= leaf2leaf;
-          else if (is_wood1 && !is_wood2) cost *= wood2leaf;
-        }
-
-        from_thr[tid].push_back(from + 1);
-        to_thr[tid].push_back(to + 1);
-        cost_thr[tid].push_back(cost);
-      }
-    }
-  }
-
-  // Merge thread-local results
-  std::vector<int> from_vec;
-  std::vector<int> to_vec;
-  std::vector<float> cost_vec;
-  size_t total_size = 0;
-  for (int t = 0; t < n_threads; ++t)
-    total_size += from_thr[t].size();
-
-  from_vec.reserve(total_size);
-  to_vec.reserve(total_size);
-  cost_vec.reserve(total_size);
-
-  for (int t = 0; t < n_threads; ++t) {
-    from_vec.insert(from_vec.end(), from_thr[t].begin(), from_thr[t].end());
-    to_vec.insert(to_vec.end(), to_thr[t].begin(), to_thr[t].end());
-    cost_vec.insert(cost_vec.end(), cost_thr[t].begin(), cost_thr[t].end());
-  }
-
-  return Rcpp::DataFrame::create(
-    Rcpp::_["from"] = from_vec,
-    Rcpp::_["to"] = to_vec,
-    Rcpp::_["cost"] = cost_vec
-  );
-}
-
-
-
-
+using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloudAdaptor>, PointCloudAdaptor, 3>;

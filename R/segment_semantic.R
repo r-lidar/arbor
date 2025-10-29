@@ -40,7 +40,6 @@ segment_foliage = function(las, dtm, params = default_parameters)
   dec        <- ans$dec
   dec@data   <- dec@data[, .(X,Y,Z, anisotropy, pointID)]
   dec$Z      <- dec$Z * z_factor
-  num_points <- lidR::npoints(dec)
 
   # Global translation to origin for computation stability
   # (translation already applied to dec)
@@ -51,11 +50,9 @@ segment_foliage = function(las, dtm, params = default_parameters)
   # for the pathfinder
   target      <- barycentric_decimation(dec, params$path_finder$res)
   target@data <- target@data[, .(X,Y,Z, anisotropy, pointID)]
-  num_target  <- lidR::npoints(target)
 
   # A layer of ground points used as a connector to the master seed
   gnd <- make_ground_points(dtm, x_translation, y_translation, z_factor, params$semantic$ground_res)
-  num_gnd <- lidR::npoints(gnd)
 
   # The master seed
   master_seed <- make_master_seed(gnd)
@@ -78,67 +75,24 @@ segment_foliage = function(las, dtm, params = default_parameters)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  point_network <- compute_point_network_cpp(dec@data, k, max_gap, NULL, NULL)
-  points_ids <- 1:num_points
+  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master_seed@data, k, max_gap)
 
   # The cost is weighted by the anisotropy
-  A1 <- dec$anisotropy[point_network$from]
-  A2 <- dec$anisotropy[point_network$to]
-  W  <- 1-(A1+A2)/2
-  point_network$cost = point_network$cost * W
-  free(W, A1, A2)
-
-  toc(t0)
-  cat("Building target connectivity... (3/12)\n") ; t0 = tic()
-
-  # Point cloud is connected to targets to reach. The connection is undirectional. It is possible to
-  # move from the point cloud to the targets not the opposite. The cost of the connection is
-  # null because the target are subsampled from the point cloud so distances are 0
-
-  target_network <- compute_network(dec, target, k = 1)
-  from <- target_network$from
-  target_network$from <- target_network$to # switch direction
-  target_network$to <- from
-  target_network$to <- target_network$to + num_points
-  target_ids <- (num_points+1):(num_points+1+num_target)
-
-  toc(t0)
-  cat("Building ground connectivity... (4/12)\n") ; t0 = tic()
-
-  # The ground points are connected to their knn points in the scene. The connection is undirectional.
-  # it is possible to move from the ground to the scene not the opposite. The cost of the connection
-  # is the euclidean distance.
-
-  ground_network <- compute_network(dec, gnd, k = k*10)
-  ground_network$from <- ground_network$from + num_points + num_target
-  ground_ids <- (num_points+num_target+1):(num_points+num_target+1+num_gnd)
-
-  toc(t0)
-  cat("Building master seed connectivity... (5/12)\n") ; t0 = tic()
-
-  # The MASTER seed is connected to all the ground points in the scene. The connection cost is constant
-  # and virtually 0. It allows to start from a single point to reach all the targets
-
-  master_seed_network <- compute_network(gnd, master_seed, k = num_gnd)
-  master_seed_network$from <- master_seed_network$from + max(ground_ids)
-  master_seed_network$to <- master_seed_network$to + min(ground_ids)
-  master_seed_network$cost <- 0.001
-  master_seed_id <- master_seed_network[1,1]
-
-  toc(t0)
-  cat("Constructing the graph... (6/12)\n") ; t0 = tic()
-
-  combined_network <- rbind(point_network, target_network, ground_network, master_seed_network)
-  free(point_network, target_network, ground_network, master_seed_network)
-
-  graph <- build_graph(combined_network)
-
-  free(combined_network)
+  #A1 <- dec$anisotropy[point_network$from]
+  #A2 <- dec$anisotropy[point_network$to]
+  #W  <- 1-(A1+A2)/2
+  #point_network$cost = point_network$cost * W
+  #free(W, A1, A2)
 
   toc(t0)
   cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
-  dec@data$passage <- accumulate_passages(graph, master_seed_id, target_ids, num_points)
+  num_points <- lidR::npoints(dec)
+  num_target <- lidR::npoints(target)
+  num_gnd    <- lidR::npoints(gnd)
+  target_ids <- 1:num_target + num_points - 1
+  master_id  <- num_points + num_target + num_gnd
+  dec@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
 
   if (FALSE) plot_passage(dec)
 
