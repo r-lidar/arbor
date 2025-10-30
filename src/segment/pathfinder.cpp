@@ -32,14 +32,66 @@
 #include <limits>
 #include <algorithm>
 
-#include "nanoflann.h"
 #include "myomp.h"
-#include "Graph.h"
+#include "GraphBuilder.h"
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
-using PrecomputedPtr = Rcpp::XPtr<GraphCache>;
+using DF = Rcpp::DataFrame;
+
+// ---------------------------------------------------------
+// R wrappers
+// ---------------------------------------------------------
+
+SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, double max_gap)
+{
+  GraphBuilder builder;
+  builder.k = k;
+  builder.max_gap = max_gap;
+
+  PointCloud core(dec);
+  PointCloud targets(target);
+  PointCloud ground(gnd);
+  PointCloud master(master_seed);
+
+  builder.add_core_layer(core);
+  builder.add_target_layer(core, targets);
+  builder.add_ground_layer(core, ground);
+  builder.add_master_seed_layer(ground, master);
+
+  GraphPtr ptr(builder.get_graph(), true);
+  return ptr;
+}
+
+SEXP build_instance_graph(DF dec, DF seed, DF master_seed, int k, double max_gap)
+{
+  if (!dec.containsElementNamed("foliage"))
+    Rcpp::stop("No wood/foliage segmentation found");
+
+  std::vector<bool> wood;
+  Rcpp::IntegerVector foliage = dec["foliage"];
+  wood.reserve(foliage.size());
+  for (int i = 0; i < foliage.size(); ++i)
+    wood.push_back(foliage[i] == 0);
+
+  GraphBuilder builder;
+  builder.k = k;
+  builder.max_gap = max_gap;
+  builder.set_wood(wood);
+
+  PointCloud core(dec);
+  PointCloud seeds(seed);
+  PointCloud master(master_seed);
+
+  builder.add_core_layer(core);
+  builder.add_seed_layer(core, seeds);
+  builder.add_master_seed_layer(seeds, master);
+
+  GraphPtr ptr(builder.get_graph(), true);
+  return ptr;
+}
+
 
 // For a set of start_node (usually only one) and a set of target nodes.
 // Accumulate for each node the number of passage
@@ -110,7 +162,3 @@ Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_i
     Rcpp::_["distance"] = Rcpp::NumericVector(distances.begin(), distances.end())
   );
 }
-
-#include "Adaptor.h"
-
-using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloudAdaptor>, PointCloudAdaptor, 3>;

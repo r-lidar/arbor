@@ -1,30 +1,11 @@
-#pragma once
-
-#include <Rcpp.h>
+#ifndef GRAPHBUILDER_H
+#define GRAPHBUILDER_H
 
 #include "Adaptor.h"
 #include "Graph.h"
 
-
-// Type aliases for readability
 using PointCloud = PointCloudAdaptor;
-using NodeId = int;
-using Cost = float;
-using EdgeCost = float;
-using ListOrNull = Rcpp::Nullable<Rcpp::List>;
 
-using GraphPtr = Rcpp::XPtr<Graph>;
-
-/**
- * @class GraphBuilder
- * @brief Helper class to progressively build a multi-layer graph from point clouds.
- *
- * Layers:
- *  - Point network (bidirectional KNN)
- *  - Target network (one-way: points → targets)
- *  - Ground network (one-way: ground → points)
- *  - Master seed network (one-way: master → ground)
- */
 class GraphBuilder
 {
 public:
@@ -43,6 +24,7 @@ private:
   int offset_ground = 0;
   int total_nodes = 0;
   std::vector<bool> wood;
+  bool graph_owner = true;
 
 public:
 
@@ -58,3 +40,5 @@ public:
 
   void set_wood(const std::vector<bool>& w);
 };
+
+#endif

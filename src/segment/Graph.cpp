@@ -4,22 +4,7 @@
 
 #include "Graph.h"
 
-Graph::Graph(const int* from, const int* to, const double* cost, size_t n_edges)
-{
-  if (n_edges == 0) return;
-
-  // Determine the maximum node ID to size adjacency list
-  NodeId max_node = 0;
-  for (size_t i = 0; i < n_edges; ++i)
-    max_node = std::max({max_node, from[i], to[i]});
-
-  adjacency_list.resize(max_node + 1);
-
-  for (size_t i = 0; i < n_edges; ++i)
-    add_edge(from[i], to[i], static_cast<EdgeCost>(cost[i]));
-}
-
-void Graph::add_edge(NodeId source, NodeId destination, EdgeCost cost)
+void Graph::add_edge(NodeId source, NodeId destination, Cost cost)
 {
   adjacency_list[source].push_back({destination, cost});
 }
@@ -30,7 +15,6 @@ void Graph::ensure_size(size_t n)
     adjacency_list.resize(n);
 }
 
-// --- Dijkstra’s algorithm ---
 std::pair<DistanceVector, PredecessorMap> Graph::compute_distances(NodeId start) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
@@ -87,26 +71,7 @@ std::pair<Path, Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair
   return {path, distances[goal]};
 }
 
-// --- Compute matrix of distances ---
-Matrix Graph::getDistanceMatrix(const std::vector<NodeId>& start_nodes, const std::vector<NodeId>& goal_nodes) const
-{
-  const size_t num_start = start_nodes.size();
-  const size_t num_goal = goal_nodes.size();
-  Matrix distance_matrix(num_start, std::vector<Cost>(num_goal, -1.0f));
-
-  #pragma omp parallel for
-  for (size_t i = 0; i < num_start; ++i)
-  {
-    auto [distances, _] = compute_distances(start_nodes[i]);
-    for (size_t j = 0; j < num_goal; ++j)
-      distance_matrix[i][j] = distances[goal_nodes[j]];
-  }
-
-  return distance_matrix;
-}
-
-
-void Graph::shortest_paths_from_ground( const std::vector<NodeId>& ground_nodes, std::vector<double>& distances,std::vector<NodeId>& closest_ground) const
+void Graph::shortest_paths_from_ground(const NodeIDs& ground_nodes, std::vector<double>& distances, NodeIDs& closest_ground) const
 {
   const double INF = std::numeric_limits<double>::infinity();
   size_t N = adjacency_list.size();
@@ -134,8 +99,7 @@ void Graph::shortest_paths_from_ground( const std::vector<NodeId>& ground_nodes,
     auto [dist_u, u] = pq.top();
     pq.pop();
 
-    if (dist_u > distances[u])
-      continue; // outdated entry
+    if (dist_u > distances[u]) continue; // outdated entry
 
     // Progress tracking
     ++processed;

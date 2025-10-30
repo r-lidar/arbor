@@ -1,3 +1,6 @@
+#ifndef ADAPTATOR_H
+#define ADAPTATOR_H
+
 #include <Rcpp.h>
 #include <vector>
 
@@ -26,3 +29,5 @@ public:
     q[2] = kdtree_get_pt(idx, 2);
   }
 };
+
+#endif

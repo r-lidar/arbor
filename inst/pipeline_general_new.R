@@ -53,6 +53,7 @@ file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.
 
 # Bastien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
+file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
 
 # ===== PROCESSING PARAMETERS =====
 
@@ -65,10 +66,7 @@ params = default_parameters
 las <- readTLS(file, select = "0", filter = filter)
 plot(header(las))
 
-las = clip_circle(las, mean(las$X), mean(las$Y), 10)
-#p = sf::st_point(c(269600, 5168580))
-#p = sf::st_buffer(p, 7)
-#plot(p, add = T)
+#las = clip_circle(las, mean(las$X), mean(las$Y), 15)
 
 
 # Print to see your density. Target is between 10.000 and 20.000
@@ -100,7 +98,6 @@ if (display) plot_dtm3d(dtm)
 # be chosen depending on the level of understory complexity close to the ground. The idea
 # is to remove most of the very low vegetation. 25 cm might be good. Some plot require 50 cm.
 
-bottom <- lidR::filter_poi(las, hag <= cut_above_ground)
 las    <- lidR::filter_poi(las, hag > cut_above_ground)
 
 d <- density(las)

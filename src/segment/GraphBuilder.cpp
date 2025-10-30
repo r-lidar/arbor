@@ -1,12 +1,10 @@
 #include "GraphBuilder.h"
+#include "nanoflann.h"
+#include "myomp.h"
 
 #include <vector>
 #include <unordered_map>
 #include <cmath>
-#include <omp.h>
-#include "nanoflann.h"
-
-using DF = Rcpp::DataFrame;
 
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 
@@ -15,8 +13,8 @@ using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<
 // --------------------------------------------------------
 
 GraphBuilder::GraphBuilder() { graph = new Graph(); }
-GraphBuilder::~GraphBuilder() {} //delete graph; }
-Graph* GraphBuilder::get_graph() { return graph; }
+GraphBuilder::~GraphBuilder() { if (graph_owner) delete graph; }
+Graph* GraphBuilder::get_graph() { graph_owner = false; return graph; }
 void GraphBuilder::set_wood(const std::vector<bool>& w) { wood = w; }
 
 // ---------------------------------------------------------
@@ -37,9 +35,11 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   graph->ensure_size(total_nodes);
 
   // Angle cost factor lambda
-  auto angle_factor = [](double angle_deg)
+  auto angle_penalty_factor = [](double angle_deg)
   {
-    double y = std::exp(std::log(100.0) / 100.0 * angle_deg);
+    // precomputed std::log(100)/100 such a angle_penalty_factor(100) = 100
+    constexpr double f = 0.046051;
+    double y = std::exp(f * angle_deg);
     if (angle_deg > 100.0) y = 100.0;
     return y;
   };
@@ -57,7 +57,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
     std::vector<double> dist(k);
 
     // Thread-local storage for edges
-    std::vector<std::tuple<NodeId,NodeId,Cost>> local_edges;
+    std::vector<std::tuple<NodeId, NodeId, Cost>> local_edges;
 
     // For each point we connect to its knn. The current point is 'from'
     #pragma omp for schedule(static)
@@ -94,7 +94,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
         float cos_theta = -dz / magnitude;
         if (downward) cos_theta = -cos_theta;
         float angle_deg = std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI;
-        cost *= angle_factor(angle_deg);
+        cost *= angle_penalty_factor(angle_deg);
 
         // If we have a wood/foliage classification we apply extra cost factors
         if (use_wood)
@@ -162,7 +162,7 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
 }
 
 // ---------------------------------------------------------
-// 3. Ground Layer (ground → point)
+// 3. Ground or seed Layer (ground → point)
 // ---------------------------------------------------------
 
 // Each ground point is connected to its k-nn core points
@@ -256,57 +256,4 @@ void GraphBuilder::add_master_seed_layer(const PointCloud& gnd, const PointCloud
     graph->add_edge(offset_seed, offset_ground + i, 0.0f);
   }
 }
-
-// ---------------------------------------------------------
-// R wrappers
-// ---------------------------------------------------------
-
-SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, double max_gap)
-{
-  GraphBuilder builder;
-  builder.k = k;
-  builder.max_gap = max_gap;
-
-  PointCloud core(dec);
-  PointCloud targets(target);
-  PointCloud ground(gnd);
-  PointCloud master(master_seed);
-
-  builder.add_core_layer(core);
-  builder.add_target_layer(core, targets);
-  builder.add_ground_layer(core, ground);
-  builder.add_master_seed_layer(ground, master);
-
-  GraphPtr ptr(builder.get_graph(), true);
-  return ptr;
-}
-
-SEXP build_instance_graph(DF dec, DF seed, DF master_seed, int k, double max_gap)
-{
-  if (!dec.containsElementNamed("foliage"))
-    Rcpp::stop("No wood/foliage segmentation found");
-
-  std::vector<bool> wood;
-  Rcpp::IntegerVector foliage = dec["foliage"];
-  wood.reserve(foliage.size());
-  for (int i = 0; i < foliage.size(); ++i)
-    wood.push_back(foliage[i] == 0);
-
-  GraphBuilder builder;
-  builder.k = k;
-  builder.max_gap = max_gap;
-  builder.set_wood(wood);
-
-  PointCloud core(dec);
-  PointCloud seeds(seed);
-  PointCloud master(master_seed);
-
-  builder.add_core_layer(core);
-  builder.add_seed_layer(core, seeds);
-  builder.add_master_seed_layer(seeds, master);
-
-  GraphPtr ptr(builder.get_graph(), true);
-  return ptr;
-}
-
 
