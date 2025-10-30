@@ -44,7 +44,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   auto angle_penalty_factor = [](double x)
   {
     if (x < 90) return 1.0;
-    return (1.0+0.005*(x-90)*(x-90));
+    return (1.0+0.005*std::pow(x-90, 2.5));
   };
 
 
