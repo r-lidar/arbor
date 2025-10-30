@@ -71,22 +71,22 @@ std::pair<Path, Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair
   return {path, distances[goal]};
 }
 
-void Graph::shortest_paths_from_ground(const NodeIDs& ground_nodes, std::vector<double>& distances, NodeIDs& closest_ground) const
+void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& distances, NodeIDs& closest_nodeids) const
 {
   const double INF = std::numeric_limits<double>::infinity();
   size_t N = adjacency_list.size();
 
   distances.assign(N, INF);
-  closest_ground.assign(N, N); // invalid default
+  closest_nodeids.assign(N, N); // invalid default
 
   using PQElement = std::pair<double, NodeId>;
   std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;
 
   // Initialize ground nodes
-  for (NodeId g : ground_nodes)
+  for (NodeId g : nodes)
   {
     distances[g] = 0.0;
-    closest_ground[g] = g;
+    closest_nodeids[g] = g;
     pq.push({0.0, g});
   }
 
@@ -117,7 +117,7 @@ void Graph::shortest_paths_from_ground(const NodeIDs& ground_nodes, std::vector<
       if (new_dist < distances[v])
       {
         distances[v] = new_dist;
-        closest_ground[v] = closest_ground[u];
+        closest_nodeids[v] = closest_nodeids[u];
         pq.push({new_dist, v});
       }
     }

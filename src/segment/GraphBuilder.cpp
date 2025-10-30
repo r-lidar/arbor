@@ -23,6 +23,11 @@ void GraphBuilder::set_wood(const std::vector<bool>& w) { wood = w; }
 
 void GraphBuilder::add_core_layer(const PointCloud& dec)
 {
+  if (total_core_nodes > 0)   throw std::runtime_error("Core layer already populated");
+  if (total_target_nodes > 0) throw std::runtime_error("Core layer must be populated first");
+  if (total_seed_nodes > 0)   throw std::runtime_error("Core layer must be populated first");
+  if (total_master_nodes > 0) throw std::runtime_error("Core layer must be populated first");
+
   // Because self point is included in knn
   k++;
 
@@ -30,6 +35,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   bool use_wood = wood.size() > 0;
 
   offset_points = 0;
+  total_core_nodes = n_points;
   total_nodes = n_points;
 
   graph->ensure_size(total_nodes);
@@ -128,10 +134,16 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
 
 void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& target)
 {
+  if (total_target_nodes > 0) throw std::runtime_error("Target layer already populated");
+  if (total_core_nodes == 0)  throw std::runtime_error("Target layer must be populated after core layer");
+  if (total_seed_nodes > 0)   throw std::runtime_error("Target layer must be populated before seed layer");
+  if (total_master_nodes > 0) throw std::runtime_error("Target layer must be populated before master layer");
+
   int n_points = dec.point_count();
   int n_target = target.point_count();
 
   offset_targets = total_nodes;
+  total_target_nodes = n_points;
   total_nodes += n_target;
 
   graph->ensure_size(total_nodes);
@@ -165,50 +177,18 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
 // 3. Ground or seed Layer (ground → point)
 // ---------------------------------------------------------
 
-// Each ground point is connected to its k-nn core points
-
-void GraphBuilder::add_ground_layer(const PointCloud& dec, const PointCloud& ground)
-{
-  int k = this->k*10;
-  int n_gnd = ground.point_count();
-
-  offset_ground = total_nodes;
-  total_nodes += n_gnd;
-
-  graph->ensure_size(total_nodes);
-
-  KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  index.buildIndex();
-
-  std::vector<size_t> idx(k);
-  std::vector<double> dist(k);
-
-  for (int i = 0; i < n_gnd; ++i)
-  {
-    double q[3];
-    ground.get_point(i, q);
-    nanoflann::KNNResultSet<double> result(k);
-    result.init(&idx[0], &dist[0]);
-    index.findNeighbors(result, q, nanoflann::SearchParameters());
-
-    for (int j = 0; j < k; ++j)
-    {
-      float cost = std::sqrt(dist[j]);
-      int from = i + offset_ground;
-      int to = idx[j];
-      graph->add_edge(from, to, cost);
-    }
-  }
-}
-
-
 void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds)
 {
-  int k = this->k*10;
-  int n_gnd = seeds.point_count();
+  if (total_seed_nodes > 0)    throw std::runtime_error("Seed layer already populated");
+  if (total_core_nodes == 0)   throw std::runtime_error("Seed layer must be populated after core layer");
+  if (total_master_nodes > 0)  throw std::runtime_error("Seed layer must be populated before master layer");
 
-  offset_ground = total_nodes;
-  total_nodes += n_gnd;
+  int k = this->k*10;
+  int n_points = seeds.point_count();
+
+  offset_seeds = total_nodes;
+  total_seed_nodes = n_points;
+  total_nodes += n_points;
 
   graph->ensure_size(total_nodes);
 
@@ -218,7 +198,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
   std::vector<size_t> idx(k);
   std::vector<double> dist(k);
 
-  for (int i = 0; i < n_gnd; ++i)
+  for (int i = 0; i < n_points; ++i)
   {
     double q[3];
     seeds.get_point(i, q);
@@ -229,7 +209,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
     for (int j = 0; j < k; ++j)
     {
       float cost = std::sqrt(dist[j]);
-      int from = i + offset_ground;
+      int from = i + offset_seeds;
       int to = idx[j];
       graph->add_edge(from, to, cost);
     }
@@ -244,16 +224,30 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
 
 void GraphBuilder::add_master_seed_layer(const PointCloud& gnd, const PointCloud& master_seed)
 {
+  if (total_master_nodes > 0)  throw std::runtime_error("Master layer already populated");
+  if (total_core_nodes == 0)   throw std::runtime_error("Master layer must be populated after core layer");
+  if (total_master_nodes > 0)  throw std::runtime_error("Seed layer must be populated before master layer");
+
   int n_gnd = gnd.point_count();
 
-  int offset_seed = total_nodes;
+  offset_master = total_nodes;
+  total_master_nodes = 1;
   total_nodes += 1;
 
   graph->ensure_size(total_nodes);
 
   for (int i = 0; i < n_gnd; ++i)
   {
-    graph->add_edge(offset_seed, offset_ground + i, 0.0f);
+    graph->add_edge(offset_master, offset_seeds + i, 0.0f);
   }
 }
 
+
+int GraphBuilder::get_num_cores() const { return total_core_nodes; }
+int GraphBuilder::get_num_targets() const { return total_target_nodes; }
+int GraphBuilder::get_num_seeds() const { return total_seed_nodes; }
+int GraphBuilder::get_num_master() const { return total_master_nodes; }
+std::pair<int, int> GraphBuilder::get_range_core() const { return {offset_points, offset_points + total_core_nodes - 1}; }
+std::pair<int, int> GraphBuilder::get_range_targets() const { return {offset_targets, offset_targets + total_target_nodes - 1}; }
+std::pair<int, int> GraphBuilder::get_range_seed() const { return {offset_seeds, offset_seeds + total_seed_nodes - 1}; }
+std::pair<int, int> GraphBuilder::get_range_master() const { return {offset_master, offset_master + total_master_nodes - 1 }; }

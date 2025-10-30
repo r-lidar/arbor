@@ -19,10 +19,10 @@ SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataF
 
 
 // [[Rcpp::export]]
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points);
+Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
 
 // [[Rcpp::export]]
-Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids);
+Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 
 // ========================
 // QSM

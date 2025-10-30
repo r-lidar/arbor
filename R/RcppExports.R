@@ -13,12 +13,12 @@ build_instance_graph <- function(dec, seed, master_seed, k, max_gap) {
     .Call(`_lidRtls_build_instance_graph`, dec, seed, master_seed, k, max_gap)
 }
 
-accumulate_passages <- function(graph_ptr, start_nodes, goal_nodes, num_points) {
-    .Call(`_lidRtls_accumulate_passages`, graph_ptr, start_nodes, goal_nodes, num_points)
+accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {
+    .Call(`_lidRtls_accumulate_passages`, graph_ptr, start_node, goal_nodes, num_points)
 }
 
-find_closest_ground <- function(graph_ptr, ground_node_ids) {
-    .Call(`_lidRtls_find_closest_ground`, graph_ptr, ground_node_ids)
+find_closest_node <- function(graph_ptr, ids) {
+    .Call(`_lidRtls_find_closest_node`, graph_ptr, ids)
 }
 
 cpp_compute_architecture <- function(qsm, root_id = 1L) {

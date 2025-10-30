@@ -34,10 +34,11 @@
 
 #include "myomp.h"
 #include "GraphBuilder.h"
+#include "Graph.h"
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;
-using GraphCache = std::unordered_map<NodeId, std::pair<DistanceVector, PredecessorMap>>;
+using GraphCache = std::pair<DistanceVector, PredecessorMap>;
 using DF = Rcpp::DataFrame;
 
 // ---------------------------------------------------------
@@ -57,7 +58,7 @@ SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, doub
 
   builder.add_core_layer(core);
   builder.add_target_layer(core, targets);
-  builder.add_ground_layer(core, ground);
+  builder.add_seed_layer(core, ground);
   builder.add_master_seed_layer(ground, master);
 
   GraphPtr ptr(builder.get_graph(), true);
@@ -93,22 +94,21 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, int k, double max_gap
 }
 
 
-// For a set of start_node (usually only one) and a set of target nodes.
-// Accumulate for each node the number of passage
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector start_nodes, Rcpp::IntegerVector goal_nodes, int num_points)
+/*
+ *  For a start_node (expected master seed id) and a set of target nodes.
+ *  Accumulate for each node the number of passage by the nodes to reach
+ *  all target nodes from start node
+ */
+Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points)
 {
   GraphPtr graph(graph_ptr);
   const int n_goals = goal_nodes.size();
 
-  NodeId start = start_nodes[0];  // assuming single master seed
-
   // Global count vector
   std::vector<int> passage(num_points, 0);
 
-  // Precompute distances for all start nodes once
-  GraphCache cache;
-  for (int s : start_nodes)
-    cache.emplace(s, graph->compute_distances(s));
+  // Precompute distances for fast access
+  GraphCache cache = graph->compute_distances(start_node);
 
   // Parallel loop over goal nodes
   #pragma omp parallel
@@ -120,10 +120,8 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
     {
       NodeId goal  = goal_nodes[i];
 
-      const auto& data = cache.at(start);
-      auto [path, cost] = graph->findPath(start, goal, data);
+      auto [path, cost] = graph->findPath(start_node, goal, cache);
 
-      // Skip start node itself
       for (size_t j = 0; j < path.size(); ++j)
       {
         NodeId id = path[j];
@@ -143,22 +141,24 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, Rcpp::IntegerVector star
   return Rcpp::wrap(passage);
 }
 
-Rcpp::List find_closest_ground(SEXP graph_ptr, Rcpp::IntegerVector ground_node_ids)
+/*
+ * For a set query nodes (usually seed nodes) computes for each node of the graph
+ * the distance to the closest query node and return the id of the
+ * closest nodes
+ */
+Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids)
 {
   GraphPtr graph(graph_ptr);
 
   // Convert R vector of ground nodes to std::vector<NodeId>
-  std::vector<NodeId> ground_nodes(ground_node_ids.begin(), ground_node_ids.end());
+  NodeIDs node_ids(ids.begin(), ids.end());
 
   std::vector<double> distances;
-  std::vector<NodeId> closest_ground;
+  NodeIDs closest_nodeids;
 
   // Run the optimized multi-source Dijkstra
-  graph->shortest_paths_from_ground(ground_nodes, distances, closest_ground);
+  graph->shortest_paths_from_node(node_ids, distances, closest_nodeids);
 
   // Return as R list
-  return Rcpp::List::create(
-    Rcpp::_["closest_ground"] = Rcpp::IntegerVector(closest_ground.begin(), closest_ground.end()),
-    Rcpp::_["distance"] = Rcpp::NumericVector(distances.begin(), distances.end())
-  );
+  return Rcpp::IntegerVector(closest_nodeids.begin(), closest_nodeids.end());
 }

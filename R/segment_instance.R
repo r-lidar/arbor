@@ -124,9 +124,8 @@ segment_vegetation = function(las, seeds, params)
   cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
 
   seeds_ids <- (num_points):(num_points+num_trees-1)
-  ans = find_closest_ground(graph, seeds_ids)
+  treeID <- find_closest_node(graph, seeds_ids)
 
-  treeID     <- ans$closest_ground
   trueTreeID <- treeID[1:lidR::npoints(dec)]
   trueTreeID <- trueTreeID - min(seeds_ids) + 1
   ID         <- seeds$treeID[trueTreeID]
