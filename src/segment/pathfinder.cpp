@@ -45,8 +45,16 @@ using DF = Rcpp::DataFrame;
 // R wrappers
 // ---------------------------------------------------------
 
-SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, double max_gap)
+SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, Rcpp::List params)
 {
+  if (!params.containsElementNamed("path_finder")) Rcpp::stop("Invalid parameters");
+  Rcpp::List p = params["path_finder"];
+  if (!p.containsElementNamed("k_neighborhood_connectivity")) Rcpp::stop("Invalid parameters");
+  if (!p.containsElementNamed("max_gap")) Rcpp::stop("Invalid parameters");
+
+  int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
+  double max_gap = Rcpp::as<double>(p["max_gap"]);
+
   GraphBuilder builder;
   builder.k = k;
   builder.max_gap = max_gap;
@@ -65,16 +73,23 @@ SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, int k, doub
   return ptr;
 }
 
-SEXP build_instance_graph(DF dec, DF seed, DF master_seed, int k, double max_gap)
+SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
 {
-  if (!dec.containsElementNamed("foliage"))
-    Rcpp::stop("No wood/foliage segmentation found");
-
-  std::vector<bool> wood;
+  // We are expecting a column foliage
+  if (!dec.containsElementNamed("foliage")) Rcpp::stop("No wood/foliage segmentation found");
   Rcpp::IntegerVector foliage = dec["foliage"];
-  wood.reserve(foliage.size());
-  for (int i = 0; i < foliage.size(); ++i)
-    wood.push_back(foliage[i] == 0);
+
+  // Extract parameters
+  if (!params.containsElementNamed("path_finder")) Rcpp::stop("Invalid parameters");
+  Rcpp::List p = params["path_finder"];
+  if (!p.containsElementNamed("k_neighborhood_connectivity")) Rcpp::stop("Invalid parameters");
+  if (!p.containsElementNamed("max_gap")) Rcpp::stop("Invalid parameters");
+  int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
+  double max_gap = Rcpp::as<double>(p["max_gap"]);
+
+  // Convert foliage column to vector<bool>
+  std::vector<bool> wood; wood.reserve(foliage.size());
+  for (int i = 0; i < foliage.size(); ++i) wood.push_back(foliage[i] == 0);
 
   GraphBuilder builder;
   builder.k = k;

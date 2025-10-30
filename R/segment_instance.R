@@ -118,7 +118,7 @@ segment_vegetation = function(las, seeds, params)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  graph <- build_instance_graph(dec@data, seeds@data, master_seed@data, k = k, max_gap = max_gap);
+  graph <- build_instance_graph(dec@data, seeds@data, master_seed@data, params);
 
   toc(t0)
   cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()

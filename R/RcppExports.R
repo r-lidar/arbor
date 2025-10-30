@@ -5,12 +5,12 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, id) {
     .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, id)
 }
 
-build_semantic_graph <- function(dec, target, gnd, master_seed, k_points = 10L, max_gap = 1.0) {
-    .Call(`_lidRtls_build_semantic_graph`, dec, target, gnd, master_seed, k_points, max_gap)
+build_semantic_graph <- function(dec, target, gnd, master_seed, params) {
+    .Call(`_lidRtls_build_semantic_graph`, dec, target, gnd, master_seed, params)
 }
 
-build_instance_graph <- function(dec, seed, master_seed, k, max_gap) {
-    .Call(`_lidRtls_build_instance_graph`, dec, seed, master_seed, k, max_gap)
+build_instance_graph <- function(dec, seed, master_seed, params) {
+    .Call(`_lidRtls_build_instance_graph`, dec, seed, master_seed, params)
 }
 
 accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {

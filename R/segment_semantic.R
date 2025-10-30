@@ -75,7 +75,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   k <- params$path_finder$k_neighborhood_connectivity
   max_gap <- params$path_finder$max_gap
 
-  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master_seed@data, k, max_gap)
+  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master_seed@data, params)
 
   # The cost is weighted by the anisotropy
   #A1 <- dec$anisotropy[point_network$from]

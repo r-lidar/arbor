@@ -41,14 +41,12 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   graph->ensure_size(total_nodes);
 
   // Angle cost factor lambda
-  auto angle_penalty_factor = [](double angle_deg)
+  auto angle_penalty_factor = [](double x)
   {
-    // precomputed std::log(100)/100 such a angle_penalty_factor(100) = 100
-    constexpr double f = 0.046051;
-    double y = std::exp(f * angle_deg);
-    if (angle_deg > 100.0) y = 100.0;
-    return y;
+    if (x < 90) return 1.0;
+    return (1.0+0.005*(x-90)*(x-90));
   };
+
 
   // Build the KD-tree index
   KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));

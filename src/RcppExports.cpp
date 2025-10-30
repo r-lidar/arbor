@@ -25,8 +25,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // build_semantic_graph
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, int k_points, double max_gap);
-RcppExport SEXP _lidRtls_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP k_pointsSEXP, SEXP max_gapSEXP) {
+SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, Rcpp::List params);
+RcppExport SEXP _lidRtls_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,24 +34,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type target(targetSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
-    Rcpp::traits::input_parameter< int >::type k_points(k_pointsSEXP);
-    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, master_seed, k_points, max_gap));
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, master_seed, params));
     return rcpp_result_gen;
 END_RCPP
 }
 // build_instance_graph
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, int k, double max_gap);
-RcppExport SEXP _lidRtls_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP kSEXP, SEXP max_gapSEXP) {
+SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, Rcpp::List params);
+RcppExport SEXP _lidRtls_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< double >::type max_gap(max_gapSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, master_seed, k, max_gap));
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, master_seed, params));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -168,8 +166,8 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
-    {"_lidRtls_build_semantic_graph", (DL_FUNC) &_lidRtls_build_semantic_graph, 6},
-    {"_lidRtls_build_instance_graph", (DL_FUNC) &_lidRtls_build_instance_graph, 5},
+    {"_lidRtls_build_semantic_graph", (DL_FUNC) &_lidRtls_build_semantic_graph, 5},
+    {"_lidRtls_build_instance_graph", (DL_FUNC) &_lidRtls_build_instance_graph, 4},
     {"_lidRtls_accumulate_passages", (DL_FUNC) &_lidRtls_accumulate_passages, 4},
     {"_lidRtls_find_closest_node", (DL_FUNC) &_lidRtls_find_closest_node, 2},
     {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
