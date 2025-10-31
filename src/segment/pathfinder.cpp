@@ -62,14 +62,17 @@ SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, Rcpp::List 
   assert_exists(p, "k_neighborhood_connectivity");
   assert_exists(p, "max_gap");
   assert_exists(p, "z_scale");
+  assert_exists(p, "penalty");
 
   int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
   double max_gap = Rcpp::as<double>(p["max_gap"]);
   double z_scale = Rcpp::as<double>(p["z_scale"]);
+  std::vector<float> penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
   GraphBuilder builder;
   builder.k = k;
   builder.max_gap = max_gap;
+  builder.set_angle_penalty(penalty);
 
   PointCloud core(dec);
   PointCloud targets(target);
@@ -106,10 +109,12 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
   assert_exists(p, "k_neighborhood_connectivity");
   assert_exists(p, "max_gap");
   assert_exists(p, "z_scale");
+  assert_exists(p, "penalty");
 
   int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
   double max_gap = Rcpp::as<double>(p["max_gap"]);
   double z_scale = Rcpp::as<double>(p["z_scale"]);
+  std::vector<float> penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
   // Convert foliage column to vector<bool>
   std::vector<bool> wood; wood.reserve(foliage.size());
@@ -119,6 +124,7 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
   builder.k = k;
   builder.max_gap = max_gap;
   builder.set_wood(wood);
+  builder.set_angle_penalty(penalty);
 
   PointCloud core(dec);
   PointCloud seeds(seed);

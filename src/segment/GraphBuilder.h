@@ -29,6 +29,7 @@ private:
   int total_master_nodes = 0;
   int total_nodes = 0;
   std::vector<bool> wood;
+  std::vector<float> angle_penalty;
   bool graph_owner = true;
 
 public:
@@ -42,7 +43,8 @@ public:
   void add_seed_layer(const PointCloud& dec,  const PointCloud& seeds);
   void add_master_seed_layer(const PointCloud& gnd, const PointCloud& master_seed);
 
-  void set_wood(const std::vector<bool>& w);
+  void set_wood(const std::vector<bool>& x);
+  void set_angle_penalty(const std::vector<float>& x);
 
   int get_num_cores() const;
   int get_num_targets() const;

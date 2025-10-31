@@ -1,23 +1,3 @@
-compute_network = function(data, query, k = 5)
-{
-  if (missing(query))
-  {
-    nn = lidR::knn(data, k = k)
-    n = lidR::npoints(data)
-  }
-  else
-  {
-    nn = lidR::knnx(data, query, k = k)
-    n = lidR::npoints(query)
-  }
-
-  from <- rep(1:n, each = k)
-  to <- as.vector(t(nn$nn.index))
-  cost <- as.vector(t(nn$nn.dist))
-  edges <- data.frame(from, to, cost)
-  edges
-}
-
 make_master_seed = function(las)
 {
   x <- mean(las$X)
@@ -32,4 +12,11 @@ make_master_seed = function(las)
   seed
 }
 
+evaluate_penalty = function(params)
+{
+  penalty = params$path_finder$angle_penalty(0:180)
+  if (length(penalty) != 181) stop("Invalid penalty function")
+  params$path_finder$penalty = penalty
+  params
+}
 

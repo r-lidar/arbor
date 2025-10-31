@@ -73,24 +73,25 @@ segment_vegetation = function(las, seeds, params)
   # Plot for debugging
   if (FALSE)
   {
-    x <- plot(dec)
-    plot(core, add = x, pal = "green", size = 6)
+    x <- plot(core)
+    plot(seeds, add = x, pal = "green", size = 6)
     plot(master, add = x, pal = "white", size = 8)
   }
 
   toc(t0) ; cat("Constructing the graph object... (Step 2/4)\n") ; t0 = tic()
 
-  graph <- build_instance_graph(dec@data, seeds@data, master@data, params);
+  params <- evaluate_penalty(params)
+  graph  <- build_instance_graph(core@data, seeds@data, master@data, params);
 
   toc(t0); cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
 
   seeds_ids  <- (num_points):(num_points+num_trees-1)
   treeID     <- find_closest_node(graph, seeds_ids)
 
-  trueTreeID <- treeID[1:lidR::npoints(dec)]
+  trueTreeID <- treeID[1:lidR::npoints(core)]
   trueTreeID <- trueTreeID - min(seeds_ids) + 1
   ID         <- seeds$treeID[trueTreeID]
-  dec        <- lidR::add_lasattribute(dec, ID, name = "treeID", desc = "tree ID")
+  core      <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
 
   if (FALSE)
   {
@@ -100,7 +101,7 @@ segment_vegetation = function(las, seeds, params)
 
   toc(t0); cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
 
-  las <- transfer_attributes(dec, las, "treeID")
+  las <- transfer_attributes(core, las, "treeID")
 
   toc(ti, space = "") ; gc()
 

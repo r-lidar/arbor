@@ -29,15 +29,15 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   ti <- tic() ; cat("Point cloud decimation... (1/12)\n") ; t0 = tic()
 
-  dec    <- get_barycentric_predecimation(las, params)
-  target <- barycentric_decimation(dec, params$path_finder$space_res)
+  core    <- get_barycentric_predecimation(las, params)
+  target <- barycentric_decimation(core, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res)
   master <- make_master_seed(gnd)
 
   # Plot for debugging
   if (FALSE)
   {
-    x <- plot(dec)
+    x <- plot(core)
     plot(target, add = x, pal = "red", size = 4)
     plot(gnd, add = x, pal = "green", size = 6)
     plot(master, add = x, pal = "white", size = 8)
@@ -45,37 +45,38 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   toc(t0) ; cat("Building point cloud connectivity... (2/12)\n") ; t0 = tic()
 
-  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master@data, params)
+  params <- evaluate_penalty(params)
+  graph  <- build_semantic_graph(core@data, target@data, gnd@data, master@data, params)
 
   # The cost is weighted by the anisotropy
-  #A1 <- dec$anisotropy[point_network$from]
-  #A2 <- dec$anisotropy[point_network$to]
+  #A1 <- core$anisotropy[point_network$from]
+  #A2 <- core$anisotropy[point_network$to]
   #W  <- 1-(A1+A2)/2
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
 
   toc(t0); cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
-  num_points <- lidR::npoints(dec)
+  num_points <- lidR::npoints(core)
   num_target <- lidR::npoints(target)
   num_gnd    <- lidR::npoints(gnd)
   target_ids <- 1:num_target + num_points - 1
   ground_ids <- 1:num_gnd + num_target + num_points - 1
   master_id  <- num_points + num_target + num_gnd
 
-  dec@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
+  core@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
 
   if (FALSE)
   {
-    x = plot(dec, pal = "gray")
-    plot_passage(dec, add = x, size = 3)
+    x = plot(core, pal = "gray")
+    plot_passage(core, add = x, size = 3)
     plot(gnd, add = x, pal = "darkgreen", size = 3)
   }
 
   free(graph)
 
   las@data$passage <- 0
-  las@data$passage[dec$pointID] <- dec$passage
+  las@data$passage[core$pointID] <- core$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
   toc(t0) ; cat("Assigning wood to small structure... (8/12)\n") ; t0 = tic()
@@ -85,7 +86,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   wood_assignation_dist <- params$semantic$wood_assignation_dist
 
   passage    <- NULL
-  skeleton   <- lidR::filter_poi(dec, passage > min_passage)
+  skeleton   <- lidR::filter_poi(core, passage > min_passage)
 
   skeleton_neighbors  <- lidR::knnx(las, skeleton, k = wood_assignation_k)
   rm <- skeleton_neighbors$nn.dist > wood_assignation_dist

@@ -15,7 +15,8 @@ using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<
 GraphBuilder::GraphBuilder() { graph = new Graph(); }
 GraphBuilder::~GraphBuilder() { if (graph_owner) delete graph; }
 Graph* GraphBuilder::get_graph() { graph_owner = false; return graph; }
-void GraphBuilder::set_wood(const std::vector<bool>& w) { wood = w; }
+void GraphBuilder::set_wood(const std::vector<bool>& x) { wood = x; }
+void GraphBuilder::set_angle_penalty(const std::vector<float>& x) { angle_penalty = x; }
 
 // ---------------------------------------------------------
 // 1. Core Layer (bidirectional)
@@ -27,6 +28,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   if (total_target_nodes > 0) throw std::runtime_error("Core layer must be populated first");
   if (total_seed_nodes > 0)   throw std::runtime_error("Core layer must be populated first");
   if (total_master_nodes > 0) throw std::runtime_error("Core layer must be populated first");
+  if (angle_penalty.size() != 181) throw std::runtime_error("Invalid angle penalty factor vector");
 
   // Because self point is included in knn
   k++;
@@ -39,15 +41,6 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   total_nodes = n_points;
 
   graph->ensure_size(total_nodes);
-
-  // Angle cost factor lambda
-  auto angle_penalty_factor = [](double angle_deg)
-  {
-    constexpr double f = 0.046051;
-    double y = std::exp(f * angle_deg);
-    if (angle_deg > 100.0) y = 100.0;
-    return y;
-  };
 
   // Build the KD-tree index
   KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
@@ -99,7 +92,8 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
         float cos_theta = -dz / magnitude;
         if (downward) cos_theta = -cos_theta;
         float angle_deg = std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI;
-        cost *= angle_penalty_factor(angle_deg);
+        int angle = std::round(angle_deg);
+        cost *= angle_penalty[angle_deg];
 
         // If we have a wood/foliage classification we apply extra cost factors
         if (use_wood)
