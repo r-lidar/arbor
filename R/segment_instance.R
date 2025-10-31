@@ -57,74 +57,35 @@
 #' @seealso \link{find_seeds}, \link{segment_foliage}
 segment_vegetation = function(las, seeds, params)
 {
-  #res = 0.05; k = 5; max_gap = 0.5; z_factor = 0.8
-  z_factor <- params$instance$z_scale
-
-  . <- X <- Y <- Z <- foliage <- pointID <- NULL
-
-  cost_factors = list(
-    wood2wood = 0.1,
-    leaf2leaf = 20,
-    wood2leaf = 1000)
-
   # The point cloud must have hag, and foliage computed
   attributes = names(las)
   stopifnot("hag" %in% attributes)
   stopifnot("foliage" %in% attributes)
-
-  ti = tic()
-
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
-  cat("Decimating the point cloud... (1/6)\n") ; t0 = tic()
+  ti = tic() ; cat("Decimating the point cloud... (1/4)\n") ; t0 = tic()
 
-  # We will apply path finding to a decimated point cloud
-  ans        <- decimate_translate(las, params)
-  dec        <- ans$dec
-  dec$Z      <- dec$Z * z_factor
-  dec@data   <- dec@data[, .(X,Y,Z, foliage, pointID)]
-  num_points <- lidR::npoints(dec)
-
-  # Global translation to origin for computation stability
-  # (translation already applied to dec)
-  x_translation <- ans$x_translation
-  y_translation <- ans$y_translation
-
-  # Get the coordinates of the seeds
-  seeds@data$X <- seeds@data$X - x_translation
-  seeds@data$Y <- seeds@data$Y - y_translation
-  seeds@data$Z <- seeds@data$Z * z_factor
-  num_trees    <- nrow(seeds)
-
-  # Compute the single master seed that rule them all. the real spatial position
-  # does not matter since the cost is 0 but having a position is better for rendering
-  master_seed <- make_master_seed(dec)
+  core       <- get_barycentric_predecimation(las, params)
+  master     <- make_master_seed(core)
+  num_points <- lidR::npoints(core)
+  num_trees  <- nrow(seeds)
 
   # Plot for debugging
   if (FALSE)
   {
     x <- plot(dec)
-    plot(seeds, add = x, pal = "green", size = 6)
-    plot(master_seed, add = x, pal = "white", size = 8)
+    plot(core, add = x, pal = "green", size = 6)
+    plot(master, add = x, pal = "white", size = 8)
   }
 
+  toc(t0) ; cat("Constructing the graph object... (Step 2/4)\n") ; t0 = tic()
 
-  toc(t0)
-  cat("Constructing the graph object... (Step 4/6)\n") ; t0 = tic()
+  graph <- build_instance_graph(dec@data, seeds@data, master@data, params);
 
-  # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
-  # is based on the euclidean distance with some variation in order to specifically follow the wood
-  # and not foliage. The cost is not the same in both directions
-  k <- params$path_finder$k_neighborhood_connectivity
-  max_gap <- params$path_finder$max_gap
+  toc(t0); cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
 
-  graph <- build_instance_graph(dec@data, seeds@data, master_seed@data, params);
-
-  toc(t0)
-  cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
-
-  seeds_ids <- (num_points):(num_points+num_trees-1)
-  treeID <- find_closest_node(graph, seeds_ids)
+  seeds_ids  <- (num_points):(num_points+num_trees-1)
+  treeID     <- find_closest_node(graph, seeds_ids)
 
   trueTreeID <- treeID[1:lidR::npoints(dec)]
   trueTreeID <- trueTreeID - min(seeds_ids) + 1
@@ -133,21 +94,15 @@ segment_vegetation = function(las, seeds, params)
 
   if (FALSE)
   {
-    x = plot(dec, color = "treeID", size =2)
+    x = plot(core, color = "treeID", size =2)
     plot(seeds, add = x, pal = "red", size = 6)
   }
 
-  toc(t0)
-  cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
-
-  dec$X <- dec$X + x_translation
-  dec$Y <- dec$Y + y_translation
-  dec$Z <- dec$Z / z_factor
+  toc(t0); cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
 
   las <- transfer_attributes(dec, las, "treeID")
 
-  toc(ti, space = "")
-  gc()
+  toc(ti, space = "") ; gc()
 
   return(las)
 }

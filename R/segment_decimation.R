@@ -28,3 +28,14 @@ barycentric_decimation = function(las, res)
   las <- lidR::filter_poi(las, decimated == TRUE)
   return(las)
 }
+
+get_barycentric_predecimation <- function(las, params = default_parameters)
+{
+  decimated <- NULL
+
+  if (!"decimated" %in% names(las))
+    dec <- barycentric_predecimation(las, params)
+
+  dec <- lidR::filter_poi(las, decimated == TRUE)
+  dec
+}

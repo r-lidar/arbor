@@ -19,43 +19,20 @@
 #' @export
 segment_foliage = function(las, dtm, params = default_parameters)
 {
-  #res = 0.05; min_passage = 5; max_gap = 1;th_anisotropy = 0.75;k = 10; space_res = 0.4; z_factor = 0.8
-
-  z_factor <- params$semantic$z_scale
-
   # The point cloud must have hag and anisotropy computed
   attributes <- names(las)
   stopifnot("anisotropy" %in% attributes)
   stopifnot("hag" %in% attributes)
+  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- decimated <- NULL
 
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
-  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- decimated <- NULL
+  ti <- tic() ; cat("Point cloud decimation... (1/12)\n") ; t0 = tic()
 
-  ti <- tic()
-  cat("Point cloud decimation... (1/12)\n") ; t0 = tic()
-
-  # We will apply path finding to a decimated point cloud
-  ans        <- decimate_translate(las, params)
-  dec        <- ans$dec
-  dec@data   <- dec@data[, .(X,Y,Z, anisotropy, pointID)]
-  dec$Z      <- dec$Z * z_factor
-
-  # Global translation to origin for computation stability
-  # (translation already applied to dec)
-  x_translation <- ans$x_translation
-  y_translation <- ans$y_translation
-
-  # The target points spread on the volume. These are end points
-  # for the pathfinder
-  target      <- barycentric_decimation(dec, params$path_finder$res)
-  target@data <- target@data[, .(X,Y,Z, anisotropy, pointID)]
-
-  # A layer of ground points used as a connector to the master seed
-  gnd <- make_ground_points(dtm, x_translation, y_translation, z_factor, params$semantic$ground_res)
-
-  # The master seed
-  master_seed <- make_master_seed(gnd)
+  dec    <- get_barycentric_predecimation(las, params)
+  target <- barycentric_decimation(dec, params$path_finder$space_res)
+  gnd    <- make_ground_points(dtm, params$semantic$ground_res)
+  master <- make_master_seed(gnd)
 
   # Plot for debugging
   if (FALSE)
@@ -63,19 +40,12 @@ segment_foliage = function(las, dtm, params = default_parameters)
     x <- plot(dec)
     plot(target, add = x, pal = "red", size = 4)
     plot(gnd, add = x, pal = "green", size = 6)
-    plot(master_seed, add = x, pal = "white", size = 8)
+    plot(master, add = x, pal = "white", size = 8)
   }
 
-  toc(t0)
-  cat("Building point cloud connectivity... (2/12)\n") ; t0 = tic()
+  toc(t0) ; cat("Building point cloud connectivity... (2/12)\n") ; t0 = tic()
 
-  # Each point is connected to its knn. The connection is bidirectional. The cost of the connection
-  # is based on the euclidean distance with some variation in order to specifically follow the wood
-  # and not foliage. The cost is not the same in both directions
-  k <- params$path_finder$k_neighborhood_connectivity
-  max_gap <- params$path_finder$max_gap
-
-  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master_seed@data, params)
+  graph <- build_semantic_graph(dec@data, target@data, gnd@data, master@data, params)
 
   # The cost is weighted by the anisotropy
   #A1 <- dec$anisotropy[point_network$from]
@@ -84,28 +54,22 @@ segment_foliage = function(las, dtm, params = default_parameters)
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
 
-  toc(t0)
-  cat("Pathfinder... (7/12)\n") ; t0 = tic()
+  toc(t0); cat("Pathfinder... (7/12)\n") ; t0 = tic()
 
   num_points <- lidR::npoints(dec)
   num_target <- lidR::npoints(target)
   num_gnd    <- lidR::npoints(gnd)
   target_ids <- 1:num_target + num_points - 1
   ground_ids <- 1:num_gnd + num_target + num_points - 1
-  ground_offset = ground_ids[1]
   master_id  <- num_points + num_target + num_gnd
+
   dec@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
 
   if (FALSE)
   {
-    temp = target[8925]
-    id = 636125-ground_offset+1
-    g = gnd[id]
     x = plot(dec, pal = "gray")
-    plot(temp, add = x, pal = "yellow", size = 5)
-    try(plot_passage(dec, add = x, size = 3))
+    plot_passage(dec, add = x, size = 3)
     plot(gnd, add = x, pal = "darkgreen", size = 3)
-    plot(g, add = x, pal = "purple", size = 6)
   }
 
   free(graph)
@@ -113,43 +77,38 @@ segment_foliage = function(las, dtm, params = default_parameters)
   las@data$passage <- 0
   las@data$passage[dec$pointID] <- dec$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
-  gc()
 
-  toc(t0)
-  cat("Assigning wood to small structure... (8/12)\n") ; t0 = tic()
+  toc(t0) ; cat("Assigning wood to small structure... (8/12)\n") ; t0 = tic()
 
-  # The decimated points
-  min_passage <- params$path_finder$min_passage
-  wood_assignation_k <- params$semantic$wood_assignation_k
+  min_passage           <- params$path_finder$min_passage
+  wood_assignation_k    <- params$semantic$wood_assignation_k
   wood_assignation_dist <- params$semantic$wood_assignation_dist
 
   passage    <- NULL
   skeleton   <- lidR::filter_poi(dec, passage > min_passage)
-  skeleton$X <- skeleton$X + x_translation
-  skeleton$Y <- skeleton$Y + y_translation
-  skeleton$Z <- skeleton$Z / z_factor # Rescale true Z to rematch original point cloud
 
   skeleton_neighbors  <- lidR::knnx(las, skeleton, k = wood_assignation_k)
   rm <- skeleton_neighbors$nn.dist > wood_assignation_dist
   id <- skeleton_neighbors$nn.index[!rm]
 
-  # 100% sure those ones are wood
+  # 100% sure those ones are wood because on the pathfinder
   path_finder_based_wood <- rep(FALSE, lidR::npoints(las))
   path_finder_based_wood[id] <- TRUE
 
   las@data$wood <- FALSE
   las@data$wood[id] <- TRUE
 
-  # Plot for debugging
-  if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors))
+  if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors)) # Plot for debugging
 
   free(skeleton_neighbors, rm, id)
 
-  toc(t0)
-  cat("Filter high anisotropy... (9/12)\n") ; t0 = tic()
+  toc(t0) ; cat("Filter high anisotropy... (9/12)\n") ; t0 = tic()
 
-  # Remove foliage based on anisotropy only
-  th_high_  <- params$semantic$high_anisotropy_threshold
+  z_factor <- params$path_finder$z_scale
+
+  # Remove foliage based on high anisotropy only. High anistropy = wood
+
+  th_high_                 <- params$semantic$high_anisotropy_threshold
   connected_components_res <- params$semantic$connected_components_res
   connected_components_min <- params$semantic$connected_components_min
 
@@ -158,27 +117,20 @@ segment_foliage = function(las, dtm, params = default_parameters)
   # Plot for debuging
   if (FALSE)
   {
-    foliage <- lidR::filter_poi(las, anisotropy < 0.75)
-    foliage <- compute_anisotropy(foliage, k = 50)
-    plot(foliage, color = "anisotropy", legend = T, breaks = "quantile")
-
-    plot(foliage)
     plot(nofoliage, pal = foliage.colors[1])
-    plot(nofoliage, color = "anisotropy", legend = T, breaks = "quantile")
-    plot(foliage, pal = foliage.colors[2])
+    plot_anisotropy(nofoliage)
   }
 
   # Looking only at wood points (high anisotropy), perform a connected component
   # scan, remove patches with not enough points. They are reasigned as foliage
 
   nofoliage$Z <- nofoliage$Z * z_factor
-  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
+  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
   nofoliage$clusterID[nofoliage$clusterID == 0] = NA_integer_
   if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
   nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]
   nofoliage   <- nofoliage[nofoliage$clusterID != 0 | nofoliage$wood == TRUE]
   nofoliage$Z <- nofoliage$Z / z_factor
-
 
   if (FALSE) plot(nofoliage) # Plot for debugging
 
@@ -186,12 +138,11 @@ segment_foliage = function(las, dtm, params = default_parameters)
   high_anisotropy_wood <- rep(FALSE, lidR::npoints(las))
   high_anisotropy_wood[nofoliage$pointID] <- TRUE
 
-  toc(t0)
-  cat("Filter medium anisotropy... (Step 10/12)\n") ; t0 = tic()
+  toc(t0) ; cat("Filter medium anisotropy... (Step 10/12)\n") ; t0 = tic()
 
-  th_medium_ <- params$semantic$medium_anisotropy_thresold
-  sor_k      <- params$semantic$medium_anisotropy_sor_k
-  sor_m      <- params$semantic$medium_anisotropy_sor_m
+  th_medium_               <- params$semantic$medium_anisotropy_thresold
+  sor_k                    <- params$semantic$medium_anisotropy_sor_k
+  sor_m                    <- params$semantic$medium_anisotropy_sor_m
   connected_components_res <- params$semantic$connected_components_res
   connected_components_min <- params$semantic$connected_components_min
 
@@ -200,7 +151,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
   if (FALSE) plot(nofoliage, color = "Classification") # Plot for debuging
   nofoliage <- lidR::remove_noise(nofoliage)
   nofoliage$Z <- nofoliage$Z * z_factor
-  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min)
+  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
   nofoliage$clusterID[nofoliage$clusterID == 0] <- NA_integer_
   if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
   nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]
@@ -237,8 +188,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   free(nofoliage, rm, id, wood_neighbors)
 
-  toc(t0)
-  cat("Extra foliage reasignation... (12/12)\n") ; t0 = tic()
+  toc(t0) ; cat("Extra foliage reasignation... (12/12)\n") ; t0 = tic()
 
   foliage <- lidR::filter_poi(las, foliage == 1)
   if (FALSE) plot_anisotropy(foliage)
@@ -254,12 +204,9 @@ segment_foliage = function(las, dtm, params = default_parameters)
   return(las)
 }
 
-make_ground_points = function(dtm, xoffset, yoffset, zscale, res)
+make_ground_points = function(dtm, res)
 {
   gnd   <- seed_from_dtm(dtm, res = res)
-  gnd$X <- gnd$X - xoffset
-  gnd$Y <- gnd$Y - yoffset
-  gnd$Z <- gnd$Z * zscale
   lidR::quantize(gnd[["X"]], 0.01, las@header[["X offset"]])
   lidR::quantize(gnd[["Y"]], 0.01, las@header[["Y offset"]])
   lidR::quantize(gnd[["Z"]], 0.01, las@header[["Z offset"]])

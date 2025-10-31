@@ -41,19 +41,31 @@ using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::pair<DistanceVector, PredecessorMap>;
 using DF = Rcpp::DataFrame;
 
+// Inline helper to check required list elements
+inline void assert_exists(const Rcpp::List& p, const char* name)
+{
+  if (!p.containsElementNamed(name))
+  {
+    Rcpp::stop("Invalid parameters: missing '%s'", name);
+  }
+}
+
 // ---------------------------------------------------------
 // R wrappers
 // ---------------------------------------------------------
 
 SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, Rcpp::List params)
 {
-  if (!params.containsElementNamed("path_finder")) Rcpp::stop("Invalid parameters");
+  // Extract parameters
+  assert_exists(params, "path_finder");
   Rcpp::List p = params["path_finder"];
-  if (!p.containsElementNamed("k_neighborhood_connectivity")) Rcpp::stop("Invalid parameters");
-  if (!p.containsElementNamed("max_gap")) Rcpp::stop("Invalid parameters");
+  assert_exists(p, "k_neighborhood_connectivity");
+  assert_exists(p, "max_gap");
+  assert_exists(p, "z_scale");
 
   int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
   double max_gap = Rcpp::as<double>(p["max_gap"]);
+  double z_scale = Rcpp::as<double>(p["z_scale"]);
 
   GraphBuilder builder;
   builder.k = k;
@@ -64,10 +76,19 @@ SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, Rcpp::List 
   PointCloud ground(gnd);
   PointCloud master(master_seed);
 
+  core.scale(1,1, z_scale);
+  targets.scale(1,1, z_scale);
+  ground.scale(1,1, z_scale);
+
   builder.add_core_layer(core);
   builder.add_target_layer(core, targets);
   builder.add_seed_layer(core, ground);
   builder.add_master_seed_layer(ground, master);
+
+  // Unscale because scaled by reference
+  core.scale(1,1, 1/z_scale);
+  targets.scale(1,1, 1/z_scale);
+  ground.scale(1,1, 1/z_scale);
 
   GraphPtr ptr(builder.get_graph(), true);
   return ptr;
@@ -80,12 +101,15 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
   Rcpp::IntegerVector foliage = dec["foliage"];
 
   // Extract parameters
-  if (!params.containsElementNamed("path_finder")) Rcpp::stop("Invalid parameters");
+  assert_exists(params, "path_finder");
   Rcpp::List p = params["path_finder"];
-  if (!p.containsElementNamed("k_neighborhood_connectivity")) Rcpp::stop("Invalid parameters");
-  if (!p.containsElementNamed("max_gap")) Rcpp::stop("Invalid parameters");
+  assert_exists(p, "k_neighborhood_connectivity");
+  assert_exists(p, "max_gap");
+  assert_exists(p, "z_scale");
+
   int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
   double max_gap = Rcpp::as<double>(p["max_gap"]);
+  double z_scale = Rcpp::as<double>(p["z_scale"]);
 
   // Convert foliage column to vector<bool>
   std::vector<bool> wood; wood.reserve(foliage.size());
@@ -99,6 +123,9 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
   PointCloud core(dec);
   PointCloud seeds(seed);
   PointCloud master(master_seed);
+
+  core.scale(1,1, z_scale);
+  seeds.scale(1,1, z_scale);
 
   builder.add_core_layer(core);
   builder.add_seed_layer(core, seeds);

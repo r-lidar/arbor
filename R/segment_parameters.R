@@ -8,12 +8,12 @@ default_parameters_v1 = list(
   ),
   path_finder = list(
     k_neighborhood_connectivity = 10,
-    res = 0.2,
+    space_res = 0.2,
     max_gap = 0.2,
-    min_passage = 3
+    min_passage = 3,
+    z_scale = 1.0
   ),
   semantic = list(
-    z_scale = 0.8,
     high_anisotropy_threshold = 0.9,
     medium_anisotropy_thresold = 0.75,
     connected_components_res = 0.05,
@@ -35,7 +35,6 @@ default_parameters_v1 = list(
     safe_zone = 0.2
   ),
   instance = list(
-    z_scale = 0.8,
     wood2wood_factor = 0.1,
     leaf2leaf_factor = 20,
     wood2leaf_factor = 1000

@@ -59,6 +59,7 @@ file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fracti
 # ===== PROCESSING PARAMETERS =====
 
 params = default_parameters
+params$instance$z_scale = 1
 
 # ====== READ POINT CLOUD =======
 
@@ -183,8 +184,6 @@ if (display)
 # and aggregate them using connected component analysis.
 
 seeds <- find_seeds(las, params)
-seeds@data <- seeds@data[, .SD[sample(.N, max(min(.N, 3), .N/4))], by = treeID]
-seeds@data
 
 if (display)
 {

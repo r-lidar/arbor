@@ -28,6 +28,18 @@ public:
     q[1] = kdtree_get_pt(idx, 1);
     q[2] = kdtree_get_pt(idx, 2);
   }
+  inline void translate(double x, double y, double z)
+  {
+    if (x != 0) coords[0] = coords[0] - x;
+    if (y != 0) coords[1] = coords[1] - y;
+    if (z != 0) coords[2] = coords[2] - z;
+  }
+  inline void scale(double x, double y, double z)
+  {
+    if (x != 1.0) coords[0] = coords[0] * x;
+    if (y != 1.0) coords[1] = coords[1] * y;
+    if (z != 1.0) coords[2] = coords[2] * z;
+  }
 };
 
 #endif

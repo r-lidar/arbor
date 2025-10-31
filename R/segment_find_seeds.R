@@ -21,7 +21,7 @@ find_seeds <- function(las, params)
   somewood@data <- somewood@data[, .(X,Y,Z, passage, hag)]
 
   # Connect the point into clusters
-  seed <- lidR::connected_components(somewood, 0.1, 10, connectivity = 26)
+  seed <- lidR::connected_components(somewood, 0.05, 10, connectivity = 26)
   seed <- lidR::filter_poi(seed, clusterID != 0)
 
   # For each cluster search for circles. If we have a nice circle we have a tree
@@ -84,7 +84,7 @@ find_seeds <- function(las, params)
 
   # Keep point with passage. And lower than max slicing
   # Increasing min passage reduce branches included in passage, But
-  # wee keep any passage close to the ground to segment bushes
+  # we keep any passage close to the ground to segment bushes
   th <- max(heights) + 0.1
   min_passage     <- params$seed$min_passage
   tree_passages   <- lidR::filter_poi(las, passage > min_passage, hag < th)
@@ -140,9 +140,9 @@ find_seeds <- function(las, params)
 
   temp = suppressWarnings(rbind(somewood, tree_passages, bushes_passages, circle_points))
   res    <- round(params$decimation$barycentric_predecimation_resolution*1.5, 2)
-  temp$Z <- temp$Z * params$semantic$z_scale
+  temp$Z <- temp$Z * 0.8
   temp   <- lidR::connected_components(temp, res, 1, name = "treeID", connectivity = 26)
-  temp$Z <- temp$Z / params$semantic$z_scale
+  temp$Z <- temp$Z / 0.8
 
   if (FALSE)
   {
