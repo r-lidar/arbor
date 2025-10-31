@@ -161,7 +161,7 @@ if (display)
 {
   plot_semantic(las, dtm) # Wood/foliage
   plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)   # Wood only
-  plot_passage(las, dtm)   # Pathfinder passages
+  plot_passage(las, dtm, th = 3)   # Pathfinder passages
 
   passage <- lidR::filter_poi(las, passage > 3)
   x <- plot_semantic(las, dtm)

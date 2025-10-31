@@ -1,3 +1,10 @@
+#' Find seeds to perform instance segmentation
+#'
+#' In order to perform instance segmentation with  \link{segment_vegeration} we need
+#' some seeds with reference treeIDs. Thus function finds the seeds
+#'
+#' @param las A LAS object from lidR.
+#' @param params list See \link{parameters}.
 #' @export
 find_seeds <- function(las, params)
 {

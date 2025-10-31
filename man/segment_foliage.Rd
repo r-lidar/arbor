@@ -21,8 +21,5 @@ is classified as wood or foliage based on two main criteria: (1) Proximity to th
 (2) Anisotropy exceeding a given threshold. The function \link{compute_anisotropy} must be applied
 first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
 Finally, a connected component step removes small clusters incorrectly classified as wood,
-since some foliage points may exhibit high anisotropy.\cr\cr
-This function has multiple parameters. Those beyond \code{...} generally have a minor impact
-and should only be adjusted in specific cases. If the scene contains regular trees, the
-default values should be sufficient.
+since some foliage points may exhibit high anisotropy.
 }

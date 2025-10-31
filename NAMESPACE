@@ -3,6 +3,7 @@
 export(add_circles3d)
 export(barycentric_predecimation)
 export(clip_buffer)
+export(colorize_trees)
 export(compute_anisotropy)
 export(default_parameters)
 export(find_seeds)

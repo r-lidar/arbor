@@ -49,5 +49,7 @@ default_parameters_v1 = list(
   )
 )
 
+#' Parameters
+#' @rdname parameters
 #' @export
 default_parameters = default_parameters_v1
