@@ -82,7 +82,7 @@ DataFrame cpp_compute_layers(NumericMatrix coords, double D)
         double out_dist_sqr;
         nanoflann::KNNResultSet<double> resultSet(1);
         resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters(10));
+        index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
 
         if (out_dist_sqr <= D2) {
           iter[i] = current_iter;
