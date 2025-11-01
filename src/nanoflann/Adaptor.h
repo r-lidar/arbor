@@ -4,13 +4,13 @@
 #include <Rcpp.h>
 #include <vector>
 
-class PointCloudAdaptor
+class DataFrameAdaptor
 {
 public:
   std::vector<Rcpp::NumericVector> coords;
   size_t dim;
 
-  PointCloudAdaptor(const Rcpp::DataFrame& df, std::vector<std::string> col_names = {"X", "Y", "Z"})
+  DataFrameAdaptor(const Rcpp::DataFrame& df, std::vector<std::string> col_names = {"X", "Y", "Z"})
   {
     dim = col_names.size();
     coords.reserve(dim);
@@ -28,6 +28,9 @@ public:
     q[1] = kdtree_get_pt(idx, 1);
     q[2] = kdtree_get_pt(idx, 2);
   }
+  inline double get_x(const size_t idx) { return kdtree_get_pt(idx, 0); }
+  inline double get_y(const size_t idx) { return kdtree_get_pt(idx, 1); }
+  inline double get_z(const size_t idx) { return kdtree_get_pt(idx, 2); }
   inline void translate(double x, double y, double z)
   {
     if (x != 0) coords[0] = coords[0] - x;
@@ -42,4 +45,54 @@ public:
   }
 };
 
-#endif
+// Compact point cloud adaptor for nanoflann
+struct MatrixAdaptor
+{
+public:
+  Rcpp::NumericMatrix& coords;
+
+  explicit MatrixAdaptor(Rcpp::NumericMatrix& m) : coords(m)
+  {
+    if (coords.ncol() < 3)
+      Rcpp::stop("MatrixAdaptor expects at least 3 columns (x, y, z).");
+  }
+
+  inline size_t kdtree_get_point_count() const { return coords.nrow(); }
+  inline size_t point_count() const { return coords.nrow(); }
+
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return coords(idx, dim); }
+  template <class BBOX>  bool kdtree_get_bbox(BBOX&) const { return false; }
+
+  inline void get_point(const size_t idx, double* q) const
+  {
+    q[0] = coords(idx, 0);
+    q[1] = coords(idx, 1);
+    q[2] = coords(idx, 2);
+  }
+  inline double get_x(const size_t idx) { return kdtree_get_pt(idx, 0); }
+  inline double get_y(const size_t idx) { return kdtree_get_pt(idx, 1); }
+  inline double get_z(const size_t idx) { return kdtree_get_pt(idx, 2); }
+  inline void translate(double tx, double ty, double tz)
+  {
+    if (tx == 0 && ty == 0 && tz == 0) return;
+    for (size_t i = 0; i < coords.nrow(); ++i)
+    {
+      coords(i, 0) -= tx;
+      coords(i, 1) -= ty;
+      coords(i, 2) -= tz;
+    }
+  }
+  inline void scale(double sx, double sy, double sz)
+  {
+    if (sx == 1.0 && sy == 1.0 && sz == 1.0) return;
+    for (size_t i = 0; i < coords.nrow(); ++i)
+    {
+      coords(i, 0) *= sx;
+      coords(i, 1) *= sy;
+      coords(i, 2) *= sz;
+    }
+  }
+};
+
+#endif // MATRIX_ADAPTOR_H
+

@@ -4,7 +4,7 @@
 #include "Adaptor.h"
 #include "Graph.h"
 
-using PointCloud = PointCloudAdaptor;
+using PointCloud = DataFrameAdaptor;
 
 class GraphBuilder
 {
