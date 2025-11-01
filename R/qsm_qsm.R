@@ -29,7 +29,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
   tree@data$Y <- tree@data$Y-ty
   tree@data$Z <- tree@data$Z-tz
 
-  cat("(1/5) Cleaning tree butt\n") ; ti = tic()
+  cat("Cleaning tree butt\n") ; ti = tic()
 
   tree@data$pointID <- 1:lidR::npoints(tree)
   bottom <- tree[tree$Z < 0.25]
@@ -37,7 +37,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
 
   if (length(unique(bottom$clusterID)) > 1)
   {
-    cat("\033[33m Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.\033[0m\n")
+    cat("\033[33m  Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.\033[0m\n")
     warning("Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.")
     t <-table(bottom$clusterID)
     i <- as.numeric(names(which.max(t)))
@@ -45,23 +45,23 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
     tree <- tree[-r]
   }
 
-  toc(ti) ; cat("(2/5) Building skeleton\n") ; ti = tic()
+  toc(ti) ; cat("Building skeleton\n") ; ti = tic()
 
   qsm <- build_skeleton(tree, step, cl_dist, max_d, verbose)
 
-  toc(ti) ; cat("(3/5) Building architecture\n")  ; ti = tic()
+  toc(ti) ; cat("Building architecture\n")  ; ti = tic()
 
   qsm = qsm_architecture(qsm)
   qsm = qsm_smooth(qsm, niter = 1)
   qsm = qsm_architecture(qsm)
 
-  toc(ti) ; cat("(4/5) Validating butt architecture \n")  ; ti = tic()
+  toc(ti) ; cat("Validating butt architecture \n")  ; ti = tic()
 
   i <- detect_weird_butt(qsm)
 
   if (i > 1)
   {
-    cat("\033[33m Detection of weird tree butt. Automatic fix triggered.\033[0m\n")
+    cat("\033[33m  Detection of weird tree butt. Automatic fix triggered.\033[0m\n")
     warning("Detection of weird tree butt. Automatic fix triggered.")
 
     main <- qsm[axis_ID == 1]
@@ -80,7 +80,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
     }
   }
 
-  toc(ti) ; cat("(5/5) Measuring diameters\n") ; ti = tic()
+  toc(ti) ; cat("Measuring diameters\n") ; ti = tic()
 
   R0  <- find_root_radius(tree, qsm, verbose)
   qsm <- qsm_prolongation(qsm, d)
@@ -131,7 +131,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # Step 1. iteratively compute layers
   # =--------------------------------=
 
-  cat("  (1/4) Computing layers\n") ; ti = tic()
+  cat("  Computing layers\n") ; ti = tic()
   data = cpp_compute_layers(as.matrix(pc), D)
   data.table::setDT(data)
 
@@ -157,7 +157,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # Step 2. clustering non connected components in each layer
   # =--------------------------------------------------------=
 
-  cat("  (2/4) Clustering layers\n")  ; ti = tic()
+  cat("  Clustering layers\n")  ; ti = tic()
 
   first = TRUE
   for (i in sort(unique(data$iter)))
@@ -235,7 +235,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # Step 3. Build the skeleton
   # =--------------------------=
 
-  cat("  (3/4) Building skeleton\n")  ; ti = tic()
+  cat("  Building skeleton\n")  ; ti = tic()
   skel = cpp_build_skeleton(data, max_d)
 
   if (FALSE)
@@ -259,7 +259,7 @@ build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose =
   # Step 4. compute qsm_topology
   # =------------------------=
 
-  if (verbose) cat("  (4/4) Computing qsm_topology\n")  ; ti = tic()
+  cat("  Computing qsm_topology\n")  ; ti = tic()
 
   skel = qsm_topology(skel)
 
