@@ -138,5 +138,7 @@ plot_qsm = function(qsm, add = NULL, sides = 16, color = "cyl_ID", skeleton = TR
   rgl::axis3d("x", col = "black")
   rgl::axis3d("y", col = "black")
 
+  lidR:::.pan3d(2)
+
   return(c(tx, ty))
 }

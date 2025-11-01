@@ -16,52 +16,91 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
   t0 = tic()
   #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005; power = 1.1; pure_model = FALSE; verbose = FALSE
 
-  #attributes <- names(tree)
-  #stopifnot("passage" %in% attributes)
+  tree <- filter_tree(tree)
 
-  tree = filter_tree(tree)
-
-  d = if ("hag" %in% names(tree)) min(tree$hag) else 0
+  d <- if ("hag" %in% names(tree)) min(tree$hag) else 0
 
   # Move to origin for numerical stability
-  j           = which.min(tree$Z)
-  tx          = tree$X[j]
-  ty          = tree$Y[j]
-  tz          = tree$Z[j]
-  tree@data$X = tree@data$X-tx
-  tree@data$Y = tree@data$Y-ty
-  tree@data$Z = tree@data$Z-tz
+  j           <- which.min(tree$Z)
+  tx          <- tree$X[j]
+  ty          <- tree$Y[j]
+  tz          <- tree$Z[j]
+  tree@data$X <- tree@data$X-tx
+  tree@data$Y <- tree@data$Y-ty
+  tree@data$Z <- tree@data$Z-tz
 
-  #passage = lidR::filter_poi(tree, passage > 0)
+  cat("(1/5) Cleaning tree butt\n") ; ti = tic()
 
-  cat("(1/3) Build skeleton\n") ; ti = tic()
-  qsm = build_skeleton(tree, step, cl_dist, max_d, verbose)
-  toc(ti)
+  tree@data$pointID <- 1:lidR::npoints(tree)
+  bottom <- tree[tree$Z < 0.25]
+  bottom <- lidR::connected_components(bottom, 0.05, 10, connectivity = 26)
 
-  cat("(2/3) Architecture\n")  ; ti = tic()
+  if (length(unique(bottom$clusterID)) > 1)
+  {
+    cat("\033[33m Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.\033[0m\n")
+    warning("Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.")
+    t <-table(bottom$clusterID)
+    i <- as.numeric(names(which.max(t)))
+    r <- bottom$pointID[bottom$clusterID != id]
+    tree <- tree[-r]
+  }
+
+  toc(ti) ; cat("(2/5) Building skeleton\n") ; ti = tic()
+
+  qsm <- build_skeleton(tree, step, cl_dist, max_d, verbose)
+
+  toc(ti) ; cat("(3/5) Building architecture\n")  ; ti = tic()
+
   qsm = qsm_architecture(qsm)
   qsm = qsm_smooth(qsm, niter = 1)
   qsm = qsm_architecture(qsm)
-  R0  = find_root_radius(tree, qsm, verbose)
-  qsm = qsm_prolongation(qsm, d)
-  toc(ti)
 
-  cat("(2/3) Diameters\n") ; ti = tic()
+  toc(ti) ; cat("(4/5) Validating butt architecture \n")  ; ti = tic()
+
+  i <- detect_weird_butt(qsm)
+
+  if (i > 1)
+  {
+    cat("\033[33m Detection of weird tree butt. Automatic fix triggered.\033[0m\n")
+    warning("Detection of weird tree butt. Automatic fix triggered.")
+
+    main <- qsm[axis_ID == 1]
+    rm   <- main[1:i]
+    qsm  <- qsm[!cyl_ID %in% rm$cyl_ID]
+    qsm  <- remove_disconnected_branches(qsm)
+    j <- which(qsm$axis_ID == 1)[1]
+    qsm[j, parent_ID := 0]
+
+    # recompute the prolongation d
+    if ("hag" %in% names(tree))
+    {
+      minZ <- min(qsm$startZ)
+      hag  <- tree$hag[tree$Z < minZ]
+      d    <- max(hag)
+    }
+  }
+
+  toc(ti) ; cat("(5/5) Measuring diameters\n") ; ti = tic()
+
+  R0  <- find_root_radius(tree, qsm, verbose)
+  qsm <- qsm_prolongation(qsm, d)
+
   if (pure_model)
-    qsm = qsm_radius_model(qsm, tree, R0, tip_radius = apex, power = power)
+    qsm <- qsm_radius_model(qsm, tree, R0, tip_radius = apex, power = power)
   else
-    qsm = qsm_radius(qsm, tree, R0, tip_radius = apex, power = power)
+    qsm <- qsm_radius(qsm, tree, R0, tip_radius = apex, power = power)
+
   toc(ti)
 
-  qsm$startX  = qsm$startX+tx
-  qsm$startY  = qsm$startY+ty
-  qsm$startZ  = qsm$startZ+tz
-  qsm$endX    = qsm$endX+tx
-  qsm$endY    = qsm$endY+ty
-  qsm$endZ    = qsm$endZ+tz
-  tree@data$X = tree@data$X+tx
-  tree@data$Y = tree@data$Y+ty
-  tree@data$Z = tree@data$Z+tz
+  qsm$startX  <- qsm$startX+tx
+  qsm$startY  <- qsm$startY+ty
+  qsm$startZ  <- qsm$startZ+tz
+  qsm$endX    <- qsm$endX+tx
+  qsm$endY    <- qsm$endY+ty
+  qsm$endZ    <- qsm$endZ+tz
+  tree@data$X <- tree@data$X+tx
+  tree@data$Y <- tree@data$Y+ty
+  tree@data$Z <- tree@data$Z+tz
 
   toc(t0, space = "")
 
@@ -306,3 +345,53 @@ measure_cylinder_radius = function(pc, qsm, id)
 
   return(radius)
 }
+
+remove_disconnected_branches <- function(dt) {
+  # Ensure data.table
+  if (!data.table::is.data.table(dt)) dt <- data.table::as.data.table(dt)
+
+  # Validate required columns
+  required_cols <- c("cyl_ID", "parent_ID", "axis_ID")
+  if (!all(required_cols %in% names(dt))) {
+    stop("Input must contain columns: cyl_ID, parent_ID, axis_ID")
+  }
+
+  # Step 1: start with cylinders on the main axis
+  keep <- dt[axis_ID == 1, cyl_ID]
+  new <- keep
+
+  # Step 2: recursively find all descendants
+  repeat {
+    children <- dt[parent_ID %in% new, cyl_ID]
+    new <- setdiff(children, keep)
+    if (length(new) == 0) break
+    keep <- c(keep, new)
+  }
+
+  # Step 3: keep only connected cylinders
+  dt[cyl_ID %in% keep]
+}
+
+detect_weird_butt = function(qsm)
+{
+  qsm$angle <- with(qsm,{
+    dx <- endX - startX
+    dy <- endY - startY
+    dz <- endZ - startZ
+    acos(dz / sqrt(dx^2 + dy^2 + dz^2)) * 180 / pi
+  })
+
+  main   <- qsm[axis_ID == 1]
+  angles <- main$angle
+  thresh <- 50
+  window <- 4  # number of consecutive values required below threshold
+  i      <- 1
+  while (i <= length(angles))
+  {
+    if (all(angles[i:min(i+window-1, length(angles))] < thresh)) break
+    i <- i + 1
+  }
+
+  return(i)
+}
+
