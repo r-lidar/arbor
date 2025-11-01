@@ -105,7 +105,7 @@ DataFrame cpp_compute_layers(NumericMatrix coords, double D)
           double out_dist_sqr;
           nanoflann::KNNResultSet<double> resultSet(1);
           resultSet.init(&ret_index, &out_dist_sqr);
-          ref_index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters(10));
+          ref_index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
           if (out_dist_sqr < min_dist) {
             min_dist = out_dist_sqr;
             closest_idx = i;
