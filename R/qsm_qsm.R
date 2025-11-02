@@ -41,7 +41,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.005, power
     warning("Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.")
     t <-table(bottom$clusterID)
     i <- as.numeric(names(which.max(t)))
-    r <- bottom$pointID[bottom$clusterID != id]
+    r <- bottom$pointID[bottom$clusterID != i]
     tree <- tree[-r]
   }
 
