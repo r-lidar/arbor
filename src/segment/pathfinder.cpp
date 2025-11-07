@@ -107,13 +107,17 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
   assert_exists(params, "path_finder");
   Rcpp::List p = params["path_finder"];
   assert_exists(p, "k_neighborhood_connectivity");
+  assert_exists(p, "k_seed_connectivity");
   assert_exists(p, "max_gap");
   assert_exists(p, "z_scale");
   assert_exists(p, "penalty");
+  assert_exists(p, "distance_power");
 
   int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
+  int k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
   double max_gap = Rcpp::as<double>(p["max_gap"]);
   double z_scale = Rcpp::as<double>(p["z_scale"]);
+  double power = Rcpp::as<double>(p["distance_power"]);
   std::vector<float> penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
   // Convert foliage column to vector<bool>
@@ -122,6 +126,8 @@ SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
 
   GraphBuilder builder;
   builder.k = k;
+  builder.k_seed = k_seed;
+  builder.power = power;
   builder.max_gap = max_gap;
   builder.set_wood(wood);
   builder.set_angle_penalty(penalty);

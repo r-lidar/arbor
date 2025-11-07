@@ -55,11 +55,11 @@ file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
 file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
 file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fraction 0.4"
+file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
 
 # ===== PROCESSING PARAMETERS =====
 
 params = default_parameters
-params$instance$z_scale = 1
 
 # ====== READ POINT CLOUD =======
 
@@ -184,10 +184,11 @@ if (display)
 # and aggregate them using connected component analysis.
 
 seeds <- find_seeds(las, params)
+seeds <- find_seeds2(las, params)
 
 if (display)
 {
-  x <- plot(lidR::filter_poi(las,  hag < 4), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  x <- plot(lidR::filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors)# |> add_dtm3d(dtm)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
 
@@ -212,7 +213,7 @@ if (display)
 # The goal is to retain the main trees and clean up the understory. It also
 # remove blob of points with no ID
 
-trees <- remove_small_trees(las, max_heigh = 4)
+trees <- remove_small_trees(las, max_height = 4)
 
 if (display)
 {
@@ -254,6 +255,10 @@ o <- tools::file_path_sans_ext(file)
 t <- paste0(o, "_trees.laz")
 v <- paste0(o, "_validtrees.laz")
 o <- paste0(o, "_segmented.laz")
+
+las = colorize_trees(las)
+trees = colorize_trees(trees)
+valid_trees = colorize_trees(valid_trees)
 
 writeLAS(las, o)
 writeLAS(trees, t)

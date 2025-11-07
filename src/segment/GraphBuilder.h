@@ -9,7 +9,8 @@ using PointCloud = DataFrameAdaptor;
 class GraphBuilder
 {
 public:
-  int k = 20;
+  int k = 10;
+  int k_seed = 100;
   float max_gap = 1.0f;
   float power = 3.0f;
   float wood2wood = 0.1;
