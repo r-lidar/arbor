@@ -11,21 +11,20 @@
 barycentric_predecimation = function(las, params = default_parameters)
 {
   res <- params$decimation$barycentric_predecimation_resolution
-  id <- lidR:::C_voxel_id(las, res)
-  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, id)
+  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
   las@data$decimated <- keep
-  free(id, keep)
+  free(keep)
   return(las)
 }
 
 barycentric_decimation = function(las, res)
 {
   decimated <- TRUE
-  id <- lidR:::C_voxel_id(las, res)
-  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, id)
+  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
   las@data$decimated <- keep
-  free(id, keep)
   las <- lidR::filter_poi(las, decimated == TRUE)
+  las@data$decimated = NULL
+  free(keep)
   return(las)
 }
 
