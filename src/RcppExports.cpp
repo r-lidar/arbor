@@ -11,16 +11,16 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // C_voxel_barycenter_decimate
-Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, Rcpp::NumericVector id);
-RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP idSEXP) {
+Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, double res);
+RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP resSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type X(XSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y(YSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Z(ZSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type id(idSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, id));
+    Rcpp::traits::input_parameter< double >::type res(resSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, res));
     return rcpp_result_gen;
 END_RCPP
 }
