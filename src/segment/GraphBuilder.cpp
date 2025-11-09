@@ -75,7 +75,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
         if (to == from) continue;        // If 'from' == 'to', skip because this is the 0-nn
         float cost = std::sqrt(dist[j]); // The cost is the euclidean distance
         if (cost > max_gap) continue;    // If the cost is above a threshold; no connection
-        //cost = std::pow(cost, power);    // The cost is the cube of the eucliandian distance
+        cost = std::pow(cost, power);    // The cost is the cube of the eucliandian distance
 
         double coord_from[3];
         double coord_to[3];
@@ -202,6 +202,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
     for (int j = 0; j < k; ++j)
     {
       float cost = std::sqrt(dist[j]);
+      cost = std::pow(cost, power);    // The cost is the cube of the eucliandian distance
       int from = i + offset_seeds;
       int to = idx[j];
       graph->add_edge(from, to, cost);
