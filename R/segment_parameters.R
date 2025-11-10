@@ -31,7 +31,7 @@ default_parameters_v1 = list(
   ),
   seed = list (
     slice_at = c(0.7,0.9),
-    slice_thickness = 0.03,
+    slice_thickness = 0.05,
     sor_k = 10,
     sor_m = 0.5,
     min_passage = 15,

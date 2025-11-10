@@ -28,6 +28,21 @@ barycentric_decimation = function(las, res)
   return(las)
 }
 
+#' @export
+arbor_decimation = function(las, res = 0.02)
+{
+  decimated <- TRUE
+  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
+  n = sum(keep)
+  rm = which(!keep)
+  i = sample(rm, n*0.1)
+  keep[i] = TRUE
+  las = las[keep]
+  free(keep)
+  return(las)
+}
+
+
 get_barycentric_predecimation <- function(las, params = default_parameters)
 {
   decimated <- NULL

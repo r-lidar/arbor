@@ -45,6 +45,7 @@ file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_
 file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.2"
 file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
+
 # MRNF Oak plantations
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/sta_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/god_plot1.laz" ; filter = "-keep_random_fraction 0.8"
@@ -65,11 +66,12 @@ params = default_parameters
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
 
-las <- readTLS(file, select = "0", filter = filter)
+las <- readTLS(file, select = "xyz", filter = filter)
+las <- arbor_decimation(las)
+
 plot(header(las))
 
 #las = clip_circle(las, mean(las$X), mean(las$Y), 15)
-
 
 # Print to see your density. Target is between 10.000 and 20.000
 print(las)
@@ -168,9 +170,9 @@ if (display)
   plot(passage, add = x, legend = T, size = 4)
 
   # Pathfinder passages + scene < 2m
-  passage <- lidR::filter_poi(las, passage > 1)
+  passage <- lidR::filter_poi(las, passage <15)
   x <- plot(filter_poi(las,  hag < 3), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
-  plot(filter_poi(passage, hag < 3), add = x, legend = T, size = 4)
+  plot_passage(passage, add = x, size = 3, th = 15)
 }
 
 # ====== FIND TREE SEEDS =======
@@ -184,11 +186,10 @@ if (display)
 # and aggregate them using connected component analysis.
 
 seeds <- find_seeds(las, params)
-seeds <- find_seeds2(las, params)
 
 if (display)
 {
-  x <- plot(lidR::filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors)# |> add_dtm3d(dtm)
+  x <- plot(lidR::filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors, size =2) |> add_dtm3d(dtm)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
 
