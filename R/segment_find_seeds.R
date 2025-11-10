@@ -5,6 +5,7 @@
 #'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
+#' @export
 find_seeds <- function(las, params)
 {
   foliage <- clusterID <- max_diameter <- passage <- hag <- NULL
@@ -211,7 +212,7 @@ find_seeds <- function(las, params)
 
   # Some short passage could be from big tree. Path finder to attach them.
   short_passages@data$foliage = 0
-  p = default_parameters
+  p = default_arbor_parameters
   p$path_finder$max_gap = 0.1
   p$path_finder$k_neighborhood_connectivity = 10
   p$path_finder$k_seed_connectivity = 2

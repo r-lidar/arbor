@@ -18,7 +18,6 @@ file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_la
 
 # Zambia
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1_poisson.laz" ; filter = ""
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.15"
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
@@ -42,7 +41,7 @@ file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_so
 file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
 
 # Richard's data
-file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.2"
+file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.25"
 file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
 
@@ -53,21 +52,21 @@ file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot1.laz" ;
 file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.55
 
 # Bastien's data
-file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.08"
+file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.25"
 file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
 file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fraction 0.4"
 file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
 
 # ===== PROCESSING PARAMETERS =====
 
-params = default_parameters
+params = default_arbor_parameters
 
 # ====== READ POINT CLOUD =======
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
 
 las <- readTLS(file, select = "xyz", filter = filter)
-las <- arbor_decimation(las)
+las <- hybrid_homogeneization(las)
 
 plot(header(las))
 
@@ -103,10 +102,6 @@ if (display) plot_dtm3d(dtm)
 # is to remove most of the very low vegetation. 25 cm might be good. Some plot require 50 cm.
 
 las <- lidR::filter_poi(las, hag > cut_above_ground)
-
-d <- density(las)
-if (d < 10000 | d > 20000)
-  warning("The density of the point cloud may be inccorrect. Try to target something closer to 15.000 pts/m²")
 
 if (display) plot(las) |> add_dtm3d(dtm)
 
@@ -302,4 +297,4 @@ tree <- lidR::filter_poi(trees, treeID == id)
 plot_semantic(tree)
 qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
 x <- plot_semantic(tree)
-plot_qsm(qsm, color = "branch_order", add = x)
+plot_qsm(qsm, color = "branch_order", add = x + c(-5, 0), skeleton = F)

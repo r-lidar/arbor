@@ -29,7 +29,7 @@ barycentric_decimation = function(las, res)
 }
 
 #' @export
-arbor_decimation = function(las, res = 0.02)
+hybrid_homogeneization = function(las, res = 0.02)
 {
   decimated <- TRUE
   keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
