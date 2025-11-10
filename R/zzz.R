@@ -1,2 +1,2 @@
-#' @useDynLib lidRtls, .registration = TRUE
+#' @useDynLib arbor, .registration = TRUE
 .datatable.aware = TRUE

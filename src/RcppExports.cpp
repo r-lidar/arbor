@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // C_voxel_barycenter_decimate
 Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, double res);
-RcppExport SEXP _lidRtls_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP resSEXP) {
+RcppExport SEXP _arbor_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP resSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -26,7 +26,7 @@ END_RCPP
 }
 // build_semantic_graph
 SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, Rcpp::List params);
-RcppExport SEXP _lidRtls_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
+RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -41,7 +41,7 @@ END_RCPP
 }
 // build_instance_graph
 SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, Rcpp::List params);
-RcppExport SEXP _lidRtls_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
+RcppExport SEXP _arbor_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -55,7 +55,7 @@ END_RCPP
 }
 // accumulate_passages
 Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
-RcppExport SEXP _lidRtls_accumulate_passages(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
+RcppExport SEXP _arbor_accumulate_passages(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -69,7 +69,7 @@ END_RCPP
 }
 // find_closest_node
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
-RcppExport SEXP _lidRtls_find_closest_node(SEXP graph_ptrSEXP, SEXP idsSEXP) {
+RcppExport SEXP _arbor_find_closest_node(SEXP graph_ptrSEXP, SEXP idsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -81,7 +81,7 @@ END_RCPP
 }
 // cpp_compute_architecture
 Rcpp::DataFrame cpp_compute_architecture(Rcpp::DataFrame qsm, int root_id);
-RcppExport SEXP _lidRtls_cpp_compute_architecture(SEXP qsmSEXP, SEXP root_idSEXP) {
+RcppExport SEXP _arbor_cpp_compute_architecture(SEXP qsmSEXP, SEXP root_idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,7 +93,7 @@ END_RCPP
 }
 // cpp_build_skeleton
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
-RcppExport SEXP _lidRtls_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
+RcppExport SEXP _arbor_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -105,7 +105,7 @@ END_RCPP
 }
 // cpp_build_skeleton_old
 Rcpp::DataFrame cpp_build_skeleton_old(Rcpp::DataFrame data, double max_d);
-RcppExport SEXP _lidRtls_cpp_build_skeleton_old(SEXP dataSEXP, SEXP max_dSEXP) {
+RcppExport SEXP _arbor_cpp_build_skeleton_old(SEXP dataSEXP, SEXP max_dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -117,7 +117,7 @@ END_RCPP
 }
 // cpp_compute_layers
 Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
-RcppExport SEXP _lidRtls_cpp_compute_layers(SEXP coordsSEXP, SEXP DSEXP) {
+RcppExport SEXP _arbor_cpp_compute_layers(SEXP coordsSEXP, SEXP DSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -129,7 +129,7 @@ END_RCPP
 }
 // cpp_compute_topology
 Rcpp::DataFrame cpp_compute_topology(Rcpp::DataFrame skel);
-RcppExport SEXP _lidRtls_cpp_compute_topology(SEXP skelSEXP) {
+RcppExport SEXP _arbor_cpp_compute_topology(SEXP skelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -140,7 +140,7 @@ END_RCPP
 }
 // qsm_simplify_cpp
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length);
-RcppExport SEXP _lidRtls_qsm_simplify_cpp(SEXP qsmSEXP, SEXP max_lengthSEXP) {
+RcppExport SEXP _arbor_qsm_simplify_cpp(SEXP qsmSEXP, SEXP max_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -152,7 +152,7 @@ END_RCPP
 }
 // cpp_smooth_skeleton
 Rcpp::List cpp_smooth_skeleton(Rcpp::DataFrame qsm, int niter, double th);
-RcppExport SEXP _lidRtls_cpp_smooth_skeleton(SEXP qsmSEXP, SEXP niterSEXP, SEXP thSEXP) {
+RcppExport SEXP _arbor_cpp_smooth_skeleton(SEXP qsmSEXP, SEXP niterSEXP, SEXP thSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -165,22 +165,22 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_lidRtls_C_voxel_barycenter_decimate", (DL_FUNC) &_lidRtls_C_voxel_barycenter_decimate, 4},
-    {"_lidRtls_build_semantic_graph", (DL_FUNC) &_lidRtls_build_semantic_graph, 5},
-    {"_lidRtls_build_instance_graph", (DL_FUNC) &_lidRtls_build_instance_graph, 4},
-    {"_lidRtls_accumulate_passages", (DL_FUNC) &_lidRtls_accumulate_passages, 4},
-    {"_lidRtls_find_closest_node", (DL_FUNC) &_lidRtls_find_closest_node, 2},
-    {"_lidRtls_cpp_compute_architecture", (DL_FUNC) &_lidRtls_cpp_compute_architecture, 2},
-    {"_lidRtls_cpp_build_skeleton", (DL_FUNC) &_lidRtls_cpp_build_skeleton, 2},
-    {"_lidRtls_cpp_build_skeleton_old", (DL_FUNC) &_lidRtls_cpp_build_skeleton_old, 2},
-    {"_lidRtls_cpp_compute_layers", (DL_FUNC) &_lidRtls_cpp_compute_layers, 2},
-    {"_lidRtls_cpp_compute_topology", (DL_FUNC) &_lidRtls_cpp_compute_topology, 1},
-    {"_lidRtls_qsm_simplify_cpp", (DL_FUNC) &_lidRtls_qsm_simplify_cpp, 2},
-    {"_lidRtls_cpp_smooth_skeleton", (DL_FUNC) &_lidRtls_cpp_smooth_skeleton, 3},
+    {"_arbor_C_voxel_barycenter_decimate", (DL_FUNC) &_arbor_C_voxel_barycenter_decimate, 4},
+    {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 5},
+    {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
+    {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},
+    {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
+    {"_arbor_cpp_compute_architecture", (DL_FUNC) &_arbor_cpp_compute_architecture, 2},
+    {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
+    {"_arbor_cpp_build_skeleton_old", (DL_FUNC) &_arbor_cpp_build_skeleton_old, 2},
+    {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},
+    {"_arbor_cpp_compute_topology", (DL_FUNC) &_arbor_cpp_compute_topology, 1},
+    {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
+    {"_arbor_cpp_smooth_skeleton", (DL_FUNC) &_arbor_cpp_smooth_skeleton, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_lidRtls(DllInfo *dll) {
+RcppExport void R_init_arbor(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

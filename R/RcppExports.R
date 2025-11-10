@@ -2,50 +2,50 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 C_voxel_barycenter_decimate <- function(X, Y, Z, res) {
-    .Call(`_lidRtls_C_voxel_barycenter_decimate`, X, Y, Z, res)
+    .Call(`_arbor_C_voxel_barycenter_decimate`, X, Y, Z, res)
 }
 
 build_semantic_graph <- function(dec, target, gnd, master_seed, params) {
-    .Call(`_lidRtls_build_semantic_graph`, dec, target, gnd, master_seed, params)
+    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, master_seed, params)
 }
 
 build_instance_graph <- function(dec, seed, master_seed, params) {
-    .Call(`_lidRtls_build_instance_graph`, dec, seed, master_seed, params)
+    .Call(`_arbor_build_instance_graph`, dec, seed, master_seed, params)
 }
 
 accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {
-    .Call(`_lidRtls_accumulate_passages`, graph_ptr, start_node, goal_nodes, num_points)
+    .Call(`_arbor_accumulate_passages`, graph_ptr, start_node, goal_nodes, num_points)
 }
 
 find_closest_node <- function(graph_ptr, ids) {
-    .Call(`_lidRtls_find_closest_node`, graph_ptr, ids)
+    .Call(`_arbor_find_closest_node`, graph_ptr, ids)
 }
 
 cpp_compute_architecture <- function(qsm, root_id = 1L) {
-    .Call(`_lidRtls_cpp_compute_architecture`, qsm, root_id)
+    .Call(`_arbor_cpp_compute_architecture`, qsm, root_id)
 }
 
 cpp_build_skeleton <- function(data, max_d) {
-    .Call(`_lidRtls_cpp_build_skeleton`, data, max_d)
+    .Call(`_arbor_cpp_build_skeleton`, data, max_d)
 }
 
 cpp_build_skeleton_old <- function(data, max_d) {
-    .Call(`_lidRtls_cpp_build_skeleton_old`, data, max_d)
+    .Call(`_arbor_cpp_build_skeleton_old`, data, max_d)
 }
 
 cpp_compute_layers <- function(coords, D) {
-    .Call(`_lidRtls_cpp_compute_layers`, coords, D)
+    .Call(`_arbor_cpp_compute_layers`, coords, D)
 }
 
 cpp_compute_topology <- function(skel) {
-    .Call(`_lidRtls_cpp_compute_topology`, skel)
+    .Call(`_arbor_cpp_compute_topology`, skel)
 }
 
 qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
-    .Call(`_lidRtls_qsm_simplify_cpp`, qsm, max_length)
+    .Call(`_arbor_qsm_simplify_cpp`, qsm, max_length)
 }
 
 cpp_smooth_skeleton <- function(qsm, niter = 1L, th = 0) {
-    .Call(`_lidRtls_cpp_smooth_skeleton`, qsm, niter, th)
+    .Call(`_arbor_cpp_smooth_skeleton`, qsm, niter, th)
 }
 
