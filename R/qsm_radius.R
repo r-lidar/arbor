@@ -1,4 +1,4 @@
-qsm_radius_adtree = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
+qsm_radius_adtree = function(qsm, tree, R0, tip_radius = 0.0025, power = 1.1)
 {
   root = which(qsm$parent_ID == 0)
   w0 = qsm[["subtree_length"]][root]
@@ -13,6 +13,288 @@ qsm_radius_adtree = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
   qsm[["radius"]] = r1
   return(qsm)
 }
+
+
+qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
+{
+  # Compute a theorical tree (AdTree idea)
+  root = which(qsm$parent_ID == 0)
+  w0 = qsm[["subtree_length"]][root]
+  wi = qsm[["subtree_length"]]
+  s = (wi / w0)^1.1
+  s_min = min(s)
+  s_max = max(s)
+  qsm[["theoric_radius"]] = tip_radius + (s - s_min) / (s_max - s_min) * (R0 - tip_radius)
+
+  if (R0 < 0.06)
+  {
+    qsm$radius = qsm$theoric_radius
+    return(qsm)
+  }
+
+
+  # Assign each point to an edge of the qsm graph
+  centroid = list()
+  centroid$centroidX = (qsm$startX + qsm$endX)/2
+  centroid$centroidY = (qsm$startY + qsm$endY)/2
+  centroid$centroidZ = (qsm$startZ + qsm$endZ)/2
+  centroid = as.data.frame(centroid)
+  nearest = FNN::knnx.index(data = centroid, query = tree@data[,1:3], algorithm = "kd_tree", k = 1)
+  xyz = tree@data[, 1:3]
+  xyz$cyl_ID = qsm$cyl_ID[nearest]
+
+  if (FALSE)
+  {
+    x = plot_qsm(qsm, cylinder = FALSE, add = c(0,0))
+    cc = centroid
+    rgl::points3d(cc, size = 3)
+    rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, pal = lidR::random.colors(nrow(centroid))))
+    lidR:::.pan3d(2)
+  }
+
+  # Split data by cylinder (graph edges)
+  data.table::setkey(qsm, cyl_ID)
+  data.table::setkey(xyz, cyl_ID)
+
+  r2 = rep(NA_real_, nrow(qsm))
+  r_rescue = rep(NA_real_, nrow(qsm))
+
+  subs = split(xyz, by = "cyl_ID",  keep.by = FALSE)
+  starts = qsm[, c(1:3, 7)]
+  ends = qsm[, c(4:6, 7)]
+  starts = split(starts, by = "cyl_ID",  keep.by = FALSE)
+  ends = split(ends, by = "cyl_ID",  keep.by = FALSE)
+  theoric_radii = qsm[, c("cyl_ID", "theoric_radius")]
+  theoric_radii = split(theoric_radii, by = "cyl_ID",  keep.by = FALSE)
+
+  # Actual measurement for each cylindre using RANSAC if it works
+  is.valid.circle = function(radius, angle_range, pinliner, pinside)
+  {
+    if (radius < 0.05)  return(FALSE)
+    if (pinside > 20) return(FALSE)
+    return(angle_range > 180 & pinliner > 30)
+  }
+
+  for (i in 1:nrow(qsm))
+  {
+    id = qsm$cyl_ID[i]
+
+    if (id < 1) next # skip prolongations
+
+    id = as.character(id)
+
+    sub = subs[[id]]
+
+    if (is.null(sub)) next
+
+    theoric_radius = as.numeric(theoric_radii[[id]])
+
+    # No need to try to measure anything if the theory is < 4 cm
+    if (theoric_radius < 0.04) next
+
+    sub = as.matrix(sub)
+
+    start = as.numeric(starts[[id]])
+    end = as.numeric(ends[[id]])
+
+    if (FALSE)
+    {
+      rgl::points3d(sub)
+      rgl::segments3d(rbind(start, end), lwd = 3)
+    }
+
+    M = compute_rotation_matrix(start, end)
+    sub = sub %*% t(M)
+
+    if (nrow(sub) < 50) next
+
+    r = ransac_circle(sub, num_iterations = 100, inlier_threshold = 0.02)
+
+    valid = is.valid.circle(r$radius, r$covered_arc_degree, r$percentage_inlier*100, r$percentage_inside*100)
+
+    if (valid)
+    {
+      r2[i] = r$radius
+
+      if (FALSE)
+      {
+        col = if(valid) "darkgreen" else "red"
+        title = paste0("ID = ",  i, " | arc = ", round(r$covered_arc_degree, 1),  " | inliner = ", round(r$percentage_inlier*100), "% insider = ", round(r$percentage_inside*100), "% | R = ", round(r$radius, 2))
+        plot(sub, asp = 1, pch = 19, cex = 0.5, main = title)
+        points(r$center_x, r$center_y, pch = 4)
+        symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = col, inches = FALSE, lwd = 2)
+        symbols(r$center_x, r$center_y, circles = r$radius+0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
+        symbols(r$center_x, r$center_y, circles = r$radius-0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
+      }
+    }
+  }
+
+  qsm[["radius"]] = data.table::copy(r2)
+
+  if (FALSE)
+  {
+    x = plot_qsm(qsm, cylinder = TRUE)
+    plot(tree, add = x, size = 2, pal = "brown")
+  }
+
+  # We now have some cynlindred measure with ransac
+  # Polynomial interpolation for each axis with enought measurements
+  for (i in sort(unique(qsm$axis_ID)))
+  {
+    axe = qsm[axis_ID == i]
+    if (sum(!is.na(axe$radius)) <= 6) next
+
+    mes = axe[!is.na(radius)]
+    mod <- nls(
+      radius ~ tip_radius + a * subtree_length + b * subtree_length^2,
+      data = mes,
+      start = list(a = 0.01, b = 0.001),
+      algorithm = "port",
+      lower = c(-Inf, -Inf),
+      upper = c(Inf, Inf)   # b > 0
+    )
+
+    r = predict(mod, axe)
+    qsm[axis_ID == i, radius := r]
+
+    if (TRUE)
+    {
+      plot(axe$theoric_radius, max(axe$subtree_length) -axe$subtree_length,
+           asp = 0.01,
+           main = NULL,
+           pch  = 19,
+           cex = 0.5,
+           col = "gray",
+           xlab = "Radius (m)",
+           ylab = "Distance to root (m)",
+           xlim = c(0, 0.2))
+      points(axe$radius, max(axe$subtree_length) -axe$subtree_length,
+             pch = 19, cex = 0.6)
+      points(r, max(axe$subtree_length) -axe$subtree_length, col = "blue", pch = 19, cex = 0.5)
+
+      legend("topright",
+             legend = c("Theoric radius", "Measured radius", "Interpolation"),
+             col = c("gray", "black", "blue"),
+             pch = 19,
+             pt.cex = c(0.5, 0.6, 0.5))
+    }
+  }
+
+  if (FALSE)
+  {
+    x = plot_qsm(qsm, cylinder = TRUE)
+    plot(tree, add = x, size = 2, pal = "brown")
+  }
+
+  #If we have NAs on main axis it means interpolation failed on main axis with have no data
+  main_axis = qsm[axis_ID == 1]
+  if (anyNA(main_axis$radius))
+  {
+    qsm$radius = qsm$theoric_radius
+    qsm$theoric_radius = NULL
+    return(qsm)
+  }
+
+  # Maybe we have no bottom radius for this tree at all.
+  # In this case we will use the rescue radius (least square method)
+  # as replacement
+  # main_axis = qsm[axis_ID == 1]
+  # L = main_axis$subtree_length[1]
+  # first_ten_percent = main_axis[main_axis$subtree_length > L*0.90]
+  # if (all(is.na(first_ten_percent$radius)))
+  # {
+  #   if (!all(is.na(first_ten_percent$rescue_radius)))
+  #   {
+  #     qsm$radius[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = first_ten_percent$rescue_radius
+  #     qsm$measure[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = 2L
+  #     first_ten_percent$radius = first_ten_percent$rescue_radius
+  #   }
+  #   else
+  #   {
+  #
+  #     idx = which(!is.na(main_axis$rescue_radius))
+  #
+  #     if (length(idx) == 0)  stop("Internal error: no measurement on the bottom of the tree.")
+  #
+  #     r0 = main_axis$rescue_radius[idx[1]]
+  #     first_ten_percent$radius = r0
+  #   }
+  # }
+  # qsm$rescue_radius = NULL
+
+  if (FALSE)
+  {
+    x = plot_qsm(qsm, cylinder = TRUE)
+    plot(tree, add =x, size = 2, pal = "brown")
+  }
+
+  # We have some cylinder measured and interpolated. A large portion of the tree is missing.
+  # We loop on each axes by branch order. If we have some NAs we compare to the theory.
+  # We ensure the theory is not bigger than the parent branch. If the theory is bigger
+  # We rescale to be the size of the parent
+  # And if we have enough measurement we scale the theory to something realistic
+
+  # Loop by branch order
+  for (i in sort(unique(qsm$branch_order)))
+  {
+    if (i == 1) next
+
+    order = qsm[branch_order == i]
+    axis_IDs = unique(order$axis_ID)
+
+    for (j in axis_IDs)
+    {
+      axe = order[axis_ID == j]
+
+      # Find parent radius and subtree length
+      parent = axe$parent_ID[1]
+      parent_id = which(qsm$cyl_ID == parent)
+      if (length(parent_id) == 0) stop("Internal error. No parent.")
+
+      # Compute the theoretical radius
+      r0 = qsm$radius[parent_id]
+      w0 = qsm$subtree_length[parent_id]
+      wi = axe$subtree_length
+      s  = (wi / w0)^1.1
+      r  = tip_radius + s * (r0 - tip_radius)
+
+      # We have only NAs. We can only use the theory
+      if (all(is.na(axe$radius)))
+      {
+
+      }
+      # We have some measures. Use a comparison between measure and theory to rescale theory
+      else if(anyNA(axe$radius))
+      {
+        r_mes = axe$radius
+
+        # We need at least 3 measurements otherwise it is easy to have
+        # false ransac fitting. Other wise use radius theoretic
+        if (sum(!is.na(r_mes)) >= 3)
+        {
+          # Look at the average ratio between the theory in and the measures.
+          # If measures tends to be bigger increase theory. Or opposite
+          ratio = median(r_mes/r, na.rm = TRUE)
+          r = tip_radius + s * (r0*ratio - tip_radius)
+        }
+      }
+
+      qsm[branch_order == i & axis_ID == j, radius := r]
+    }
+  }
+
+  if (FALSE)
+  {
+    x = plot_qsm(qsm, cylinder = TRUE)
+    plot(tree, add =x, size = 2, pal = "brown")
+  }
+
+  qsm$theoric_radius = NULL
+  qsm = qsm_volume(qsm)
+
+  return(qsm)
+}
+
 
 qsm_radius_hagenia = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 {
@@ -52,19 +334,6 @@ qsm_radius_hagenia = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
 
   r2 = numeric(nrow(qsm))
   ransac = logical(nrow(qsm))
-
-  fit_circle_least_squares <- function(xy)
-  {
-    x <- xy[,1]
-    y <- xy[,2]
-    A <- cbind(2*x, 2*y, rep(1, length(x)))
-    b <- x^2 + y^2
-    sol <- qr.solve(A, b)
-    xc <- sol[1]
-    yc <- sol[2]
-    r  <- sqrt(sol[3] + xc^2 + yc^2)
-    list(xc = xc, yc = yc, radius = r)
-  }
 
   for (i in 1:nrow(qsm))
   {
@@ -179,236 +448,12 @@ qsm_radius_hagenia = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
   return(qsm)
 }
 
-
-qsm_radius = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
+fit_circle_least_squares <- function(xy)
 {
-  plot = FALSE
-
-  root = which(qsm$parent_ID == 0)
-  w0 = qsm[["subtree_length"]][root]
-  wi = qsm[["subtree_length"]]
-
-  # Actual measurement for each cylindre using RANSAC if it work or falling back
-  # to barycenter + average distance
-  centroid = list()
-  centroid$centroidX = (qsm$startX + qsm$endX)/2
-  centroid$centroidY = (qsm$startY + qsm$endY)/2
-  centroid$centroidZ = (qsm$startZ + qsm$endZ)/2
-  centroid = as.data.frame(centroid)
-  nearest = FNN::knnx.index(data = centroid, query = tree@data[,1:3], algorithm = "kd_tree", k = 1)
-
-  xyz = tree@data[, 1:3]
-  xyz$cyl_ID = qsm$cyl_ID[nearest]
-
-  if (plot)
-  {
-    x = plot_qsm(qsm, cylinder = FALSE, add = c(0,0))
-    cc = centroid
-    rgl::points3d(cc, size = 3)
-    rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, pal = lidR::random.colors(nrow(centroid))))
-    lidR:::.pan3d(2)
-  }
-
-  data.table::setkey(qsm, cyl_ID)
-  data.table::setkey(xyz, cyl_ID)
-
-  r2 = rep(NA_real_, nrow(qsm))
-  r_rescue = rep(NA_real_, nrow(qsm))
-
-  fit_circle_least_squares <- function(xy)
-  {
-    x <- xy[,1]
-    y <- xy[,2]
-    A <- cbind(2*x, 2*y, rep(1, length(x)))
-    b <- x^2 + y^2
-    sol <- qr.solve(A, b)
-    xc <- sol[1]
-    yc <- sol[2]
-    r  <- sqrt(sol[3] + xc^2 + yc^2)
-    list(xc = xc, yc = yc, radius = r)
-  }
-
-  subs = split(xyz, by = "cyl_ID",  keep.by = FALSE)
-  starts = qsm[, c(1:3, 7)]
-  ends = qsm[, c(4:6, 7)]
-  starts = split(starts, by = "cyl_ID",  keep.by = FALSE)
-  ends = split(ends, by = "cyl_ID",  keep.by = FALSE)
-
-  for (i in 1:nrow(qsm))
-  {
-    id = qsm$cyl_ID[i]
-
-    if (id < 1) next
-
-    id = as.character(id)
-
-    sub = subs[[id]]
-
-    if (is.null(sub)) next
-
-    if (nrow(sub) < 100) next
-
-    sub = as.matrix(sub)
-
-    start = as.numeric(starts[[id]])
-    end = as.numeric(ends[[id]])
-
-    if (FALSE)
-    {
-      rgl::points3d(sub)
-      rgl::segments3d(rbind(start, end), lwd = 3)
-    }
-
-    M = compute_rotation_matrix(start, end)
-    sub = sub %*% t(M)
-
-    if (nrow(sub) < 5) next
-
-    r = lidRtls:::ransac_circle(sub, num_iterations = 100, inlier_threshold = 0.02)
-
-    valid = is.valid.circle(r$radius, r$covered_arc_degree, r$percentage_inlier*100, r$percentage_inside*100)
-
-    if (plot & valid)
-    {
-      col = if(valid) "darkgreen" else "red"
-      title = paste0("ID = ",  i, " | arc = ", round(r$covered_arc_degree, 1),  " | inline = ", round(r$percentage_inlier*100), "% | R = ", round(r$radius, 2))
-      plot(sub, asp = 1, pch = 19, cex = 0.5, main = title)
-      points(r$center_x, r$center_y, pch = 4)
-      symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = col, inches = FALSE, lwd = 2)
-      symbols(r$center_x, r$center_y, circles = r$radius+0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
-      symbols(r$center_x, r$center_y, circles = r$radius-0.01, add = TRUE, fg = col, inches = FALSE, lty = 3, lwd = 2)
-    }
-
-    if (!valid)
-    {
-      r_rescue[i] = fit_circle_least_squares(sub)$radius
-    }
-    else
-    {
-      #plot(sub, asp = 1, pch = 19, cex = 0.5)
-      #symbols(r$center_x, r$center_y, circles = r$radius, add = TRUE, fg = "red", inches = FALSE)
-      r2[i] = r$radius
-    }
-
-    #rgl::points3d(sub)
-    #lidR::add_circle3d(c(0,0), xc, yc, r, mean(sub[,3]))
-  }
-
-  qsm[["radius"]] = r2
-  qsm[["rescue_radius"]] = r_rescue
-  qsm[["measure"]] = 0L
-  qsm[["measure"]][!is.na(r2)] = 1L
-  qsm$radius[qsm$subtree_length == 0] = 0
-
-  if (plot)
-  {
-    x = plot_qsm(qsm, cylinder = TRUE)
-    plot(tree, add = x, size = 2, pal = "brown")
-  }
-
-  # Maybe we have no bottom radius for this tree at all.
-  # In this case we will use the rescue radius (least square method)
-  # as replacement
-  main_axis = qsm[axis_ID == 1]
-  L = main_axis$subtree_length[1]
-  first_ten_percent = main_axis[main_axis$subtree_length > L*0.90]
-  if (all(is.na(first_ten_percent$radius)))
-  {
-    if (!all(is.na(first_ten_percent$rescue_radius)))
-    {
-      qsm$radius[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = first_ten_percent$rescue_radius
-      qsm$measure[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = 2L
-      first_ten_percent$radius = first_ten_percent$rescue_radius
-    }
-    else
-    {
-
-      idx = which(!is.na(main_axis$rescue_radius))
-
-      if (length(idx) == 0)  stop("Internal error: no measurement on the bottom of the tree.")
-
-      r0 = main_axis$rescue_radius[idx[1]]
-      first_ten_percent$radius = r0
-    }
-  }
-  qsm$rescue_radius = NULL
-
-  if (plot)
-  {
-    plot_qsm(qsm, cylinder = TRUE)
-    plot(tree, add = c(0,0), size = 2, pal = "brown")
-  }
-
-  # Interpolate NAs
-  for (id in unique(qsm$axis_ID))
-  {
-    axis = qsm[axis_ID == id]
-    idcyls = which(!is.na(axis$radius))
-    idnacyls = which(is.na(axis$radius))
-
-    if (length(idnacyls) == 0) next
-
-    if (length(idcyls) > 0)
-    {
-      nearest = sapply(idnacyls, function(x) idcyls[which.min(abs(idcyls - x))])
-
-      w0 = axis$subtree_length[nearest]
-      wi = axis$subtree_length[idnacyls]
-      radius = axis$radius[nearest]
-      s = (wi / w0)^power
-      r = s * radius + tip_radius
-      if (any(is.infinite(r))) stop("Internal error: infinite radius detected")
-      axis$radius[idnacyls] = r
-      qsm$radius[qsm$axis_ID == id] = axis$radius
-    }
-  }
-
-  if (plot)
-  {
-    x = plot_qsm(qsm, cylinder = TRUE)
-    plot(tree, add = x, size = 2, pal = "brown")
-  }
-
-  R0 = sort(first_ten_percent$radius, TRUE)
-  R0 = mean(R0[1:min(5, length(R0))])
-
-  # AdTree allometric model
-  qsm$radius_theorique = qsm_radius_adtree(qsm, tree, R0, tip_radius, power)$radius
-
-  is_nas = is.nan(qsm$radius) | is.na(qsm$radius)
-  qsm$radius[is_nas] = qsm$radius_theorique[is_nas]
-  qsm$radius = ifelse(qsm$radius > 2*qsm$radius_theorique, qsm$radius_theorique, qsm$radius)
-  qsm$radius_theorique = NULL
-
-  # Smooth everything
-  smooth_radius <- function(x, window = 3)
-  {
-    if (!is.numeric(x)) stop("x must be numeric")
-    if (length(x) < 3) return(x)
-    if (window %% 2 == 0) stop("window must be an odd number")
-
-    half <- floor(window / 2)
-    n <- length(x)
-
-    # Pad the vector at both ends
-    padded <- c(rep(x[1], half), x, rep(x[n], half))
-
-    # Compute smoothed values
-    result <- sapply(1:n, function(i) {
-      median(padded[i:(i + 2 * half)])
-    })
-
-    return(result)
-  }
-
-  for (id in unique(qsm$axis_ID))
-  {
-    axis = qsm[axis_ID == id]
-    R = smooth_radius(axis$radius, w = 5)
-    qsm$radius[qsm$axis_ID == id] = R
-  }
-
-  qsm = qsm_volume(qsm)
-
-  return(qsm)
+  x <- xy[,1]
+  y <- xy[,2]
+  xc = mean(x)
+  yc = mean(y)
+  median(sqrt((x-xc)^2+(y-yc)^2))
 }
+

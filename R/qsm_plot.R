@@ -46,7 +46,7 @@ plot_qsm = function(qsm, add = NULL, sides = 16, color = "cyl_ID", skeleton = TR
   if (color %in% names(qsm))
   {
     if (color == "branch_order") {
-      colattr = colattr + 1
+      colattr = colattr
     } else if (is.logical(colattr)) {
       colattr = colattr+1
     } else {
@@ -140,5 +140,5 @@ plot_qsm = function(qsm, add = NULL, sides = 16, color = "cyl_ID", skeleton = TR
 
   lidR:::.pan3d(2)
 
-  return(c(tx, ty))
+  return(invisible(c(tx, ty)))
 }

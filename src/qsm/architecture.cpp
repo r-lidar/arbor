@@ -1,141 +1,125 @@
-#include <Rcpp.h>
-#include <unordered_map>
 #include <vector>
-#include <algorithm>
+#include <string>
+#include <tuple>
+#include <stdexcept>
+
+#include "QSM.h"
+
+struct Result
+{
+  // in same order as input rows
+  std::vector<int> cyl_ID;
+  std::vector<double> subtree_length;
+  std::vector<double> subtree_max_endZ;
+  std::vector<int> axis_ID;
+  std::vector<int> branching_order;
+};
+
+Result compute_architecture(const std::vector<int>& cyl_ID,
+                            const std::vector<int>& parent_ID,
+                            const std::vector<double>& length,
+                            const std::vector<double>& startZ,
+                            const std::vector<double>& endZ,
+                            int root_id)
+{
+  if (cyl_ID.size() != parent_ID.size() ||
+      cyl_ID.size() != length.size() ||
+      cyl_ID.size() != startZ.size() ||
+      cyl_ID.size() != endZ.size())
+  {
+    throw std::invalid_argument("Input vectors must all have the same length");
+  }
+
+  QSM qsm;
+  qsm.build_from_vectors(cyl_ID, parent_ID, length, startZ, endZ);
+  qsm.compute_architecture(root_id);
+
+  // prepare result in input order
+  Result res;
+  size_t n = cyl_ID.size();
+  res.cyl_ID.resize(n);
+  res.subtree_length.resize(n);
+  res.subtree_max_endZ.resize(n);
+  res.axis_ID.resize(n);
+  res.branching_order.resize(n);
+
+  const auto& subtree_lengths = qsm.get_subtree_lengths();
+  const auto& subtree_max_z = qsm.get_subtree_max_z();
+  const auto& subtree_ids = qsm.get_subtree_ids();
+  const auto& branching_orders = qsm.get_branching_orders();
+
+  for (size_t i = 0; i < n; ++i)
+  {
+    int cid = cyl_ID[i];
+    res.cyl_ID[i] = cid;
+
+    if (subtree_lengths.count(cid))
+      res.subtree_length[i] = subtree_lengths.at(cid);
+    else
+      res.subtree_length[i] = 0.0;
+
+    if (subtree_max_z.count(cid))
+      res.subtree_max_endZ[i] = subtree_max_z.at(cid);
+    else
+      res.subtree_max_endZ[i] = endZ[i]; // fallback to own endZ
+
+    if (subtree_ids.count(cid))
+      res.axis_ID[i] = subtree_ids.at(cid);
+    else
+      res.axis_ID[i] = -1;
+
+    if (branching_orders.count(cid))
+      res.branching_order[i] = branching_orders.at(cid);
+    else
+      res.branching_order[i] = -1;
+  }
+
+  return res;
+}
+
+
+// Rcpp wrapper
+
+#include <Rcpp.h>
 
 using namespace Rcpp;
-using namespace std;
-
-// Recursive function to compute subtree lengths
-double compute_subtree_length(
-    int node_id,
-    const unordered_map<int, vector<int>> &children_map,
-    const unordered_map<int, double> &length_map,
-    unordered_map<int, double> &subtree_lengths
-)
-{
-  if (subtree_lengths.find(node_id) != subtree_lengths.end())
-    return subtree_lengths[node_id];
-
-  auto it = children_map.find(node_id);
-  if (it == children_map.end())
-  {
-    subtree_lengths[node_id] = 0.0;
-    return 0.0;
-  }
-
-  double max_length = 0.0;
-  for (int child_id : it->second)
-  {
-    double child_length = compute_subtree_length(child_id, children_map, length_map, subtree_lengths);
-    max_length = max(max_length, child_length + length_map.at(child_id));
-  }
-
-  subtree_lengths[node_id] = max_length;
-  return max_length;
-}
-
-// Recursive function to assign subtree IDs and branching orders
-void assign_subtree_ids(
-    int node_id,
-    int current_subtree_id,
-    int current_branching_order,
-    const unordered_map<int, vector<int>> &children_map,
-    const unordered_map<int, double> &length_map,
-    const unordered_map<int, double> &subtree_lengths,
-    unordered_map<int, int> &subtree_ids,
-    unordered_map<int, int> &branching_orders,
-    int &next_subtree_id
-)
-{
-  subtree_ids[node_id] = current_subtree_id;
-  branching_orders[node_id] = current_branching_order;
-
-  auto it = children_map.find(node_id);
-  if (it == children_map.end())
-    return;
-
-  // Identify the main child (on the longest path)
-  int main_child = -1;
-  double max_path = -1;
-
-  for (int child_id : it->second)
-  {
-    double path_length = subtree_lengths.at(child_id) + length_map.at(child_id);
-    if (path_length > max_path)
-    {
-      max_path = path_length;
-      main_child = child_id;
-    }
-  }
-
-  for (int child_id : it->second)
-  {
-    if (child_id == main_child)
-    {
-      assign_subtree_ids(
-        child_id, current_subtree_id, current_branching_order,
-        children_map, length_map, subtree_lengths,
-        subtree_ids, branching_orders, next_subtree_id
-      );
-    }
-    else
-    {
-      int new_subtree_id = next_subtree_id++;
-      assign_subtree_ids(
-        child_id, new_subtree_id, current_branching_order + 1,
-        children_map, length_map, subtree_lengths,
-        subtree_ids, branching_orders, next_subtree_id
-      );
-    }
-  }
-}
 
 DataFrame cpp_compute_architecture(DataFrame qsm, int root_id = 1)
 {
-  IntegerVector cyl_ID = qsm["cyl_ID"];
-  IntegerVector parent_ID = qsm["parent_ID"];
-  NumericVector length = qsm["length"];
-  int n = cyl_ID.size();
-
-  unordered_map<int, vector<int>> children_map;
-  unordered_map<int, double> length_map;
-
-  for (int i = 0; i < n; ++i)
+  if (!qsm.containsElementNamed("cyl_ID") || !qsm.containsElementNamed("parent_ID") ||
+      !qsm.containsElementNamed("length") || !qsm.containsElementNamed("startZ") ||
+      !qsm.containsElementNamed("endZ"))
   {
-    int cid = cyl_ID[i];
-    int pid = parent_ID[i];
-    children_map[pid].push_back(cid);
-    length_map[cid] = length[i];
+    stop("qsm must contain columns: cyl_ID, parent_ID, length, startZ, endZ");
   }
 
-  unordered_map<int, double> subtree_lengths;
-  compute_subtree_length(root_id, children_map, length_map, subtree_lengths);
+  IntegerVector cyl_ID_r     = qsm["cyl_ID"];
+  IntegerVector parent_ID_r  = qsm["parent_ID"];
+  NumericVector length_r     = qsm["length"];
+  NumericVector startZ_r     = qsm["startZ"];
+  NumericVector endZ_r       = qsm["endZ"];
 
-  unordered_map<int, int> subtree_ids;
-  unordered_map<int, int> branching_orders;
-  int next_subtree_id = 2;
-  assign_subtree_ids(
-    root_id, 1, 1,
-    children_map, length_map, subtree_lengths,
-    subtree_ids, branching_orders, next_subtree_id
-  );
+  std::vector<int> cyl_ID    = as<std::vector<int>>(cyl_ID_r);
+  std::vector<int> parent_ID = as<std::vector<int>>(parent_ID_r);
+  std::vector<double> length = as<std::vector<double>>(length_r);
+  std::vector<double> startZ = as<std::vector<double>>(startZ_r);
+  std::vector<double> endZ   = as<std::vector<double>>(endZ_r);
 
-  NumericVector lengths(n);
-  IntegerVector ids(n);
-  IntegerVector orders(n);
-  for (int i = 0; i < n; ++i)
+  Result res;
+  try
   {
-    int cid = cyl_ID[i];
-    lengths[i] = subtree_lengths.count(cid) ? subtree_lengths.at(cid) : 0.0;
-    ids[i] = subtree_ids.count(cid) ? subtree_ids.at(cid) : NA_INTEGER;
-    orders[i] = branching_orders.count(cid) ? branching_orders.at(cid) : NA_INTEGER;
+    res = compute_architecture(cyl_ID, parent_ID, length, startZ, endZ, root_id);
+  }
+  catch (std::exception &ex)
+  {
+    stop(ex.what());
   }
 
   return DataFrame::create(
-    Named("cyl_ID") = cyl_ID,
-    Named("subtree_length") = lengths,
-    Named("axis_ID") = ids,
-    Named("branching_order") = orders
+    Named("cyl_ID") = wrap(res.cyl_ID),
+    Named("subtree_length") = wrap(res.subtree_length),
+    Named("axis_ID") = wrap(res.axis_ID),
+    Named("branching_order") = wrap(res.branching_order)
   );
 }
+

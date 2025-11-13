@@ -16,7 +16,7 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
   data.table::setkey(main_axis, cyl_ID)
   data.table::setkey(xyz, cyl_ID)
 
-  #rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, lidR::pastel.colors(150)))
+  #rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, lidR::pastel.colors(200)))
 
   cylinder_id_queue <- main_axis$cyl_ID[main_axis$parent_ID == 0] # start from the root
   height = 0
@@ -62,3 +62,54 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
   cyl = rgl::cylinder3d(m, radius, closed = -1, sides = 16)
   rgl::shade3d(cyl)
 }
+
+measure_cylinder_radius = function(pc, qsm, id)
+{
+  axis = qsm[.(id)]
+  sub = as.matrix(pc[.(id), 1:3])
+
+  start = as.numeric(axis[,1:3])
+  end = as.numeric(axis[,4:6])
+
+  #rgl::points3d(sub, col = pc$cylID)
+  #rgl::segments3d(rbind(start, end), lwd = 3)
+
+  M = compute_rotation_matrix(start, end)
+  sub = sub %*% t(M)
+
+  cl = dbscan::dbscan(sub, eps = 0.05, minPts = 1)
+  ans = table(cl$cluster)
+  res = which.max(ans)
+  ids = as.numeric(names(res))
+  sub = sub[which(cl$cluster == ids),]
+  if (nrow(sub) > 3)
+  {
+    circle = ransac_circle(sub, num_iterations = 50, inlier_threshold = 0.02)
+    radius = circle$radius
+
+    if (FALSE)
+    {
+      plot(sub, asp = 1, main = paste("Arc =", circle$covered_arc_degree,  "Inlier =", round(circle$percentage_inlier*100), "R =", radius))
+      symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = "red")
+      symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
+      symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
+    }
+  }
+  else
+  {
+    circle = list(radius = 1000, covered_arc_degree = 0, percentage_inlier = 0)
+  }
+
+
+  if (circle$covered_arc_degree > 100 & circle$percentage_inlier*100 > 50)
+  {
+    return(radius)
+  }
+  else
+  {
+    return(NA)
+  }
+
+  return(radius)
+}
+
