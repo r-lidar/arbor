@@ -161,6 +161,28 @@ compute_rotation_matrix <- function(start, end)
   return(R)
 }
 
+shift = function(x, tx, ty, tz)
+{
+  if (methods::is(x, "LAS"))
+  {
+    x@data$X <- x@data$X-tx
+    x@data$Y <- x@data$Y-ty
+    x@data$Z <- x@data$Z-tz
+  }
+
+  if (is.data.frame(x))
+  {
+    x$startX  <- x$startX-tx
+    x$startY  <- x$startY-ty
+    x$startZ  <- x$startZ-tz
+    x$endX    <- x$endX-tx
+    x$endY    <- x$endY-ty
+    x$endZ    <- x$endZ-tz
+  }
+
+  return(x)
+}
+
 
 
 

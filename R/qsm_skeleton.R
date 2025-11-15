@@ -1,6 +1,15 @@
-qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = FALSE)
+qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
 {
-  pc = tree@data
+  data <- qsm_layers(tree, step)
+  data <- qsm_clusters(data, cl_dist)
+  skel <- qsm_nodes(data, max_d)
+  skel <- qsm_topology(skel)
+  return(skel)
+}
+
+qsm_layers = function(tree, D)
+{
+  cat("Computing layers...") ; ti = tic()
 
   if (step == "auto") {
     dz = diff(range(tree$Z))
@@ -10,36 +19,15 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = F
     D = step
   }
 
-  # =--------------------------------=
-  # Step 1. iteratively compute layers
-  # =--------------------------------=
-
-  cat("Computing layers...") ; ti = tic()
-  data = cpp_compute_layers(as.matrix(pc), D)
+  data = cpp_compute_layers(as.matrix(tree@data), D)
   data.table::setDT(data)
 
-  if (FALSE)
-  {
-    q = quantile(data$iter, probs = 0.95)
-    v = data$iter
-    #v[v>q] = q+1
-    col = lidR:::set.colors(v, lidR::random.colors(2500))
-    rgl::points3d(data, col = col)
-
-    col = lidR:::set.colors(v, lidR::height.colors(2500))
-    rgl::points3d(data, col = col)
-
-    v = data$dist
-    col = lidR:::set.colors(v, lidR::height.colors(250))
-    rgl::points3d(data, col = col)
-  }
-
   toc(ti)
+  return(data[])
+}
 
-  # =--------------------------------------------------------=
-  # Step 2. clustering non connected components in each layer
-  # =--------------------------------------------------------=
-
+qsm_clusters = function(data, cl_dist)
+{
   cat("Clustering layers...")  ; ti = tic()
 
   first = TRUE
@@ -114,12 +102,14 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = F
 
   toc(ti)
 
-  # =--------------------------=
-  # Step 3. Build the skeleton
-  # =--------------------------=
+  return(data[])
+}
 
-  cat("Building skeleton...")  ; ti = tic()
+qsm_nodes = function(data, max_d)
+{
+  cat("Building nodes...")  ; ti = tic()
   skel = cpp_build_skeleton(data, max_d)
+  data.table::setDT(skel)
 
   if (FALSE)
   {

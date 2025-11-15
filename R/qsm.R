@@ -13,53 +13,35 @@
 #' @export
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 {
-  t0 = tic()
-  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005; power = 1.1; pure_model = FALSE; verbose = FALSE
+  t0 <- tic() ; gc()
+  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005
 
+  j    <- which.min(tree$Z)
+  tx   <- tree$X[j]
+  ty   <- tree$Y[j]
+  tz   <- tree$Z[j]
+
+  tree <- shift(tree, tx, ty, tz)   # Move to origin for numerical stability
   tree <- filter_tree(tree)
+  tree <- clean_tree_butt(tree)
 
-  # Move to origin for numerical stability
-  j           <- which.min(tree$Z)
-  tx          <- tree$X[j]
-  ty          <- tree$Y[j]
-  tz          <- tree$Z[j]
-  tree@data$X <- tree@data$X-tx
-  tree@data$Y <- tree@data$Y-ty
-  tree@data$Z <- tree@data$Z-tz
+  qsm  <- qsm_skeleton(tree, step, cl_dist, max_d)
+  qsm  <- qsm_architecture(qsm)
+  qsm  <- qsm_detect_weird_butt(qsm)
 
-  tree <- qsm_clean_tree_butt(tree)
+  d    <- estimate_prolongation(tree, qsm)
 
-  qsm <- qsm_skeleton(tree, step, cl_dist, max_d, verbose)
-  qsm <- qsm_topology(qsm)
-  qsm <- qsm_architecture(qsm)
-  qsm <- qsm_detect_weird_butt(qsm)
-
-  # compute the prolongation length d
-  d = 0
-  if ("hag" %in% names(tree))
-  {
-    minZ <- min(qsm$startZ)
-    hag  <- tree$hag[tree$Z <= minZ]
-    d    <- max(hag)
-  }
-
-  qsm <- qsm_prolongation(qsm, d)
-  qsm <- qsm_radius(qsm, tree, R0, tip_radius = apex)
-  qsm <- qsm_volume(qsm)
-
-  qsm$startX  <- qsm$startX+tx
-  qsm$startY  <- qsm$startY+ty
-  qsm$startZ  <- qsm$startZ+tz
-  qsm$endX    <- qsm$endX+tx
-  qsm$endY    <- qsm$endY+ty
-  qsm$endZ    <- qsm$endZ+tz
+  qsm  <- qsm_prolongation(qsm, d)
+  qsm  <- qsm_radius(qsm, tree, R0, tip_radius = apex)
+  qsm  <- qsm_volume(qsm)
+  qsm  <- shift(qsm, -tx, -ty, -tz)
 
   toc(t0, space = "")
 
   return(qsm)
 }
 
-qsm_clean_tree_butt = function(tree)
+clean_tree_butt = function(tree)
 {
   cat("Cleaning tree butt...") ; ti = tic()
 
@@ -82,3 +64,16 @@ qsm_clean_tree_butt = function(tree)
   return(tree)
 }
 
+estimate_prolongation = function(tree, qsm)
+{
+  # compute the prolongation length d
+  d = 0
+  if ("hag" %in% names(tree))
+  {
+    minZ <- min(qsm$startZ)
+    hag  <- tree$hag[tree$Z <= minZ]
+    d    <- max(hag)
+  }
+
+  return(d)
+}
