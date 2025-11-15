@@ -38,13 +38,7 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1);
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
 
 // [[Rcpp::export]]
-Rcpp::DataFrame cpp_build_skeleton_old(Rcpp::DataFrame data, double max_d);
-
-// [[Rcpp::export]]
 Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
-
-// [[Rcpp::export]]
-Rcpp::DataFrame cpp_compute_topology(Rcpp::DataFrame skel);
 
 // [[Rcpp::export]]
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);

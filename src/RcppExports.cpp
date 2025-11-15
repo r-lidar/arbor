@@ -114,18 +114,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_build_skeleton_old
-Rcpp::DataFrame cpp_build_skeleton_old(Rcpp::DataFrame data, double max_d);
-RcppExport SEXP _arbor_cpp_build_skeleton_old(SEXP dataSEXP, SEXP max_dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton_old(data, max_d));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cpp_compute_layers
 Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
 RcppExport SEXP _arbor_cpp_compute_layers(SEXP coordsSEXP, SEXP DSEXP) {
@@ -135,17 +123,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
     Rcpp::traits::input_parameter< double >::type D(DSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_compute_layers(coords, D));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_compute_topology
-Rcpp::DataFrame cpp_compute_topology(Rcpp::DataFrame skel);
-RcppExport SEXP _arbor_cpp_compute_topology(SEXP skelSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type skel(skelSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_compute_topology(skel));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -184,9 +161,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
-    {"_arbor_cpp_build_skeleton_old", (DL_FUNC) &_arbor_cpp_build_skeleton_old, 2},
     {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},
-    {"_arbor_cpp_compute_topology", (DL_FUNC) &_arbor_cpp_compute_topology, 1},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_cpp_smooth_skeleton", (DL_FUNC) &_arbor_cpp_smooth_skeleton, 3},
     {NULL, NULL, 0}

@@ -33,16 +33,8 @@ cpp_build_skeleton <- function(data, max_d) {
     .Call(`_arbor_cpp_build_skeleton`, data, max_d)
 }
 
-cpp_build_skeleton_old <- function(data, max_d) {
-    .Call(`_arbor_cpp_build_skeleton_old`, data, max_d)
-}
-
 cpp_compute_layers <- function(coords, D) {
     .Call(`_arbor_cpp_compute_layers`, coords, D)
-}
-
-cpp_compute_topology <- function(skel) {
-    .Call(`_arbor_cpp_compute_topology`, skel)
 }
 
 qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
