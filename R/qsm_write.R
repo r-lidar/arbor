@@ -19,19 +19,6 @@
 #' qsm_write(qsm, "tree.ply")
 #' qsm_write(qsm, "tree.csv")
 #' }
-qsm_write = function(qsm, file)
-{
-  ext = tools::file_ext(file)
-  if (ext %in% c("ply"))
-    write_qsm_ply(qsm, file)
-  else if (ext %in% c("csv", "txt"))
-    write_qsm_table(qsm, file)
-  else
-    stop("format not supported")
-
-  return(invisible(TRUE))
-}
-
 #' @export
 qsm_write = function(qsm, file)
 {
