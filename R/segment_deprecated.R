@@ -801,5 +801,164 @@ find_seeds <- function(las, params)
   seeds
 }
 
+qsm_radius_hagenia = function(qsm, tree, R0, tip_radius = 0.005, power = 1.1)
+{
+  plot = FALSE
 
+  root = which(qsm$parent_ID == 0)
+  w0 = qsm[["subtree_length"]][root]
+  wi = qsm[["subtree_length"]]
+
+  # AdTree allometric model
+  s = (wi / w0)^power
+  s_min = min(s)
+  s_max = max(s)
+  r1 = tip_radius + (s - s_min) / (s_max - s_min) * (R0 - tip_radius)
+
+  # Actual measurement for each cylindre using RANSAC if it work or falling back
+  # to barycenter + average distance
+  centroid = list()
+  centroid$centroidX = (qsm$startX + qsm$endX)/2
+  centroid$centroidY = (qsm$startY + qsm$endY)/2
+  centroid$centroidZ = (qsm$startZ + qsm$endZ)/2
+  centroid = as.data.frame(centroid)
+  nearest = FNN::knnx.index(data = centroid, query = tree@data[,1:3], algorithm = "kd_tree", k = 1)
+
+  xyz = tree@data[, 1:3]
+  xyz$cyl_ID = qsm$cyl_ID[nearest]
+
+  if (plot)
+  {
+    plot_qsm(qsm, cylinder = FALSE)
+    rgl::points3d(centroid, size = 3)
+    rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, pal = lidR::random.colors(nrow(centroid))))
+  }
+
+  data.table::setkey(qsm, cyl_ID)
+  data.table::setkey(xyz, cyl_ID)
+
+  r2 = numeric(nrow(qsm))
+  ransac = logical(nrow(qsm))
+
+  for (i in 1:nrow(qsm))
+  {
+    id = qsm$cyl_ID[i]
+    axis = qsm[.(id)]
+    sub = as.matrix(xyz[.(id), 1:3])
+
+    start = as.numeric(axis[,1:3])
+    end = as.numeric(axis[,4:6])
+
+    #rgl::points3d(sub)
+    #rgl::segments3d(rbind(start, end), lwd = 3)
+
+    M = compute_rotation_matrix(start, end)
+    sub = sub %*% t(M)
+
+    if (nrow(sub) < 5) next
+
+    r = lidRtls:::ransac_circle(sub, num_iterations = 100)
+
+    if (r$covered_arc_degree < 100 | r$percentage_inlier*100 < 50 | r$percentage_inside > 25)
+    {
+      r2[i] = fit_circle_least_squares(sub[,1:2])$radius
+    }
+    else
+    {
+      r2[i] = r$radius
+      ransac[i] = TRUE
+    }
+
+    #rgl::points3d(sub)
+    #lidR::add_circle3d(c(0,0), xc, yc, r, mean(sub[,3]))
+  }
+
+  qsm[["radius"]] = r2
+  #qsm$ransac = ransac
+
+  if (plot)
+  {
+    plot_qsm(qsm, cylinder = TRUE)
+    rgl::points3d(centroid, size = 3)
+    rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, pal = lidR::random.colors(nrow(centroid))))
+  }
+
+  # Pass through each axis and find the location where measurement strat too be too small to be relevant
+  # replace subsequent radii by the allometric model
+  for (id in unique(qsm$axis_ID))
+  {
+    axis = qsm[axis_ID == id]
+    if (id == 1) next
+    i = which(axis$radius > 0.0 & axis$radius < 0.02)[1]
+    if (is.na(i)) next
+    w0 = axis$subtree_length[i]
+    wi = axis$subtree_length
+    s = (wi / w0)^power
+    r = s * 0.02 + tip_radius
+    r[1:i] = axis$radius[1:i]
+    axis$radius = r
+    qsm$radius[qsm$axis_ID == id] = r
+  }
+
+  # Replace irrelevant radii by the allometric model
+  qsm$radius = ifelse(qsm$radius > 0.01 & qsm$radius < r1, qsm$radius, r1)
+  qsm$radius = ifelse(qsm$radius > 1.5*r1, r1, qsm$radius)
+  qsm$radius = ifelse(is.na(qsm$radius), r1, qsm$radius)
+
+  # Smooth everything
+  smooth_radius <- function(x, window = 5, fun = median)
+  {
+    if (!is.numeric(x) || !is.vector(x)) stop("`x` must be a numeric vector.")
+    if (window %% 2 == 0 || window < 1)  stop("`window` must be a positive odd integer.")
+
+    n <- length(x)
+    half_w <- floor(window / 2)
+
+    # Constant padding: repeat first and last values
+    padded <- c(
+      rep(x[1], half_w),
+      x,
+      rep(x[n], half_w)
+    )
+
+    # Allocate result
+    result <- numeric(n)
+
+    # Slide the window
+    for (i in seq_len(n))
+    {
+      window_vals <- padded[(i-half_w):(i+half_w) + half_w]
+      result[i] <- median(window_vals)
+    }
+
+    return(result)
+  }
+
+  for (id in unique(qsm$axis_ID))
+  {
+    axis = qsm[axis_ID == id]
+    R = smooth_radius(axis$radius, fun = median)
+    qsm$radius[qsm$axis_ID == id] = R
+  }
+
+  for (id in unique(qsm$axis_ID))
+  {
+    axis = qsm[axis_ID == id]
+    R = smooth_radius(axis$radius, fun = mean)
+    qsm$radius[qsm$axis_ID == id] = R
+  }
+
+  qsm = qsm_volume(qsm)
+
+  return(qsm)
+}
+
+fit_circle_least_squares <- function(xy)
+{
+  x <- xy[,1]
+  y <- xy[,2]
+  xc = mean(x)
+  yc = mean(y)
+  median(sqrt((x-xc)^2+(y-yc)^2))
+}
 
