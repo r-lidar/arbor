@@ -21,6 +21,10 @@ find_closest_node <- function(graph_ptr, ids) {
     .Call(`_arbor_find_closest_node`, graph_ptr, ids)
 }
 
+qsm_topology_cpp <- function(qsm) {
+    .Call(`_arbor_qsm_topology_cpp`, qsm)
+}
+
 qsm_architecture_cpp <- function(qsm, root_id = 1L) {
     .Call(`_arbor_qsm_architecture_cpp`, qsm, root_id)
 }

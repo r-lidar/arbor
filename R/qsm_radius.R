@@ -17,7 +17,9 @@ qsm_radius_adtree = function(qsm, tree, R0, tip_radius = 0.0025, power = 1.1)
 
 qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
 {
-  cat("Measuring diameters\n") ; ti = tic()
+  cat("Measuring diameters...") ; ti = tic()
+
+  R0  <- find_root_radius(tree, qsm)
 
   # Compute a theorical tree (AdTree idea)
   root = which(qsm$parent_ID == 0)

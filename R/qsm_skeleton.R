@@ -1,17 +1,12 @@
-qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = FALSE)
+qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = FALSE)
 {
-  cat("Building skeleton\n") ; t0 = tic()
-
   pc = tree@data
 
-  if (step == "auto")
-  {
+  if (step == "auto") {
     dz = diff(range(tree$Z))
     D  = dz / 100
     D  = max(0.05, D)
-  }
-  else
-  {
+  } else {
     D = step
   }
 
@@ -19,7 +14,7 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
   # Step 1. iteratively compute layers
   # =--------------------------------=
 
-  cat("  Computing layers\n") ; ti = tic()
+  cat("Computing layers...") ; ti = tic()
   data = cpp_compute_layers(as.matrix(pc), D)
   data.table::setDT(data)
 
@@ -39,13 +34,13 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
     rgl::points3d(data, col = col)
   }
 
-  toc(ti, space =  "      ")
+  toc(ti)
 
   # =--------------------------------------------------------=
   # Step 2. clustering non connected components in each layer
   # =--------------------------------------------------------=
 
-  cat("  Clustering layers\n")  ; ti = tic()
+  cat("Clustering layers...")  ; ti = tic()
 
   first = TRUE
   for (i in sort(unique(data$iter)))
@@ -117,13 +112,13 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
     rgl::points3d(data$X, data$Y, data$Z, col = col)
   }
 
-  toc(ti, space =  "      ")
+  toc(ti)
 
   # =--------------------------=
   # Step 3. Build the skeleton
   # =--------------------------=
 
-  cat("  Building skeleton\n")  ; ti = tic()
+  cat("Building skeleton...")  ; ti = tic()
   skel = cpp_build_skeleton(data, max_d)
 
   if (FALSE)
@@ -133,60 +128,10 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
   }
 
   # segments length
-  skel = qsm_length(skel)
-  skel = skel[skel$length > 0,]
+  #skel = qsm_length(skel)
+  #skel = skel[skel$length > 0,]
 
-  # Build the coordinates matrix: start1, end1, start2, end2, ...
-  # coords <- matrix(t(cbind( skel[, c("startX", "startY", "startZ")],skel[, c("endX",   "endY",   "endZ")])), ncol = 3, byrow = TRUE)
-  # rgl::open3d()
-  # rgl::segments3d(coords, color = "blue", lwd = 2)
+  toc(ti)
 
-  toc(ti, space =  "      ")
-
-  # =------------------------=
-  # Step 4. compute qsm_topology
-  # =------------------------=
-
-  cat("  Computing qsm topology\n")  ; ti = tic()
-
-  skel = qsm_topology(skel)
-
-  if (FALSE)
-  {
-    x = plot_qsm(skel, cylinder = FALSE)
-    passage = filter_poi(tree, passage > 0)
-    plot(passage, add = x, size = 3)
-  }
-
-  # No root is a bug
-  if (sum(skel$parent_ID == 0) == 0)
-    stop("Internal error: no root found")
-
-  # Two roots are rare but possible if forking at root
-  if (sum(skel$parent_ID == 0) > 1)
-  {
-    xyz = skel[which(skel$parent_ID == 0)[1],]
-    xyz$endX = xyz$startX
-    xyz$endY = xyz$startY
-    xyz$endZ = xyz$startZ
-    xyz$startZ = xyz$startZ - 0.001
-    skel = rbind(xyz, skel)
-    skel = qsm_topology(skel)
-  }
-
-  qsm = data.table::data.table(
-    startX = skel$startX,
-    startY = skel$startY,
-    startZ = skel$startZ,
-    endX = skel$endX,
-    endY = skel$endY,
-    endZ = skel$endZ,
-    cyl_ID = skel$cyl_ID,
-    parent_ID = skel$parent_ID
-  )
-
-  toc(ti, space =  "      ")
-  toc(t0)
-
-  return(qsm)
+  return(skel)
 }

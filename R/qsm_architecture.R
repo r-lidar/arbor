@@ -1,6 +1,6 @@
-qsm_architecture <- function(qsm, node_id = 0)
+qsm_architecture <- function(qsm)
 {
-  cat("Building architecture\n") ; ti = tic()
+  cat("Building architecture...") ; ti = tic()
 
   qsm <- qsm_architecture_cpp(qsm)
   qsm <- qsm_smooth(qsm, niter = 1)

@@ -54,4 +54,51 @@ inline QSM as_qsm(Rcpp::DataFrame df)
   return qsm;
 }
 
+// Convert QSM to Rcpp DataFrame
+inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
+{
+  const auto& cyl_map = qsm.cylinders();
+  int n = cyl_map.size();
+
+  Rcpp::IntegerVector cid(n);
+  Rcpp::IntegerVector pid(n);
+  Rcpp::NumericVector sx(n), sy(n), sz(n);
+  Rcpp::NumericVector ex(n), ey(n), ez(n);
+  Rcpp::NumericVector radius(n);
+  Rcpp::NumericVector subtree_length(n);
+  Rcpp::IntegerVector axis_id(n), branch_order(n);
+
+  for (const auto& [i, c] : cyl_map)
+  {
+    cid[i]            = c.cyl_ID;
+    pid[i]            = c.parent_ID;
+    sx[i]             = c.startX;
+    sy[i]             = c.startY;
+    sz[i]             = c.startZ;
+    ex[i]             = c.endX;
+    ey[i]             = c.endY;
+    ez[i]             = c.endZ;
+    radius[i]         = c.radius;
+    subtree_length[i] = c.subtree_length;
+    axis_id[i]        = c.axis_ID;
+    branch_order[i]   = c.branch_order;
+  }
+
+  return Rcpp::DataFrame::create(
+    Rcpp::Named("cyl_ID") = cid,
+    Rcpp::Named("parent_ID") = pid,
+    Rcpp::Named("startX") = sx,
+    Rcpp::Named("startY") = sy,
+    Rcpp::Named("startZ") = sz,
+    Rcpp::Named("endX") = ex,
+    Rcpp::Named("endY") = ey,
+    Rcpp::Named("endZ") = ez,
+    Rcpp::Named("radius") = radius,
+    Rcpp::Named("subtree_length") = subtree_length,
+    Rcpp::Named("axis_ID") = axis_id,
+    Rcpp::Named("branch_order") = branch_order,
+    Rcpp::Named("stringsAsFactors") = false
+  );
+}
+
 #endif

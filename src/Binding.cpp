@@ -29,6 +29,9 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 // ========================
 
 // [[Rcpp::export]]
+Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
+
+// [[Rcpp::export]]
 Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1);
 
 // [[Rcpp::export]]

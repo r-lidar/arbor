@@ -47,10 +47,20 @@ public:
   QSM() = default;
 
   void build_from_cylinders(const std::vector<QSMcylinder>& cylinders);
+
+  void compute_topology();
   void compute_architecture(int root_id = 1);
 
   const auto& cylinders() const { return cylinders_; }
   const auto& children_map() const { return children_map_; }
+
+  size_t size() const { return cylinders_.size(); }
+
+  // Range-based for loop supports
+  auto begin() { return cylinders_.begin(); }
+  auto end() { return cylinders_.end(); }
+  auto begin() const { return cylinders_.begin(); }
+  auto end() const { return cylinders_.end(); }
 
 private:
   std::unordered_map<int, QSMcylinder> cylinders_;                 // cyl_ID -> cylinder

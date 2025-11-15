@@ -4,6 +4,33 @@
 #include <cmath>
 #include <limits>
 
+struct CoordKey
+{
+  int x, y, z;
+  bool operator==(const CoordKey& other) const noexcept { return x == other.x && y == other.y && z == other.z; }
+};
+
+struct CoordKeyHash
+{
+  std::size_t operator()(const CoordKey& k) const noexcept
+  {
+    std::size_t h1 = std::hash<int>{}(k.x);
+    std::size_t h2 = std::hash<int>{}(k.y);
+    std::size_t h3 = std::hash<int>{}(k.z);
+    return h1 ^ (h2 << 1) ^ (h3 << 2);
+  }
+};
+
+inline CoordKey make_coord_key(double x, double y, double z, int digits = 6)
+{
+  double factor = std::pow(10.0, digits);
+  return CoordKey{
+    static_cast<int>(std::llround(x * factor)),
+    static_cast<int>(std::llround(y * factor)),
+    static_cast<int>(std::llround(z * factor))
+  };
+}
+
 void QSM::build_from_cylinders(const std::vector<QSMcylinder>& input)
 {
   cylinders_.clear();
@@ -21,6 +48,56 @@ void QSM::build_from_cylinders(const std::vector<QSMcylinder>& input)
     if (!children_map_.count(c.cyl_ID))
       children_map_[c.cyl_ID] = {};
   }
+}
+
+void QSM::compute_topology()
+{
+  children_map_.clear();
+
+  // Build lookup: end_key -> cyl_ID
+  std::unordered_map<CoordKey, int, CoordKeyHash> end_lookup;
+  end_lookup.reserve(cylinders_.size());
+
+  for (auto& [cid, cyl] : cylinders_)
+  {
+    CoordKey key = make_coord_key(cyl.endX, cyl.endY, cyl.endZ);
+    end_lookup.emplace(key, cid);
+  }
+
+  // Now assign parent_ID by matching start_key to end_key
+  for (auto& [cid, cyl] : cylinders_)
+  {
+    CoordKey start_key = make_coord_key(cyl.startX, cyl.startY, cyl.startZ);
+
+    auto it = end_lookup.find(start_key);
+    if (it != end_lookup.end())
+    {
+      cyl.parent_ID = it->second;
+      children_map_[it->second].push_back(cid);
+    }
+    else
+    {
+      cyl.parent_ID = 0;  // no parent → root
+    }
+  }
+}
+
+void QSM::compute_architecture(int root_id)
+{
+  // initialize caches inside cylinders
+  for (auto& kv : cylinders_)
+  {
+    kv.second.subtree_length    = SUBTREE_LENGTH_UNSET;
+    kv.second.subtree_max_endZ  = SUBTREE_MAXZ_UNSET;
+    kv.second.axis_ID           = 0;
+    kv.second.branch_order      = 0;
+  }
+
+  compute_subtree_length(root_id);
+  compute_subtree_max_z(root_id);
+
+  int next_axis_id = 2;
+  assign_subtree_ids(root_id, 1, 1, next_axis_id);
 }
 
 double QSM::compute_subtree_length(int node_id)
@@ -111,22 +188,4 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
       assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id);
     }
   }
-}
-
-void QSM::compute_architecture(int root_id)
-{
-  // initialize caches inside cylinders
-  for (auto& kv : cylinders_)
-  {
-    kv.second.subtree_length    = SUBTREE_LENGTH_UNSET;
-    kv.second.subtree_max_endZ  = SUBTREE_MAXZ_UNSET;
-    kv.second.axis_ID           = 0;
-    kv.second.branch_order      = 0;
-  }
-
-  compute_subtree_length(root_id);
-  compute_subtree_max_z(root_id);
-
-  int next_axis_id = 2;
-  assign_subtree_ids(root_id, 1, 1, next_axis_id);
 }
