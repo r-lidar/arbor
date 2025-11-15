@@ -21,8 +21,8 @@ find_closest_node <- function(graph_ptr, ids) {
     .Call(`_arbor_find_closest_node`, graph_ptr, ids)
 }
 
-cpp_compute_architecture <- function(qsm, root_id = 1L) {
-    .Call(`_arbor_cpp_compute_architecture`, qsm, root_id)
+qsm_architecture_cpp <- function(qsm, root_id = 1L) {
+    .Call(`_arbor_qsm_architecture_cpp`, qsm, root_id)
 }
 
 cpp_build_skeleton <- function(data, max_d) {

@@ -1,5 +1,7 @@
 qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbose = FALSE)
 {
+  cat("Building skeleton\n") ; t0 = tic()
+
   pc = tree@data
 
   if (step == "auto")
@@ -145,7 +147,7 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
   # Step 4. compute qsm_topology
   # =------------------------=
 
-  cat("  Computing qsm_topology\n")  ; ti = tic()
+  cat("  Computing qsm topology\n")  ; ti = tic()
 
   skel = qsm_topology(skel)
 
@@ -184,6 +186,7 @@ qsm_build_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3, verbo
   )
 
   toc(ti, space =  "      ")
+  toc(t0)
 
   return(qsm)
 }

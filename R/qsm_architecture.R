@@ -1,10 +1,13 @@
 qsm_architecture <- function(qsm, node_id = 0)
 {
-  tmp = qsm_length(qsm)
-  ans = cpp_compute_architecture(tmp)
-  qsm$axis_ID = ans$axis_ID
-  qsm$cyl_length = tmp$length
-  qsm$subtree_length = ans$subtree_length
-  qsm$branch_order = ans$branching_order
+  cat("Building architecture\n") ; ti = tic()
+
+  qsm <- qsm_architecture_cpp(qsm)
+  qsm <- qsm_smooth(qsm, niter = 1)
+  qsm <- qsm_architecture_cpp(qsm)
+  data.table::setDT(qsm)
+
+  toc(ti)
+
   return(qsm)
 }

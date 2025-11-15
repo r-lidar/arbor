@@ -27,25 +27,13 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
   tree@data$Y <- tree@data$Y-ty
   tree@data$Z <- tree@data$Z-tz
 
-  cat("Cleaning tree butt\n") ; ti = tic()
-
   tree <- qsm_clean_tree_butt(tree)
 
-  toc(ti) ; cat("Building skeleton\n") ; ti = tic()
-
   qsm <- qsm_build_skeleton(tree, step, cl_dist, max_d, verbose)
-
-  toc(ti) ; cat("Building architecture\n")  ; ti = tic()
-
   qsm <- qsm_architecture(qsm)
-  qsm <- qsm_smooth(qsm, niter = 1)
-  qsm <- qsm_architecture(qsm)
-
-  toc(ti) ; cat("Validating butt architecture \n")  ; ti = tic()
-
   qsm <- qsm_detect_weird_butt(qsm)
 
-  # compute the prolongation d
+  # compute the prolongation length d
   d = 0
   if ("hag" %in% names(tree))
   {
@@ -54,13 +42,10 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
     d    <- max(hag)
   }
 
-  toc(ti) ; cat("Measuring diameters\n") ; ti = tic()
-
   R0  <- find_root_radius(tree, qsm)
   qsm <- qsm_prolongation(qsm, d)
   qsm <- qsm_radius(qsm, tree, R0, tip_radius = apex)
-
-  toc(ti)
+  qsm <- qsm_volume(qsm)
 
   qsm$startX  <- qsm$startX+tx
   qsm$startY  <- qsm$startY+ty
@@ -76,6 +61,8 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 
 qsm_clean_tree_butt = function(tree)
 {
+  cat("Cleaning tree butt\n") ; ti = tic()
+
   tree@data$pointID <- 1:lidR::npoints(tree)
   bottom <- tree[tree$Z < 0.25]
   bottom <- lidR::connected_components(bottom, 0.05, 10, connectivity = 26)
@@ -84,11 +71,13 @@ qsm_clean_tree_butt = function(tree)
   {
     cat("\033[33m  Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.\033[0m\n")
 
-    t <-table(bottom$clusterID)
+    t <- table(bottom$clusterID)
     i <- as.numeric(names(which.max(t)))
     r <- bottom$pointID[bottom$clusterID != i]
     tree <- tree[-r]
   }
+
+  toc(ti)
 
   return(tree)
 }
@@ -122,6 +111,8 @@ qsm_remove_disconnected_branches <- function(dt)
 
 qsm_detect_weird_butt = function(qsm)
 {
+  cat("Validating butt architecture \n")  ; ti = tic()
+
   qsm$angle <- with(qsm,{
     dx <- endX - startX
     dy <- endY - startY
@@ -151,6 +142,8 @@ qsm_detect_weird_butt = function(qsm)
     j <- which(qsm$axis_ID == 1)[1]
     qsm[j, parent_ID := 0]
   }
+
+  toc(ti)
 
   return(qsm)
 }

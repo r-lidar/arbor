@@ -1,156 +1,132 @@
 #include "QSM.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-// small epsilon for z comparisons
-static constexpr double Z_EPS = 1e-9;
-
-void QSM::build_from_vectors(const std::vector<int>& cyl_ID,
-                             const std::vector<int>& parent_ID,
-                             const std::vector<double>& length,
-                             const std::vector<double>& startZ,
-                             const std::vector<double>& endZ)
+void QSM::build_from_cylinders(const std::vector<QSMcylinder>& input)
 {
+  cylinders_.clear();
   children_map_.clear();
-  length_map_.clear();
-  startz_map_.clear();
-  endz_map_.clear();
 
-  size_t n = cyl_ID.size();
-  for (size_t i = 0; i < n; ++i)
+  // Insert cylinders and build children links
+  for (const auto& c : input)
   {
-    int cid = cyl_ID[i];
-    int pid = parent_ID[i];
+    cylinders_[c.cyl_ID] = c;
 
-    // note: allow multiple children, parent may be 0 or -1 if root's parent
-    children_map_[pid].push_back(cid);
+    // Ensure parent exists in the child map
+    children_map_[c.parent_ID].push_back(c.cyl_ID);
 
-    // ensure node exists in children map (so leaf nodes have entry only if referenced)
-    if (children_map_.find(cid) == children_map_.end())
-      children_map_.emplace(cid, std::vector<int>());
-
-    length_map_[cid] = length[i];
-    startz_map_[cid] = startZ[i];
-    endz_map_[cid] = endZ[i];
+    // Ensure the child also has a children entry even if empty
+    if (!children_map_.count(c.cyl_ID))
+      children_map_[c.cyl_ID] = {};
   }
 }
 
-double QSM::compute_subtree_length(NodeId node_id)
+double QSM::compute_subtree_length(int node_id)
 {
-  auto itCached = subtree_lengths_.find(node_id);
-  if (itCached != subtree_lengths_.end())
-    return itCached->second;
+  auto& node = cylinders_[node_id];
 
-  auto it = children_map_.find(node_id);
-  if (it == children_map_.end() || it->second.empty())
+  // Cache hit?
+  if (node.subtree_length >= 0)
+    return node.subtree_length;
+
+  const auto& kids = children_map_[node_id];
+  if (kids.empty())
   {
-    subtree_lengths_[node_id] = 0.0;
+    node.subtree_length = 0.0;
     return 0.0;
   }
 
-  double max_length = 0.0;
-  for (NodeId child_id : it->second)
+  double max_len = 0.0;
+  for (int child_id : kids)
   {
-    double child_length = compute_subtree_length(child_id);
-    // length_map_ contains child own length (length of the cylinder from child)
-    double candidate = child_length + (length_map_.count(child_id) ? length_map_.at(child_id) : 0.0);
-    if (candidate > max_length)
-      max_length = candidate;
+    auto& child = cylinders_[child_id];
+    double candidate = compute_subtree_length(child_id) + child.length();
+    max_len = std::max(max_len, candidate);
   }
 
-  subtree_lengths_[node_id] = max_length;
-  return max_length;
+  node.subtree_length = max_len;
+  return max_len;
 }
 
-double QSM::compute_subtree_max_z(NodeId node_id)
+double QSM::compute_subtree_max_z(int node_id)
 {
-  auto itCached = subtree_max_z_.find(node_id);
-  if (itCached != subtree_max_z_.end())
-    return itCached->second;
+  auto& node = cylinders_[node_id];
 
-  // start with this node's own endZ (it may be a tip)
-  double my_max_z = std::numeric_limits<double>::lowest();
-  if (endz_map_.count(node_id))
-    my_max_z = endz_map_.at(node_id);
-  else
-    my_max_z = std::numeric_limits<double>::lowest();
+  // Cache hit?
+  if (node.subtree_max_endZ > SUBTREE_MAXZ_UNSET)
+    return node.subtree_max_endZ;
 
-  auto it = children_map_.find(node_id);
-  if (it != children_map_.end())
+  double maxz = node.endZ;
+
+  for (int child_id : children_map_[node_id])
   {
-    for (NodeId child_id : it->second)
-    {
-      double child_max_z = compute_subtree_max_z(child_id);
-      if (child_max_z > my_max_z)
-        my_max_z = child_max_z;
-    }
+    double child_maxz = compute_subtree_max_z(child_id);
+    maxz = std::max(maxz, child_maxz);
   }
 
-  subtree_max_z_[node_id] = my_max_z;
-  return my_max_z;
+  node.subtree_max_endZ = maxz;
+  return maxz;
 }
 
-void QSM::assign_subtree_ids(NodeId node_id, int current_subtree_id, int current_branching_order, int &next_subtree_id)
+void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id)
 {
-  subtree_ids_[node_id] = current_subtree_id;
-  branching_orders_[node_id] = current_branching_order;
+  auto& node = cylinders_[node_id];
+  node.axis_ID = current_axis_id;
+  node.branch_order = current_branch_order;
 
-  auto it = children_map_.find(node_id);
-  if (it == children_map_.end() || it->second.empty())
-    return;
+  const auto& kids = children_map_[node_id];
+  if (kids.empty()) return;
 
-  // choose main child by subtree_max_z (highest tip). tie-breaker: subtree length + length(child)
-  NodeId main_child = -1;
-  double best_max_z = -std::numeric_limits<double>::infinity();
-  double best_secondary = -std::numeric_limits<double>::infinity();
+  // Select main child: highest endZ, then longest subtree
+  int main_child = -1;
+  double bestZ = -1e300;
+  double bestSecondary = -1e300;
 
-  for (NodeId child_id : it->second)
+  for (int child_id : kids)
   {
-    double child_max_z = subtree_max_z_.count(child_id) ? subtree_max_z_.at(child_id)
-      : (endz_map_.count(child_id) ? endz_map_.at(child_id) : -std::numeric_limits<double>::infinity());
-    double secondary = 0.0;
-    if (subtree_lengths_.count(child_id))
-      secondary = subtree_lengths_.at(child_id) + (length_map_.count(child_id) ? length_map_.at(child_id) : 0.0);
+    auto& child = cylinders_[child_id];
 
-    if ( (child_max_z > best_max_z + Z_EPS) ||
-         (std::fabs(child_max_z - best_max_z) <= Z_EPS && secondary > best_secondary) )
+    double z = child.subtree_max_endZ;
+    double secondary = child.subtree_length + child.length();
+
+    if (z > bestZ + Z_EPS || (std::abs(z - bestZ) <= Z_EPS && secondary > bestSecondary))
     {
-      best_max_z = child_max_z;
-      best_secondary = secondary;
       main_child = child_id;
+      bestZ = z;
+      bestSecondary = secondary;
     }
   }
 
-  for (NodeId child_id : it->second)
+  for (int child_id : kids)
   {
     if (child_id == main_child)
     {
-      assign_subtree_ids(child_id, current_subtree_id, current_branching_order, next_subtree_id);
+      assign_subtree_ids(child_id, current_axis_id, current_branch_order, next_axis_id);
     }
     else
     {
-      int new_subtree_id = next_subtree_id++;
-      assign_subtree_ids(child_id, new_subtree_id, current_branching_order + 1, next_subtree_id);
+      int new_id = next_axis_id++;
+      assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id);
     }
   }
 }
 
-void QSM::compute_architecture(NodeId root_id)
+void QSM::compute_architecture(int root_id)
 {
-  // clear previous results
-  subtree_lengths_.clear();
-  subtree_max_z_.clear();
-  subtree_ids_.clear();
-  branching_orders_.clear();
+  // initialize caches inside cylinders
+  for (auto& kv : cylinders_)
+  {
+    kv.second.subtree_length    = SUBTREE_LENGTH_UNSET;
+    kv.second.subtree_max_endZ  = SUBTREE_MAXZ_UNSET;
+    kv.second.axis_ID           = 0;
+    kv.second.branch_order      = 0;
+  }
 
-  // compute subtree lengths starting from root (post-order recursion)
   compute_subtree_length(root_id);
-
-  // compute subtree max z
   compute_subtree_max_z(root_id);
 
-  // assign subtree ids, starting with axis id 1 and branching order 1
-  int next_subtree_id = 2;
-  assign_subtree_ids(root_id, 1, 1, next_subtree_id);
+  int next_axis_id = 2;
+  assign_subtree_ids(root_id, 1, 1, next_axis_id);
 }

@@ -17,6 +17,8 @@ qsm_radius_adtree = function(qsm, tree, R0, tip_radius = 0.0025, power = 1.1)
 
 qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
 {
+  cat("Measuring diameters\n") ; ti = tic()
+
   # Compute a theorical tree (AdTree idea)
   root = which(qsm$parent_ID == 0)
   w0 = qsm[["subtree_length"]][root]
@@ -290,7 +292,8 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
   }
 
   qsm$theoric_radius = NULL
-  qsm = qsm_volume(qsm)
+
+  toc(ti)
 
   return(qsm)
 }

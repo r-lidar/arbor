@@ -79,15 +79,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_compute_architecture
-Rcpp::DataFrame cpp_compute_architecture(Rcpp::DataFrame qsm, int root_id);
-RcppExport SEXP _arbor_cpp_compute_architecture(SEXP qsmSEXP, SEXP root_idSEXP) {
+// qsm_architecture_cpp
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id);
+RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP root_idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
     Rcpp::traits::input_parameter< int >::type root_id(root_idSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_compute_architecture(qsm, root_id));
+    rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, root_id));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -170,7 +170,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
-    {"_arbor_cpp_compute_architecture", (DL_FUNC) &_arbor_cpp_compute_architecture, 2},
+    {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_cpp_build_skeleton_old", (DL_FUNC) &_arbor_cpp_build_skeleton_old, 2},
     {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},

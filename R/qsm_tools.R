@@ -119,16 +119,6 @@ qsm_distance_to_root = function(qsm)
   return(qsm)
 }
 
-
-qsm_length = function(qsm)
-{
-  dx = qsm$startX - qsm$endX
-  dy = qsm$startY - qsm$endY
-  dz = qsm$startZ - qsm$endZ
-  qsm$length = sqrt(dx^2 + dy^2 + dz^2)
-  qsm
-}
-
 filter_tree = function(tree)
 {
   attributes = names(tree)
