@@ -68,6 +68,8 @@ measure_cylinder_radius = function(pc, qsm, id)
   axis = qsm[cyl_ID == id]
   sub = as.matrix(pc[cyl_ID == id, 1:3])
 
+  if (nrow(sub) <= 3) return(NA)
+
   start = as.numeric(axis[,1:3])
   end = as.numeric(axis[,4:6])
 
@@ -82,22 +84,16 @@ measure_cylinder_radius = function(pc, qsm, id)
   res = which.max(ans)
   ids = as.numeric(names(res))
   sub = sub[which(cl$cluster == ids), ,drop = FALSE]
-  if (nrow(sub) > 3)
-  {
-    circle = ransac_circle(sub, num_iterations = 400, inlier_threshold = 0.02)
-    radius = circle$radius
 
-    if (FALSE)
-    {
-      plot(sub, asp = 1, main = paste("Arc =", circle$covered_arc_degree,  "Inlier =", round(circle$percentage_inlier*100), "R =", round(radius,2)))
-      symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = "red")
-      symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
-      symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
-    }
-  }
-  else
+  circle = ransac_circle(sub, num_iterations = 400, inlier_threshold = 0.02)
+  radius = circle$radius
+
+  if (FALSE)
   {
-    circle = list(radius = 1000, covered_arc_degree = 0, percentage_inlier = 0)
+    plot(sub, asp = 1, main = paste("Arc =", circle$covered_arc_degree,  "Inlier =", round(circle$percentage_inlier*100), "R =", round(radius,2)))
+    symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = "red")
+    symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
+    symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
   }
 
 
