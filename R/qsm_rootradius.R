@@ -16,12 +16,12 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
   qsm = qsm[cyl_ID > 0]
   xyz = xyz[cyl_ID > 0]
 
+  main_axis = qsm[axis_ID == 1]
+
   data.table::setkey(main_axis, cyl_ID)
   data.table::setkey(xyz, cyl_ID)
 
   #rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, lidR::pastel.colors(200)))
-
-  main_axis = qsm[axis_ID == 1]
   cylinder_id_queue <- main_axis$cyl_ID[main_axis$parent_ID == 0] # start from the root
   height = 0
   radii = c()
