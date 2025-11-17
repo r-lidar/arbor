@@ -24,7 +24,7 @@ qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
     return(qsm)
   }
 
-  qsm <- qsm_reconstruction(qsm)
+  qsm <- qsm_reconstruction(qsm, tip_radius)
 
   qsm$theoric_radius = NULL
 
@@ -207,7 +207,7 @@ qsm_polynomial_fitting = function(qsm, tip_radius)
   return(qsm[])
 }
 
-qsm_reconstruction = function(qsm)
+qsm_reconstruction = function(qsm, tip_radius)
 {
   # We have some cylinder measured and interpolated. A large portion of the tree is missing.
   # We loop on each axes by branch order. If we have some NAs we compare to the theory.

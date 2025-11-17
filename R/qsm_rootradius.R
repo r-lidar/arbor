@@ -1,23 +1,26 @@
 find_root_radius = function(tree, qsm, verbose = FALSE)
 {
-  main_axis = qsm[qsm$axis_ID == 1,]
   xyz = tree@data[,1:3]
   zoffset = min(tree$Z)
 
   centroid = list()
-  centroid$centroidX = (main_axis$startX + main_axis$endX)/2
-  centroid$centroidY = (main_axis$startY + main_axis$endY)/2
-  centroid$centroidZ = (main_axis$startZ + main_axis$endZ)/2
+  centroid$centroidX = (qsm$startX + qsm$endX)/2
+  centroid$centroidY = (qsm$startY + qsm$endY)/2
+  centroid$centroidZ = (qsm$startZ + qsm$endZ)/2
   centroid = as.data.frame(centroid)
   nearest = FNN::knnx.index(data = centroid, query = xyz, algorithm = "kd_tree", k = 1)
 
-  xyz$cyl_ID = main_axis$cyl_ID[nearest]
+  xyz$cyl_ID = qsm$cyl_ID[nearest]
+
+  qsm = qsm[cyl_ID > 0]
+  xyz = xyz[cyl_ID > 0]
 
   data.table::setkey(main_axis, cyl_ID)
   data.table::setkey(xyz, cyl_ID)
 
   #rgl::points3d(xyz, col = lidR:::set.colors(xyz$cyl_ID, lidR::pastel.colors(200)))
 
+  main_axis = qsm[axis_ID == 1]
   cylinder_id_queue <- main_axis$cyl_ID[main_axis$parent_ID == 0] # start from the root
   height = 0
   radii = c()
@@ -27,16 +30,10 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
     currentID <- cylinder_id_queue[[1]]
     currentIndex <- which(main_axis$cyl_ID == currentID)
 
-    parentID <- main_axis$parent_ID[currentIndex]
-    if (parentID != 0)
-      parentIndex <- which(main_axis$cyl_ID == parentID)
-
     height = main_axis$startZ[currentIndex] - zoffset
 
-    # Enqueue all children of the current node
-    childIDs <- main_axis$cyl_ID[main_axis$parent_ID == currentID]
+    childIDs <- main_axis[parent_ID == currentID]$cyl_ID
     cylinder_id_queue <- c(cylinder_id_queue[-1], as.list(childIDs))
-    cylinder_id_queue <- Filter(function(x) x > 0L, cylinder_id_queue)
 
     radius = measure_cylinder_radius(xyz, main_axis, currentID)
     if (!is.na(radius))
@@ -48,7 +45,7 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
   if (length(radii) == 0)
     stop("Failure: unable to measure a diameter")
 
-  radius = quantile(radii, probs = 0.90)
+  radius = median(radii)
 
   if (verbose) cat("Root radius =", radius, '\n')
 
@@ -65,8 +62,8 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
 
 measure_cylinder_radius = function(pc, qsm, id)
 {
-  axis = qsm[.(id)]
-  sub = as.matrix(pc[.(id), 1:3])
+  axis = qsm[cyl_ID == id]
+  sub = as.matrix(pc[cyl_ID == id, 1:3])
 
   start = as.numeric(axis[,1:3])
   end = as.numeric(axis[,4:6])
@@ -84,12 +81,12 @@ measure_cylinder_radius = function(pc, qsm, id)
   sub = sub[which(cl$cluster == ids),]
   if (nrow(sub) > 3)
   {
-    circle = ransac_circle(sub, num_iterations = 50, inlier_threshold = 0.02)
+    circle = ransac_circle(sub, num_iterations = 400, inlier_threshold = 0.02)
     radius = circle$radius
 
     if (FALSE)
     {
-      plot(sub, asp = 1, main = paste("Arc =", circle$covered_arc_degree,  "Inlier =", round(circle$percentage_inlier*100), "R =", radius))
+      plot(sub, asp = 1, main = paste("Arc =", circle$covered_arc_degree,  "Inlier =", round(circle$percentage_inlier*100), "R =", round(radius,2)))
       symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = "red")
       symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
       symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, lty = 3, inches = FALSE, add = TRUE, fg = "red")
@@ -101,7 +98,7 @@ measure_cylinder_radius = function(pc, qsm, id)
   }
 
 
-  if (circle$covered_arc_degree > 100 & circle$percentage_inlier*100 > 50)
+  if ((circle$covered_arc_degree > 100 & circle$percentage_inlier*100 > 50) | circle$radius < 0.04)
   {
     return(radius)
   }

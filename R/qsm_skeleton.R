@@ -7,7 +7,7 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
   return(skel)
 }
 
-qsm_layers = function(tree, D)
+qsm_layers = function(tree, step)
 {
   cat("Computing layers...") ; ti = tic()
 
