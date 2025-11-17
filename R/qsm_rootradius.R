@@ -85,6 +85,8 @@ measure_cylinder_radius = function(pc, qsm, id)
   ids = as.numeric(names(res))
   sub = sub[which(cl$cluster == ids), ,drop = FALSE]
 
+  if (nrow(sub) <= 3) return(NA)
+
   circle = ransac_circle(sub, num_iterations = 400, inlier_threshold = 0.02)
   radius = circle$radius
 
