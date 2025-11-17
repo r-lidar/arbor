@@ -1,7 +1,9 @@
 qsm_stat = function(qsm)
 {
-  opar = par(mfrow = c(3, 2))
-  on.exit(par(opar))
+  .N <- radius_bin <- branch_order <- axis_ID <- . <- NULL
+
+  opar = graphics::par(mfrow = c(3, 2))
+  on.exit(graphics::par(opar))
 
   dt = data.table::copy(qsm)
   dt$radius_bin = cut(dt$radius*100, breaks = seq(0, max(dt$radius*100)+2, 2))

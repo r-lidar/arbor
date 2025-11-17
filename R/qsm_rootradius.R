@@ -1,5 +1,6 @@
 find_root_radius = function(tree, qsm, verbose = FALSE)
 {
+  cyl_ID <- axis_ID <- parent_ID <- NULL
   xyz = tree@data[,1:3]
   zoffset = min(tree$Z)
 
@@ -45,7 +46,7 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
   if (length(radii) == 0)
     stop("Failure: unable to measure a diameter")
 
-  radius = median(radii)
+  radius = stats::median(radii)
 
   if (verbose) cat("Root radius =", radius, '\n')
 
@@ -62,6 +63,8 @@ find_root_radius = function(tree, qsm, verbose = FALSE)
 
 measure_cylinder_radius = function(pc, qsm, id)
 {
+  cyl_ID <- NULL
+
   axis = qsm[cyl_ID == id]
   sub = as.matrix(pc[cyl_ID == id, 1:3])
 

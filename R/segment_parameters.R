@@ -53,5 +53,6 @@ default_parameters_v1 = list(
 
 #' Parameters
 #' @rdname parameters
+#' @name parameters
 #' @export
 default_arbor_parameters = default_parameters_v1

@@ -1,5 +1,7 @@
 qsm_prolongation <- function(qsm, d, L = 0.1)
 {
+  cum_length <- cyl_length <- NULL
+
   if (d <= 0) return(qsm)
 
   main_axis <- qsm[qsm$axis_ID == 1]

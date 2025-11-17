@@ -29,6 +29,10 @@ colorize_trees(las, darken_foliage = TRUE)
 \item{...}{propagated to lidR::plot}
 
 \item{th}{threshold to remove points with few passages}
+
+\item{darken_foliage}{boolean. In addition to one color per tree, the foliage is darkened
+the same color that its corresponding tree to display semantic and instance segmentation in
+one rendering.}
 }
 \description{
 Various useful plot functions. Colorize tree does not plot be assigns a RGB value per tree

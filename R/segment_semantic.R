@@ -14,7 +14,7 @@
 #' @param params list See \link{parameters}.
 #' @md
 #' @export
-segment_foliage = function(las, dtm, params = default_parameters)
+segment_foliage = function(las, dtm, params = default_arbor_parameters)
 {
   # The point cloud must have hag and anisotropy computed
   attributes <- names(las)
@@ -28,7 +28,7 @@ segment_foliage = function(las, dtm, params = default_parameters)
 
   core    <- get_barycentric_predecimation(las, params)
   target <- barycentric_decimation(core, params$path_finder$space_res)
-  gnd    <- make_ground_points(dtm, params$semantic$ground_res)
+  gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
   master <- make_master_seed(gnd)
 
   # Plot for debugging
@@ -202,12 +202,12 @@ segment_foliage = function(las, dtm, params = default_parameters)
   return(las)
 }
 
-make_ground_points = function(dtm, res)
+make_ground_points = function(dtm, res, header)
 {
   gnd   <- seed_from_dtm(dtm, res = res)
-  lidR::quantize(gnd[["X"]], 0.01, las@header[["X offset"]])
-  lidR::quantize(gnd[["Y"]], 0.01, las@header[["Y offset"]])
-  lidR::quantize(gnd[["Z"]], 0.01, las@header[["Z offset"]])
+  lidR::quantize(gnd[["X"]], 0.01, header[["X offset"]])
+  lidR::quantize(gnd[["Y"]], 0.01, header[["Y offset"]])
+  lidR::quantize(gnd[["Z"]], 0.01, header[["Z offset"]])
   header  <- rlas::header_create(gnd)
   gnd     <- suppressWarnings(lidR::LAS(gnd, header))
   gnd

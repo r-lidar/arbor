@@ -1,5 +1,7 @@
 qsm_detect_weird_butt = function(qsm)
 {
+  axis_ID <- cyl_ID <- parent_ID <- NULL
+
   cat("Validating butt architecture...")  ; ti = tic()
 
   qsm$angle <- with(qsm,{
@@ -39,6 +41,8 @@ qsm_detect_weird_butt = function(qsm)
 
 qsm_remove_disconnected_branches <- function(dt)
 {
+  axis_ID <- cyl_ID <- parent_ID <- NULL
+
   # Ensure data.table
   if (!data.table::is.data.table(dt)) dt <- data.table::as.data.table(dt)
 

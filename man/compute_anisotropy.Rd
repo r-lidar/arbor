@@ -4,7 +4,7 @@
 \alias{compute_anisotropy}
 \title{Compute Local Anisotropy}
 \usage{
-compute_anisotropy(las, params = default_parameters)
+compute_anisotropy(las, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

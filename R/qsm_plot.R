@@ -6,8 +6,7 @@
 #' @param end A numeric vector of length 3 representing the ending point of the cylinder.
 #' @param radius A numeric value representing the radius of the cylinder.
 #' @param color A character string for the cylinder color (default is "blue").
-#' @export
-#' @md
+#' @noRd
 plot_cylinder <- function(start, end, radius, color="blue")
 {
   # Create a cylinder object from start to end with specified radius
@@ -28,10 +27,9 @@ plot_cylinder <- function(start, end, radius, color="blue")
 #' Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
 #'
 #' @param qsm A data frame containing QSM data with segment attributes.
-#' @param add A numeric vector for translation offsets (default is NULL).
-#' @param sides Number of sides for each cylinder (default is 16).
-#' @param color The attribute for color mapping (default is "branchOrder").
-#' @param name description
+#' @param add A numeric vector for translation offsets. Like in the lidR package.
+#' @param sides Number of sides for each cylinder.
+#' @param color The attribute for color mapping.
 #' @param skeleton,cylinder boolean. plot the skeleton or the cylinders or both.
 #' @export
 #' @md

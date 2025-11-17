@@ -16,15 +16,13 @@ plot_qsm(
 \arguments{
 \item{qsm}{A data frame containing QSM data with segment attributes.}
 
-\item{add}{A numeric vector for translation offsets (default is NULL).}
+\item{add}{A numeric vector for translation offsets. Like in the lidR package.}
 
-\item{sides}{Number of sides for each cylinder (default is 16).}
+\item{sides}{Number of sides for each cylinder.}
 
-\item{color}{The attribute for color mapping (default is "branchOrder").}
+\item{color}{The attribute for color mapping.}
 
 \item{skeleton, cylinder}{boolean. plot the skeleton or the cylinders or both.}
-
-\item{name}{description}
 }
 \description{
 Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.

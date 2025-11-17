@@ -12,7 +12,7 @@
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
 #' @export
-compute_anisotropy = function(las, params = default_parameters)
+compute_anisotropy = function(las, params = default_arbor_parameters)
 {
   k <- params$anistotropy$k
 

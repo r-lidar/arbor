@@ -8,7 +8,7 @@
 #' @export
 find_seeds <- function(las, params)
 {
-  foliage <- clusterID <- max_diameter <- passage <- hag <- NULL
+  foliage <- clusterID <- max_diameter <- passage <- hag <- X <- Y <- Z <- . <- NULL
 
   # The point cloud is supposed to have passage hag and foliage
   attributes <- names(las)
@@ -135,7 +135,7 @@ find_seeds <- function(las, params)
   # Pairwise distances between centers
   circles$id = NULL
   df = circles
-  dist_mat <- as.matrix(dist(df[, c("X", "Y")], diag = TRUE, upper = TRUE))
+  dist_mat <- as.matrix(stats::dist(df[, c("X", "Y")], diag = TRUE, upper = TRUE))
 
   # Define an overlap rule (e.g. centers closer than sum of radii)
   overlap <- dist_mat < outer(df$R, df$R, "+") & dist_mat > 0
@@ -182,7 +182,7 @@ find_seeds <- function(las, params)
   circle_points = rbind(circle_points, connectors)
   circle_points$passage = 1000
   circle_points$hag = 0
-  circle_points = suppressWarnings(LAS(circle_points, header(las)))
+  circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
 
   # Bind the wood and the long passages and compute connected component and merge passage from the same trees
   lidR::st_crs(long_passages) = lidR::st_crs(wood)
@@ -231,7 +231,7 @@ find_seeds <- function(las, params)
 
   # Some short passage don't have IDs
   short_passages_noid = short_passages[is.na(short_passages$treeID)]
-  short_passages_noid = connected_components(short_passages_noid, 0.1, 1, "treeID")
+  short_passages_noid = lidR::connected_components(short_passages_noid, 0.1, 1, "treeID")
   short_passages_noid$treeID = short_passages_noid$treeID + max(long_passages_seeds$treeID, na.rm = TRUE) + 1
 
 
@@ -285,9 +285,10 @@ generate_circle_points <- function(x, y, z, r, step = 0.1)
 }
 
 # --- Generate random points on a disk (XY plane) ---
-generate_disk_points <- function(x, y, z, r, n = 1000) {
-  theta  <- runif(n, 0, 2*pi)
-  radius <- sqrt(runif(n)) * r
+generate_disk_points <- function(x, y, z, r, n = 1000)
+{
+  theta  <- stats::runif(n, 0, 2*pi)
+  radius <- sqrt(stats::runif(n)) * r
   data.frame(
     X = x + radius * cos(theta),
     Y = y + radius * sin(theta),
@@ -295,7 +296,8 @@ generate_disk_points <- function(x, y, z, r, n = 1000) {
   )
 }
 
-generate_disk_radii <- function(x, y, z, r, n = 8) {
+generate_disk_radii <- function(x, y, z, r, n = 8)
+{
   angles <- seq(0, 2*pi, length.out = n + 1)[- (n + 1)]  # remove last to avoid duplicating 0
 
   data.frame(
@@ -307,7 +309,8 @@ generate_disk_radii <- function(x, y, z, r, n = 8) {
 
 
 # --- Generate points for one group ---
-generate_group_points <- function(df_group, step_z = 0.05) {
+generate_group_points <- function(df_group, step_z = 0.05)
+{
   df_group <- df_group[order(df_group$Z), ]
   all_points <- list()
   centerline <- list()
@@ -318,7 +321,7 @@ generate_group_points <- function(df_group, step_z = 0.05) {
 
     # vertical interpolation sequence (every step_z)
     z_seq <- seq(c1$Z, c2$Z, by = step_z)
-    if (tail(z_seq, 1) != c2$Z)
+    if (utils::tail(z_seq, 1) != c2$Z)
       z_seq <- c(z_seq, c2$Z)  # include top
 
     t_seq <- (z_seq - c1$Z) / (c2$Z - c1$Z)

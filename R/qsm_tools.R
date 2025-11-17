@@ -121,6 +121,7 @@ qsm_distance_to_root = function(qsm)
 
 filter_tree = function(tree)
 {
+  foliage <- NULL
   attributes = names(tree)
 
   if ("foliage" %in% attributes)

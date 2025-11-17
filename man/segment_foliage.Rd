@@ -4,7 +4,7 @@
 \alias{segment_foliage}
 \title{Wood-Foliage Semantic Segmentation}
 \usage{
-segment_foliage(las, dtm, params = default_parameters)
+segment_foliage(las, dtm, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

@@ -124,7 +124,7 @@ write_qsm_ply <- function(df, file, resolution = 16L)
 
   # Use sprintf to format with exactly 3 decimals
   writeLines(apply(vertices, 1, function(x) sprintf("%.3f %.3f %.3f", x[1], x[2], x[3])), con)
-  write.table(cbind(3L, faces), file = con, row.names = FALSE, col.names = FALSE)
+  utils::write.table(cbind(3L, faces), file = con, row.names = FALSE, col.names = FALSE)
 }
 
 write_qsm_obj <- function(df, file, resolution = 16L)

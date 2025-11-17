@@ -1,5 +1,7 @@
-qsm_radius = function(qsm, tree, R0, tip_radius = 0.0025)
+qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 {
+  axis_ID <- NULL
+
   cat("Measuring diameters...") ; ti = tic()
 
   R0  <- find_root_radius(tree, qsm)
@@ -52,6 +54,8 @@ qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025, power = 1)
 
 qsm_measure = function(tree, qsm)
 {
+  cyl_ID <- NULL
+
   # Assign each point to an edge of the qsm graph
   centroid = list()
   centroid$centroidX = (qsm$startX + qsm$endX)/2
@@ -161,6 +165,8 @@ qsm_measure = function(tree, qsm)
 
 qsm_polynomial_fitting = function(qsm, tip_radius)
 {
+  radius <- axis_ID <- NULL
+
   # We now have some cynlindred measure with ransac
   # Polynomial interpolation for each axis with enought measurements
   for (i in sort(unique(qsm$axis_ID)))
@@ -169,7 +175,7 @@ qsm_polynomial_fitting = function(qsm, tip_radius)
     if (sum(!is.na(axe$radius)) <= 6) next
 
     mes = axe[!is.na(radius)]
-    mod <- nls(
+    mod <- stats::nls(
       radius ~ tip_radius + a * subtree_length + b * subtree_length^2,
       data = mes,
       start = list(a = 0.01, b = 0.001),
@@ -178,7 +184,7 @@ qsm_polynomial_fitting = function(qsm, tip_radius)
       upper = c(Inf, Inf)   # b > 0
     )
 
-    r = predict(mod, axe)
+    r = stats::predict(mod, axe)
     qsm[axis_ID == i, radius := r]
 
     if (FALSE)
@@ -209,6 +215,8 @@ qsm_polynomial_fitting = function(qsm, tip_radius)
 
 qsm_reconstruction = function(qsm, tip_radius)
 {
+  axis_ID <- radius <- branch_order <- NULL
+
   # We have some cylinder measured and interpolated. A large portion of the tree is missing.
   # We loop on each axes by branch order. If we have some NAs we compare to the theory.
   # We ensure the theory is not bigger than the parent branch. If the theory is bigger
@@ -255,7 +263,7 @@ qsm_reconstruction = function(qsm, tip_radius)
         {
           # Look at the average ratio between the theory in and the measures.
           # If measures tends to be bigger increase theory. Or opposite
-          ratio = median(r_mes/r, na.rm = TRUE)
+          ratio = stats::median(r_mes/r, na.rm = TRUE)
           r = tip_radius + s * (r0*ratio - tip_radius)
         }
       }

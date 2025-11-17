@@ -39,7 +39,7 @@ ransac_circle <- function(points, num_iterations = 100, inlier_threshold = 0.01)
   best_circle <- NULL
   max_inliers <- 0
 
-  if (is(points, "LAS")) points = sf::st_coordinates(points)
+  if (methods::is(points, "LAS")) points = sf::st_coordinates(points)
 
   stopifnot(is.matrix(points), ncol(points) == 3L, nrow(points) > 3L)
 

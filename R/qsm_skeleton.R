@@ -26,8 +26,11 @@ qsm_layers = function(tree, step)
   return(data[])
 }
 
+#' @importFrom data.table :=
 qsm_clusters = function(data, cl_dist)
 {
+  iter <- cluster <- radius <- X <- Y <- Z <- NULL
+
   cat("Clustering layers...")  ; ti = tic()
 
   first = TRUE

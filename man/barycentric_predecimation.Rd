@@ -4,7 +4,7 @@
 \alias{barycentric_predecimation}
 \title{Barycentric pre-decimation of a point cloud}
 \usage{
-barycentric_predecimation(las, params = default_parameters)
+barycentric_predecimation(las, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

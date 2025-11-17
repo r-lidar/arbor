@@ -106,8 +106,8 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
     if (processed % next_report == 0)
     {
       double pct = 100.0 * processed / N;
-      std::cout << "Progress: " << static_cast<int>(pct) << "% (" << processed << "/" << N << " nodes processed)\r";
-      std::cout.flush();
+      //std::cout << "Progress: " << static_cast<int>(pct) << "% (" << processed << "/" << N << " nodes processed)\r";
+      //std::cout.flush();
     }
 
     for (const auto& e : adjacency_list[u])
@@ -123,6 +123,6 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
     }
   }
 
-  std::cout << "\nDone. Processed " << processed << " nodes.\n";
+  //std::cout << "\nDone. Processed " << processed << " nodes.\n";
 }
 

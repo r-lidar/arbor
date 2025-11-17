@@ -43,7 +43,7 @@ plot_semantic_instance = function(las, dtm = NULL, ...)
   n <- max(p2, na.rm = TRUE)   # number of unique trees
 
   # Example pastel palette
-  pal <- pastel.colors(n)   # or any vector of colors per tree
+  pal <- lidR::pastel.colors(n)   # or any vector of colors per tree
   pal <- t(grDevices::col2rgb(pal))
 
   # Create vector to store RGB for each point
@@ -85,6 +85,9 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 
 #' @export
 #' @rdname plot
+#' @param darken_foliage boolean. In addition to one color per tree, the foliage is darkened
+#' the same color that its corresponding tree to display semantic and instance segmentation in
+#' one rendering.
 colorize_trees = function(las, darken_foliage = TRUE)
 {
   p1 <- las@data$foliage    # 0 = wood, 1/2 = foliage
@@ -92,7 +95,7 @@ colorize_trees = function(las, darken_foliage = TRUE)
   n <- max(p2, na.rm = TRUE)   # number of unique trees
 
   # Example pastel palette
-  pal <- pastel.colors(n)   # or any vector of colors per tree
+  pal <- lidR::pastel.colors(n)   # or any vector of colors per tree
   pal <- t(grDevices::col2rgb(pal))
 
   # Create vector to store RGB for each point
@@ -112,7 +115,7 @@ colorize_trees = function(las, darken_foliage = TRUE)
   }
 
   # Assign to LAS
-  las = add_lasrgb(las, R, G, B)
+  las = lidR::add_lasrgb(las, R, G, B)
   las
 }
 

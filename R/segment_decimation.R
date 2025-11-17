@@ -8,7 +8,7 @@
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
 #' @export
-barycentric_predecimation = function(las, params = default_parameters)
+barycentric_predecimation = function(las, params = default_arbor_parameters)
 {
   res <- params$decimation$barycentric_predecimation_resolution
   keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
@@ -43,7 +43,7 @@ hybrid_homogeneization = function(las, res = 0.02)
 }
 
 
-get_barycentric_predecimation <- function(las, params = default_parameters)
+get_barycentric_predecimation <- function(las, params = default_arbor_parameters)
 {
   decimated <- NULL
 

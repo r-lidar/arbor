@@ -8,8 +8,11 @@
 #'
 #' @param tree A `LAS` object containing a single tree point cloud with required attributes. Only
 #' the point labelled as wood will be used for QSM.
+#' @param step The slice thinkness during the slicing operation (keep as is)
+#' @param cl_dist Passed to eps in dbscan::dbscan (keep as is)
+#' @param max_d Maximum distance between cluster (keep as is)
 #' @param apex last radius of the branch tips
-#'
+#' @param ... unused
 #' @export
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 {
@@ -32,7 +35,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
   d    <- estimate_prolongation(tree, qsm)
 
   qsm  <- qsm_prolongation(qsm, d)
-  qsm  <- qsm_radius(qsm, tree, R0, tip_radius = apex)
+  qsm  <- qsm_radius(qsm, tree, tip_radius = apex)
   qsm  <- qsm_volume(qsm)
   qsm  <- shift(qsm, -tx, -ty, -tz)
 
