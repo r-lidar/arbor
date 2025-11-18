@@ -2,22 +2,31 @@
 #'
 #' This function processes a tree point cloud to generate a Quantitative Structure Model (QSM) using
 #' the bottom to top approach to build the skeleton. Then if fits a radius to each edge of the skeleton
-#' either with a ransac circle fitting or a least square approach depending on if ransac successfully
-#' fit a good circle. Last it applies an AdTree-like allometric model to correct irrelevant cylinder
-#' and compute a more organic tree.
+#' with a ransac circle fitting. Last it applies a allometric model to correct irrelevant cylinder
+#' and compute a more organic tree. See the [Arbor book] for mode details.
 #'
-#' @param tree A `LAS` object containing a single tree point cloud with required attributes. Only
-#' the point labelled as wood will be used for QSM.
+#' @param tree A `LAS` object from lidR containing a single tree point cloud. Only
+#' the point labelled as wood will be used for QSM. Can alternatively be a string to a file
 #' @param step The slice thinkness during the slicing operation (keep as is)
 #' @param cl_dist Passed to eps in dbscan::dbscan (keep as is)
 #' @param max_d Maximum distance between cluster (keep as is)
 #' @param apex last radius of the branch tips
 #' @param ... unused
 #' @export
+#' @seealso \link{qsm_write} \link{qsm_read}
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 {
+  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.0025
+
   t0 <- tic() ; gc()
-  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.005
+
+  if (is.character(tree))
+  {
+    if (!file.exists(tree))
+      stop(paste0(tree, " does not exist"))
+
+    tree = lidR::readLAS(tree, select = "0")
+  }
 
   j    <- which.min(tree$Z)
   tx   <- tree$X[j]
