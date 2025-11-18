@@ -13,6 +13,8 @@
 #' @param dtm A SpatRaster object. Digital Terrain Model
 #' @param params list See \link{parameters}.
 #' @md
+#' @rdname segment_semantic
+#' @name segment_semantic
 #' @export
 segment_foliage = function(las, dtm, params = default_arbor_parameters)
 {

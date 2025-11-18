@@ -1,6 +1,6 @@
 #' Find seeds to perform instance segmentation
 #'
-#' In order to perform instance segmentation with  \link{segment_vegeration} we need
+#' In order to perform instance segmentation with  \link{segment_instance} we need
 #' some seeds with reference treeIDs. Thus function finds the seeds
 #'
 #' @param las A LAS object from lidR.

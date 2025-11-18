@@ -12,6 +12,6 @@ find_seeds(las, params)
 \item{params}{list See \link{parameters}.}
 }
 \description{
-In order to perform instance segmentation with  \link{segment_vegeration} we need
+In order to perform instance segmentation with  \link{segment_instance} we need
 some seeds with reference treeIDs. Thus function finds the seeds
 }

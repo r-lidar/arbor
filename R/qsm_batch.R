@@ -18,7 +18,7 @@
 #'   \itemize{
 #'     \item `file`: input file path
 #'     \item `name`: basename without extension
-#'     \iten `success` TRUE/FALSE
+#'     \item `success` TRUE/FALSE
 #'     \item `status`: "success", "skipped_existing", "failed_readLAS", "failed_qsm"
 #'     \item `error`: error message if any
 #'   }
@@ -145,7 +145,7 @@ qsm_batch = function(
     # QSM execution
     tryCatch(
     {
-      qsm_logs <- capture.output({
+      qsm_logs <- utils::capture.output({
         q <- do.call(qsm, c(list(las), dots))
       }, type = "output")
 

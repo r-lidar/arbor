@@ -38,7 +38,7 @@ A data.table of logs, one line per input file. Each log entry contains:
   \itemize{
     \item `file`: input file path
     \item `name`: basename without extension
-    \iten `success` TRUE/FALSE
+    \item `success` TRUE/FALSE
     \item `status`: "success", "skipped_existing", "failed_readLAS", "failed_qsm"
     \item `error`: error message if any
   }

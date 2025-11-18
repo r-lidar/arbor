@@ -53,6 +53,8 @@
 #'
 #' @md
 #' @export
+#' @rdname segment_instance
+#' @name segment_instance
 #' @importFrom Rcpp sourceCpp
 #' @seealso \link{find_seeds}, \link{segment_foliage}
 segment_vegetation = function(las, seeds, params)
