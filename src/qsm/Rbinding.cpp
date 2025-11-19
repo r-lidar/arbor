@@ -29,11 +29,12 @@ static inline QSM as_qsm(Rcpp::DataFrame df)
   Rcpp::NumericVector subtree_length = df.containsElementNamed("subtree_length") ? df["subtree_length"] : Rcpp::NumericVector(cid.size(), SUBTREE_LENGTH_UNSET);
 
   int n = cid.size();
-  std::vector<QSMcylinder> vec(n);
+
+  QSM qsm;
+  QSMcylinder c;
 
   for (int i = 0; i < n; ++i)
   {
-    auto &c = vec[i];
     c.cyl_ID    = cid[i];
     c.parent_ID = pid[i];
     c.startX    = sx[i];
@@ -48,14 +49,11 @@ static inline QSM as_qsm(Rcpp::DataFrame df)
     c.branch_order     = branch_order[i];
     c.subtree_length   = subtree_length[i];
     c.subtree_max_endZ = SUBTREE_MAXZ_UNSET;
+    qsm.add_cylinder(c);
   }
-
-  QSM qsm;
-  qsm.build_from_cylinders(vec);
 
   return qsm;
 }
-
 
 static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
 {

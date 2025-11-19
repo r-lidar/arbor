@@ -47,7 +47,7 @@ class QSM
 public:
   QSM() = default;
 
-  void build_from_cylinders(const std::vector<QSMcylinder>& cylinders);
+  void add_cylinder(const QSMcylinder& c);
 
   void compute_topology();
   void compute_architecture(int root_id = 1);
