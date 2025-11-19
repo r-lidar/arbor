@@ -14,18 +14,8 @@
 #' @export
 compute_anisotropy = function(las, params = default_arbor_parameters)
 {
-  k <- params$anistotropy$k
-
-  if (k <= 0)
-  {
-    area <- as.numeric(lidR::st_area(las))
-    count <- lidR::npoints(las)
-    constant <- 50/15000
-    k <- round(((count/area) * constant), 0)
-    cat('Auto-adaptive k =', k, "\n")
-  }
-
   t0 <- tic()
+  k <- params$anistotropy$k
   eigen <- lidR::point_eigenvalues(las, k = k, coeffs = FALSE)
   anisotropy <- (eigen[["eigen_largest"]] - eigen[["eigen_smallest"]]) / eigen[["eigen_largest"]]
   las <- lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")

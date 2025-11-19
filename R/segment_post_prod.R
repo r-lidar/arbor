@@ -11,46 +11,40 @@
 #' @export
 fix_small_isolated_low_clusters = function(las)
 {
-  treeID <- clusterID <- foliage <- hag <- foliage <- NULL
+  treeID <- clusterID <- foliage <- hag <- NULL
 
   las@data$pointID = 1:lidR::npoints(las)
   sub = lidR::filter_poi(las, foliage == FALSE, hag < 3)
 
-  for (id in unique(las$treeID))
+  tree_ids = unique(las$treeID)
+  n_trees = length(tree_ids)
+  pb = txtProgressBar(min = 0, max = n_trees, style = 3)  # create progress bar
+
+  for (i in seq_along(tree_ids))
   {
-    cat("Tree", id)
+    id = tree_ids[i]
+
     tt = lidR::filter_poi(sub, treeID == id)
-    if (lidR::is.empty(tt))
+    if (!lidR::is.empty(tt))
     {
-      cat("\n")
-      next
-    }
-    tt$Z = tt$Z * 0.1
-    tt = lidR::connected_components(tt, 0.05, 200)
-    tt$Z = tt$Z * 10
+      tt$Z = tt$Z * 0.1
+      tt = lidR::connected_components(tt, 0.05, 200)
+      tt$Z = tt$Z * 10
 
-    ids = 1
-    n = length(unique(tt$clusterID))
-    if (n > 1)
-    {
-      ids = table(tt$clusterID)
-      ids = as.numeric(names(ids[which.max(ids)]))
-      cat(" :", n, "clusters found. Smaller cluster(s) re-assigned as foliage")
-      pid = tt$pointID[tt$clusterID != ids]
-      las$foliage[pid] = TRUE
-      tt = lidR::filter_poi(tt, clusterID == ids)
-      #plot(tt, color = "clusterID")
-      #cat("  ", id, "\n")
-      #plot(tt, color = "foliage", pal = c("chocolate4", "darkgreen"))
-    }
-    else
-    {
-      cat(" ok")
+      n = length(unique(tt$clusterID))
+      if (n > 1)
+      {
+        ids = table(tt$clusterID)
+        ids = as.numeric(names(ids[which.max(ids)]))
+        pid = tt$pointID[tt$clusterID != ids]
+        las$foliage[pid] = TRUE
+      }
     }
 
-    cat("\n")
+    setTxtProgressBar(pb, i)  # update progress bar
   }
 
+  close(pb)  # close progress bar
   las@data$pointID = NULL
 
   return(las)
