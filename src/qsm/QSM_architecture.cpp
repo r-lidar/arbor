@@ -31,25 +31,6 @@ inline CoordKey make_coord_key(double x, double y, double z, int digits = 6)
   };
 }
 
-void QSM::build_from_cylinders(const std::vector<QSMcylinder>& input)
-{
-  cylinders_.clear();
-  children_map_.clear();
-
-  // Insert cylinders and build children links
-  for (const auto& c : input)
-  {
-    cylinders_[c.cyl_ID] = c;
-
-    // Ensure parent exists in the child map
-    children_map_[c.parent_ID].push_back(c.cyl_ID);
-
-    // Ensure the child also has a children entry even if empty
-    if (!children_map_.count(c.cyl_ID))
-      children_map_[c.cyl_ID] = {};
-  }
-}
-
 void QSM::compute_topology()
 {
   children_map_.clear();
@@ -189,3 +170,8 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
     }
   }
 }
+
+
+
+
+

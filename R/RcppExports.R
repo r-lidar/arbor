@@ -45,3 +45,11 @@ cpp_smooth_skeleton <- function(qsm, niter = 1L, th = 0) {
     .Call(`_arbor_cpp_smooth_skeleton`, qsm, niter, th)
 }
 
+qsm_write_cpp <- function(df, filename) {
+    invisible(.Call(`_arbor_qsm_write_cpp`, df, filename))
+}
+
+read_adtree_skeleton <- function(filename) {
+    .Call(`_arbor_read_adtree_skeleton`, filename)
+}
+

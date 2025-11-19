@@ -17,7 +17,6 @@ struct Edge
   uint32_t v1, v2;
 };
 
-// [[Rcpp::export]]
 DataFrame read_adtree_skeleton(std::string filename)
 {
   std::ifstream file(filename, std::ios::binary);

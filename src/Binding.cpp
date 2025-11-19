@@ -45,3 +45,8 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
 
 // [[Rcpp::export]]
 Rcpp::List cpp_smooth_skeleton(Rcpp::DataFrame qsm, int niter = 1, double th = 0);
+
+// [[Rcpp::export]]
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename);
+// [[Rcpp::export]]
+Rcpp::DataFrame read_adtree_skeleton(std::string filename);

@@ -5,6 +5,7 @@
 #include <vector>
 #include <limits>
 #include <cmath>
+#include <string>
 
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
@@ -50,6 +51,7 @@ public:
 
   void compute_topology();
   void compute_architecture(int root_id = 1);
+  void write(const std::string& filename, int resolution = 16) const;
 
   const auto& cylinders() const { return cylinders_; }
   const auto& children_map() const { return children_map_; }
@@ -70,6 +72,11 @@ private:
   double compute_subtree_length(int node_id);
   double compute_subtree_max_z(int node_id);
   void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id);
+
+  // mesh and write
+  void build_mesh(std::vector<std::array<double,3>>& vertices,  std::vector<std::array<int,3>>& faces, int resolution = 16) const;
+  void write_ply(const std::string& filename, int resolution = 16) const;
+  void write_obj(const std::string& filename, int resolution = 16) const;
 };
 
 
