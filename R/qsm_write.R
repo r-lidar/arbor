@@ -23,19 +23,6 @@
 qsm_write = function(qsm, file)
 {
   file = normalizePath(file, mustWork = FALSE)
-  ext = tools::file_ext(file)
-  if (ext %in% c("ply", "obj"))
-    qsm_write_cpp(qsm, file)
-  else if (ext %in% c("csv", "txt"))
-    qsm_write_table(qsm, file)
-  else
-    stop("format not supported")
-
+  qsm_write_cpp(qsm, file)
   return(invisible(TRUE))
 }
-
-qsm_write_table = function(qsm, file)
-{
-  data.table::fwrite(qsm, file)
-}
-

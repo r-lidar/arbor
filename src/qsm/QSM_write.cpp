@@ -18,8 +18,10 @@ void QSM::write(const std::string& filename, int resolution) const
     write_obj(filename, resolution);
   else if (ext == "ply")
     write_ply(filename, resolution);
+  else if (ext == "csv" || ext == "txt")
+    write_csv(filename);
   else
-    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: obj, ply");
+    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: obj, ply, csv, txt");
 }
 
 void QSM::write_ply(const std::string& filename, int resolution) const
@@ -69,4 +71,43 @@ void QSM::write_obj(const std::string& filename, int resolution) const
   // Write faces (OBJ uses 1-based indices)
   for (auto &f : faces)
     out << "f " << (f[0]+1) << " " << (f[1]+1) << " " << (f[2]+1) << "\n";
+}
+
+void QSM::write_csv(const std::string& filename) const
+{
+  std::ofstream out(filename);
+  if (!out.is_open())
+    throw std::runtime_error("Cannot open CSV file: " + filename);
+
+  // Header
+  out <<   "startX,startY,startZ,endX,endY,endZ,cyl_ID,parent_ID,axis_ID,branch_order,radius,length,volume,subtree_length";
+  out << std::endl;
+
+  out << std::fixed << std::setprecision(3);
+
+  // ---- SORT CYLINDERS BY cyl_ID ----
+  std::vector<const QSMcylinder*> sorted;
+  sorted.reserve(cylinders_.size());
+  for (const auto& kv : cylinders_) sorted.push_back(&kv.second);
+  std::sort(sorted.begin(), sorted.end(), [](const QSMcylinder* a, const QSMcylinder* b) {return a->cyl_ID < b->cyl_ID; });
+
+  // ---- WRITE DATA IN ORDER ----
+  for (auto* c : sorted)
+  {
+    out << c->startX              << ","
+        << c->startY              << ","
+        << c->startZ              << ","
+        << c->endX                << ","
+        << c->endY                << ","
+        << c->endZ                << ","
+        << c->cyl_ID              << ","
+        << c->parent_ID           << ","
+        << c->axis_ID             << ","
+        << c->branch_order        << ","
+        << c->radius              << ","
+        << c->length()            << ","
+        << c->volume()            << ","
+        << c->subtree_length
+        << std::endl;
+  }
 }
