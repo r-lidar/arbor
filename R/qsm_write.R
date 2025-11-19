@@ -4,12 +4,12 @@
 #' based on the file extension.
 #'
 #' Supported formats:
-#' * `.ply` or `.obj`: writes the QSM as a mesh file
+#' * `.ply` or `.obj` or `.stl`: writes the QSM as a mesh file
 #' * `.csv` or `.txt`: writes the QSM as a table
 #'
 #' @param qsm A QSM object to be written.
 #' @param file A string giving the path to the output file. The file extension determines
-#'   the format (e.g., ".ply", "obj", ".csv", ".txt").
+#'   the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").
 #'
 #' @export
 #'

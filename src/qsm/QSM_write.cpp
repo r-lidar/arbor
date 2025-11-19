@@ -2,6 +2,28 @@
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <algorithm>
+#include <cmath>
+#include <cstring> // std::memset
+#include <cstdint>
+
+static std::array<double,3> compute_face_normal(const std::array<double,3>& v0, const std::array<double,3>& v1, const std::array<double,3>& v2)
+{
+  double ux = v1[0] - v0[0];
+  double uy = v1[1] - v0[1];
+  double uz = v1[2] - v0[2];
+
+  double vx = v2[0] - v0[0];
+  double vy = v2[1] - v0[1];
+  double vz = v2[2] - v0[2];
+
+  double nx = uy * vz - uz * vy;
+  double ny = uz * vx - ux * vz;
+  double nz = ux * vy - uy * vx;
+
+  double len = std::sqrt(nx*nx + ny*ny + nz*nz);
+  if (len <= 0.0) return {0.0, 0.0, 0.0};
+  return { nx / len, ny / len, nz / len };
+}
 
 void QSM::write(const std::string& filename, int resolution) const
 {
@@ -16,6 +38,8 @@ void QSM::write(const std::string& filename, int resolution) const
 
   if (ext == "obj")
     write_obj(filename, resolution);
+  if (ext == "stl")
+    write_stl(filename, resolution);
   else if (ext == "ply")
     write_ply(filename, resolution);
   else if (ext == "csv" || ext == "txt")
@@ -72,6 +96,89 @@ void QSM::write_obj(const std::string& filename, int resolution) const
   for (auto &f : faces)
     out << "f " << (f[0]+1) << " " << (f[1]+1) << " " << (f[2]+1) << "\n";
 }
+
+void QSM::write_stl(const std::string& filename, int resolution) const
+{
+  std::vector<std::array<double,3>> vertices;
+  std::vector<std::array<int,3>> faces;
+  build_mesh(vertices, faces, resolution);
+
+  // Determine offset from cylinder with cyl_ID == 1
+  // because STL is float not double. Can't handle geographic coordinates
+  double xoffset = 0.0;
+  double yoffset = 0.0;
+  double zoffset = 0.0;
+  auto it = std::find_if(cylinders_.begin(), cylinders_.end(), [](const std::pair<const int, QSMcylinder>& kv)
+  {
+    return kv.second.cyl_ID == 1;
+  });
+  if (it != cylinders_.end())
+  {
+    xoffset = it->second.startX;
+    yoffset = it->second.startY;
+    zoffset = it->second.startZ;
+  }
+
+  // -----------------------------------------------------
+  // Open STL file (binary)
+  // -----------------------------------------------------
+
+  std::ofstream out(filename, std::ios::binary);
+  if (!out.is_open())
+    throw std::runtime_error("Cannot open STL file for writing: " + filename);
+
+  // 80-byte header
+  char header[80] = {};
+  const char* title = "QSM binary STL";
+  std::strncpy(header, title, std::min<size_t>(79, std::strlen(title)));
+  out.write(header, 80);
+
+  // Number of triangles
+  uint32_t tri_count = static_cast<uint32_t>(faces.size());
+  out.write(reinterpret_cast<const char*>(&tri_count), 4);
+
+  // -----------------------------------------------------
+  // Write triangles
+  // -----------------------------------------------------
+  for (const auto& f : faces)
+  {
+    const auto& v0 = vertices[f[0]];
+    const auto& v1 = vertices[f[1]];
+    const auto& v2 = vertices[f[2]];
+
+    // Normal (double → float). No offset needed.
+    auto n = compute_face_normal(v0, v1, v2);
+    float nf[3] = {
+      static_cast<float>(n[0]),
+      static_cast<float>(n[1]),
+      static_cast<float>(n[2])
+    };
+    out.write(reinterpret_cast<const char*>(nf), sizeof(nf));
+
+    // Vertices with offset applied before casting to float
+    float fcoords[9] = {
+      static_cast<float>(v0[0] - xoffset),
+      static_cast<float>(v0[1] - yoffset),
+      static_cast<float>(v0[2] - zoffset),
+
+      static_cast<float>(v1[0] - xoffset),
+      static_cast<float>(v1[1] - yoffset),
+      static_cast<float>(v1[2] - zoffset),
+
+      static_cast<float>(v2[0] - xoffset),
+      static_cast<float>(v2[1] - yoffset),
+      static_cast<float>(v2[2] - zoffset)
+    };
+    out.write(reinterpret_cast<const char*>(fcoords), sizeof(fcoords));
+
+    // Attribute bytes
+    uint16_t attr = 0;
+    out.write(reinterpret_cast<const char*>(&attr), 2);
+  }
+
+  out.close();
+}
+
 
 void QSM::write_csv(const std::string& filename) const
 {

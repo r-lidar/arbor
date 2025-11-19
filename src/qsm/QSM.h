@@ -77,6 +77,7 @@ private:
   void build_mesh(std::vector<std::array<double,3>>& vertices,  std::vector<std::array<int,3>>& faces, int resolution = 16) const;
   void write_ply(const std::string& filename, int resolution = 16) const;
   void write_obj(const std::string& filename, int resolution = 16) const;
+  void write_stl(const std::string& filename, int resolution = 16) const;
   void write_csv(const std::string& filename) const;
 };
 
