@@ -25,7 +25,7 @@ static std::array<double,3> compute_face_normal(const std::array<double,3>& v0, 
   return { nx / len, ny / len, nz / len };
 }
 
-void QSM::write(const std::string& filename, int resolution) const
+void QSM::write(const std::string& filename, bool binary) const
 {
   // Find extension
   auto pos = filename.find_last_of('.');
@@ -37,53 +37,90 @@ void QSM::write(const std::string& filename, int resolution) const
   std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
   if (ext == "obj")
-    write_obj(filename, resolution);
+    write_obj(filename);
   if (ext == "stl")
-    write_stl(filename, resolution);
+    write_stl(filename, binary);
   else if (ext == "ply")
-    write_ply(filename, resolution);
+    write_ply(filename, binary);
   else if (ext == "csv" || ext == "txt")
     write_csv(filename);
   else
     throw std::runtime_error("Unknown file extension: " + ext + ". Supported: obj, ply, csv, txt");
 }
 
-void QSM::write_ply(const std::string& filename, int resolution) const
+void QSM::write_ply(const std::string& filename, bool binary) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
 
-  build_mesh(vertices, faces, resolution);
+  build_mesh(vertices, faces);
 
-  std::ofstream out(filename);
-  if (!out.is_open()) throw std::runtime_error("Cannot open PLY file.");
+  if (binary)
+  {
+    std::ofstream out(filename, std::ios::binary);
+    if (!out.is_open()) throw std::runtime_error("Cannot open PLY file.");
 
-  // header
-  out << "ply\n";
-  out << "format ascii 1.0\n";
-  out << "element vertex " << vertices.size() << "\n";
-  out << "property double x\n";
-  out << "property double y\n";
-  out << "property double z\n";
-  out << "element face " << faces.size() << "\n";
-  out << "property list uchar int vertex_indices\n";
-  out << "end_header\n";
+    // header
+    out << "ply\n";
+    out << "format binary_little_endian 1.0\n";
+    out << "element vertex " << vertices.size() << "\n";
+    out << "property double x\n";
+    out << "property double y\n";
+    out << "property double z\n";
+    out << "element face " << faces.size() << "\n";
+    out << "property list uchar int vertex_indices\n";
+    out << "end_header\n";
 
-  // write vertices
-  for (auto &v : vertices)
-    out << std::fixed << std::setprecision(3) << v[0] << " " << v[1] << " " << v[2] << "\n";
+    // write vertices
+    for (auto &v : vertices)
+    {
+      out.write(reinterpret_cast<const char*>(&v[0]), sizeof(double));
+      out.write(reinterpret_cast<const char*>(&v[1]), sizeof(double));
+      out.write(reinterpret_cast<const char*>(&v[2]), sizeof(double));
+    }
 
-  // write faces
-  for (auto &f : faces)
-    out << "3 " << f[0] << " " << f[1] << " " << f[2] << "\n";
+    // write faces
+    for (auto &f : faces)
+    {
+      unsigned char nverts = 3; // triangle
+      out.write(reinterpret_cast<const char*>(&nverts), sizeof(unsigned char));
+      out.write(reinterpret_cast<const char*>(&f[0]), sizeof(int));
+      out.write(reinterpret_cast<const char*>(&f[1]), sizeof(int));
+      out.write(reinterpret_cast<const char*>(&f[2]), sizeof(int));
+    }
+  }
+  else
+  {
+    std::ofstream out(filename);
+    if (!out.is_open()) throw std::runtime_error("Cannot open PLY file.");
+
+    // header
+    out << "ply\n";
+    out << "format ascii 1.0\n";
+    out << "element vertex " << vertices.size() << "\n";
+    out << "property double x\n";
+    out << "property double y\n";
+    out << "property double z\n";
+    out << "element face " << faces.size() << "\n";
+    out << "property list uchar int vertex_indices\n";
+    out << "end_header\n";
+
+    // write vertices
+    for (auto &v : vertices)
+      out << std::fixed << std::setprecision(3) << v[0] << " " << v[1] << " " << v[2] << "\n";
+
+    // write faces
+    for (auto &f : faces)
+      out << "3 " << f[0] << " " << f[1] << " " << f[2] << "\n";
+  }
 }
 
-void QSM::write_obj(const std::string& filename, int resolution) const
+void QSM::write_obj(const std::string& filename) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
 
-  build_mesh(vertices, faces, resolution);
+  build_mesh(vertices, faces);
 
   std::ofstream out(filename);
   if (!out.is_open()) throw std::runtime_error("Cannot open OBJ file.");
@@ -97,21 +134,16 @@ void QSM::write_obj(const std::string& filename, int resolution) const
     out << "f " << (f[0]+1) << " " << (f[1]+1) << " " << (f[2]+1) << "\n";
 }
 
-void QSM::write_stl(const std::string& filename, int resolution) const
+void QSM::write_stl(const std::string& filename, bool binary) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
-  build_mesh(vertices, faces, resolution);
+  build_mesh(vertices, faces);
 
   // Determine offset from cylinder with cyl_ID == 1
-  // because STL is float not double. Can't handle geographic coordinates
-  double xoffset = 0.0;
-  double yoffset = 0.0;
-  double zoffset = 0.0;
-  auto it = std::find_if(cylinders_.begin(), cylinders_.end(), [](const std::pair<const int, QSMcylinder>& kv)
-  {
-    return kv.second.cyl_ID == 1;
-  });
+  // because STL is float only and does not support geographic coordinates
+  double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
+  auto it = std::find_if(cylinders_.begin(), cylinders_.end(), [](const std::pair<const int, QSMcylinder>& kv){ return kv.second.cyl_ID == 1; });
   if (it != cylinders_.end())
   {
     xoffset = it->second.startX;
@@ -119,65 +151,71 @@ void QSM::write_stl(const std::string& filename, int resolution) const
     zoffset = it->second.startZ;
   }
 
-  // -----------------------------------------------------
-  // Open STL file (binary)
-  // -----------------------------------------------------
-
-  std::ofstream out(filename, std::ios::binary);
-  if (!out.is_open())
-    throw std::runtime_error("Cannot open STL file for writing: " + filename);
-
-  // 80-byte header
-  char header[80] = {};
-  const char* title = "QSM binary STL";
-  std::strncpy(header, title, std::min<size_t>(79, std::strlen(title)));
-  out.write(header, 80);
-
-  // Number of triangles
-  uint32_t tri_count = static_cast<uint32_t>(faces.size());
-  out.write(reinterpret_cast<const char*>(&tri_count), 4);
-
-  // -----------------------------------------------------
-  // Write triangles
-  // -----------------------------------------------------
-  for (const auto& f : faces)
+  if (binary)
   {
-    const auto& v0 = vertices[f[0]];
-    const auto& v1 = vertices[f[1]];
-    const auto& v2 = vertices[f[2]];
+    std::ofstream out(filename, std::ios::binary);
+    if (!out.is_open())
+      throw std::runtime_error("Cannot open STL file for writing: " + filename);
 
-    // Normal (double → float). No offset needed.
-    auto n = compute_face_normal(v0, v1, v2);
-    float nf[3] = {
-      static_cast<float>(n[0]),
-      static_cast<float>(n[1]),
-      static_cast<float>(n[2])
-    };
-    out.write(reinterpret_cast<const char*>(nf), sizeof(nf));
+    // 80-byte header
+    char header[80] = {};
+    const char* title = "QSM binary STL";
+    std::strncpy(header, title, std::min<size_t>(79, std::strlen(title)));
+    out.write(header, 80);
 
-    // Vertices with offset applied before casting to float
-    float fcoords[9] = {
-      static_cast<float>(v0[0] - xoffset),
-      static_cast<float>(v0[1] - yoffset),
-      static_cast<float>(v0[2] - zoffset),
+    // Number of triangles
+    uint32_t tri_count = static_cast<uint32_t>(faces.size());
+    out.write(reinterpret_cast<const char*>(&tri_count), 4);
 
-      static_cast<float>(v1[0] - xoffset),
-      static_cast<float>(v1[1] - yoffset),
-      static_cast<float>(v1[2] - zoffset),
+    // Write triangles
+    for (const auto& f : faces)
+    {
+      const auto& v0 = vertices[f[0]];
+      const auto& v1 = vertices[f[1]];
+      const auto& v2 = vertices[f[2]];
 
-      static_cast<float>(v2[0] - xoffset),
-      static_cast<float>(v2[1] - yoffset),
-      static_cast<float>(v2[2] - zoffset)
-    };
-    out.write(reinterpret_cast<const char*>(fcoords), sizeof(fcoords));
+      auto n = compute_face_normal(v0, v1, v2);
+      float nf[3] = { float(n[0]), float(n[1]), float(n[2]) };
+      out.write(reinterpret_cast<const char*>(nf), sizeof(nf));
 
-    // Attribute bytes
-    uint16_t attr = 0;
-    out.write(reinterpret_cast<const char*>(&attr), 2);
+      float fcoords[9] = {
+        float(v0[0]-xoffset), float(v0[1]-yoffset), float(v0[2]-zoffset),
+        float(v1[0]-xoffset), float(v1[1]-yoffset), float(v1[2]-zoffset),
+        float(v2[0]-xoffset), float(v2[1]-yoffset), float(v2[2]-zoffset)
+      };
+      out.write(reinterpret_cast<const char*>(fcoords), sizeof(fcoords));
+
+      uint16_t attr = 0;
+      out.write(reinterpret_cast<const char*>(&attr), 2);
+    }
   }
+  else
+  {
+    // ASCII STL
+    std::ofstream out(filename);
+    if (!out.is_open())
+      throw std::runtime_error("Cannot open STL file for writing: " + filename);
 
-  out.close();
+    out << "solid QSM\n";
+    for (const auto& f : faces)
+    {
+      const auto& v0 = vertices[f[0]];
+      const auto& v1 = vertices[f[1]];
+      const auto& v2 = vertices[f[2]];
+
+      auto n = compute_face_normal(v0, v1, v2);
+      out << "  facet normal " << n[0] << " " << n[1] << " " << n[2] << "\n";
+      out << "    outer loop\n";
+      out << "      vertex " << v0[0]-xoffset << " " << v0[1]-yoffset << " " << v0[2]-zoffset << "\n";
+      out << "      vertex " << v1[0]-xoffset << " " << v1[1]-yoffset << " " << v1[2]-zoffset << "\n";
+      out << "      vertex " << v2[0]-xoffset << " " << v2[1]-yoffset << " " << v2[2]-zoffset << "\n";
+      out << "    endloop\n";
+      out << "  endfacet\n";
+    }
+    out << "endsolid QSM\n";
+  }
 }
+
 
 
 void QSM::write_csv(const std::string& filename) const

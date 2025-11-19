@@ -141,10 +141,10 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, int root_id = 1)
   return df;
 }
 
-void qsm_write_cpp(Rcpp::DataFrame df, std::string filename)
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
 {
   QSM qsm = as_qsm(df);
-  qsm.write(filename, 16);
+  qsm.write(filename, binary);
 }
 
 

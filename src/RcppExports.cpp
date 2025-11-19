@@ -152,13 +152,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsm_write_cpp
-void qsm_write_cpp(Rcpp::DataFrame df, std::string filename);
-RcppExport SEXP _arbor_qsm_write_cpp(SEXP dfSEXP, SEXP filenameSEXP) {
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
+RcppExport SEXP _arbor_qsm_write_cpp(SEXP dfSEXP, SEXP filenameSEXP, SEXP binarySEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
-    qsm_write_cpp(df, filename);
+    Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
+    qsm_write_cpp(df, filename, binary);
     return R_NilValue;
 END_RCPP
 }
@@ -186,7 +187,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_cpp_smooth_skeleton", (DL_FUNC) &_arbor_cpp_smooth_skeleton, 3},
-    {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 2},
+    {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {NULL, NULL, 0}
 };

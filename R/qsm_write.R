@@ -10,6 +10,7 @@
 #' @param qsm A QSM object to be written.
 #' @param file A string giving the path to the output file. The file extension determines
 #'   the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").
+#' @param binary Boolean. Used if the format supports ASCII or binary
 #'
 #' @export
 #'
@@ -20,9 +21,9 @@
 #' }
 #' @export
 #' @md
-qsm_write = function(qsm, file)
+qsm_write = function(qsm, file, binary = TRUE)
 {
   file = normalizePath(file, mustWork = FALSE)
-  qsm_write_cpp(qsm, file)
+  qsm_write_cpp(qsm, file, binary)
   return(invisible(TRUE))
 }

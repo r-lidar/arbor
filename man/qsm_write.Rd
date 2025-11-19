@@ -4,13 +4,15 @@
 \alias{qsm_write}
 \title{Write a QSM to File}
 \usage{
-qsm_write(qsm, file)
+qsm_write(qsm, file, binary = TRUE)
 }
 \arguments{
 \item{qsm}{A QSM object to be written.}
 
 \item{file}{A string giving the path to the output file. The file extension determines
-the format (e.g., ".ply", "obj", ".csv", ".txt").}
+the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").}
+
+\item{binary}{Boolean. Used if the format supports ASCII or binary}
 }
 \description{
 Writes a Quantitative Structure Model (QSM) to a file in either OBJ, PLY or CSV format,
@@ -19,7 +21,7 @@ based on the file extension.
 \details{
 Supported formats:
 \itemize{
-\item \code{.ply} or \code{.obj}: writes the QSM as a mesh file
+\item \code{.ply} or \code{.obj} or \code{.stl}: writes the QSM as a mesh file
 \item \code{.csv} or \code{.txt}: writes the QSM as a table
 }
 }

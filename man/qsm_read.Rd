@@ -14,5 +14,5 @@ A data frame of QSM segment data.
 }
 \description{
 Loads QSM segment data from a CSV file and unify naming convention. So the function reads Computree
-TreeQSM, lidRqsm in the same format.
+TreeQSM, arbor in the same format.
 }

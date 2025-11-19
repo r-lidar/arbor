@@ -51,7 +51,7 @@ public:
 
   void compute_topology();
   void compute_architecture(int root_id = 1);
-  void write(const std::string& filename, int resolution = 16) const;
+  void write(const std::string& filename, bool binary = true) const;
 
   const auto& cylinders() const { return cylinders_; }
   const auto& children_map() const { return children_map_; }
@@ -75,9 +75,9 @@ private:
 
   // mesh and write
   void build_mesh(std::vector<std::array<double,3>>& vertices,  std::vector<std::array<int,3>>& faces, int resolution = 16) const;
-  void write_ply(const std::string& filename, int resolution = 16) const;
-  void write_obj(const std::string& filename, int resolution = 16) const;
-  void write_stl(const std::string& filename, int resolution = 16) const;
+  void write_ply(const std::string& filename, bool binary) const;
+  void write_stl(const std::string& filename, bool binary) const;
+  void write_obj(const std::string& filename) const;
   void write_csv(const std::string& filename) const;
 };
 

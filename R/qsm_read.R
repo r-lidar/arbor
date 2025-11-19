@@ -1,7 +1,7 @@
 #' Read QSM Data from File
 #'
 #' Loads QSM segment data from a CSV file and unify naming convention. So the function reads Computree
-#' TreeQSM, lidRqsm in the same format.
+#' TreeQSM, arbor in the same format.
 #'
 #' @param x A character string specifying the file path.
 #' @return A data frame of QSM segment data.
