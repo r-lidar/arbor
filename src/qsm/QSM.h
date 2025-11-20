@@ -50,6 +50,7 @@ public:
   void add_cylinder(const QSMcylinder& c);
 
   void compute_topology();
+  void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1);
   void write(const std::string& filename, bool binary = true) const;
 

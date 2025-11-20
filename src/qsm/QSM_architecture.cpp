@@ -172,6 +172,3 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
 }
 
 
-
-
-

@@ -34,11 +34,12 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
   tz   <- tree$Z[j]
 
   tree <- shift(tree, tx, ty, tz)   # Move to origin for numerical stability
-  tree <- filter_tree(tree)
+  tree <- filter_tree(tree)         # Remove foliage
   tree <- clean_tree_butt(tree)
 
-  qsm  <- qsm_skeleton(tree, step, cl_dist, max_d)
-  qsm  <- qsm_architecture(qsm)
+  qsm  <- qsm_skeleton(tree, step, cl_dist, max_d) # Basic skeleton with cyl_ID and parent_ID
+  qsm  <- qsm_architecture(qsm)                    # add axis_ID, subtree_length branch_order
+  qsm  <- qsm_smooth(qsm, niter = 1)
   qsm  <- qsm_detect_weird_butt(qsm)
 
   d    <- estimate_prolongation(tree, qsm)

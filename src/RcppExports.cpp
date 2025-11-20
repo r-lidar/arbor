@@ -138,19 +138,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_smooth_skeleton
-Rcpp::List cpp_smooth_skeleton(Rcpp::DataFrame qsm, int niter, double th);
-RcppExport SEXP _arbor_cpp_smooth_skeleton(SEXP qsmSEXP, SEXP niterSEXP, SEXP thSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
-    Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
-    Rcpp::traits::input_parameter< double >::type th(thSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_smooth_skeleton(qsm, niter, th));
-    return rcpp_result_gen;
-END_RCPP
-}
 // qsm_write_cpp
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 RcppExport SEXP _arbor_qsm_write_cpp(SEXP dfSEXP, SEXP filenameSEXP, SEXP binarySEXP) {
@@ -161,6 +148,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
     qsm_write_cpp(df, filename, binary);
     return R_NilValue;
+END_RCPP
+}
+// qsm_smooth_cpp
+Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter, double th);
+RcppExport SEXP _arbor_qsm_smooth_cpp(SEXP dfSEXP, SEXP niterSEXP, SEXP thSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
+    Rcpp::traits::input_parameter< double >::type th(thSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_smooth_cpp(df, niter, th));
+    return rcpp_result_gen;
 END_RCPP
 }
 // read_adtree_skeleton
@@ -186,8 +186,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
-    {"_arbor_cpp_smooth_skeleton", (DL_FUNC) &_arbor_cpp_smooth_skeleton, 3},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
+    {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {NULL, NULL, 0}
 };

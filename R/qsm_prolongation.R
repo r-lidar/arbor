@@ -4,9 +4,10 @@ qsm_prolongation <- function(qsm, d, L = 0.1)
 
   if (d <= 0) return(qsm)
 
+  qsm$cyl_length = sqrt((qsm$endX-qsm$startX)^2+(qsm$endY-qsm$startY)^2+(qsm$endZ-qsm$startZ)^2)
+
   main_axis <- qsm[qsm$axis_ID == 1]
   root <- main_axis[main_axis$parent_ID == 0, ]
-  R0 = root$radius
   main_axis[, cum_length := cumsum(cyl_length)]
   dt_top <- main_axis[cum_length <= 0.1*max(main_axis$cum_length)]
 
@@ -53,14 +54,13 @@ qsm_prolongation <- function(qsm, d, L = 0.1)
       cyl_ID = cyl_id,
       parent_ID = parent_id,
       axis_ID = 1,
-      cyl_length = sqrt(sum((pt2 - pt1)^2)),
       subtree_length = root$subtree_length + d - actual_L * (n_segments - i + 1),
-      radius = R0,
-      volume = NA_real_,
-      branch_order = 1
+      branch_order = 1,
+      cyl_length = sqrt(sum((pt2 - pt1)^2))
     )
   }
 
   qsm <- data.table::rbindlist(c(new_cyls, list(qsm)), use.names = TRUE, fill = TRUE)
+  qsm$cyl_length = NULL
   return(qsm)
 }

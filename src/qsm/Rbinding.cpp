@@ -68,8 +68,9 @@ static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
   Rcpp::NumericVector subtree_length(n);
   Rcpp::IntegerVector axis_id(n), branch_order(n);
 
-  for (const auto& [i, c] : cyl_map)
+  for (const auto& [id, c] : cyl_map)
   {
+    int i = id-1;
     cid[i]            = c.cyl_ID;
     pid[i]            = c.parent_ID;
     sx[i]             = c.startX;
@@ -85,18 +86,18 @@ static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
   }
 
   return Rcpp::DataFrame::create(
-    Rcpp::Named("cyl_ID") = cid,
-    Rcpp::Named("parent_ID") = pid,
     Rcpp::Named("startX") = sx,
     Rcpp::Named("startY") = sy,
     Rcpp::Named("startZ") = sz,
     Rcpp::Named("endX") = ex,
     Rcpp::Named("endY") = ey,
     Rcpp::Named("endZ") = ez,
-    Rcpp::Named("radius") = radius,
-    Rcpp::Named("subtree_length") = subtree_length,
+    Rcpp::Named("cyl_ID") = cid,
+    Rcpp::Named("parent_ID") = pid,
     Rcpp::Named("axis_ID") = axis_id,
     Rcpp::Named("branch_order") = branch_order,
+    Rcpp::Named("radius") = radius,
+    Rcpp::Named("subtree_length") = subtree_length,
     Rcpp::Named("stringsAsFactors") = false
   );
 }
@@ -122,21 +123,20 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, int root_id = 1)
 
   // Prepare new columns
   int n = (int)qsm.size();
-  Rcpp::NumericVector length(n);
   Rcpp::NumericVector subtree_length(n);
   Rcpp::IntegerVector axis_ID(n);
   Rcpp::IntegerVector branching_order(n);
   for (const auto &[i, c] : qsm)
   {
-    length[i-1]            = c.length();
+    //length[i-1]            = c.length();
     subtree_length[i-1]    = c.subtree_length;
     axis_ID[i-1]           = c.axis_ID;
     branching_order[i-1]   = c.branch_order;
   }
-  df["cyl_length"]       = length;
-  df["subtree_length"]   = subtree_length;
+
   df["axis_ID"]          = axis_ID;
   df["branch_order"]     = branching_order;
+  df["subtree_length"]   = subtree_length;
 
   return df;
 }
@@ -145,6 +145,41 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
 {
   QSM qsm = as_qsm(df);
   qsm.write(filename, binary);
+}
+
+
+Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
+{
+  QSM qsm = as_qsm(df);
+  qsm.smooth_skeleton(niter, th);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+
+  // Keep only columns present in original df
+  Rcpp::CharacterVector keep = df.names();
+  Rcpp::CharacterVector ans_names = ans.names();
+
+  std::vector<std::string> to_keep;
+  to_keep.reserve(keep.size());
+
+  for (auto &nm : keep)
+  {
+    if (std::find(ans_names.begin(), ans_names.end(), std::string(nm)) != ans_names.end())
+    {
+      to_keep.push_back(std::string(nm));
+    }
+  }
+
+  // Subset ans
+  Rcpp::List out(to_keep.size());
+  for (size_t i = 0; i < to_keep.size(); i++)
+  {
+    out[i] = ans[to_keep[i]];
+  }
+  out.attr("names") = to_keep;
+  out.attr("class") = "data.frame";
+  out.attr("row.names") = ans.attr("row.names");
+
+  return out;
 }
 
 
