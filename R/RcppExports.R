@@ -49,6 +49,10 @@ qsm_smooth_cpp <- function(df, niter = 1L, th = 0) {
     .Call(`_arbor_qsm_smooth_cpp`, df, niter, th)
 }
 
+qsm_prolongation_cpp <- function(df, d, L = 0.1) {
+    .Call(`_arbor_qsm_prolongation_cpp`, df, d, L)
+}
+
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }

@@ -163,6 +163,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_prolongation_cpp
+Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L);
+RcppExport SEXP _arbor_qsm_prolongation_cpp(SEXP dfSEXP, SEXP dSEXP, SEXP LSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type d(dSEXP);
+    Rcpp::traits::input_parameter< double >::type L(LSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_prolongation_cpp(df, d, L));
+    return rcpp_result_gen;
+END_RCPP
+}
 // read_adtree_skeleton
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
@@ -188,6 +201,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
+    {"_arbor_qsm_prolongation_cpp", (DL_FUNC) &_arbor_qsm_prolongation_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {NULL, NULL, 0}
 };

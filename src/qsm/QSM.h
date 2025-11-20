@@ -52,6 +52,7 @@ public:
   void compute_topology();
   void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1);
+  void prolongate(double d, double L = 0.1);
   void write(const std::string& filename, bool binary = true) const;
 
   const auto& cylinders() const { return cylinders_; }
@@ -68,6 +69,8 @@ public:
 private:
   std::unordered_map<int, QSMcylinder> cylinders_;                 // cyl_ID -> cylinder
   std::unordered_map<int, std::vector<int>> children_map_;         // parent -> children
+
+  std::vector<const QSMcylinder*> main_axis() const;
 
   // recursive helpers
   double compute_subtree_length(int node_id);

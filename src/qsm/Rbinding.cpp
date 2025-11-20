@@ -60,38 +60,51 @@ static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
   const auto& cyl_map = qsm.cylinders();
   int n = cyl_map.size();
 
+  // Copy into a vector of pointers (or references), then sort by cyl_ID
+  std::vector<const QSMcylinder*> vec;
+  vec.reserve(n);
+  for (const auto& kv : cyl_map) vec.push_back(&kv.second);
+  std::sort(vec.begin(), vec.end(), [](const QSMcylinder* a, const QSMcylinder* b)
+  {
+    return a->cyl_ID < b->cyl_ID;
+  });
+
+  // Allocate R vectors
   Rcpp::IntegerVector cid(n);
   Rcpp::IntegerVector pid(n);
+  Rcpp::IntegerVector axis_id(n), branch_order(n);
   Rcpp::NumericVector sx(n), sy(n), sz(n);
   Rcpp::NumericVector ex(n), ey(n), ez(n);
   Rcpp::NumericVector radius(n);
   Rcpp::NumericVector subtree_length(n);
-  Rcpp::IntegerVector axis_id(n), branch_order(n);
 
-  for (const auto& [id, c] : cyl_map)
+  // Fill the vectors row by row
+  for (int i = 0; i < n; i++)
   {
-    int i = id-1;
-    cid[i]            = c.cyl_ID;
-    pid[i]            = c.parent_ID;
-    sx[i]             = c.startX;
-    sy[i]             = c.startY;
-    sz[i]             = c.startZ;
-    ex[i]             = c.endX;
-    ey[i]             = c.endY;
-    ez[i]             = c.endZ;
-    radius[i]         = c.radius;
-    subtree_length[i] = c.subtree_length;
-    axis_id[i]        = c.axis_ID;
-    branch_order[i]   = c.branch_order;
+    const QSMcylinder* c = vec[i];
+
+    cid[i]            = c->cyl_ID;
+    pid[i]            = c->parent_ID;
+    sx[i]             = c->startX;
+    sy[i]             = c->startY;
+    sz[i]             = c->startZ;
+    ex[i]             = c->endX;
+    ey[i]             = c->endY;
+    ez[i]             = c->endZ;
+    radius[i]         = c->radius;
+    subtree_length[i] = c->subtree_length;
+    axis_id[i]        = c->axis_ID;
+    branch_order[i]   = c->branch_order;
   }
 
+  //Build DataFrame
   return Rcpp::DataFrame::create(
     Rcpp::Named("startX") = sx,
     Rcpp::Named("startY") = sy,
     Rcpp::Named("startZ") = sz,
-    Rcpp::Named("endX") = ex,
-    Rcpp::Named("endY") = ey,
-    Rcpp::Named("endZ") = ez,
+    Rcpp::Named("endX")   = ex,
+    Rcpp::Named("endY")   = ey,
+    Rcpp::Named("endZ")   = ez,
     Rcpp::Named("cyl_ID") = cid,
     Rcpp::Named("parent_ID") = pid,
     Rcpp::Named("axis_ID") = axis_id,
@@ -152,6 +165,40 @@ Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
 {
   QSM qsm = as_qsm(df);
   qsm.smooth_skeleton(niter, th);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+
+  // Keep only columns present in original df
+  Rcpp::CharacterVector keep = df.names();
+  Rcpp::CharacterVector ans_names = ans.names();
+
+  std::vector<std::string> to_keep;
+  to_keep.reserve(keep.size());
+
+  for (auto &nm : keep)
+  {
+    if (std::find(ans_names.begin(), ans_names.end(), std::string(nm)) != ans_names.end())
+    {
+      to_keep.push_back(std::string(nm));
+    }
+  }
+
+  // Subset ans
+  Rcpp::List out(to_keep.size());
+  for (size_t i = 0; i < to_keep.size(); i++)
+  {
+    out[i] = ans[to_keep[i]];
+  }
+  out.attr("names") = to_keep;
+  out.attr("class") = "data.frame";
+  out.attr("row.names") = ans.attr("row.names");
+
+  return out;
+}
+
+Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1)
+{
+  QSM qsm = as_qsm(df);
+  qsm.prolongate(d, L);
   Rcpp::DataFrame ans = as_dataframe(qsm);
 
   // Keep only columns present in original df

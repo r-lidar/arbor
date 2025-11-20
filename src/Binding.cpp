@@ -50,4 +50,7 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
 
 // [[Rcpp::export]]
+Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
+
+// [[Rcpp::export]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
