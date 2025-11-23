@@ -2,7 +2,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 {
   axis_ID <- NULL
 
-  cat("Measuring diameters...") ; ti = tic()
+  cat("Measuring diameters... ") ; ti = tic()
 
   R0  <- find_root_radius(tree, qsm)
   qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
@@ -17,10 +17,9 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 
   # If we still have NAs on main axis it means interpolation failed on main
   # axis. We have no data.
-  main_axis = qsm[axis_ID == 1]
+  main_axis <- qsm[axis_ID == 1]
   if (anyNA(main_axis$radius))
   {
-    warning("")
     qsm$radius = qsm$theoric_radius
     qsm$theoric_radius = NULL
     return(qsm)
