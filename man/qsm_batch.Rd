@@ -11,7 +11,7 @@ qsm_batch(
   obj = TRUE,
   ply = FALSE,
   overwrite = FALSE,
-  ncores = parallel::detectCores(),
+  ncores = parallel::detectCores()/2,
   ...
 )
 }

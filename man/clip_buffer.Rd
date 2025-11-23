@@ -10,7 +10,8 @@ clip_buffer(las, buffer = -5)
 \item{las}{A LAS object from lidR containing segmented trees.}
 
 \item{buffer}{Numeric value (in meters). The distance by which the convex hull is shrunk
-before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).}
+before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
+Can also be a sf POLYGON object.}
 }
 \value{
 A filtered LAS object containing only trees whose seeds fall within the buffered region.
