@@ -32,7 +32,7 @@ qsm_batch = function(
     obj = TRUE,
     ply = FALSE,
     overwrite = FALSE,
-    ncores = parallel::detectCores(),
+    ncores = parallel::detectCores()/2,
     ...
 )
 {
