@@ -23,7 +23,7 @@ free = function(...)
 {
   object_names <- as.character(substitute(list(...)))[-1L]
 
-  bytes = 0
+  bytes = utils::object.size(NULL)
   for (obj in list(...)) {
     bytes = bytes + utils::object.size(obj)
   }
@@ -38,7 +38,8 @@ free = function(...)
     }
   }
 
-  gc()
+  ans = gc()
+  return(invisible())
   #cat("  Memory freed:", mb, "\n")
 }
 
