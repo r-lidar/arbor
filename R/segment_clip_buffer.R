@@ -8,8 +8,10 @@
 #' @param las A LAS object from lidR containing segmented trees.
 #' @param buffer Numeric value (in meters). The distance by which the convex hull is shrunk
 #'   before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
+#'   Can also be a sf POLYGON object.
 #' @return A filtered LAS object containing only trees whose seeds fall within the buffered region.
 #' @export
+#'
 clip_buffer = function(las, buffer = -5)
 {
   # Avoid NOTES
@@ -38,9 +40,20 @@ clip_buffer = function(las, buffer = -5)
   if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
 
   # Build buffered convex hull
-  bb <- suppressWarnings(sf::st_convex_hull(las))
-  bb <- suppressWarnings(sf::st_buffer(bb, dist = buffer))
-  if (any(sf::st_is_empty(bb))) return(las[0])    # Early exit if buffer kills hull
+  if (is.numeric(buffer))
+  {
+    bb <- suppressWarnings(sf::st_convex_hull(las))
+    bb <- suppressWarnings(sf::st_buffer(bb, dist = buffer))
+    if (any(sf::st_is_empty(bb))) return(las[0])    # Early exit if buffer kills hull
+  }
+
+  if (inherits(buffer, "sf") || inherits(buffer, "sfc"))
+  {
+    if (!any(sf::st_geometry_type(buffer) %in% c("POLYGON", "MULTIPOLYGON")))
+      stop("buffer must be a polygon or multipolygon")
+
+    bb <- buffer
+  }
 
   # Convert roots to sf (safe: no NA)
   seeds <- sf::st_as_sf(roots, coords = c("X", "Y"), crs = sf::st_crs(las))
