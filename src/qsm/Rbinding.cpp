@@ -23,7 +23,8 @@ static inline QSM as_qsm(Rcpp::DataFrame df)
   Rcpp::NumericVector  ez  = df["endZ"];
 
   // optional columns
-  Rcpp::NumericVector radius = df.containsElementNamed("radius") ? df["radius"] : Rcpp::NumericVector(cid.size(), 0.0);
+  Rcpp::NumericVector radius = df.containsElementNamed("radius") ? df["radius"] : Rcpp::NumericVector(cid.size(), RADIUS_UNSET);
+  Rcpp::NumericVector theoric_radius = df.containsElementNamed("theoric_radius") ? df["theoric_radius"] : Rcpp::NumericVector(cid.size(), RADIUS_UNSET);
   Rcpp::IntegerVector axis_ID = df.containsElementNamed("axis_ID") ? df["axis_ID"] : Rcpp::IntegerVector(cid.size(), 0);
   Rcpp::IntegerVector branch_order = df.containsElementNamed("branch_order") ? df["branch_order"] : Rcpp::IntegerVector(cid.size(), 0);
   Rcpp::NumericVector subtree_length = df.containsElementNamed("subtree_length") ? df["subtree_length"] : Rcpp::NumericVector(cid.size(), SUBTREE_LENGTH_UNSET);
@@ -44,10 +45,12 @@ static inline QSM as_qsm(Rcpp::DataFrame df)
     c.endY      = ey[i];
     c.endZ      = ez[i];
 
-    c.radius           = radius[i];
-    c.axis_ID          = axis_ID[i];
-    c.branch_order     = branch_order[i];
-    c.subtree_length   = subtree_length[i];
+    // Optional
+    c.radius         = Rcpp::NumericVector::is_na(radius[i])        ? RADIUS_UNSET         : radius[i];
+    c.conic_allometry= Rcpp::NumericVector::is_na(theoric_radius[i])? RADIUS_UNSET         : theoric_radius[i];
+    c.axis_ID        = Rcpp::IntegerVector::is_na(axis_ID[i])       ? 0                    : axis_ID[i];
+    c.branch_order   = Rcpp::IntegerVector::is_na(branch_order[i])  ? 0                    : branch_order[i];
+    c.subtree_length = Rcpp::NumericVector::is_na(subtree_length[i])? SUBTREE_LENGTH_UNSET : subtree_length[i];
     c.subtree_max_endZ = SUBTREE_MAXZ_UNSET;
     qsm.add_cylinder(c);
   }
@@ -91,8 +94,8 @@ static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
     ex[i]             = c->endX;
     ey[i]             = c->endY;
     ez[i]             = c->endZ;
-    radius[i]         = c->radius;
-    subtree_length[i] = c->subtree_length;
+    radius[i]         = (c->radius == RADIUS_UNSET)               ? NA_REAL : c->radius;
+    subtree_length[i] = (c->subtree_length == SUBTREE_LENGTH_UNSET) ? NA_REAL : c->subtree_length;
     axis_id[i]        = c->axis_ID;
     branch_order[i]   = c->branch_order;
   }
@@ -229,4 +232,27 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.
   return out;
 }
 
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df)
+{
+  PointCloud tree(pc);
+  QSM qsm = as_qsm(df);
+  qsm.measure_radii(tree);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+  return ans;
+}
 
+Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius)
+{
+  QSM qsm = as_qsm(df);
+  qsm.polynomial_fitting(tip_radius);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+  return ans;
+}
+
+Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius)
+{
+  QSM qsm = as_qsm(df);
+  qsm.reconstruct_missing_radii(tip_radius);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+  return ans;
+}

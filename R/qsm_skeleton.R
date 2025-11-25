@@ -19,7 +19,8 @@ qsm_layers = function(tree, step)
     D = step
   }
 
-  data = cpp_compute_layers(as.matrix(tree@data), D)
+  #data = cpp_compute_layers(as.matrix(tree@data), D)
+  data = qsm_layers_cpp(tree@data, D)
   data.table::setDT(data)
 
   toc(ti)

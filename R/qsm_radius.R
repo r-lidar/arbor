@@ -1,37 +1,31 @@
 qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 {
-  axis_ID <- NULL
-
   cat("Measuring diameters... ") ; ti = tic()
 
   R0  <- find_root_radius(tree, qsm)
   qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
+  conic <- qsm$radius
 
   if (R0 < 0.06) return(qsm)
-
-  qsm$theoric_radius = qsm$radius
-  qsm$radius = NULL
 
   qsm <- qsm_measure(tree, qsm)
   qsm <- qsm_polynomial_fitting(qsm, tip_radius)
 
   # If we still have NAs on main axis it means interpolation failed on main
   # axis. We have no data.
+  axis_ID <- NULL
   main_axis <- qsm[axis_ID == 1]
   if (anyNA(main_axis$radius))
   {
-    qsm$radius = qsm$theoric_radius
-    qsm$theoric_radius = NULL
+    qsm$radius <- conic
     return(qsm)
   }
 
   qsm <- qsm_reconstruction(qsm, tip_radius)
 
-  qsm$theoric_radius = NULL
-
   toc(ti)
 
-  return(qsm[])
+  return(qsm)
 }
 
 
@@ -53,6 +47,40 @@ qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025, power = 1)
 
 qsm_measure = function(tree, qsm)
 {
+  # qsm_conic_allometry must be computed first
+  qsm$theoric_radius = qsm$radius
+  theoric_radius = qsm$radius
+  qsm$radius = NULL
+
+  qsm = qsm_measure_cpp(tree@data, qsm)
+  data.table::setDT(qsm)
+  return(qsm)
+}
+
+qsm_polynomial_fitting = function(qsm, tip_radius)
+{
+  qsm = qsm_polynomial_fitting_cpp(qsm, tip_radius)
+  data.table::setDT(qsm)
+  return(qsm[])
+}
+
+qsm_reconstruction = function(qsm, tip_radius)
+{
+  qsm = qsm_reconstruction_cpp(qsm, tip_radius)
+  data.table::setDT(qsm)
+  return(qsm[])
+}
+
+# *******************************************
+# Original functions before to convert to C++
+# *******************************************
+
+qsm_measure_r = function(tree, qsm)
+{
+  qsm$theoric_radius = qsm$radius
+  theoric_radius = qsm$radius
+  qsm$radius = NULL
+
   cyl_ID <- NULL
 
   # Assign each point to an edge of the qsm graph
@@ -162,7 +190,7 @@ qsm_measure = function(tree, qsm)
   return(qsm)
 }
 
-qsm_polynomial_fitting = function(qsm, tip_radius)
+qsm_polynomial_fitting_r = function(qsm, tip_radius)
 {
   radius <- axis_ID <- NULL
 
@@ -212,7 +240,7 @@ qsm_polynomial_fitting = function(qsm, tip_radius)
   return(qsm[])
 }
 
-qsm_reconstruction = function(qsm, tip_radius)
+qsm_reconstruction_r = function(qsm, tip_radius)
 {
   axis_ID <- radius <- branch_order <- NULL
 
@@ -279,30 +307,3 @@ qsm_reconstruction = function(qsm, tip_radius)
 
   return(qsm[])
 }
-
-
-# Maybe we have no bottom radius for this tree at all.
-# In this case we will use the rescue radius (least square method)
-# as replacement
-# main_axis = qsm[axis_ID == 1]
-# L = main_axis$subtree_length[1]
-# first_ten_percent = main_axis[main_axis$subtree_length > L*0.90]
-# if (all(is.na(first_ten_percent$radius)))
-# {
-#   if (!all(is.na(first_ten_percent$rescue_radius)))
-#   {
-#     qsm$radius[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = first_ten_percent$rescue_radius
-#     qsm$measure[qsm$cyl_ID %in% first_ten_percent$cyl_ID] = 2L
-#     first_ten_percent$radius = first_ten_percent$rescue_radius
-#   }
-#   else
-#   {
-#
-#     idx = which(!is.na(main_axis$rescue_radius))
-#
-#     if (length(idx) == 0)  stop("Internal error: no measurement on the bottom of the tree.")
-#
-#     r0 = main_axis$rescue_radius[idx[1]]
-#     first_ten_percent$radius = r0
-#   }
-# }

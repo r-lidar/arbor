@@ -1,5 +1,5 @@
 library(lidR)
-library(lidRtls)
+library(arbor)
 
 set_lidr_threads(0)
 
@@ -56,6 +56,9 @@ file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_f
 file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
 file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fraction 0.4"
 file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
+
+# French Guyana'
+file = "~/Téléchargements/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
 
 # ===== PROCESSING PARAMETERS =====
 
