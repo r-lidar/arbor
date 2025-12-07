@@ -1,136 +1,228 @@
 #include <Rcpp.h>
 #include <vector>
 #include <cmath>
+#include <array>
+#include <unordered_map>
 #include <limits>
-#include "nanoflann/nanoflann.h"
+#include <functional>
 
-using namespace Rcpp;
-using namespace nanoflann;
-
-// Compact point cloud for nanoflann
-struct SimpleCloud {
-  std::vector<std::array<double, 3>> pts;
-  inline size_t kdtree_get_point_count() const { return pts.size(); }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const {
-    return pts[idx][dim];
-  }
-  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
+struct Point3D
+{
+  double x, y, z;
+  size_t id;
 };
 
-// [[Rcpp::export]]
-DataFrame cpp_compute_layers(NumericMatrix coords, double D)
+struct GridKey
 {
-  const int n = coords.nrow();
-  const double D2 = D * D;
+  long x, y, z;
+  bool operator==(const GridKey &other) const
+  {
+    return x == other.x && y == other.y && z == other.z;
+  }
+};
 
-  // Convert to efficient native format
-  std::vector<std::array<double, 3>> points(n);
-  for (int i = 0; i < n; ++i)
-    points[i] = {coords(i,0), coords(i,1), coords(i,2)};
+struct KeyHash
+{
+  std::size_t operator()(const GridKey& k) const
+  {
+    return ((std::hash<long>()(k.x) ^ (std::hash<long>()(k.y) << 1)) >> 1) ^ (std::hash<long>()(k.z) << 1);
+  }
+};
 
-  IntegerVector ID(n), iter(n, -1);
-  NumericVector dist(n, NA_REAL);
-  for (int i = 0; i < n; ++i) ID[i] = i;
+struct LayerResult
+{
+  std::vector<int> iter;
+  std::vector<double> dist;
+};
 
-  // Find min Z
-  double minZ = points[0][2];
-  for (int i = 1; i < n; ++i)
-    if (points[i][2] < minZ) minZ = points[i][2];
+LayerResult compute_layers(const std::vector<Point3D>& points, double D, std::function<void()> check_interrupt = nullptr)
+{
+  size_t n = points.size();
+  double D2 = D * D;
+  double invD = 1.0 / D; // Optimization: multiply is faster than divide
 
-    std::vector<int> layer;
-    std::vector<char> active(n, 1);  // active == 1 means still remaining
+  // --- Spatial Hashing ---
+  std::unordered_map<GridKey, std::vector<size_t>, KeyHash> grid;
+  grid.reserve(n/100);
 
-    // First layer (lowest Z)
-    for (int i = 0; i < n; ++i) {
-      if (points[i][2] <= minZ + 0.1) {
-        iter[i] = 1;
-        active[i] = 0;
-        layer.push_back(i);
-      }
+  double minZ = std::numeric_limits<double>::max();
+
+  for (const auto& p : points)
+  {
+    if (p.z < minZ) minZ = p.z;
+    long gx = static_cast<long>(std::floor(p.x * invD));
+    long gy = static_cast<long>(std::floor(p.y * invD));
+    long gz = static_cast<long>(std::floor(p.z * invD));
+    grid[{gx, gy, gz}].push_back(p.id);
+  }
+
+  // --- Output Initialization ---
+
+  LayerResult result;
+  result.iter.assign(n, -1);
+  result.dist.assign(n, std::numeric_limits<double>::quiet_NaN());
+
+  std::vector<size_t> current_layer;
+  std::vector<size_t> next_layer;
+
+  // Status tracker: -1 = unvisited, 0 = pending (in queue), 1 = processed
+  std::vector<int8_t> status(n, -1);
+
+  // --- Layer 1 Initialization ---
+  // Select all points at the lowest Z level
+  for (const auto& p : points)
+  {
+    if (p.z <= minZ + 0.1)
+    {
+      result.iter[p.id] = 1;
+      status[p.id] = 1;
+      result.dist[p.id] = 0.0;
+      current_layer.push_back(p.id);
     }
+  }
 
-    int current_iter = 2;
-    std::vector<int> next_layer;
-    next_layer.reserve(n);
+  int current_iter_num = 2;
+  size_t visited_count = current_layer.size();
+  size_t search_start_idx = 0; // Optimization for restarting disconnected components
 
-    SimpleCloud ref_cloud{points};
-    typedef KDTreeSingleIndexAdaptor<
-      L2_Simple_Adaptor<double, SimpleCloud>, SimpleCloud, 3> KDTree;
-
-    // Single global KD-tree (reused for distance fallback)
-    KDTree ref_index(3, ref_cloud, KDTreeSingleIndexAdaptorParams(10));
-    ref_index.buildIndex();
-
-    while (true) {
-      // Build KD-tree for current layer
-      SimpleCloud layer_cloud;
-      layer_cloud.pts.reserve(layer.size());
-      for (int idx : layer)
-        layer_cloud.pts.push_back(points[idx]);
-
-      KDTree index(3, layer_cloud, KDTreeSingleIndexAdaptorParams(10));
-      index.buildIndex();
-
-      next_layer.clear();
-      bool any_active = false;
-
-      for (int i = 0; i < n; ++i) {
-        if (!active[i]) continue;
-
-        double query_pt[3] = {points[i][0], points[i][1], points[i][2]};
-        size_t ret_index;
-        double out_dist_sqr;
-        nanoflann::KNNResultSet<double> resultSet(1);
-        resultSet.init(&ret_index, &out_dist_sqr);
-        index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
-
-        if (out_dist_sqr <= D2) {
-          iter[i] = current_iter;
-          dist[i] = std::sqrt(out_dist_sqr);
-          active[i] = 0;
-          next_layer.push_back(i);
-          any_active = true;
+  // --- Propagation Loop ---
+  while (visited_count < n)
+  {
+    // Handle Disconnected Components:
+    // If the flood fill runs dry but points remain, pick the next unvisited point.
+    if (current_layer.empty())
+    {
+      bool found_restart = false;
+      for (size_t i = search_start_idx; i < n; ++i)
+      {
+        if (status[i] == -1)
+        {
+          result.iter[i] = current_iter_num;
+          status[i] = 1;
+          result.dist[i] = std::numeric_limits<double>::quiet_NaN(); // Start of new cluster
+          current_layer.push_back(i);
+          visited_count++;
+          search_start_idx = i + 1; // Don't scan these again
+          found_restart = true;
+          break;
         }
       }
+      if (!found_restart) break; // Should not happen given loop condition
+    }
 
-      // handle disconnected case
-      if (next_layer.empty()) {
-        int closest_idx = -1;
-        double min_dist = std::numeric_limits<double>::max();
+    next_layer.clear();
 
-        for (int i = 0; i < n; ++i) {
-          if (!active[i]) continue;
-          double query_pt[3] = {points[i][0], points[i][1], points[i][2]};
-          size_t ret_index;
-          double out_dist_sqr;
-          nanoflann::KNNResultSet<double> resultSet(1);
-          resultSet.init(&ret_index, &out_dist_sqr);
-          ref_index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
-          if (out_dist_sqr < min_dist) {
-            min_dist = out_dist_sqr;
-            closest_idx = i;
+    // Process current wave
+    for (size_t idx : current_layer)
+    {
+      const Point3D& p = points[idx];
+
+      long gx = static_cast<long>(std::floor(p.x * invD));
+      long gy = static_cast<long>(std::floor(p.y * invD));
+      long gz = static_cast<long>(std::floor(p.z * invD));
+
+      // Check 3x3x3 Neighborhood
+      for (long dx = -1; dx <= 1; ++dx)
+      {
+        for (long dy = -1; dy <= 1; ++dy)
+        {
+          for (long dz = -1; dz <= 1; ++dz)
+          {
+            GridKey key = {gx + dx, gy + dy, gz + dz};
+            auto it = grid.find(key);
+            if (it == grid.end()) continue;
+
+            for (size_t neighbor_idx : it->second)
+            {
+              if (status[neighbor_idx] == 1) continue; // Already done
+
+              const Point3D& n_pt = points[neighbor_idx];
+              double d2 = (p.x - n_pt.x)*(p.x - n_pt.x) +
+                (p.y - n_pt.y)*(p.y - n_pt.y) +
+                (p.z - n_pt.z)*(p.z - n_pt.z);
+
+              if (d2 <= D2)
+              {
+                double d = std::sqrt(d2);
+
+                if (status[neighbor_idx] == -1)
+                {
+                  // Found new point
+                  status[neighbor_idx] = 0;
+                  result.iter[neighbor_idx] = current_iter_num;
+                  result.dist[neighbor_idx] = d;
+                  next_layer.push_back(neighbor_idx);
+                  visited_count++;
+                }
+                else if (status[neighbor_idx] == 0)
+                {
+                  // Point already in queue, check if this parent is closer
+                  if (d < result.dist[neighbor_idx])
+                  {
+                    result.dist[neighbor_idx] = d;
+                  }
+                }
+              }
+            }
           }
         }
-
-        if (closest_idx == -1) break; // no remaining points
-        iter[closest_idx] = current_iter;
-        dist[closest_idx] = std::sqrt(min_dist);
-        active[closest_idx] = 0;
-        next_layer.push_back(closest_idx);
-        any_active = true;
       }
-
-      if (!any_active) break;
-      layer.swap(next_layer);
-      ++current_iter;
     }
 
-    return DataFrame::create(
-      _["X"] = coords(_, 0),
-      _["Y"] = coords(_, 1),
-      _["Z"] = coords(_, 2),
-      _["ID"] = ID,
-      _["iter"] = iter,
-      _["dist"] = dist
-    );
+    // Mark next layer as processed
+    for (size_t idx : next_layer)
+    {
+      status[idx] = 1;
+    }
+
+    current_layer = std::move(next_layer);
+
+    if (!current_layer.empty())
+    {
+      current_iter_num++;
+    }
+
+    if (check_interrupt) check_interrupt();
+  }
+
+  return result;
 }
+
+// -------------------------------------------------------------------------
+// RCPP INTERFACE SECTION
+// -------------------------------------------------------------------------
+
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
+{
+  // 1. Unpack R DataFrame
+  Rcpp::NumericVector X = df["X"];
+  Rcpp::NumericVector Y = df["Y"];
+  Rcpp::NumericVector Z = df["Z"];
+
+  int n = X.size();
+
+  // 2. Convert to Pure C++ Vector
+  std::vector<Point3D> points(n);
+  for(int i = 0; i < n; ++i)
+  {
+    points[i] = { X[i], Y[i], Z[i], (size_t)i };
+  }
+
+  // 3. Call Core Logic
+  // We pass Rcpp::checkUserInterrupt as a lambda to keep core logic pure
+  auto interrupt_callback = []() { Rcpp::checkUserInterrupt(); };
+  LayerResult result = compute_layers(points, D, interrupt_callback);
+
+  // 4. Repack into R DataFrame
+  // We reuse the input columns to save memory/time, or create new ones if needed.
+  // Here we create a new DataFrame as requested.
+  return Rcpp::DataFrame::create(
+    Rcpp::_["X"] = X,
+    Rcpp::_["Y"] = Y,
+    Rcpp::_["Z"] = Z,
+    Rcpp::_["iter"] = result.iter,
+    Rcpp::_["dist"] = result.dist
+  );
+}
+
+

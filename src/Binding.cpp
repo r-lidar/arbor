@@ -17,7 +17,6 @@ SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::Dat
 // [[Rcpp::export]]
 SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, Rcpp::List params);
 
-
 // [[Rcpp::export]]
 Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
 
@@ -38,7 +37,7 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1);
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
 
 // [[Rcpp::export]]
-Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
 // [[Rcpp::export]]
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
@@ -51,6 +50,15 @@ Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
 
 // [[Rcpp::export]]
 Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
+
+// [[Rcpp::export]]
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df);
+
+// [[Rcpp::export]]
+Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
+
+// [[Rcpp::export]]
+Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 
 // [[Rcpp::export]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

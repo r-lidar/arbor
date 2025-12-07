@@ -28,9 +28,9 @@ public:
     q[1] = kdtree_get_pt(idx, 1);
     q[2] = kdtree_get_pt(idx, 2);
   }
-  inline double get_x(const size_t idx) { return kdtree_get_pt(idx, 0); }
-  inline double get_y(const size_t idx) { return kdtree_get_pt(idx, 1); }
-  inline double get_z(const size_t idx) { return kdtree_get_pt(idx, 2); }
+  inline double get_x(const size_t idx) const { return kdtree_get_pt(idx, 0); }
+  inline double get_y(const size_t idx) const { return kdtree_get_pt(idx, 1); }
+  inline double get_z(const size_t idx) const { return kdtree_get_pt(idx, 2); }
   inline void translate(double x, double y, double z)
   {
     if (x != 0) coords[0] = coords[0] - x;
@@ -94,5 +94,24 @@ public:
   }
 };
 
-#endif // MATRIX_ADAPTOR_H
+struct SimpleAdaptor
+{
+  struct Point { double x, y, z; int id; };
+  std::vector<Point> points;
+
+  inline size_t kdtree_get_point_count() const { return points.size(); }
+
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+  {
+    if (dim == 0) return points[idx].x;
+    if (dim == 1) return points[idx].y;
+    return points[idx].z;
+  }
+
+  template <class BBOX>
+  bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
+};
+
+
+#endif
 

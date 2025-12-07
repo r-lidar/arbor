@@ -114,15 +114,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_compute_layers
-Rcpp::DataFrame cpp_compute_layers(Rcpp::NumericMatrix coords, double D);
-RcppExport SEXP _arbor_cpp_compute_layers(SEXP coordsSEXP, SEXP DSEXP) {
+// qsm_layers_cpp
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type D(DSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_compute_layers(coords, D));
+    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -176,6 +176,42 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_measure_cpp
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df);
+RcppExport SEXP _arbor_qsm_measure_cpp(SEXP pcSEXP, SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type pc(pcSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_measure_cpp(pc, df));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_polynomial_fitting_cpp
+Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
+RcppExport SEXP _arbor_qsm_polynomial_fitting_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_polynomial_fitting_cpp(df, tip_radius));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_reconstruction_cpp
+Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
+RcppExport SEXP _arbor_qsm_reconstruction_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_reconstruction_cpp(df, tip_radius));
+    return rcpp_result_gen;
+END_RCPP
+}
 // read_adtree_skeleton
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
@@ -197,11 +233,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
-    {"_arbor_cpp_compute_layers", (DL_FUNC) &_arbor_cpp_compute_layers, 2},
+    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
     {"_arbor_qsm_prolongation_cpp", (DL_FUNC) &_arbor_qsm_prolongation_cpp, 3},
+    {"_arbor_qsm_measure_cpp", (DL_FUNC) &_arbor_qsm_measure_cpp, 2},
+    {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
+    {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {NULL, NULL, 0}
 };

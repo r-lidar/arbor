@@ -33,8 +33,8 @@ cpp_build_skeleton <- function(data, max_d) {
     .Call(`_arbor_cpp_build_skeleton`, data, max_d)
 }
 
-cpp_compute_layers <- function(coords, D) {
-    .Call(`_arbor_cpp_compute_layers`, coords, D)
+qsm_layers_cpp <- function(df, D) {
+    .Call(`_arbor_qsm_layers_cpp`, df, D)
 }
 
 qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
@@ -51,6 +51,18 @@ qsm_smooth_cpp <- function(df, niter = 1L, th = 0) {
 
 qsm_prolongation_cpp <- function(df, d, L = 0.1) {
     .Call(`_arbor_qsm_prolongation_cpp`, df, d, L)
+}
+
+qsm_measure_cpp <- function(pc, df) {
+    .Call(`_arbor_qsm_measure_cpp`, pc, df)
+}
+
+qsm_polynomial_fitting_cpp <- function(df, tip_radius) {
+    .Call(`_arbor_qsm_polynomial_fitting_cpp`, df, tip_radius)
+}
+
+qsm_reconstruction_cpp <- function(df, tip_radius) {
+    .Call(`_arbor_qsm_reconstruction_cpp`, df, tip_radius)
 }
 
 read_adtree_skeleton <- function(filename) {

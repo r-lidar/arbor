@@ -7,8 +7,13 @@
 #include <cmath>
 #include <string>
 
+#include "nanoflann/Adaptor.h"
+
+using PointCloud = DataFrameAdaptor;
+
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
+static constexpr double RADIUS_UNSET            = -1.0;
 static constexpr double Z_EPS = 1e-9;
 
 struct QSMcylinder
@@ -19,7 +24,8 @@ struct QSMcylinder
   double endX = 0;
   double endY = 0;
   double endZ = 0;
-  double radius = 0;
+  double radius = RADIUS_UNSET;
+  double conic_allometry = RADIUS_UNSET;
   double subtree_length = SUBTREE_LENGTH_UNSET;
   double subtree_max_endZ = SUBTREE_MAXZ_UNSET;
   int cyl_ID = 0;
@@ -53,6 +59,9 @@ public:
   void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1);
   void prolongate(double d, double L = 0.1);
+  void measure_radii(const PointCloud& tree);
+  void polynomial_fitting(double tip_radius);
+  void reconstruct_missing_radii(double tip_radius);
   void write(const std::string& filename, bool binary = true) const;
 
   const auto& cylinders() const { return cylinders_; }
@@ -65,6 +74,8 @@ public:
   auto end() { return cylinders_.end(); }
   auto begin() const { return cylinders_.begin(); }
   auto end() const { return cylinders_.end(); }
+
+  QSMcylinder& get_cylinder_by_id(int cyl_id);
 
 private:
   std::unordered_map<int, QSMcylinder> cylinders_;                 // cyl_ID -> cylinder
@@ -83,6 +94,9 @@ private:
   void write_stl(const std::string& filename, bool binary) const;
   void write_obj(const std::string& filename) const;
   void write_csv(const std::string& filename) const;
+
+  // misc
+  double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
 };
 
 
