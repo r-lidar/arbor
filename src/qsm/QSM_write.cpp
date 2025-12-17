@@ -38,14 +38,14 @@ void QSM::write(const std::string& filename, bool binary) const
 
   if (ext == "obj")
     write_obj(filename);
-  if (ext == "stl")
+  else if (ext == "stl")
     write_stl(filename, binary);
   else if (ext == "ply")
     write_ply(filename, binary);
   else if (ext == "csv" || ext == "txt")
     write_csv(filename);
   else
-    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: obj, ply, csv, txt");
+    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: .obj, .ply, .stl, .csv, .txt");
 }
 
 void QSM::write_ply(const std::string& filename, bool binary) const
