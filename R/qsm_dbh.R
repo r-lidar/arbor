@@ -35,6 +35,7 @@
 #' @export
 qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
 {
+  X <- Y <- Z <- NULL
   data.table::setDT(qsm)
 
   main_axis <- qsm[branch_order == 1]
@@ -52,6 +53,8 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   if (is.null(tree)) return(list(dbh_qsm = unname(dbh_qsm), dbh_slice = NA_real_, dbh_avg = NA_real_))
 
   if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
+
+  tree  <- filter_tree(tree)
 
   # Axis geometry
   start <- c(cyl$startX, cyl$startY, cyl$startZ)
@@ -72,7 +75,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
 
   # This should be computed reprojected!!
   d_center = sqrt((slice$X-x_dbh)^2 + (slice$Y-y_dbh)^2)
-  keep = d_center < dbh
+  keep = d_center < dbh_qsm
   slice = slice[keep]
 
   XYZ <- as.matrix(slice@data[, .(X, Y, Z)])
@@ -191,6 +194,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
 
 .extract_slice <- function(points, P_bh, u, thickness)
 {
+  X <- Y <- Z <- NULL
   pts <- lidR::filter_poi(points, Z >= (P_bh[3] - 0.5) &  Z <= (P_bh[3] + 0.5))
 
   if (nrow(pts) == 0) return(NULL)
