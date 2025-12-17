@@ -56,6 +56,7 @@ file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_f
 file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
 file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fraction 0.4"
 file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
+file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 0.6"
 
 # French Guyana'
 file = "~/Téléchargements/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
@@ -241,7 +242,7 @@ if (display)
 # Edge trees are necessarily bad by construction. We need to remove a buffer large enough
 # to exclude trees connected to partially visible edge trees.
 
-valid_trees <- clip_buffer(trees, -4)
+valid_trees <- clip_buffer(trees, -5)
 
 if (display)
 {
@@ -263,33 +264,13 @@ writeLAS(las, o)
 writeLAS(trees, t)
 writeLAS(valid_trees, v)
 
-local_geohash <- function(x, y, precision = 2)
-{
-  # Normalize and discretize coordinates
-  scale_factor <- 10^(precision / 2)  # precision controls grid resolution
-  ix <- as.integer(round(x * scale_factor))
-  iy <- as.integer(round(y * scale_factor))
-
-  # Interleave bits or just mix coordinates compactly
-  paste0(as.hexmode(abs(ix %% 1048576)), as.hexmode(abs(iy %% 1048576)))
-}
-
 plot(valid_trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
 for (i in unique(valid_trees$treeID))
 {
   print(i)
 
   tree <- filter_poi(valid_trees, treeID == i)
-
-  # Estimate trunk coordinates: average of low points (HAG < 1.5 m)
-  # to generate a geo-id
-  trunk_points <- tree@data[hag < 1.5, , drop = FALSE]
-  if (nrow(trunk_points) == 0) trunk_points = tree@data
-  x_mean <- round(mean(trunk_points$X), 2)
-  y_mean <- round(mean(trunk_points$Y), 2)
-  geo_id <- local_geohash(x_mean, y_mean)
-
-  olas <- paste0(dirname(o), "/ITS/tree_", geo_id, ".las")
+  olas <- paste0(dirname(o), "/ITS/tree_", i, ".las")
   writeLAS(tree, olas)
 }
 # ==== QSM ======

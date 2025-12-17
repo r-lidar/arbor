@@ -21,11 +21,18 @@ around breast height.}
 slice-based DBH estimates are produced.}
 }
 \value{
-A named list with:
+A named nested list with:
 \describe{
-  \item{dbh_qsm}{DBH estimated from the QSM cylinder (meters).}
-  \item{dbh_slice}{DBH estimated from the point cloud slice (meters).}
-  \item{dbh_avg}{Mean of QSM and slice-based DBH (meters).}
+  \item{qsm}{Derived from the QSM cylinder}
+  \item{slice}{Derived from the point cloud slice.}
+  \item{average}{Mean of QSM and slice-based.}
+}
+Each item contains:
+\describe{
+  \item{dbh}{DBH in meter}
+  \item{x}{x-position of the center}
+  \item{y}{y-position of the center}
+  \item{z}{z-position of the center}
 }
 }
 \description{

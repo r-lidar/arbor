@@ -26,11 +26,18 @@
 #' cylinder, and fitted circles.
 #'
 #' @return
-#' A named list with:
+#' A named nested list with:
 #' \describe{
-#'   \item{dbh_qsm}{DBH estimated from the QSM cylinder (meters).}
-#'   \item{dbh_slice}{DBH estimated from the point cloud slice (meters).}
-#'   \item{dbh_avg}{Mean of QSM and slice-based DBH (meters).}
+#'   \item{qsm}{Derived from the QSM cylinder}
+#'   \item{slice}{Derived from the point cloud slice.}
+#'   \item{average}{Mean of QSM and slice-based.}
+#' }
+#' Each item contains:
+#' \describe{
+#'   \item{dbh}{DBH in meter}
+#'   \item{x}{x-position of the center}
+#'   \item{y}{y-position of the center}
+#'   \item{z}{z-position of the center}
 #' }
 #' @export
 qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
@@ -49,8 +56,13 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   dbh_qsm <- round(cyl$radius * 2, 3)
   x_dbh   <- (cyl$startX + cyl$endX)/2
   y_dbh   <- (cyl$startY + cyl$endY)/2
+  z_dbh   <- (cyl$startZ + cyl$endZ)/2
 
-  if (is.null(tree)) return(list(dbh_qsm = unname(dbh_qsm), dbh_slice = NA_real_, dbh_avg = NA_real_))
+  oqsm = list(dbh = dbh_qsm, x = x_dbh, y = y_dbh, z = z_dbh)
+  oslice = list(dbh = NA_real_, x = NA_real_, y = NA_real_, z = NA_real_)
+  oavg = list(dbh = dbh_qsm, x = x_dbh, y = y_dbh, z = z_dbh)
+
+  if (is.null(tree)) return(list(qsm = oqsm, slice = oslice, average = oavg))
 
   if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
 
@@ -71,7 +83,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   slice <- .extract_slice(tree, P_bh, u, slice_thickness)
 
   if (is.null(slice))
-    return(list(dbh_qsm = unname(dbh_qsm), dbh_slice = NA_real_, dbh_avg = NA_real_))
+    return(list(qsm = oqsm, slice = oslice, average = oavg))
 
   # This should be computed reprojected!!
   d_center = sqrt((slice$X-x_dbh)^2 + (slice$Y-y_dbh)^2)
@@ -83,9 +95,16 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
 
   # Circle fit
   fit <- ransac_circle(as.matrix(UV), 1000, 0.02)
-  dbh_slice <- round(fit$radius * 2, 3)
-  x_dbh2 = fit$center_x
-  y_dbh2 = fit$center_y
+  dbh_slice <- unname(round(fit$radius * 2, 3))
+  x_dbh2 = unname(fit$center_x)
+  y_dbh2 = unname(fit$center_y)
+  z_dbh2 = unname(mean(slice$Z))
+
+  oslice = list(dbh = dbh_slice, x = x_dbh2, y = y_dbh2, z = z_dbh2)
+  oavg = list(dbh = (dbh_slice+dbh_qsm)/2,
+              x = (x_dbh2+x_dbh)/2,
+              y = (y_dbh2+y_dbh)/2,
+              z = (z_dbh2+z_dbh)/2)
 
   # ---- PLOTS ----
   if (display)
@@ -148,11 +167,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
     )
   }
 
-  list(
-    dbh_qsm   = unname(dbh_qsm),
-    dbh_slice = unname(dbh_slice),
-    dbh_avg   = unname(round((dbh_qsm + dbh_slice)/2,3))
-  )
+  return(list(qsm = oqsm, slice = oslice, average = oavg))
 }
 
 
