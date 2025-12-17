@@ -1,0 +1,222 @@
+#' Estimate diameter at breast height (DBH) from a QSM and point cloud slice
+#'
+#' Computes diameter at breast height (DBH) from a Quantitative Structure Model
+#' (QSM). When the correspondingpoint cloud is provided, an additional DBH estimate is
+#' obtained by extracting a slice of the point cloud at breast height and fitting a
+#' circle using RANSAC.
+#'
+#' If \code{tree} is \code{NULL}, only the QSM-based DBH is returned.
+#'
+#' @param qsm A \code{data.frame} or \code{data.table} describing a QSM.
+#' @param tree Optional \code{LAS} object containing the point cloud of the tree.
+#'   If provided, DBH is also estimated from a point cloud slice.
+#' @param slice_thickness Numeric. Thickness (in meters) of the slice extracted
+#' around breast height.
+#' @param bh Numeric. Breast height (in meters). Default is 1.37.
+#' @param display Logical. If \code{TRUE}, diagnostic plots comparing QSM and
+#'   slice-based DBH estimates are produced.
+#'
+#' @details
+#' Breast height is computed relative to the minimum \code{startZ} value in the
+#' QSM. If the QSM is not prolongation to the ground this value may be erroneous.
+#' When \code{tree} is supplied, points are projected onto the plane orthogonal
+#' to the main axis at breast height, and a circle is fitted using a RANSAC-based
+#' method.\cr\cr
+#' Diagnostic plots include vertical and horizontal views of the slice, QSM
+#' cylinder, and fitted circles.
+#'
+#' @return
+#' A named list with:
+#' \describe{
+#'   \item{dbh_qsm}{DBH estimated from the QSM cylinder (meters).}
+#'   \item{dbh_slice}{DBH estimated from the point cloud slice (meters).}
+#'   \item{dbh_avg}{Mean of QSM and slice-based DBH (meters).}
+#' }
+#' @export
+qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
+{
+  data.table::setDT(qsm)
+
+  main_axis <- qsm[branch_order == 1]
+  ground_z  <- min(qsm$startZ)
+  bh        <- ground_z + bh
+
+  cyl <- main_axis[startZ <= bh & endZ >= bh]
+  if (nrow(cyl) != 1) stop("Invalid number of cylinders at breast height")
+
+  # QSM DBH
+  dbh_qsm <- round(cyl$radius * 2, 3)
+  x_dbh   <- (cyl$startX + cyl$endX)/2
+  y_dbh   <- (cyl$startY + cyl$endY)/2
+
+  if (is.null(tree)) return(list(dbh_qsm = unname(dbh_qsm), dbh_slice = NA_real_, dbh_avg = NA_real_))
+
+  if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
+
+  # Axis geometry
+  start <- c(cyl$startX, cyl$startY, cyl$startZ)
+  end   <- c(cyl$endX,   cyl$endY,   cyl$endZ)
+
+  basis <- .axis_basis(start, end)
+  u <- basis$u; a <- basis$a; b <- basis$b
+
+  # Interpolate BH origin
+  t <- (bh - start[3]) / (end[3] - start[3])
+  P_bh <- start + t * (end - start)
+
+  # Slice extraction
+  slice <- .extract_slice(tree, P_bh, u, slice_thickness)
+
+  if (is.null(slice))
+    return(list(dbh_qsm = unname(dbh_qsm), dbh_slice = NA_real_, dbh_avg = NA_real_))
+
+  # This should be computed reprojected!!
+  d_center = sqrt((slice$X-x_dbh)^2 + (slice$Y-y_dbh)^2)
+  keep = d_center < dbh
+  slice = slice[keep]
+
+  XYZ <- as.matrix(slice@data[, .(X, Y, Z)])
+  UV  <- .project_to_plane(XYZ, P_bh, a, b)
+
+  # Circle fit
+  fit <- ransac_circle(as.matrix(UV), 1000, 0.02)
+  dbh_slice <- round(fit$radius * 2, 3)
+  x_dbh2 = fit$center_x
+  y_dbh2 = fit$center_y
+
+  # ---- PLOTS ----
+  if (display)
+  {
+    opar = par(mfrow = c(3, 2))
+    on.exit(par(opar))
+
+    butt = lidR::filter_poi(tree, Z < bh + 1)
+
+    # World diagnostic
+    circle_xyz1 <- .circle_world(c(0, 0), dbh_qsm/2, P_bh, a, b)
+    circle_xyz2 <- .circle_world(c(x_dbh2, y_dbh2), dbh_slice/2, P_bh, a, b)
+
+    graphics::plot(butt@data$X, butt@data$Z, asp = 1, pch = 19, cex = 0.3,  xlab = "X", ylab = "Z", main = "", ylim = c(ground_z-0.1, max(butt$Z)+0.1))
+    graphics::points(slice@data$X, slice@data$Z, asp = 1, pch = 19, cex = 0.4, col = "purple")
+    graphics::lines(circle_xyz1$X, circle_xyz1$Z, col = "green", lwd = 2)
+    graphics::lines(circle_xyz2$X, circle_xyz2$Z, col = "red", lwd = 2)
+    graphics::abline(h = ground_z, col = "black", lty = 1, lwd = 2)
+
+    graphics::plot(butt@data$Y, butt@data$Z, asp = 1, pch = 19, cex = 0.3,  xlab = "Y", ylab = "Z", main = "", ylim = c(ground_z-0.1, max(butt$Z)+0.1))
+    graphics::points(slice@data$Y, slice@data$Z, asp = 1, pch = 19, cex = 0.4, col = "purple")
+    graphics::lines(circle_xyz1$Y, circle_xyz1$Z, col = "green", lwd = 2)
+    graphics::lines(circle_xyz2$Y, circle_xyz2$Z, col = "red", lwd = 2)
+    graphics::abline(h = ground_z, col = "black", lty = 1, lwd = 2)
+
+    butt = lidR::filter_poi(tree, Z > bh - 0.2, Z < bh + 0.2)
+
+    graphics::plot(butt@data$X, butt@data$Z, asp = 1, pch = 19, cex = 0.2,  xlab = "X", ylab = "Z", main = "")
+    graphics::points(slice@data$X, slice@data$Z, asp = 1, pch = 19, cex = 0.5, col = "purple")
+    graphics::lines(circle_xyz1$X, circle_xyz1$Z, col = "green", lwd = 2)
+    graphics::lines(circle_xyz2$X, circle_xyz2$Z, col = "red", lwd = 2)
+
+    graphics::plot(butt@data$Y, butt@data$Z, asp = 1, pch = 19, cex = 0.2,  xlab = "Y", ylab = "Z", main = "")
+    graphics::points(slice@data$Y, slice@data$Z, asp = 1, pch = 19, cex = 0.5, col = "purple")
+    graphics::lines(circle_xyz1$Y, circle_xyz1$Z, col = "green", lwd = 2)
+    graphics::lines(circle_xyz2$Y, circle_xyz2$Z, col = "red", lwd = 2)
+    graphics::abline(h = ground_z, col = "black", lty = 1, lwd = 2)
+
+
+    graphics::plot(slice@data$X, slice@data$Y, asp = 1, pch = 19, cex = 0.4, col = "purple", xlab = "X", ylab = "Y")
+    graphics::lines(circle_xyz1$X, circle_xyz1$Y, col = "green", lwd = 2)
+    graphics::lines(circle_xyz2$X, circle_xyz2$Y, col = "red", lwd = 2)
+
+    graphics::plot.new()
+
+    graphics::legend(
+      "center",
+      legend = c(
+        "Slice points",
+        "Extracted from QSM",
+        "Computed from slice"
+      ),
+      col = c("purple", "green", "red"),
+      pch = c(19, NA, NA),
+      lty = c(NA, 1, 1),
+      lwd = c(NA, 2, 2),
+      pt.cex = 1.2,
+      cex = 1.1,
+      bty = "n"
+    )
+  }
+
+  list(
+    dbh_qsm   = unname(dbh_qsm),
+    dbh_slice = unname(dbh_slice),
+    dbh_avg   = unname(round((dbh_qsm + dbh_slice)/2,3))
+  )
+}
+
+
+.axis_basis <- function(start, end)
+{
+  v <- end - start
+  v_len <- sqrt(sum(v^2))
+  if (v_len < 1e-8) stop("Degenerate cylinder axis")
+
+  u <- v / v_len
+
+  ref <- if (abs(u[1]) < 0.9) c(1, 0, 0) else c(0, 1, 0)
+
+  a <- c(
+    u[2]*ref[3] - u[3]*ref[2],
+    u[3]*ref[1] - u[1]*ref[3],
+    u[1]*ref[2] - u[2]*ref[1]
+  )
+  a <- a / sqrt(sum(a^2))
+
+  b <- c(
+    u[2]*a[3] - u[3]*a[2],
+    u[3]*a[1] - u[1]*a[3],
+    u[1]*a[2] - u[2]*a[1]
+  )
+
+  list(u = u, a = a, b = b)
+}
+
+.project_to_plane <- function(XYZ, origin, a, b)
+{
+  d <- sweep(XYZ, 2, origin)
+  data.table::data.table(
+    U = d %*% a,
+    V = d %*% b,
+    Z = 0
+  )
+}
+
+.extract_slice <- function(points, P_bh, u, thickness)
+{
+  pts <- lidR::filter_poi(points, Z >= (P_bh[3] - 0.5) &  Z <= (P_bh[3] + 0.5))
+
+  if (nrow(pts) == 0) return(NULL)
+
+  suppressWarnings(pts@data[, dist := (X - P_bh[1]) * u[1] + (Y - P_bh[2]) * u[2] + (Z - P_bh[3]) * u[3]])
+
+  lidR::filter_poi(pts, abs(dist) <= thickness / 2)
+}
+
+.circle_world <- function(center_uv, radius, P_bh, a, b, n = 200)
+{
+  t <- seq(0, 2*pi, length.out = n)
+
+  data.table::data.table(
+    X = P_bh[1] +
+      center_uv[1] * a[1] + center_uv[2] * b[1] +
+      radius * cos(t) * a[1] + radius * sin(t) * b[1],
+
+    Y = P_bh[2] +
+      center_uv[1] * a[2] + center_uv[2] * b[2] +
+      radius * cos(t) * a[2] + radius * sin(t) * b[2],
+
+    Z = P_bh[3] +
+      center_uv[1] * a[3] + center_uv[2] * b[3] +
+      radius * cos(t) * a[3] + radius * sin(t) * b[3]
+  )
+}
+
+

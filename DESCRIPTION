@@ -1,7 +1,7 @@
 Package: arbor
 Type: Package
 Title: Tree Segmentation in TLS MLS point cloud
-Version: 0.5.0
+Version: 0.6.0
 Author: Jean-Romain Roussel
 Maintainer: Jean-Romain Roussel <info@r-lidar.com>
 Description: Tree Segmentation in TLS MLS point cloud.
