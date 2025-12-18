@@ -20,7 +20,7 @@ unify_names <- function(qsm)
 {
   # Define the renaming mapping: old = new
   name_map <- c(
-    "branch_order" = "branchOrder",
+    "branchOrder" = "branch_order",
     "parent_segment_ID" = "parent_ID",
     "segment_ID" = "cyl_ID"
   )
