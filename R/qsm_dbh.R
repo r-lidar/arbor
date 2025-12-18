@@ -1,11 +1,11 @@
 #' Estimate diameter at breast height (DBH) from a QSM and point cloud slice
 #'
 #' Computes diameter at breast height (DBH) from a Quantitative Structure Model
-#' (QSM). When the correspondingpoint cloud is provided, an additional DBH estimate is
+#' (QSM). When the corresponding point cloud is provided, an additional DBH estimate is
 #' obtained by extracting a slice of the point cloud at breast height and fitting a
-#' circle using RANSAC.
-#'
-#' If \code{tree} is \code{NULL}, only the QSM-based DBH is returned.
+#' circle using RANSAC. This is similar to the method used for computing the QSM but the
+#' QSM radii are smoothed with polynomial fitting. If \code{tree} is \code{NULL}, only
+#' the QSM-based DBH is returned.
 #'
 #' @param qsm A \code{data.frame} or \code{data.table} describing a QSM.
 #' @param tree Optional \code{LAS} object containing the point cloud of the tree.
@@ -18,7 +18,7 @@
 #'
 #' @details
 #' Breast height is computed relative to the minimum \code{startZ} value in the
-#' QSM. If the QSM is not prolongation to the ground this value may be erroneous.
+#' QSM. If the QSM is not propagated to the ground this value may be erroneous.
 #' When \code{tree} is supplied, points are projected onto the plane orthogonal
 #' to the main axis at breast height, and a circle is fitted using a RANSAC-based
 #' method.\cr\cr
@@ -27,17 +27,22 @@
 #'
 #' @return
 #' A named nested list with:
-#' \describe{
-#'   \item{qsm}{Derived from the QSM cylinder}
-#'   \item{slice}{Derived from the point cloud slice.}
-#'   \item{average}{Mean of QSM and slice-based.}
+#' \itemize{
+#'   \item{qsm: Derived from the QSM cylinder}
+#'   \item{slice: Derived from the point cloud slice.}
+#'   \item{average: Mean of QSM and slice-based.}
 #' }
 #' Each item contains:
-#' \describe{
-#'   \item{dbh}{DBH in meter}
-#'   \item{pos}{xyz position of the center}
-#'   \item{normal}{normal vector of the circle}
+#' \itemize{
+#'   \item{dbh: DBH in meter}
+#'   \item{pos: xyz position of the center}
+#'   \item{normal: normal vector of the circle}
 #' }
+#' @examples
+#' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
+#' tree <- lidR::readLAS(f)
+#' qsm <- qsm(tree)
+#' ans <- qsm_dbh(qsm, tree, display = TRUE)
 #' @export
 qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
 {

@@ -12,8 +12,14 @@
 #' @param max_d Maximum distance between cluster (keep as is)
 #' @param apex last radius of the branch tips
 #' @param ... unused
+#' @examples
+#' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
+#' tree <- lidR::readLAS(f)
+#' qsm = qsm(tree)
+#' x = plot_semantic(tree)
+#' plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
 #' @export
-#' @seealso \link{qsm_write} \link{qsm_read}
+#' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 {
   #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.0025

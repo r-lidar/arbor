@@ -18,11 +18,11 @@ volume distributions, stem profile, and vertical projections.}
 }
 \value{
 A named list with the following elements:
-\describe{
-  \item{stats_by_order}{A `data.table` with volume and cumulative percentage by branch order.}
-  \item{stats_by_radius}{A `data.table` with total volume and cylinder count by radius class.}
-  \item{stats_global}{A `data.frame` containing global tree metrics (coordinates, DBH, volume, height).}
-  \item{stem_taper}{A `data.frame` describing stem diameter as a function of distance to root.}
+\itemize{
+  \item{stats_by_order: A `data.table` with volume and cumulative percentage by branch order.}
+  \item{stats_by_radius: A `data.table` with total volume and cylinder count by radius class.}
+  \item{stats_global: A `data.frame` containing global tree metrics (coordinates, DBH, volume, height).}
+  \item{stem_taper: A `data.frame` describing stem diameter as a function of distance to root.}
 }
 }
 \description{
@@ -39,10 +39,16 @@ The function computes:
   \item Volume distribution and cumulative percentage by branch order.
   \item Stem taper profile from the main axis.
   \item Global tree statistics such as DBH, total volume, and height.
-}\cr\cr
+}
 When a `LAS` object is supplied, metrics are derived directly
 from the point cloud and QSM rather than the QSM alone.
 }
+\examples{
+f <- system.file("extdata", "tree_qsm.laz", package="arbor")
+tree <- lidR::readLAS(f)
+qsm <- qsm(tree)
+ans <- qsm_stats(qsm, tree, display = TRUE)
+}
 \seealso{
-\code{\link{qsm_dbh}}, \code{\link{qsm_qsm}}
+\link{qsm_dbh}, \link{qsm}
 }

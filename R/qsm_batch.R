@@ -11,8 +11,8 @@
 #' @param ply Logical; write QSM results as PLY. Default: FALSE.
 #' @param overwrite Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
 #' existing QSMs
-#' @param ncores Number of CPU cores to use. Default: all available cores.
-#' @param ... Additional arguments passed to `qsm()`.
+#' @param ncores Number of CPU cores to use.
+#' @param ... Additional arguments passed to \link{qsm}.
 #'
 #' @return A data.table of logs, one line per input file. Each log entry contains:
 #'   \itemize{

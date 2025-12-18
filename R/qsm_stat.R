@@ -20,21 +20,25 @@
 #'   \item Volume distribution and cumulative percentage by branch order.
 #'   \item Stem taper profile from the main axis.
 #'   \item Global tree statistics such as DBH, total volume, and height.
-#' }\cr\cr
+#' }
 #' When a `LAS` object is supplied, metrics are derived directly
 #' from the point cloud and QSM rather than the QSM alone.
 #'
 #' @return A named list with the following elements:
-#' \describe{
-#'   \item{stats_by_order}{A `data.table` with volume and cumulative percentage by branch order.}
-#'   \item{stats_by_radius}{A `data.table` with total volume and cylinder count by radius class.}
-#'   \item{stats_global}{A `data.frame` containing global tree metrics (coordinates, DBH, volume, height).}
-#'   \item{stem_taper}{A `data.frame` describing stem diameter as a function of distance to root.}
+#' \itemize{
+#'   \item{stats_by_order: A `data.table` with volume and cumulative percentage by branch order.}
+#'   \item{stats_by_radius: A `data.table` with total volume and cylinder count by radius class.}
+#'   \item{stats_global: A `data.frame` containing global tree metrics (coordinates, DBH, volume, height).}
+#'   \item{stem_taper: A `data.frame` describing stem diameter as a function of distance to root.}
 #' }
 #'
 #' @seealso
-#' \code{\link{qsm_dbh}}, \code{\link{qsm_qsm}}
-#'
+#' \link{qsm_dbh}, \link{qsm}
+#' @examples
+#' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
+#' tree <- lidR::readLAS(f)
+#' qsm <- qsm(tree)
+#' ans <- qsm_stats(qsm, tree, display = TRUE)
 #' @export
 qsm_stats <- function(qsm, tree = NULL, display = FALSE)
 {
@@ -105,7 +109,7 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
     stats_global$q98 = q98- Z_root
   }
 
-  if (display) .plot_stats(stats_by_radius, stats_by_order, stem_profile, tree)
+  if (display) .plot_stats(stats_by_radius, stats_by_order, stats_global, stem_profile, tree)
 
   return(list(stats_by_order = stats_by_order,
               stats_by_radius = stats_by_radius,
@@ -114,7 +118,7 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
 
 }
 
-.plot_stats = function(stats_by_radius, stats_by_order, stem_profile, tree)
+.plot_stats = function(stats_by_radius, stats_by_order, stats_global, stem_profile, tree)
 {
   opar <- graphics::par(
     mfrow = c(3, 2),
@@ -185,26 +189,25 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
     main = "Stem profile"
   )
   graphics::grid(col = "grey85", lty = 1)
-  graphics::box()
 
   # 6) Tree vertical structure
   if (!is.null(tree))
   {
     graphics::plot(
-      tree$X, tree$Z,
+      tree$X, tree$Z - stats_global$Z_root,
       pch  = 19,
       cex  = 0.05,
       col  = grDevices::adjustcolor("black", 0.4),
       asp  = 1,
-      ylim = c(Z_root - 0.5, stats_global$H + Z_root + 0.5),
+      ylim = c(- 0.5, stats_global$H + 0.5),
       xlab = "Horizontal distance (m)",
       ylab = "Height (m)",
       main = "Tree vertical structure"
     )
 
-    graphics::abline(h = Z_root, lwd = 2)
-    graphics::abline(h = stats_global$H + Z_root, lty = 3)
-    graphics::abline(h = stats_global$Z_bh, lty = 3, col = "steelblue")
+    graphics::abline(h = 0, lwd = 2)
+    graphics::abline(h = stats_global$H, lty = 3)
+    graphics::abline(h = stats_global$Z_bh-stats_global$Z_root, lty = 3, col = "steelblue")
     graphics::box()
   }
 }

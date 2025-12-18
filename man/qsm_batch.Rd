@@ -29,9 +29,9 @@ qsm_batch(
 \item{overwrite}{Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
 existing QSMs}
 
-\item{ncores}{Number of CPU cores to use. Default: all available cores.}
+\item{ncores}{Number of CPU cores to use.}
 
-\item{...}{Additional arguments passed to `qsm()`.}
+\item{...}{Additional arguments passed to \link{qsm}.}
 }
 \value{
 A data.table of logs, one line per input file. Each log entry contains:

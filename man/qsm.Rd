@@ -26,6 +26,13 @@ the bottom to top approach to build the skeleton. Then if fits a radius to each 
 with a ransac circle fitting. Last it applies a allometric model to correct irrelevant cylinder
 and compute a more organic tree. See the [Arbor book] for mode details.
 }
+\examples{
+f <- system.file("extdata", "tree_qsm.laz", package="arbor")
+tree <- lidR::readLAS(f)
+qsm = qsm(tree)
+x = plot_semantic(tree)
+plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
+}
 \seealso{
-\link{qsm_write} \link{qsm_read}
+\link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 }
