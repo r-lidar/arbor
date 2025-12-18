@@ -30,9 +30,7 @@ A named nested list with:
 Each item contains:
 \describe{
   \item{dbh}{DBH in meter}
-  \item{x}{x-position of the center}
-  \item{y}{y-position of the center}
-  \item{z}{z-position of the center}
+  \item{pos}{xyz position of the center}
 }
 }
 \description{

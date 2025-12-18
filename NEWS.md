@@ -1,7 +1,8 @@
 # lidRtls 0.6.0
 
 - QSMs in C++ are faster
-- new functions `qsm_dbh()`
+- new function `qsm_dbh()`
+- new function `qsm_stats()`
 
 # lidRtls 0.5.0
 

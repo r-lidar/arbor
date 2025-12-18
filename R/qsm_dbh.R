@@ -35,9 +35,8 @@
 #' Each item contains:
 #' \describe{
 #'   \item{dbh}{DBH in meter}
-#'   \item{x}{x-position of the center}
-#'   \item{y}{y-position of the center}
-#'   \item{z}{z-position of the center}
+#'   \item{pos}{xyz position of the center}
+#'   \item{normal}{normal vector of the circle}
 #' }
 #' @export
 qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
@@ -58,10 +57,6 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   y_dbh   <- (cyl$startY + cyl$endY)/2
   z_dbh   <- (cyl$startZ + cyl$endZ)/2
 
-  oqsm = list(dbh = dbh_qsm, x = x_dbh, y = y_dbh, z = z_dbh)
-  oslice = list(dbh = NA_real_, x = NA_real_, y = NA_real_, z = NA_real_)
-  oavg = list(dbh = dbh_qsm, x = x_dbh, y = y_dbh, z = z_dbh)
-
   if (is.null(tree)) return(list(qsm = oqsm, slice = oslice, average = oavg))
 
   if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
@@ -74,6 +69,10 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
 
   basis <- .axis_basis(start, end)
   u <- basis$u; a <- basis$a; b <- basis$b
+
+  oqsm = list(dbh = dbh_qsm, pos = c(x = x_dbh, y = y_dbh, z = z_dbh), normal = u)
+  oslice = list(dbh = NA_real_, pos = c(x = NA_real_, y = NA_real_, z = NA_real_), normal =  u)
+  oavg = list(dbh = dbh_qsm,  pos = c(x = x_dbh, y = y_dbh, z = z_dbh), normal = u)
 
   # Interpolate BH origin
   t <- (bh - start[3]) / (end[3] - start[3])
@@ -96,27 +95,39 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   # Circle fit
   fit <- ransac_circle(as.matrix(UV), 1000, 0.02)
   dbh_slice <- unname(round(fit$radius * 2, 3))
-  x_dbh2 = unname(fit$center_x)
-  y_dbh2 = unname(fit$center_y)
-  z_dbh2 = unname(mean(slice$Z))
+  px_dbh2 = unname(fit$center_x)
+  py_dbh2 = unname(fit$center_y)
+  xy_dbh2 = matrix(c(px_dbh2, py_dbh2, 0), 1, 3)
+  xy_dbh2 = .unproject_from_plane(xy_dbh2, P_bh, a, b)
+  x_dbh2 = as.numeric(xy_dbh2[1,1])
+  y_dbh2 = as.numeric(xy_dbh2[1,2])
+  z_dbh2 = as.numeric(xy_dbh2[1,3])
 
-  oslice = list(dbh = dbh_slice, x = x_dbh2, y = y_dbh2, z = z_dbh2)
+  oslice = list(dbh = dbh_slice,
+                pos = c(x = x_dbh2, y = y_dbh2, z = z_dbh2),
+                normal = u)
   oavg = list(dbh = (dbh_slice+dbh_qsm)/2,
-              x = (x_dbh2+x_dbh)/2,
-              y = (y_dbh2+y_dbh)/2,
-              z = (z_dbh2+z_dbh)/2)
+              pos = c(x = (x_dbh2+x_dbh)/2, y = (y_dbh2+y_dbh)/2, z = (z_dbh2+z_dbh)/2),
+              normal = u)
 
   # ---- PLOTS ----
   if (display)
   {
-    opar = par(mfrow = c(3, 2))
-    on.exit(par(opar))
+    opar <- graphics::par(
+      mfrow = c(3, 2),
+      mar   = c(4, 4, 2.5, 1),
+      mgp   = c(2.2, 0.7, 0),
+      tcl   = -0.3,
+      cex.lab  = 0.95,
+      cex.axis = 0.85
+    )
+    on.exit(graphics::par(opar))
 
     butt = lidR::filter_poi(tree, Z < bh + 1)
 
     # World diagnostic
     circle_xyz1 <- .circle_world(c(0, 0), dbh_qsm/2, P_bh, a, b)
-    circle_xyz2 <- .circle_world(c(x_dbh2, y_dbh2), dbh_slice/2, P_bh, a, b)
+    circle_xyz2 <- .circle_world(c(px_dbh2, py_dbh2), dbh_slice/2, P_bh, a, b)
 
     graphics::plot(butt@data$X, butt@data$Z, asp = 1, pch = 19, cex = 0.3,  xlab = "X", ylab = "Z", main = "", ylim = c(ground_z-0.1, max(butt$Z)+0.1))
     graphics::points(slice@data$X, slice@data$Z, asp = 1, pch = 19, cex = 0.4, col = "purple")
@@ -204,6 +215,25 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
     U = d %*% a,
     V = d %*% b,
     Z = 0
+  )
+}
+
+.unproject_from_plane <- function(UV, origin, a, b)
+{
+  # Ensure matrix form
+  UV <- as.matrix(UV)
+
+  XYZ <- sweep(
+    UV[, 1] %*% t(a) + UV[, 2] %*% t(b),
+    2,
+    origin,
+    "+"
+  )
+
+  data.table::data.table(
+    X = XYZ[, 1],
+    Y = XYZ[, 2],
+    Z = XYZ[, 3]
   )
 }
 

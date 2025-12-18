@@ -72,9 +72,9 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
   data.table::setorder(stem_profile, dist_to_root)
 
   dbh = qsm_dbh(qsm, tree, display = display)
-  X_bh = dbh$average$x
-  Y_bh = dbh$average$y
-  Z_bh = dbh$average$z
+  X_bh = dbh$average$pos[1]
+  Y_bh = dbh$average$pos[2]
+  Z_bh = dbh$average$pos[3]
 
   root = qsm[axis_ID == 1][1]
   X_root = root$startX
@@ -84,6 +84,8 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
   qsm = qsm_volume(qsm)
   V   = round(sum(qsm$volume), 3)
   H   = round(max(qsm$endZ) - Z_root, 3)
+  DBH = dbh$qsm$dbh
+  if (!is.na(dbh$slice$dbh)) DBH = dbh$slice$dbh
 
   stats_global = data.frame(X_root = X_root,
                             Y_root = Y_root,
@@ -91,7 +93,7 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
                             X_bh = Y_bh,
                             Y_bh = Y_bh,
                             Z_bh = Z_bh,
-                            DBH = dbh$average$dbh,
+                            DBH = DBH,
                             V = V,
                             H = H)
 
@@ -103,28 +105,106 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
     stats_global$q98 = q98- Z_root
   }
 
-  if (display)
-  {
-    opar = graphics::par(mfrow = c(3, 2))
-    on.exit(graphics::par(opar))
-
-    graphics::barplot(stats_by_radius$volume, names.arg = stats_by_radius$radius, xlab = "Radius (cm)", ylab = "Total volume (m\u00B3)")
-    graphics::barplot(stats_by_radius$N, names.arg = stats_by_radius$radius, xlab = "Radius(cm)", ylab = "Num. cylinders")
-
-    graphics::barplot(stats_by_order$volume, names.arg = stats_by_order$branch_order, xlab = "Branch order", ylab = "Total volume (m\u00B3)")
-    graphics::barplot(stats_by_order$percentage, names.arg = stats_by_order$branch_order, xlab = "Branch order", ylab = "Total volume (%)")
-
-    graphics::plot(r*200, dist_to_root, xlab = "Diameter (cm)", ylab = "Distance to root (m)", main = "Stem profile", pch = 19, cex = 0.5)
-
-    graphics::plot(tree$X, tree$Z, pch = 19, cex = 0.05, asp = 1, ylim = c(Z_root-0.5, stats_global$H+Z_root+0.5))
-    graphics::abline(h = Z_root, lty = 1, lwd = 2)
-    graphics::abline(h = stats_global$H+Z_root, lty = 3)
-    graphics::abline(h = stats_global$Z_bh, lty = 3, col = "blue")
-  }
+  if (display) .plot_stats(stats_by_radius, stats_by_order, stem_profile, tree)
 
   return(list(stats_by_order = stats_by_order,
               stats_by_radius = stats_by_radius,
               stats_global = stats_global,
               stem_taper = stem_profile))
 
+}
+
+.plot_stats = function(stats_by_radius, stats_by_order, stem_profile, tree)
+{
+  opar <- graphics::par(
+    mfrow = c(3, 2),
+    mar   = c(4, 4, 2.5, 1),
+    mgp   = c(2.2, 0.7, 0),
+    tcl   = -0.3,
+    cex.lab  = 0.95,
+    cex.axis = 0.85
+  )
+  on.exit(graphics::par(opar))
+
+  # 1) Volume by radius
+  graphics::barplot(
+    stats_by_radius$volume,
+    names.arg = stats_by_radius$radius,
+    col       = "grey70",
+    border    = "grey30",
+    xlab      = "Radius (cm)",
+    ylab      = expression("Total volume (m"^3*")"),
+    main      = "Volume by radius"
+  )
+  graphics::box()
+
+  # 2) Number of cylinders by radius
+  graphics::barplot(
+    stats_by_radius$N,
+    names.arg = stats_by_radius$radius,
+    col       = "grey80",
+    border    = "grey30",
+    xlab      = "Radius (cm)",
+    ylab      = "Number of cylinders",
+    main      = "Cylinder count by radius"
+  )
+  graphics::box()
+
+  # 3) Volume by branch order
+  graphics::barplot(
+    stats_by_order$volume,
+    names.arg = stats_by_order$branch_order,
+    col       = "grey70",
+    border    = "grey30",
+    xlab      = "Branch order",
+    ylab      = expression("Total volume (m"^3*")"),
+    main      = "Volume by branch order"
+  )
+  graphics::box()
+
+  # 4) Volume percentage by branch order
+  graphics::barplot(
+    stats_by_order$percentage,
+    names.arg = stats_by_order$branch_order,
+    col       = "grey85",
+    border    = "grey30",
+    xlab      = "Branch order",
+    ylab      = "Total volume (%)",
+    main      = "Relative volume contribution"
+  )
+  graphics::box()
+
+  # 5) Stem profile
+  graphics::plot(
+    stem_profile$diametre/100, stem_profile$dist_to_root,
+    pch  = 19,
+    cex  = 0.45,
+    col  = grDevices::adjustcolor("black", 0.5),
+    xlab = "Diameter (cm)",
+    ylab = "Distance to root (m)",
+    main = "Stem profile"
+  )
+  graphics::grid(col = "grey85", lty = 1)
+  graphics::box()
+
+  # 6) Tree vertical structure
+  if (!is.null(tree))
+  {
+    graphics::plot(
+      tree$X, tree$Z,
+      pch  = 19,
+      cex  = 0.05,
+      col  = grDevices::adjustcolor("black", 0.4),
+      asp  = 1,
+      ylim = c(Z_root - 0.5, stats_global$H + Z_root + 0.5),
+      xlab = "Horizontal distance (m)",
+      ylab = "Height (m)",
+      main = "Tree vertical structure"
+    )
+
+    graphics::abline(h = Z_root, lwd = 2)
+    graphics::abline(h = stats_global$H + Z_root, lty = 3)
+    graphics::abline(h = stats_global$Z_bh, lty = 3, col = "steelblue")
+    graphics::box()
+  }
 }
