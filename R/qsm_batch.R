@@ -6,9 +6,7 @@
 #'
 #' @param ifiles Character vector of input file paths, or a single directory containing LAS/LAZ files.
 #' @param odir Output directory where `csv/`, `obj/`, and `ply/` folders will be created.
-#' @param csv Logical; write QSM results as CSV. Default: TRUE.
-#' @param obj Logical; write QSM results as OBJ. Default: TRUE.
-#' @param ply Logical; write QSM results as PLY. Default: FALSE.
+#' @param formats Character; write QSM results in which formats? See \link{qsm_write}.
 #' @param overwrite Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
 #' existing QSMs
 #' @param ncores Number of CPU cores to use.
@@ -28,87 +26,58 @@
 qsm_batch = function(
     ifiles,
     odir,
-    csv = TRUE,
-    obj = TRUE,
-    ply = FALSE,
+    format = c("csv", "obj"),
     overwrite = FALSE,
-    ncores = parallel::detectCores()/2,
+    ncores = parallel::detectCores() / 2,
     ...
-)
-{
-  # Normalize booleans
-  csv <- isTRUE(csv)
-  obj <- isTRUE(obj)
-  ply <- isTRUE(ply)
-
-  # Validate overwrite
-  overwrite <- isTRUE(overwrite)
-
-  # Short-circuit
-  if (!any(csv, obj, ply))
-    stop("Nothing to do: csv=FALSE, obj=FALSE, ply=FALSE.")
-
-  # Capture dots for cluster
-  dots <- list(...)
-
+) {
   ti <- tic()
 
-  # Build output directories
-  odir     <- normalizePath(odir, mustWork = FALSE)
+  # 1. Validation and Directory Setup
+  format <- unique(tolower(format))
+  if (length(format) == 0) stop("At least one format must be specified.")
 
-  ocsvdir  <- file.path(odir, "csv")
-  oobjdir  <- file.path(odir, "obj")
-  oplydir  <- file.path(odir, "ply")
+  odir <- normalizePath(odir, mustWork = FALSE)
 
-  dirs_to_create <- c(
-    if (csv) ocsvdir else NULL,
-    if (obj) oobjdir else NULL,
-    if (ply) oplydir else NULL
-  )
-  for (d in dirs_to_create) if (!dir.exists(d)) dir.create(d, recursive = TRUE)
+  # Create a subfolder for every requested format automatically
+  format_dirs <- stats::setNames(file.path(odir, format), format)
+  for (d in format_dirs) {
+    if (!dir.exists(d))
+      dir.create(d, recursive = TRUE)
+  }
 
-  # Handle directory input
-  if (length(ifiles) == 1 && dir.exists(ifiles))
-  {
-    dirpath <- normalizePath(ifiles, mustWork = TRUE)
+  # 2. Handle input files/directories
+  if (length(ifiles) == 1 && dir.exists(ifiles)) {
     ifiles <- list.files(
-      dirpath,
+      ifiles,
       pattern = "\\.(las|laz)$",
       full.names = TRUE,
       ignore.case = TRUE
     )
-    if (length(ifiles) == 0)
-      stop("Directory contains no LAS/LAZ files: ", dirpath)
   }
-
-  # List files
   ifiles <- normalizePath(ifiles, mustWork = TRUE)
+  if (length(ifiles) == 0) stop("No valid input files found.")
 
-  # Prepare logs
-  logs <- vector("list", length(ifiles))
-  names(logs) <- basename(ifiles)
-
-  # Parallel setup
+  # 3. Parallel Setup
+  dots <- list(...)
   cl <- parallel::makeCluster(ncores)
   on.exit(parallel::stopCluster(cl))
 
+  # Export only the necessary dynamic variables
   parallel::clusterExport(
     cl,
-    varlist = c(
-      "csv", "obj", "ply", "ocsvdir", "oobjdir", "oplydir",
-      "overwrite", "dots"
-    ),
+    varlist = c("format", "format_dirs", "overwrite", "dots"),
     envir = environment()
   )
 
-  # Process files
+  # 4. Process Files
   res <- pbapply::pblapply(ifiles, cl = cl, FUN = function(f)
   {
     name <- tools::file_path_sans_ext(basename(f))
 
-    outcsv <- file.path(ocsvdir, paste0(name, ".csv"))
-    outobj <- file.path(oobjdir, paste0(name, ".obj"))
-    outply <- file.path(oplydir, paste0(name, ".ply"))
+    # Generate all output paths dynamically
+    out_paths <- file.path(format_dirs, paste0(name, ".", format))
+    names(out_paths) <- format
 
     log <- list(
       file = f,
@@ -118,48 +87,36 @@ qsm_batch = function(
       error = NA_character_
     )
 
-    # Skip?
-    needed <- c(
-      csv && !file.exists(outcsv),
-      obj && !file.exists(outobj),
-      ply && !file.exists(outply)
-    )
-
-    if (!overwrite && !any(needed))
-    {
+    # Skip logic: Check if all requested files exist
+    if (!overwrite && all(file.exists(out_paths))) {
       log$status <- "skipped_existing"
       return(log)
     }
 
-    # Read LAS
+    # Execute QSM
     las <- tryCatch(lidR::readLAS(f), error = function(e) e)
-
     if (inherits(las, "error"))
     {
-      log$success = FALSE
-      log$status <- "failed_readLAS"
-      log$error <- las$message
+      log$success <- FALSE; log$status <- "failed_readLAS"; log$error <- las$message
       return(log)
     }
 
-    # QSM execution
     tryCatch(
     {
-      qsm_logs <- utils::capture.output({
+      # Capture logs to keep console clean during parallel execution
+      utils::capture.output({
         q <- do.call(qsm, c(list(las), dots))
       }, type = "output")
 
-      # Write outputs
-      if (csv) { qsm_write(q, outcsv) }
-      if (obj) { qsm_write(q, outobj) }
-      if (ply) { qsm_write(q, outply) }
+      # Loop through formats and write files automatically
+      # This will work as long as qsm_write supports the extension
+      for (o in out_paths) qsm_write(q, o)
 
       log$status <- "success"
     },
-    error = function(e) {
-      log$success <- FALSE
-      log$status  <- "failed_qsm"
-      log$error   <- e$message
+    error = function(e)
+    {
+      log$success <- FALSE; log$status <- "failed_qsm"; log$error <- e$message
     })
 
     return(log)
