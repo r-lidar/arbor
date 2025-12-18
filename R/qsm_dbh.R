@@ -97,9 +97,31 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   XYZ <- as.matrix(slice@data[, .(X, Y, Z)])
   UV  <- .project_to_plane(XYZ, P_bh, a, b)
 
+  if (nrow(UV) < 5)
+  {
+    warning("Impossible to fit a circle on a slice with less that 5 points. Returned QSM's DBH only.")
+    return(list(qsm = oqsm, slice = oslice, average = oavg))
+  }
+
   # Circle fit
   fit <- ransac_circle(as.matrix(UV), 1000, 0.02)
-  dbh_slice <- unname(round(fit$radius * 2, 3))
+
+  if (fit$covered_arc_degree < 90 | fit$percentage_inlier * 100 < 0.5)
+  {
+    warning("Impossible to fit a valid circle with RANSAC. Returned QSM's DBH only.")
+    return(list(qsm = oqsm, slice = oslice, average = oavg))
+  }
+
+  r = fit$radius
+
+  ratio = (abs((2*r) - dbh_qsm))/dbh_qsm
+  if (ratio > 0.5)
+  {
+    warning("Too different radii between QSM slice measurement. Returned QSM's DBH only.")
+    return(list(qsm = oqsm, slice = oslice, average = oavg))
+  }
+
+  dbh_slice <- unname(round(r * 2, 3))
   px_dbh2 = unname(fit$center_x)
   py_dbh2 = unname(fit$center_y)
   xy_dbh2 = matrix(c(px_dbh2, py_dbh2, 0), 1, 3)
