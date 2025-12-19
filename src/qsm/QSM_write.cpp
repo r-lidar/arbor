@@ -157,10 +157,8 @@ void QSM::write_stl(const std::string& filename, bool binary) const
     if (!out.is_open())
       throw std::runtime_error("Cannot open STL file for writing: " + filename);
 
-    // 80-byte header
     char header[80] = {};
-    const char* title = "QSM binary STL";
-    std::strncpy(header, title, std::min<size_t>(79, std::strlen(title)));
+    std::memcpy(header, "QSM binary STL", 14);
     out.write(header, 80);
 
     // Number of triangles
