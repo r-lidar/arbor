@@ -46,7 +46,7 @@
 #' @export
 qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
 {
-  X <- Y <- Z <- NULL
+  X <- Y <- Z <- branch_order <- startZ <- endZ <- . <- NULL
   data.table::setDT(qsm)
 
   main_axis <- qsm[branch_order == 1]
@@ -266,7 +266,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
 
 .extract_slice <- function(points, P_bh, u, thickness)
 {
-  X <- Y <- Z <- NULL
+  X <- Y <- Z <- dist <- NULL
   pts <- lidR::filter_poi(points, Z >= (P_bh[3] - 0.5) &  Z <= (P_bh[3] + 0.5))
 
   if (nrow(pts) == 0) return(NULL)

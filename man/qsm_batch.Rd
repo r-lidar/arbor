@@ -7,7 +7,7 @@
 qsm_batch(
   ifiles,
   odir,
-  format = c("csv", "obj"),
+  formats = c("csv", "obj"),
   overwrite = FALSE,
   ncores = parallel::detectCores()/2,
   ...
@@ -18,14 +18,14 @@ qsm_batch(
 
 \item{odir}{Output directory where `csv/`, `obj/`, and `ply/` folders will be created.}
 
+\item{formats}{Character; write QSM results in which formats? See \link{qsm_write}.}
+
 \item{overwrite}{Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
 existing QSMs}
 
 \item{ncores}{Number of CPU cores to use.}
 
 \item{...}{Additional arguments passed to \link{qsm}.}
-
-\item{formats}{Character; write QSM results in which formats? See \link{qsm_write}.}
 }
 \value{
 A data.table of logs, one line per input file. Each log entry contains:

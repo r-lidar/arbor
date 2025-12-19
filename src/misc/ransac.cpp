@@ -8,9 +8,11 @@
 
 // ---- Constructor ----
 RansacCircle::RansacCircle(int iterations, double inlier_thr, double early_exit)
-  : num_iterations(iterations),
-    inlier_threshold(inlier_thr),
-    early_exit_ratio(early_exit) {}
+  : inlier_threshold(inlier_thr),
+    early_exit_ratio(early_exit),
+    num_iterations(iterations)
+{
+}
 
 // ---- Add a point ----
 void RansacCircle::add_point(double x, double y, double z)

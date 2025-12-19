@@ -26,7 +26,7 @@
 qsm_batch = function(
     ifiles,
     odir,
-    format = c("csv", "obj"),
+    formats = c("csv", "obj"),
     overwrite = FALSE,
     ncores = parallel::detectCores() / 2,
     ...
@@ -34,13 +34,13 @@ qsm_batch = function(
   ti <- tic()
 
   # 1. Validation and Directory Setup
-  format <- unique(tolower(format))
-  if (length(format) == 0) stop("At least one format must be specified.")
+  formats <- unique(tolower(formats))
+  if (length(formats) == 0) stop("At least one format must be specified.")
 
   odir <- normalizePath(odir, mustWork = FALSE)
 
   # Create a subfolder for every requested format automatically
-  format_dirs <- stats::setNames(file.path(odir, format), format)
+  format_dirs <- stats::setNames(file.path(odir, formats), formats)
   for (d in format_dirs) {
     if (!dir.exists(d))
       dir.create(d, recursive = TRUE)
@@ -66,7 +66,7 @@ qsm_batch = function(
   # Export only the necessary dynamic variables
   parallel::clusterExport(
     cl,
-    varlist = c("format", "format_dirs", "overwrite", "dots"),
+    varlist = c("formats", "format_dirs", "overwrite", "dots"),
     envir = environment()
   )
 
@@ -76,8 +76,8 @@ qsm_batch = function(
     name <- tools::file_path_sans_ext(basename(f))
 
     # Generate all output paths dynamically
-    out_paths <- file.path(format_dirs, paste0(name, ".", format))
-    names(out_paths) <- format
+    out_paths <- file.path(format_dirs, paste0(name, ".", formats))
+    names(out_paths) <- formats
 
     log <- list(
       file = f,

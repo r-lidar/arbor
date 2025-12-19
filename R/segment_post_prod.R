@@ -18,7 +18,7 @@ fix_small_isolated_low_clusters = function(las)
 
   tree_ids = unique(las$treeID)
   n_trees = length(tree_ids)
-  pb = txtProgressBar(min = 0, max = n_trees, style = 3)  # create progress bar
+  pb = utils::txtProgressBar(min = 0, max = n_trees, style = 3)  # create progress bar
 
   for (i in seq_along(tree_ids))
   {
@@ -41,7 +41,7 @@ fix_small_isolated_low_clusters = function(las)
       }
     }
 
-    setTxtProgressBar(pb, i)  # update progress bar
+    utils::setTxtProgressBar(pb, i)  # update progress bar
   }
 
   close(pb)  # close progress bar

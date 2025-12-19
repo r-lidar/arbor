@@ -57,7 +57,7 @@ read_trajectory = function(file, dt = 0.5)
 add_range = function(las, traj)
 {
   range_data <- lidR::get_range(las, traj)
-  add_lasattribute(las, range_data, "range", "distance to sensor")
+  lidR::add_lasattribute(las, range_data, "range", "distance to sensor")
 }
 
 

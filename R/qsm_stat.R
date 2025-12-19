@@ -104,7 +104,7 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
   if (!is.null(tree))
   {
     H = max(tree$Z)
-    q98 = quantile(tree$Z, probs = 0.98)
+    q98 = stats::quantile(tree$Z, probs = 0.98)
     stats_global$H = H - Z_root
     stats_global$q98 = q98- Z_root
   }
