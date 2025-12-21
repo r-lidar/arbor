@@ -44,12 +44,8 @@ file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_
 file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.25"
 file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
-
 # MRNF Oak plantations
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/sta_plot1.las" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/god_plot1.laz" ; filter = "-keep_random_fraction 0.8"
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot1.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/test/coo_plot2_70x70.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.55
+file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/Tutoriel/sta_plot1_20x20.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
 
 # Bastien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.25"

@@ -5,8 +5,8 @@ C_voxel_barycenter_decimate <- function(X, Y, Z, res) {
     .Call(`_arbor_C_voxel_barycenter_decimate`, X, Y, Z, res)
 }
 
-anisotropy <- function(df, k, ncpu = 1L) {
-    .Call(`_arbor_anisotropy`, df, k, ncpu)
+C_anisotropy <- function(df, k, ncpu = 1L) {
+    .Call(`_arbor_C_anisotropy`, df, k, ncpu)
 }
 
 build_semantic_graph <- function(dec, target, gnd, master_seed, params) {

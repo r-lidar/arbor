@@ -16,10 +16,9 @@ compute_anisotropy = function(las, params = default_arbor_parameters)
 {
   t0 <- tic()
   k <- params$anistotropy$k
-  eigen <- lidR::point_eigenvalues(las, k = k, coeffs = FALSE)
-  anisotropy <- (eigen[["eigen_largest"]] - eigen[["eigen_smallest"]]) / eigen[["eigen_largest"]]
+  anisotropy <- C_anisotropy(las@data, k, lidR::get_lidr_threads())
   las <- lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")
-  free(eigen)
+  free(anisotropy)
   toc(t0)
   return(las)
 }

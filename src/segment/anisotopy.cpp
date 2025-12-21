@@ -1,10 +1,10 @@
 #include <Rcpp.h>
-#include <progress.hpp>
-#include <progress_bar.hpp>
+
 #include <vector>
-#include <omp.h>
+#include "myomp.h"
 #include "nanoflann.h"
 #include "Adaptor.h"
+#include "progressbar.h"
 
 using PointCloud = DataFrameAdaptor;
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
@@ -52,7 +52,7 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
   lmid = 3.0*m - lmax - lmin;
 }
 
-Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
 {
   const int n = df.nrow();
 
@@ -65,7 +65,7 @@ Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
   params.eps = 0.02;
   params.sorted = false;
 
-  Progress p(n, true);
+  Progress pb(n, "Anisotropy");
   std::atomic<bool> abort(false);
 
   #pragma omp parallel num_threads(ncpu)
@@ -78,12 +78,9 @@ Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
     #pragma omp for schedule(static)
     for (int i = 0; i < n; ++i)
     {
-      if (abort.load()) continue;
-      if (i % 10000 == 0)
-      {
-        if (p.check_abort()) abort.store(true);
-        p.increment(10000);
-      }
+      if (abort) continue;
+      if(pb.check_interrupt()) abort = true;
+      pb.tick();
 
       q[0] = adaptor.get_x(i);
       q[1] = adaptor.get_y(i);
@@ -134,6 +131,8 @@ Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
 
       out[i] = (lmax > 1e-14) ? (lmax - lmin) / lmax : 0.0;
     }
+
+    pb.tick();
   }
 
   if (abort.load()) Rcpp::stop("Computation aborted");

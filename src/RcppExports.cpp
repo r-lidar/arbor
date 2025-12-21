@@ -24,16 +24,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// anisotropy
-Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu);
-RcppExport SEXP _arbor_anisotropy(SEXP dfSEXP, SEXP kSEXP, SEXP ncpuSEXP) {
+// C_anisotropy
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu);
+RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP, SEXP ncpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(anisotropy(df, k, ncpu));
+    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k, ncpu));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -239,7 +239,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_voxel_barycenter_decimate", (DL_FUNC) &_arbor_C_voxel_barycenter_decimate, 4},
-    {"_arbor_anisotropy", (DL_FUNC) &_arbor_anisotropy, 3},
+    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
     {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 5},
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},

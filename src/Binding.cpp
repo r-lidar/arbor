@@ -8,7 +8,7 @@
 Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, double res);
 
 // [[Rcpp::export]]
-Rcpp::NumericVector anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1);
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1);
 
 // ========================
 // SEGMENTATION
