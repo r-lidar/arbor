@@ -15,7 +15,6 @@ Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::Num
 RcppExport SEXP _arbor_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP resSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type X(XSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y(YSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Z(ZSEXP);
@@ -29,11 +28,22 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu);
 RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP, SEXP ncpuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
     Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
     rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k, ncpu));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_connected_component
+Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity);
+RcppExport SEXP _arbor_C_connected_component(SEXP dfSEXP, SEXP resSEXP, SEXP connectivitySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type res(resSEXP);
+    Rcpp::traits::input_parameter< int >::type connectivity(connectivitySEXP);
+    rcpp_result_gen = Rcpp::wrap(C_connected_component(df, res, connectivity));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -42,7 +52,6 @@ SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::Dat
 RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type target(targetSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
@@ -57,7 +66,6 @@ SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataF
 RcppExport SEXP _arbor_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seed(seedSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
@@ -71,7 +79,6 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::In
 RcppExport SEXP _arbor_accumulate_passages(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
     Rcpp::traits::input_parameter< int >::type start_node(start_nodeSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_nodes(goal_nodesSEXP);
@@ -85,7 +92,6 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 RcppExport SEXP _arbor_find_closest_node(SEXP graph_ptrSEXP, SEXP idsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type ids(idsSEXP);
     rcpp_result_gen = Rcpp::wrap(find_closest_node(graph_ptr, ids));
@@ -97,7 +103,6 @@ Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_topology_cpp(qsm));
     return rcpp_result_gen;
@@ -108,7 +113,6 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id);
 RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP root_idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
     Rcpp::traits::input_parameter< int >::type root_id(root_idSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, root_id));
@@ -120,7 +124,6 @@ Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
 RcppExport SEXP _arbor_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
@@ -132,7 +135,6 @@ Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type D(DSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
@@ -144,7 +146,6 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length);
 RcppExport SEXP _arbor_qsm_simplify_cpp(SEXP qsmSEXP, SEXP max_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
     Rcpp::traits::input_parameter< double >::type max_length(max_lengthSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_simplify_cpp(qsm, max_length));
@@ -155,7 +156,6 @@ END_RCPP
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 RcppExport SEXP _arbor_qsm_write_cpp(SEXP dfSEXP, SEXP filenameSEXP, SEXP binarySEXP) {
 BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
@@ -168,7 +168,6 @@ Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter, double th);
 RcppExport SEXP _arbor_qsm_smooth_cpp(SEXP dfSEXP, SEXP niterSEXP, SEXP thSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< double >::type th(thSEXP);
@@ -181,7 +180,6 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L);
 RcppExport SEXP _arbor_qsm_prolongation_cpp(SEXP dfSEXP, SEXP dSEXP, SEXP LSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type d(dSEXP);
     Rcpp::traits::input_parameter< double >::type L(LSEXP);
@@ -194,7 +192,6 @@ Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df);
 RcppExport SEXP _arbor_qsm_measure_cpp(SEXP pcSEXP, SEXP dfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type pc(pcSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_measure_cpp(pc, df));
@@ -206,7 +203,6 @@ Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius
 RcppExport SEXP _arbor_qsm_polynomial_fitting_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_polynomial_fitting_cpp(df, tip_radius));
@@ -218,7 +214,6 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 RcppExport SEXP _arbor_qsm_reconstruction_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_reconstruction_cpp(df, tip_radius));
@@ -230,7 +225,6 @@ Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
     rcpp_result_gen = Rcpp::wrap(read_adtree_skeleton(filename));
     return rcpp_result_gen;
@@ -240,6 +234,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_voxel_barycenter_decimate", (DL_FUNC) &_arbor_C_voxel_barycenter_decimate, 4},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
+    {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
     {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 5},
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},

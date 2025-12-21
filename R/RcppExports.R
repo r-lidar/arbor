@@ -9,6 +9,10 @@ C_anisotropy <- function(df, k, ncpu = 1L) {
     .Call(`_arbor_C_anisotropy`, df, k, ncpu)
 }
 
+C_connected_component <- function(df, res, connectivity) {
+    .Call(`_arbor_C_connected_component`, df, res, connectivity)
+}
+
 build_semantic_graph <- function(dec, target, gnd, master_seed, params) {
     .Call(`_arbor_build_semantic_graph`, dec, target, gnd, master_seed, params)
 }
