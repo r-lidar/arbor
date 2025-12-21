@@ -125,7 +125,7 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   # scan, remove patches with not enough points. They are reasigned as foliage
 
   nofoliage$Z <- nofoliage$Z * z_factor
-  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
+  nofoliage   <- connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
   nofoliage$clusterID[nofoliage$clusterID == 0] = NA_integer_
   if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
   nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]
@@ -151,7 +151,7 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   if (FALSE) plot(nofoliage, color = "Classification") # Plot for debuging
   nofoliage <- lidR::remove_noise(nofoliage)
   nofoliage$Z <- nofoliage$Z * z_factor
-  nofoliage   <- lidR::connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
+  nofoliage   <- connected_components(nofoliage, connected_components_res, connected_components_min, connectivity = 26)
   nofoliage$clusterID[nofoliage$clusterID == 0] <- NA_integer_
   if (FALSE) plot(nofoliage, color = "clusterID") # Plot for debuging
   nofoliage   <- nofoliage[!is.na(nofoliage$clusterID)]

@@ -52,7 +52,7 @@ find_seeds <- function(las, params)
   }
 
   # Connect the wood point into clusters
-  cl_wood <- lidR::connected_components(wood, 0.05, 10, connectivity = 26)
+  cl_wood <- connected_components(wood, 0.05, 10, connectivity = 26)
   cl_wood <- lidR::filter_poi(cl_wood, clusterID != 0)
 
   # For each cluster search for circles. If we have a nice circle we have a tree
@@ -190,7 +190,7 @@ find_seeds <- function(las, params)
   temp   <- suppressWarnings(rbind(wood, long_passages, circle_points))
   res    <- round(params$decimation$barycentric_predecimation_resolution*0.8, 2)
   temp$Z <- temp$Z * 0.5
-  temp   <- lidR::connected_components(temp, res, 1, name = "treeID", connectivity = 26)
+  temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
   temp$Z <- temp$Z / 0.5
 
   if (FALSE)

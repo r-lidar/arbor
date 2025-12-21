@@ -4,14 +4,14 @@
 #include "myomp.h"
 #include "progressbar.h"
 
-Progress::Progress(std::size_t total, std::string prefix)
+Progress::Progress(std::size_t total, std::string prefix, double interval)
   : done_(0),
     total_(total),
     prefix_(std::move(prefix)),
     last_percent_(0),
     start_(clock::now()),
     last_print_(start_),
-    min_interval_(0.5)
+    min_interval_(interval)
 {}
 
 Progress::~Progress()

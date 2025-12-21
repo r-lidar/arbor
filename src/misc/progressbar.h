@@ -5,7 +5,7 @@
 class Progress
 {
 public:
-  Progress(std::size_t total, std::string prefix = "");
+  Progress(std::size_t total, std::string prefix = "", double interval = 0.5);
   ~Progress();
 
   // Called by ALL threads

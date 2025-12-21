@@ -28,7 +28,7 @@ fix_small_isolated_low_clusters = function(las)
     if (!lidR::is.empty(tt))
     {
       tt$Z = tt$Z * 0.1
-      tt = lidR::connected_components(tt, 0.05, 200)
+      tt = connected_components(tt, 0.05, 200)
       tt$Z = tt$Z * 10
 
       n = length(unique(tt$clusterID))

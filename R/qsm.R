@@ -66,7 +66,7 @@ clean_tree_butt = function(tree)
 
   tree@data$pointID <- 1:lidR::npoints(tree)
   bottom <- tree[tree$Z < min(tree$Z) + 0.25]
-  bottom <- lidR::connected_components(bottom, 0.05, 10, connectivity = 26)
+  bottom <- connected_components(bottom, 0.05, 10, connectivity = 26)
 
   if (length(unique(bottom$clusterID)) > 1)
   {

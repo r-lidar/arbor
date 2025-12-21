@@ -1,6 +1,7 @@
 # arbor 0.7.0
 
 - `compute_anisotopy()` is twice faster
+- `connected_component()` (internal function) is 5 times faster which provides a boost to several functions.
 
 # arbor 0.6.0
 
