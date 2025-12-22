@@ -10,6 +10,7 @@
 
 using PointCloud = DataFrameAdaptor;
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
+using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu)
 {
@@ -30,7 +31,7 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
 
   #pragma omp parallel num_threads(ncpu)
   {
-    std::vector<unsigned long> idx(k);
+    std::vector<index_t> idx(k);
     std::vector<double> dist(k);
     nanoflann::KNNResultSet<double> resultSet(k);
     double q[3];

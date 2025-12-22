@@ -8,6 +8,7 @@
 
 using PointCloud = DataFrameAdaptor;
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
+using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e, double f, double& lmin, double& lmid, double& lmax)
 {
@@ -70,7 +71,7 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
 
   #pragma omp parallel num_threads(ncpu)
   {
-    std::vector<unsigned long> idx(k);
+    std::vector<index_t> idx(k);
     std::vector<double> dist(k);
     nanoflann::KNNResultSet<double> resultSet(k);
     double q[3];
