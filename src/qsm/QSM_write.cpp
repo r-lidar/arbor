@@ -237,19 +237,21 @@ void QSM::write_csv(const std::string& filename) const
   // ---- WRITE DATA IN ORDER ----
   for (auto* c : sorted)
   {
-    out << c->startX              << ","
-        << c->startY              << ","
-        << c->startZ              << ","
-        << c->endX                << ","
-        << c->endY                << ","
-        << c->endZ                << ","
-        << c->cyl_ID              << ","
-        << c->parent_ID           << ","
-        << c->axis_ID             << ","
-        << c->branch_order        << ","
-        << c->radius              << ","
-        << c->length()            << ","
-        << c->volume()            << ","
+    out << c->startX       << ","
+        << c->startY       << ","
+        << c->startZ       << ","
+        << c->endX         << ","
+        << c->endY         << ","
+        << c->endZ         << ","
+        << c->cyl_ID       << ","
+        << c->parent_ID    << ","
+        << c->axis_ID      << ","
+        << c->branch_order << ","
+        << c->radius       << ","
+        << c->length()     << ","
+        << std::fixed << std::setprecision(5)
+        << c->volume() << ","
+        << std::fixed << std::setprecision(3)
         << c->subtree_length
         << std::endl;
   }
