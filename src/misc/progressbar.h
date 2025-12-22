@@ -22,8 +22,9 @@ private:
   std::atomic<std::size_t> done_;
   const std::size_t total_;
 
-  std::string prefix_;
-  std::size_t last_percent_;
+  std::string prefix_ = "";
+  std::size_t last_percent_ = 0;
+  std::size_t last_width_ = 0;
 
   clock::time_point start_;
   clock::time_point last_print_;

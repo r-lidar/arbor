@@ -9,6 +9,7 @@ Progress::Progress(std::size_t total, std::string prefix, double interval)
     total_(total),
     prefix_(std::move(prefix)),
     last_percent_(0),
+    last_width_(0),
     start_(clock::now()),
     last_print_(start_),
     min_interval_(interval)
@@ -72,22 +73,23 @@ void Progress::update()
   const double remaining = (percent < 100) ? (total_ - done) / rate : 0;
 
   std::ostringstream os;
-  os << prefix_
-     << std::setw(3) << percent << "% | "
+  os << prefix_ << ": "
+     << percent << "% | "
      << std::fixed << std::setprecision(1)
      << remaining << "s ETA ("
      << omp_get_num_threads() << " threads)\r";
 
-  Rcpp::Rcout << os.str();
+  const std::string msg = os.str();
+  last_width_ = msg.size();
+
+  Rcpp::Rcout << msg;
   Rcpp::Rcout.flush();
 }
 
 void Progress::finalize()
 {
-  if (omp_get_thread_num() != 0)
-    return;
-
-  Rcpp::Rcout << "\n";
+  if (omp_get_thread_num() != 0) return;
+  Rcpp::Rcout << '\r' << std::string(last_width_, ' ') << '\r';
   Rcpp::Rcout.flush();
 }
 
