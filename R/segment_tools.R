@@ -36,3 +36,22 @@ connected_components = function(las, res, min_pts, name = "clusterID", connectiv
   return(las)
 }
 
+sor = function(las, k, m)
+{
+  noise = C_sor(las@data, k, m, lidR::get_lidr_threads())
+
+  if ("Classification" %in% names(las))
+  {
+    new_classes <- las@data[["Classification"]]
+    new_classes[new_classes == lidR::LASNOISE] <- lidR::LASUNCLASSIFIED
+  }
+  else
+  {
+    new_classes <- rep(lidR::LASUNCLASSIFIED, lidR::npoints(las))
+  }
+
+  new_classes[noise] <- lidR::LASNOISE
+  las@data[["Classification"]] <- new_classes
+  return(las)
+}
+

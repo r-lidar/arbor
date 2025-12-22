@@ -78,7 +78,7 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
     #pragma omp for schedule(static)
     for (int i = 0; i < n; ++i)
     {
-      if (abort) continue;
+      if (abort.load(std::memory_order_relaxed)) continue;
       if(pb.check_interrupt()) abort = true;
       pb.tick();
 

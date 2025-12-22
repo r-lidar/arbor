@@ -47,6 +47,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_sor
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu);
+RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP, SEXP ncpuSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< double >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m, ncpu));
+    return rcpp_result_gen;
+END_RCPP
+}
 // build_semantic_graph
 SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, Rcpp::List params);
 RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
@@ -235,6 +248,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_voxel_barycenter_decimate", (DL_FUNC) &_arbor_C_voxel_barycenter_decimate, 4},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
+    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
     {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 5},
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},

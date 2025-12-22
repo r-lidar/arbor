@@ -147,7 +147,7 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   connected_components_min <- params$semantic$connected_components_min
 
   nofoliage <- lidR::filter_poi(las, (anisotropy > th_medium_ & anisotropy < th_high_)  | wood == TRUE)
-  nofoliage <- lidR::classify_noise(nofoliage, lidR::sor(sor_k, sor_m))
+  nofoliage <- sor(nofoliage, sor_k, sor_m)
   if (FALSE) plot(nofoliage, color = "Classification") # Plot for debuging
   nofoliage <- lidR::remove_noise(nofoliage)
   nofoliage$Z <- nofoliage$Z * z_factor

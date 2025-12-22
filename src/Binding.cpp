@@ -25,6 +25,9 @@ Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int co
   return Rcpp::wrap(grid.connected_components(connectivity));
 }
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1);
+
 // ========================
 // SEGMENTATION
 // ========================

@@ -2,6 +2,7 @@
 
 - `compute_anisotopy()` is twice faster
 - `connected_component()` (internal function) is 5 times faster which provides a boost to several functions.
+- SOR filter is 7 times faster and brings a significant boost to `segment_foliage()` 
 
 # arbor 0.6.0
 
