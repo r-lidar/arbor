@@ -4,3 +4,8 @@ qsm_volume = function(qsm)
   qsm$volume = pi*qsm$radius^2*l
   return(qsm)
 }
+
+qsm_stem = function(qsm, min_radius = 0.045)
+{
+  qsm[qsm$branch_order == 1 & qsm$radius >= min_radius]
+}

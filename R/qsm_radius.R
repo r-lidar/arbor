@@ -7,7 +7,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   R0_second_guess <- find_root_radius(tree, qsm)
   R0 = max(R0_first_guess, R0_second_guess)
 
-  qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
+  qsm <- qsm_conic_allometry(qsm, 2*R0, tip_radius)
   conic <- qsm$radius
 
   if (R0 < 0.04) return(qsm)
@@ -220,17 +220,20 @@ qsm_polynomial_fitting_r = function(qsm, tip_radius)
 
     if (FALSE)
     {
-      plot(axe$theoric_radius, max(axe$subtree_length) -axe$subtree_length,
-           asp = 0.01,
-           main = NULL,
-           pch  = 19,
-           cex = 0.5,
-           col = "gray",
+      # plot(axe$theoric_radius, max(axe$subtree_length) -axe$subtree_length,
+      #      asp = 0.01,
+      #      main = NULL,
+      #      pch  = 19,
+      #      cex = 0.5,
+      #      col = "gray",
+      #      xlab = "Radius (m)",
+      #      ylab = "Distance to root (m)",
+      #      xlim = c(0, 0.2))
+      plot(axe$radius, max(axe$subtree_length) -axe$subtree_length,
+           pch = 19, cex = 0.6,
            xlab = "Radius (m)",
            ylab = "Distance to root (m)",
-           xlim = c(0, 0.2))
-      points(axe$radius, max(axe$subtree_length) -axe$subtree_length,
-             pch = 19, cex = 0.6)
+           xlim = c(0, max(r, na.omit(axe$radius))))
       points(r, max(axe$subtree_length) -axe$subtree_length, col = "blue", pch = 19, cex = 0.5)
 
       legend("topright",
