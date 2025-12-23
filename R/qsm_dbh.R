@@ -62,12 +62,6 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   y_dbh   <- (cyl$startY + cyl$endY)/2
   z_dbh   <- (cyl$startZ + cyl$endZ)/2
 
-  if (is.null(tree)) return(list(qsm = oqsm, slice = oslice, average = oavg))
-
-  if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
-
-  tree  <- filter_tree(tree)
-
   # Axis geometry
   start <- c(cyl$startX, cyl$startY, cyl$startZ)
   end   <- c(cyl$endX,   cyl$endY,   cyl$endZ)
@@ -78,6 +72,12 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display 
   oqsm = list(dbh = dbh_qsm, pos = c(x = x_dbh, y = y_dbh, z = z_dbh), normal = u)
   oslice = list(dbh = NA_real_, pos = c(x = NA_real_, y = NA_real_, z = NA_real_), normal =  u)
   oavg = list(dbh = dbh_qsm,  pos = c(x = x_dbh, y = y_dbh, z = z_dbh), normal = u)
+
+  if (is.null(tree)) return(list(qsm = oqsm, slice = oslice, average = oavg))
+
+  if (!methods::is(tree, "LAS")) stop("'tree' must be a LAS object")
+
+  tree  <- filter_tree(tree)
 
   # Interpolate BH origin
   t <- (bh - start[3]) / (end[3] - start[3])

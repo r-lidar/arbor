@@ -2,11 +2,15 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 {
   cat("Measuring diameters... ") ; ti = tic()
 
-  R0  <- find_root_radius(tree, qsm)
+  H <- max(tree$hag)
+  R0_first_guess <- DBH_vs_H_allometry(H)/2
+  R0_second_guess <- find_root_radius(tree, qsm)
+  R0 = max(R0_first_guess, R0_second_guess)
+
   qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
   conic <- qsm$radius
 
-  if (R0 < 0.06) return(qsm)
+  if (R0 < 0.04) return(qsm)
 
   qsm <- qsm_measure(tree, qsm)
   qsm <- qsm_polynomial_fitting(qsm, tip_radius)

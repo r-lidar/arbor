@@ -73,7 +73,7 @@ measure_cylinder_radius = function(pc, qsm, id)
   start = as.numeric(axis[,1:3])
   end = as.numeric(axis[,4:6])
 
-  #rgl::points3d(sub, col = pc$cylID)
+  #rgl::points3d(sub)
   #rgl::segments3d(rbind(start, end), lwd = 3)
 
   M = compute_rotation_matrix(start, end)
@@ -110,4 +110,10 @@ measure_cylinder_radius = function(pc, qsm, id)
 
   return(radius)
 }
+
+# Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
+# tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
+H_vs_DBH_allometry = function(dbh) { 36.03*(1-exp(-0.05*DBH))^1.1 }
+DBH_vs_H_allometry = function(H) { DBH = -1/0.05*log(1-(H/36.03)^(1/1.1)) ; DBH/100 }
+
 
