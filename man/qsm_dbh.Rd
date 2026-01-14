@@ -4,7 +4,7 @@
 \alias{qsm_dbh}
 \title{Estimate diameter at breast height (DBH) from a QSM and point cloud slice}
 \usage{
-qsm_dbh(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
+qsm_dbh(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.3, display = FALSE)
 }
 \arguments{
 \item{qsm}{A \code{data.frame} or \code{data.table} describing a QSM.}
