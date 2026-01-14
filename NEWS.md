@@ -1,3 +1,8 @@
+# arbor 0.7.1
+
+- Default breast height is 1.30 m instead of 1.37 m
+- `qsm_stats()` can pass arguments to `qsm_dbh()`.
+
 # arbor 0.7.0
 
 - `compute_anisotopy()` is twice faster
