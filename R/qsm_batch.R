@@ -66,7 +66,7 @@ qsm_batch = function(
   # Export only the necessary dynamic variables
   parallel::clusterExport(
     cl,
-    varlist = c("formats", "format_dirs", "overwrite", "dots"),
+    varlist = c("formats", "format_dirs", "overwrite", "dots", "qsm", "qsm_write"),
     envir = environment()
   )
 
