@@ -306,8 +306,6 @@ find_seeds <- function(las, params)
 
   seeds = suppressWarnings(rbind(long_passages_seeds, short_passages_withid, short_passages_noid))
 
-  toc(t0)
-
   # Retain only the seed below BH
   seeds <- lidR::filter_poi(seeds, hag < 1)
 
