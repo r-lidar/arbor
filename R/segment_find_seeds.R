@@ -73,10 +73,11 @@ find_seeds <- function(las, params)
     if (radius < 0.10)  return(angle_range > 90 & pinliner > 50)
     return(angle_range > 130 & pinliner > 30)
   }
-  fit_circle_to_seed <- function(id)
+  fit_circle_to_seed <- function(cl)
   {
-    cl <- cl_wood[cl_wood$clusterID == id]
-    if (lidR::npoints(cl) < 20) return(NULL)
+    id = cl$clusterID[1]
+    if (nrow(cl) < 20) return(NULL)
+    cl <- as.matrix(cl[,1:3])
     circle <- ransac_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
 
     valid  <- is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
@@ -93,8 +94,28 @@ find_seeds <- function(las, params)
     if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
     else return(NULL)
   }
-  circles <- lapply(unique(cl_wood$clusterID), fit_circle_to_seed)
-  circles <- do.call(rbind, circles)
+
+  clusters <- split(cl_wood@data, by = "clusterID")
+  clusters <- Filter(function(x) { nrow(x) > 20 }, clusters)
+
+  n <- length(clusters)
+  i <- 0
+  circles <- lapply(clusters, function(cl)
+  {
+    i <<- i + 1
+    if (i %% 10 == 0)  cat(sprintf("\r  Processed %d / %d", i, n))
+    fit_circle_to_seed(cl)
+  })
+
+  cat("\n")
+  circles <- Filter(Negate(is.null), circles)
+
+  circles_detected = length(circles) > 0
+
+  if (!circles_detected)
+    warning("No circle dectected")
+  else
+    circles  <- do.call(rbind, circles)
 
   toc(t0, "  ")
 
@@ -108,116 +129,119 @@ find_seeds <- function(las, params)
 
   cat("Safe zone exclusion...\n") ; t0 = tic()
 
-  # For each circle we exclude wood in a safe zone beyond the circles.
-  # This allow to clean false positive around important trees and prevent
-  # dummy connection caused by noise in the next connected component step
-  px <- wood$X
-  py <- wood$Y
-  pz <- wood$Z
-  rm <- rep(FALSE, lidR::npoints(wood))
-  safe_zone <- 0.2
-  for (i in 1:nrow(circles))
+  if (circles_detected)
   {
-    cx <- circles$X[i]
-    cy <- circles$Y[i]
-    cz <- circles$Z[i]
-    r  <- circles$R[i]
-    d  <- sqrt((px-cx)^2 + (py-cy)^2 +(pz-cz)^2)
-    rm[d > (r + 0.02) & d  < (r + safe_zone)] <- TRUE
-  }
-  wood <- wood[!rm]
-
-  toc(t0, "  ")
-
-  if (FALSE)
-  {
-    plot(wood)
+    # For each circle we exclude wood in a safe zone beyond the circles.
+    # This allow to clean false positive around important trees and prevent
+    # dummy connection caused by noise in the next connected component step
+    px <- wood$X
+    py <- wood$Y
+    pz <- wood$Z
+    rm <- rep(FALSE, lidR::npoints(wood))
+    safe_zone <- 0.2
     for (i in 1:nrow(circles))
-      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-  }
+    {
+      cx <- circles$X[i]
+      cy <- circles$Y[i]
+      cz <- circles$Z[i]
+      r  <- circles$R[i]
+      d  <- sqrt((px-cx)^2 + (py-cy)^2 +(pz-cz)^2)
+      rm[d > (r + 0.02) & d  < (r + safe_zone)] <- TRUE
+    }
+    wood <- wood[!rm]
 
-  if (FALSE)
-  {
-    x = plot(long_passages, pal = "green")
-    plot(short_passages, add = x, pal = "red")
-    plot(wood, add = x, pal = foliage.colors[1])
-    for (i in 1:nrow(circles))
-      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-  }
+    toc(t0, "  ")
 
-  cat("Overlapping disc detection...\n") ; t0 = tic()
+    if (FALSE)
+    {
+      plot(wood)
+      for (i in 1:nrow(circles))
+        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+    }
 
-  # Overlapping discs
-  # ------------------
-  # Pairwise distances between centers
-  circles$id = NULL
-  df = circles
-  dist_mat <- as.matrix(stats::dist(df[, c("X", "Y")], diag = TRUE, upper = TRUE))
+    if (FALSE)
+    {
+      x = plot(long_passages, pal = "green")
+      plot(short_passages, add = x, pal = "red")
+      plot(wood, add = x, pal = foliage.colors[1])
+      for (i in 1:nrow(circles))
+        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+    }
 
-  # Define an overlap rule (e.g. centers closer than sum of radii)
-  overlap <- dist_mat < outer(df$R, df$R, "+") & dist_mat > 0
+    cat("Overlapping disc detection...\n") ; t0 = tic()
 
-  # Build adjacency graph from overlap matrix
-  n <- nrow(df)
-  visited <- logical(n)
-  group <- integer(n)
-  gid <- 0
+    # Overlapping discs
+    # ------------------
+    # Pairwise distances between centers
+    circles$id = NULL
+    df = circles
+    dist_mat <- as.matrix(stats::dist(df[, c("X", "Y")], diag = TRUE, upper = TRUE))
 
-  for (i in seq_len(n)) {
-    if (!visited[i]) {
-      gid <- gid + 1
-      # breadth-first search (BFS) for connected components
-      queue <- i
-      while (length(queue) > 0) {
-        node <- queue[1]
-        queue <- queue[-1]
-        if (!visited[node]) {
-          visited[node] <- TRUE
-          group[node] <- gid
-          neighbors <- which(overlap[node, ])
-          queue <- c(queue, neighbors[!visited[neighbors]])
+    # Define an overlap rule (e.g. centers closer than sum of radii)
+    overlap <- dist_mat < outer(df$R, df$R, "+") & dist_mat > 0
+
+    # Build adjacency graph from overlap matrix
+    n <- nrow(df)
+    visited <- logical(n)
+    group <- integer(n)
+    gid <- 0
+
+    for (i in seq_len(n)) {
+      if (!visited[i]) {
+        gid <- gid + 1
+        # breadth-first search (BFS) for connected components
+        queue <- i
+        while (length(queue) > 0) {
+          node <- queue[1]
+          queue <- queue[-1]
+          if (!visited[node]) {
+            visited[node] <- TRUE
+            group[node] <- gid
+            neighbors <- which(overlap[node, ])
+            queue <- c(queue, neighbors[!visited[neighbors]])
+          }
         }
       }
     }
-  }
 
-  df$group_id <- group
-  df
-  circles = df
+    df$group_id <- group
+    df
+    circles = df
 
-  toc(t0, "  ")
-  cat("Discs to seeds conversion...\n") ; t0 = tic()
+    toc(t0, "  ")
+    cat("Discs to seeds conversion...\n") ; t0 = tic()
 
-  # Convert circle to points
-  res= params$decimation$barycentric_predecimation_resolution
-  circle_points_list <- lapply(1:nrow(circles), function(i) {
-    generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
-  })
-  circle_points = do.call(rbind, circle_points_list)
+    # Convert circle to points
+    res= params$decimation$barycentric_predecimation_resolution
+    circle_points_list <- lapply(1:nrow(circles), function(i) {
+      generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
+    })
+    circle_points = do.call(rbind, circle_points_list)
 
-  connectors <- generate_all_groups(circles, step_z = res)
-  connectors = rbind(connectors$disks)
+    connectors <- generate_all_groups(circles, step_z = res)
+    connectors = rbind(connectors$disks)
 
-  circle_points = rbind(circle_points, connectors)
-  circle_points$passage = 1000
-  circle_points$hag = 0
-  circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
+    circle_points = rbind(circle_points, connectors)
+    circle_points$passage = 1000
+    circle_points$hag = 0
+    circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
 
-  # Bind the wood and the long passages and compute connected component and merge passage from the same trees
-  lidR::st_crs(long_passages) = lidR::st_crs(wood)
-  lidR::st_crs(circle_points) = lidR::st_crs(wood)
-  temp   <- suppressWarnings(rbind(wood, long_passages, circle_points))
-  res    <- round(params$decimation$barycentric_predecimation_resolution*0.8, 2)
-  temp$Z <- temp$Z * 0.5
-  temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
-  temp$Z <- temp$Z / 0.5
+    # Bind the wood and the long passages and compute connected component and merge passage from the same trees
+    lidR::st_crs(long_passages) = lidR::st_crs(wood)
+    lidR::st_crs(circle_points) = lidR::st_crs(wood)
+    temp   <- suppressWarnings(rbind(wood, long_passages, circle_points))
+    res    <- round(params$decimation$barycentric_predecimation_resolution*0.8, 2)
+    temp$Z <- temp$Z * 0.5
+    temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
+    temp$Z <- temp$Z / 0.5
 
-  if (FALSE)
-  {
-    x <- plot(temp, color = "treeID")
-    #plot(passage, add = x)
-    for (i in 1:nrow(circles))
-      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+    if (FALSE)
+    {
+      x <- plot(temp, color = "treeID")
+      #plot(passage, add = x)
+      for (i in 1:nrow(circles))
+        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+    }
   }
 
   toc(t0, "  ")
@@ -242,7 +266,7 @@ find_seeds <- function(las, params)
   p$path_finder$angle_penalty = function(x) {return(rep(1, length(x))) }
 
   sink(tempfile())
-  on.exit(sink(), add = TRUE)
+  on.exit(suppressWarnings(sink()), add = TRUE)
   short_passages = segment_vegetation(short_passages, long_passages_seeds, p)
   sink()
 
