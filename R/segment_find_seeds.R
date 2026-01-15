@@ -8,6 +8,8 @@
 #' @export
 find_seeds <- function(las, params)
 {
+  ti = tic()
+
   foliage <- clusterID <- max_diameter <- passage <- hag <- X <- Y <- Z <- . <- NULL
 
   # The point cloud is supposed to have passage hag and foliage
@@ -34,6 +36,7 @@ find_seeds <- function(las, params)
     plot(short_passages)
   }
 
+  cat("Slicing the point cloud...\n") ; t0 = tic()
 
   slices <- slice_poi(las, heights, thick)
   wood   <- lidR::filter_poi(slices, foliage == 0)
@@ -51,9 +54,15 @@ find_seeds <- function(las, params)
     plot(long_passages, add = x, pal = "green")
   }
 
+  toc(t0, "  ")
+  cat("Connected component...\n") ; t0 = tic()
+
   # Connect the wood point into clusters
   cl_wood <- connected_components(wood, 0.05, 10, connectivity = 26)
   cl_wood <- lidR::filter_poi(cl_wood, clusterID != 0)
+
+  toc(t0, "  ")
+  cat("Circle detection per component...\n") ; t0 = tic()
 
   # For each cluster search for circles. If we have a nice circle we have a tree
   is.valid.circle <- function(radius, angle_range, pinliner, pinside)
@@ -87,6 +96,8 @@ find_seeds <- function(las, params)
   circles <- lapply(unique(cl_wood$clusterID), fit_circle_to_seed)
   circles <- do.call(rbind, circles)
 
+  toc(t0, "  ")
+
   if (FALSE)
   {
     x <- plot(cl_wood, color = 'clusterID', pal = pastel.colors(500))
@@ -94,6 +105,8 @@ find_seeds <- function(las, params)
     for (i in 1:nrow(circles))
       add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
   }
+
+  cat("Safe zone exclusion...\n") ; t0 = tic()
 
   # For each circle we exclude wood in a safe zone beyond the circles.
   # This allow to clean false positive around important trees and prevent
@@ -114,6 +127,8 @@ find_seeds <- function(las, params)
   }
   wood <- wood[!rm]
 
+  toc(t0, "  ")
+
   if (FALSE)
   {
     plot(wood)
@@ -129,6 +144,8 @@ find_seeds <- function(las, params)
     for (i in 1:nrow(circles))
       add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
   }
+
+  cat("Overlapping disc detection...\n") ; t0 = tic()
 
   # Overlapping discs
   # ------------------
@@ -168,6 +185,8 @@ find_seeds <- function(las, params)
   df
   circles = df
 
+  toc(t0, "  ")
+  cat("Discs to seeds convertion...\n") ; t0 = tic()
 
   # Convert circle to points
   res= params$decimation$barycentric_predecimation_resolution
@@ -201,6 +220,9 @@ find_seeds <- function(las, params)
       add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
   }
 
+  toc(t0, "  ")
+  cat("Pathfinder...\n") ; t0 = tic()
+
   # We have seed for the big trees (long passage)
   long_passages_seeds = lidR::filter_poi(temp, passage > 0)
 
@@ -218,7 +240,11 @@ find_seeds <- function(las, params)
   p$path_finder$k_seed_connectivity = 2
   p$path_finder$distance_power = 1
   p$path_finder$angle_penalty = function(x) {return(rep(1, length(x))) }
+
+  sink(tempfile())
+  on.exit(sink(), add = TRUE)
   short_passages = segment_vegetation(short_passages, long_passages_seeds, p)
+  sink()
 
   if (FALSE)
   {
@@ -228,6 +254,9 @@ find_seeds <- function(las, params)
     v = rbind(long_passages_seeds, u)
     plot(v, color = "treeID")
   }
+
+  toc(t0, "  ")
+  cat("Connected component...\n") ; t0 = tic()
 
   # Some short passage don't have IDs
   short_passages_noid = short_passages[is.na(short_passages$treeID)]
@@ -243,16 +272,23 @@ find_seeds <- function(las, params)
   short_passages_noid$foliage = NULL
   short_passages_noid$pointID = NULL
 
+  toc(t0, "  ")
+
   if (FALSE)
   {
     x = plot(rbind(long_passages_seeds, short_passages_withid), color = "treeID")
-    plot(short_passages_noid, add =x, pal = "red")
+    plot(short_passages_noid, add = x, pal = "red")
   }
 
   seeds = suppressWarnings(rbind(long_passages_seeds, short_passages_withid, short_passages_noid))
 
+  toc(t0)
+
   # Retain only the seed below BH
   seeds <- lidR::filter_poi(seeds, hag < 1)
+
+  toc(ti, "")
+
   seeds
 }
 
