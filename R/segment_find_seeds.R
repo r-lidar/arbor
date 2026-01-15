@@ -186,7 +186,7 @@ find_seeds <- function(las, params)
   circles = df
 
   toc(t0, "  ")
-  cat("Discs to seeds convertion...\n") ; t0 = tic()
+  cat("Discs to seeds conversion...\n") ; t0 = tic()
 
   # Convert circle to points
   res= params$decimation$barycentric_predecimation_resolution
