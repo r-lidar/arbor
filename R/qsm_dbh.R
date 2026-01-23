@@ -44,7 +44,7 @@
 #' qsm <- qsm(tree)
 #' ans <- qsm_dbh(qsm, tree, display = TRUE)
 #' @export
-qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.37, display = FALSE)
+qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display = FALSE)
 {
   X <- Y <- Z <- branch_order <- startZ <- endZ <- . <- NULL
   data.table::setDT(qsm)

@@ -28,7 +28,7 @@ connected_components = function(las, res, min_pts, name = "clusterID", connectiv
   if (!connectivity %in% allowed) stop(sprintf("Invalid connectivity: %d. Allowed values are %s", connectivity, paste(allowed, collapse = ", ")))
 
   u = C_connected_component(las@data, res, connectivity)
-  las = add_lasattribute(las, u, name, "connected component ID")
+  las = lidR::add_lasattribute(las, u, name, "connected component ID")
   grp = las@data[, .N, by = clusterID]
   grp = grp[N < min_pts]
   invalid = las@data[[name]] %in% grp$clusterID

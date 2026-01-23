@@ -4,7 +4,7 @@
 \alias{qsm_stats}
 \title{Compute summary statistics from a QSM}
 \usage{
-qsm_stats(qsm, tree = NULL, display = FALSE)
+qsm_stats(qsm, tree = NULL, ..., display = FALSE)
 }
 \arguments{
 \item{qsm}{A `data.table` or `data.frame` representing a QSM, typically
@@ -12,6 +12,8 @@ produced by \link{qsm}.}
 
 \item{tree}{Optional. A `LAS` object containing the tree point cloud that generated the QSM
 If provided, additional statistics are computed.}
+
+\item{...}{passed to \link{qsm_dbh}.}
 
 \item{display}{Logical. If `TRUE`, diagnostic plots are displayed, including
 volume distributions, stem profile, and vertical projections.}

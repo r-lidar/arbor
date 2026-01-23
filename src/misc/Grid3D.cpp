@@ -5,8 +5,13 @@
 #include <algorithm>
 #include <stdexcept>
 
-Grid3D::Grid3D(const double* x, const double* y, const double* z, int n, double res) : X(x), Y(y), Z(z), npoints(n)
+Grid3D::Grid3D(const double* x, const double* y, const double* z, int n, double res)
 {
+  X = x;
+  Y = y;
+  Z = z;
+  npoints = n;
+
   if (n <= 0)
   {
     xmin = xmax = ymin = ymax = zmin = zmax = 0.0;

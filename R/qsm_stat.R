@@ -12,6 +12,7 @@
 #'   If provided, additional statistics are computed.
 #' @param display Logical. If `TRUE`, diagnostic plots are displayed, including
 #'   volume distributions, stem profile, and vertical projections.
+#' @param ... passed to \link{qsm_dbh}.
 #'
 #' @details
 #' The function computes:
@@ -40,7 +41,7 @@
 #' qsm <- qsm(tree)
 #' ans <- qsm_stats(qsm, tree, display = TRUE)
 #' @export
-qsm_stats <- function(qsm, tree = NULL, display = FALSE)
+qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
 {
   if (missing(qsm)) stop("'qsm' is missing")
   if (!is.data.frame(qsm)) stop("'qsm' must be a data.frame or data.table")
@@ -75,7 +76,7 @@ qsm_stats <- function(qsm, tree = NULL, display = FALSE)
   stem_profile = data.frame(dist_to_root = dist_to_root, diametre = r*2)
   data.table::setorder(stem_profile, dist_to_root)
 
-  dbh = qsm_dbh(qsm, tree, display = display)
+  dbh = qsm_dbh(qsm, tree, ..., display = display)
   X_bh = dbh$average$pos[1]
   Y_bh = dbh$average$pos[2]
   Z_bh = dbh$average$pos[3]
