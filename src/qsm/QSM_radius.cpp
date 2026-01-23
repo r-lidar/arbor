@@ -20,7 +20,11 @@ inline double QSM::conic_allometry(double tip_radius, double wi, double w0, doub
 
 /********************************/
 
-void QSM::measure_radii(const PointCloud& tree)
+// @param sarc sensitivity arc
+// @param sins sensitiviy inside
+// @param sinl sensitiviy inliner
+// @param srmeas sensitivity r measured
+void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
   if (cylinders_.empty())
     throw std::runtime_error("Internal error: no cylinder in this QSM");
@@ -100,9 +104,9 @@ void QSM::measure_radii(const PointCloud& tree)
     double arc = ransac.get_arc_coverage();           // degrees
     double p_inlier = ransac.get_inlier_percentage(); // 0.0 to 1.0
     bool valid = true;
-    if (r_meas < 0.05) valid = false;
-    else if (p_inside > 0.20) valid = false;
-    else if (!(arc > 180.0 && p_inlier > 0.30)) valid = false;
+    if (r_meas < srmeas) valid = false;
+    else if (p_inside > sins) valid = false;
+    else if (!(arc > sarc && p_inlier > sinl)) valid = false;
 
     // If the circle is valid then we have a measurement
     // for this cylinder

@@ -65,8 +65,8 @@ qsm_prolongation_cpp <- function(df, d, L = 0.1) {
     .Call(`_arbor_qsm_prolongation_cpp`, df, d, L)
 }
 
-qsm_measure_cpp <- function(pc, df) {
-    .Call(`_arbor_qsm_measure_cpp`, pc, df)
+qsm_measure_cpp <- function(pc, df, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.05) {
+    .Call(`_arbor_qsm_measure_cpp`, pc, df, sarc, sins, sinl, srmeas)
 }
 
 qsm_polynomial_fitting_cpp <- function(df, tip_radius) {

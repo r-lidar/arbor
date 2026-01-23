@@ -232,11 +232,11 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.
   return out;
 }
 
-Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df)
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05)
 {
   PointCloud tree(pc);
   QSM qsm = as_qsm(df);
-  qsm.measure_radii(tree);
+  qsm.measure_radii(tree, sarc, sins, sinl, srmeas);
   Rcpp::DataFrame ans = as_dataframe(qsm);
   return ans;
 }

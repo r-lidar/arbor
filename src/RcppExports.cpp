@@ -201,13 +201,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsm_measure_cpp
-Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df);
-RcppExport SEXP _arbor_qsm_measure_cpp(SEXP pcSEXP, SEXP dfSEXP) {
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc, float sins, float sinl, float srmeas);
+RcppExport SEXP _arbor_qsm_measure_cpp(SEXP pcSEXP, SEXP dfSEXP, SEXP sarcSEXP, SEXP sinsSEXP, SEXP sinlSEXP, SEXP srmeasSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type pc(pcSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_measure_cpp(pc, df));
+    Rcpp::traits::input_parameter< float >::type sarc(sarcSEXP);
+    Rcpp::traits::input_parameter< float >::type sins(sinsSEXP);
+    Rcpp::traits::input_parameter< float >::type sinl(sinlSEXP);
+    Rcpp::traits::input_parameter< float >::type srmeas(srmeasSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_measure_cpp(pc, df, sarc, sins, sinl, srmeas));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -261,7 +265,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
     {"_arbor_qsm_prolongation_cpp", (DL_FUNC) &_arbor_qsm_prolongation_cpp, 3},
-    {"_arbor_qsm_measure_cpp", (DL_FUNC) &_arbor_qsm_measure_cpp, 2},
+    {"_arbor_qsm_measure_cpp", (DL_FUNC) &_arbor_qsm_measure_cpp, 6},
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},

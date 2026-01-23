@@ -12,7 +12,8 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 
   if (R0 < 0.04) return(qsm)
 
-  qsm <- qsm_measure(tree, qsm)
+  qsm <- qsm_measure(tree, qsm, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.03)
+  #qsm <- qsm_measure_r(tree, qsm)
   qsm <- qsm_polynomial_fitting(qsm, tip_radius)
 
   # If we still have NAs on main axis it means interpolation failed on main
@@ -25,7 +26,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
     return(qsm)
   }
 
-  qsm <- qsm_reconstruction(qsm, tip_radius)
+  qsm <- qsm_reconstruction_r(qsm, tip_radius)
 
   toc(ti)
 
@@ -49,14 +50,14 @@ qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025, power = 1)
   return(qsm)
 }
 
-qsm_measure = function(tree, qsm)
+qsm_measure = function(tree, qsm, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.03)
 {
   # qsm_conic_allometry must be computed first
   qsm$theoric_radius = qsm$radius
   theoric_radius = qsm$radius
   qsm$radius = NULL
 
-  qsm = qsm_measure_cpp(tree@data, qsm)
+  qsm = qsm_measure_cpp(tree@data, qsm, sarc, sins, sinl, srmeas)
   data.table::setDT(qsm)
   return(qsm)
 }
@@ -81,6 +82,7 @@ qsm_reconstruction = function(qsm, tip_radius)
 
 qsm_measure_r = function(tree, qsm)
 {
+  # qsm_conic_allometry must be computed first
   qsm$theoric_radius = qsm$radius
   theoric_radius = qsm$radius
   qsm$radius = NULL
@@ -124,9 +126,9 @@ qsm_measure_r = function(tree, qsm)
   # Actual measurement for each cylindre using RANSAC if it works
   is.valid.circle = function(radius, angle_range, pinliner, pinside)
   {
-    if (radius < 0.05)  return(FALSE)
+    if (radius < 0.03)  return(FALSE)
     if (pinside > 20) return(FALSE)
-    return(angle_range > 180 & pinliner > 30)
+    return(angle_range > 120 & pinliner > 30)
   }
 
   for (i in 1:nrow(qsm))
@@ -154,6 +156,7 @@ qsm_measure_r = function(tree, qsm)
     if (FALSE)
     {
       rgl::points3d(sub)
+      rgl::axes3d()
       rgl::segments3d(rbind(start, end), lwd = 3)
     }
 

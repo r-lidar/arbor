@@ -59,7 +59,7 @@ public:
   void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1);
   void prolongate(double d, double L = 0.1);
-  void measure_radii(const PointCloud& tree);
+  void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
   void polynomial_fitting(double tip_radius);
   void reconstruct_missing_radii(double tip_radius);
   void write(const std::string& filename, bool binary = true) const;

@@ -171,11 +171,11 @@ double RansacCircle::get_arc_coverage() const
   {
     const auto& p = points[idx];
     double angle = std::atan2(p.y - center_y, p.x - center_x) * 180.0 / M_PI;
-    int bin = static_cast<int>(std::round(angle / 3.0)); // 3° bins
+    int bin = static_cast<int>(std::round(angle / 10.0)); // 10° bins
     unique_bins.insert(bin);
   }
 
-  return unique_bins.size() * 3.0;
+  return unique_bins.size() * 10.0;
 }
 
 // ---- Validation ----
