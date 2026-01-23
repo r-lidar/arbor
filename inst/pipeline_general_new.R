@@ -14,38 +14,40 @@ display = FALSE
 # full density is worthless. It blows up RAM consumption, blows up computation time and brings no value.
 
 # California
-file = "~/Documents/Entreprise/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
 
 # Zambia
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.15"
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonFarm/JasonFarm.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/Zambia/JasonFarm/JasonFarm_segmented.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.15"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm_segmented.laz" ; filter = ""
 
 # Indonesia
-file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/Waykambawalk1RTK_01.las" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/Walk1Area2/Walk1area2slam_20x20plot.laz" ; filter = "-keep_random_fraction 0.3"
-file = "~/Documents/Entreprise/clients/fsinvestor/Indonesia/MasiveButtroot/Waykananbindotree_01_isolated.laz" ; filter="-keep_random_fraction 0.6"
+file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/Waykambawalk1RTK_01.las" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/Walk1area2slam_20x20plot.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/MasiveButtroot/Waykananbindotree_01_isolated.laz" ; filter="-keep_random_fraction 0.6"
 
 # Rwanda
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.2"
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/fsinvestor/Rwanda/Eucalyptus/Eucalyptuswalk2_01_subsampled_50.laz" ; filter = "-keep_random_fraction 0.333"
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.2"
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Eucalyptuswalk2_01_subsampled_50.laz" ; filter = "-keep_random_fraction 0.333"
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneucsd6_01_subsampled_clio_40x40.laz" ; filter = ""
+
 
 # Petawawa Research Forest
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
-file = "~/Documents/Entreprise/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
 
 # Richard's data
 file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.25"
 file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
 
 # MRNF Oak plantations
-file = "/home/jr/Documents/Entreprise/clients/MRNF-MLS/las/Tutoriel/sta_plot1_20x20.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/MRNF-MLS/las/Tutoriel/sta_plot1_20x20.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
 
 # Bastien's data
 file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.25"
@@ -55,7 +57,7 @@ file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
 file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 0.6"
 
 # French Guyana'
-file = "~/Téléchargements/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
 
 # ===== PROCESSING PARAMETERS =====
 
@@ -251,14 +253,17 @@ o <- tools::file_path_sans_ext(file)
 t <- paste0(o, "_trees.laz")
 v <- paste0(o, "_validtrees.laz")
 o <- paste0(o, "_segmented.laz")
+r <- paste0(o, "_dtm.tif")
 
 las = colorize_trees(las)
 trees = colorize_trees(trees)
 valid_trees = colorize_trees(valid_trees)
 
+
 writeLAS(las, o)
 writeLAS(trees, t)
 writeLAS(valid_trees, v)
+terra::writeRaster(dtm, r)
 
 plot(valid_trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
 for (i in unique(valid_trees$treeID))
@@ -278,3 +283,7 @@ plot_semantic(tree)
 qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
 x <- plot_semantic(tree)
 plot_qsm(qsm, color = "branch_order", add = x + c(-5, 0), skeleton = F)
+
+# ==== QSM batch =====
+
+qsm_batch( paste0(dirname(o), "/ITS/"), paste0(dirname(o), "/qsm/"))
