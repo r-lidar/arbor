@@ -22,7 +22,8 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   main_axis <- qsm[axis_ID == 1]
   if (anyNA(main_axis$radius))
   {
-    qsm$radius <- conic
+    warning("Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry", call. = FALSE)
+    qsm <- qsm_conic_allometry(qsm, R0_first_guess, tip_radius)
     return(qsm)
   }
 
