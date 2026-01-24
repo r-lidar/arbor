@@ -11,5 +11,23 @@ LazyData: true
 RoxygenNote: 7.3.3
 LinkingTo: Rcpp
 Depends: R (>= 4.1.0)
-Imports: utils, sf, Rcpp, terra, lidR (>= 4.2.2), rlas, graphics, methods, data.table, rgl,FNN, dbscan, pracma, utils, stats, pbapply, parallel
+Imports: 
+  data.table,
+  dbscan,
+  FNN,
+  future,
+  future.apply,
+  graphics,
+  lidR (>= 4.2.2),
+  methods,
+  parallel,
+  pracma,
+  progressr,
+  Rcpp,
+  rgl,
+  rlas,
+  sf,
+  stats,
+  terra,
+  utils
 Suggests: tinytest
