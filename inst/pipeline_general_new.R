@@ -59,6 +59,10 @@ file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 
 # French Guyana'
 file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
 
+
+# UAV
+file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_above_ground = 0.25
+
 # ===== PROCESSING PARAMETERS =====
 
 params = default_arbor_parameters
@@ -181,6 +185,8 @@ if (display)
 #
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
+
+params$path_finder$max_gap = 1
 
 seeds <- find_seeds(las, params)
 

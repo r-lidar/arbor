@@ -18,7 +18,7 @@
 #'     \item `name`: basename without extension
 #'     \item `success` TRUE/FALSE
 #'     \item `status`: "success", "skipped_existing", "failed_readLAS", "failed_qsm"
-#'     \item `error`: error message if any
+#'     \item `message`: error message if any
 #'   }
 #'
 #' @export

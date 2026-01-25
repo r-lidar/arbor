@@ -41,7 +41,7 @@ hybrid_homogeneization = function(las, res = 0.02)
   keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
   n = sum(keep)
   rm = which(!keep)
-  i = sample(rm, n*0.1)
+  i = sample(rm, min((n*0.1), length(rm)))
   keep[i] = TRUE
   las = las[keep]
   free(keep)

@@ -202,11 +202,13 @@ Exports
   if (export_valid_trees) writeLAS(valid_trees, out_validtrees)
   if (export_dtm)         writeRaster(dtm, out_dtm, overwrite = TRUE)
 
+  name = tools::file_path_sans_ext(basename(ifile))
+
   if (export_individual) {
     dir.create(its_dir, showWarnings = FALSE, recursive = TRUE)
     for (i in unique(valid_trees$treeID)) {
       tree <- filter_poi(valid_trees, treeID == i)
-      writeLAS(tree, file.path(its_dir, paste0("tree_", i, ".las")))
+      writeLAS(tree, file.path(its_dir, paste0(name, "_tree_", i, ".las")))
     }
   }
 }
@@ -260,9 +262,7 @@ Example:
   ifiles <- normalizePath(ifiles, mustWork = TRUE)
 
   # Output dir
-  odir <- dirname(ifiles)
-  # If input is a directory, default output is that directory
-  if (dir.exists(ifiles)) odir <- ifiles
+  odir <- file.path(dirname(ifiles), "qsm")
 
   # Override output if flag present
   out_flag <- get_arg(args, "-o")
