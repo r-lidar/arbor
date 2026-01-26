@@ -40,6 +40,7 @@ Usage:
 Commands:
   segment      Segment a point cloud (LAS/LAZ)
   qsm          Run QSM on a folder or file
+  report       Produce a pdf report
 
 Options:
   -h, --help   Show help for a specific command
@@ -320,6 +321,43 @@ Settings
   }
 }
 
+# ----------
+# Report
+# ----------
+
+run_report = function(args)
+{
+  usage_report = function()
+  {
+    cat("
+Usage:
+  arbor report <input_dir> <output_pdf>
+")
+    quit(save = "no", status = 0)
+  }
+
+  if (length(args) < 2 || has_flag(args, "-h") || has_flag(args, "--help")) {
+    usage_report()
+  }
+
+  input_dir <- normalizePath(args[1])
+  output_pdf <- normalizePath(args[2], mustWork = FALSE)
+
+  if (!dir.exists(input_dir)) {
+    stop("Input directory does not exist: ", input_dir)
+  }
+
+  rmarkdown::render(
+    input  = system.file("bash", "report_template.Rmd", package="arbor"),
+    output_file = basename(output_pdf), # only filename
+    output_dir = dirname(output_pdf), # directory to write to
+    params = list(
+      idir = input_dir
+    ),
+    quiet = FALSE
+  )
+}
+
 # ------------------------------------------------------------
 # Main Dispatcher
 # ------------------------------------------------------------
@@ -339,6 +377,8 @@ if (command == "segment") {
   run_segment(sub_args)
 } else if (command == "qsm") {
   run_qsm(sub_args)
+} else if (command == "report") {
+  run_report(sub_args)
 } else if (command %in% c("-h", "--help")) {
   usage_main()
 } else {
