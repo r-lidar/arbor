@@ -312,6 +312,7 @@ ggplot(tree_map) +
   ) +
   report_theme + 
 theme(
+  aspect.ratio = NULL,
   legend.position = c(1.2, 1), # x and y in [0,1], top-right
   legend.justification = c("right", "top"),
   legend.background = element_rect(fill = "white", color = "black", size = 0.25, linetype = "solid"),
