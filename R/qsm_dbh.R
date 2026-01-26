@@ -53,7 +53,8 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
   ground_z  <- min(qsm$startZ)
   bh        <- ground_z + bh
 
-  cyl <- main_axis[startZ <= bh & endZ >= bh]
+  idx <- with(main_axis, bh >= pmin(startZ, endZ) & bh < pmax(startZ, endZ))
+  cyl <- main_axis[idx, ]
   if (nrow(cyl) != 1) stop("Invalid number of cylinders at breast height")
 
   # QSM DBH

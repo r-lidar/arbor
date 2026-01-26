@@ -81,45 +81,36 @@ report_theme = theme_minimal(base_size = 12) +
 idir = params$idir
 
 # Check if directory exists to prevent crash if running elsewhere
-if(dir.exists(idir)){
-  files <- list.files(idir, full.names = TRUE)
+if(!dir.exists(idir)) stop("Invalid directory")
+
+files <- list.files(idir, full.names = TRUE)
+
+ans <- lapply(files, function(f) 
+{
+  qsm  <- qsm_read(f)
+  name <- tools::file_path_sans_ext(basename(f))
+  res  <- qsm_stats(qsm)
   
-  ans <- lapply(files, function(f) {
-    qsm  <- qsm_read(f)
-    name <- tools::file_path_sans_ext(basename(f))
-    res  <- qsm_stats(qsm)
-    
-    root <- qsm[parent_ID == 0]
-    # Handle potential empty QSMs safely
-    if(nrow(root) > 0){
-       root <- st_as_sf(st_sfc(st_point(c(root$startX[1], root$startY[1]))))
-       root$name      <- name
-       root$volume    <- round(res$stats_global$V, 3)
-       root$height    <- round(res$stats_global$H, 2)
-       root$dbh       <- res$stats_global$DBH
-       root$filename  <- f
-       return(root)
-    } else {
-      return(NULL)
-    }
-  })
-  
-  ans <- rbindlist(ans, fill = TRUE)
-  
-} else {
-  # Fallback for display purposes if path is missing (remove in production)
-  set.seed(123)
-  ans <- data.table(
-    volume = abs(rnorm(50, 0.5, 0.2)),
-    height = abs(rnorm(50, 15, 3)),
-    dbh = abs(rnorm(50, 0.2, 0.05))
-  )
-}
+  root <- qsm[parent_ID == 0]
+  # Handle potential empty QSMs safely
+  if(nrow(root) > 0){
+    root <- st_as_sf(st_sfc(st_point(c(root$startX[1], root$startY[1]))))
+    root$name      <- name
+    root$volume    <- round(res$stats_global$V, 3)
+    root$height    <- round(res$stats_global$H, 2)
+    root$dbh       <- res$stats_global$DBH
+    root$filename  <- f
+    return(root)
+  } else {
+    return(NULL)
+  }
+})
+
+ans <- do.call(rbind, ans)
 
 Vtot  <- sum(ans$volume, na.rm = TRUE)
 Ntree <- nrow(ans)
-#idir  <- params$idir
-idir = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneucsd6_01_subsampled_clio_40x40_output/qsm/csv"
+idir  <- params$idir
 files <- list.files(idir, full.names = TRUE)
 
 ans <- lapply(files, function(f) {
