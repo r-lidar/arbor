@@ -27,7 +27,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
     return(qsm)
   }
 
-  qsm <- qsm_reconstruction_r(qsm, tip_radius)
+  qsm <- qsm_reconstruction(qsm, tip_radius)
 
   toc(ti)
 
