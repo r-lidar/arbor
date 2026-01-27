@@ -181,7 +181,7 @@ qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
 
   # 5) Stem profile
   graphics::plot(
-    stem_profile$diametre/100, stem_profile$dist_to_root,
+    stem_profile$diametre*100, stem_profile$dist_to_root,
     pch  = 19,
     cex  = 0.45,
     col  = grDevices::adjustcolor("black", 0.5),
