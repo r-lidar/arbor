@@ -201,7 +201,7 @@ void QSM::polynomial_fitting(double tip_radius)
     double b = (sum_x2 * sum_x2y - sum_xy * sum_x3) / det;
 
 
-    // Apply prediction to ALL cylinders in this axis
+    // Apply prediction to cylinders in this axis
     for (int id : cyl_ids)
     {
       QSMcylinder& cyl = cylinders_[id];
@@ -209,9 +209,34 @@ void QSM::polynomial_fitting(double tip_radius)
       if (cyl.subtree_length != SUBTREE_LENGTH_UNSET)
       {
         double len = cyl.subtree_length;
-        double new_radius = tip_radius + a * len + b * len * len;
-        if (new_radius < 0) new_radius = 0; // Safety clamp: Radius shouldn't be negative
-        cyl.radius = new_radius;
+        double pred_radius = tip_radius + a * len + b * len * len;
+        if (pred_radius < 0) pred_radius = 0; // Safety clamp
+
+        bool should_update = false;
+
+        // Condition 1: Value is missing
+        if (cyl.radius == RADIUS_UNSET)
+        {
+          should_update = true;
+        }
+        // Condition 2: Measured radius is > 10% different than prediction
+        else
+        {
+          // Calculate absolute difference
+          double diff = std::abs(cyl.radius - pred_radius);
+
+          // Check if difference > 10% of the PREDICTED value
+          // (Using prediction as the baseline for the "ideal" curve)
+          if (diff > 0.10 * pred_radius)
+          {
+            should_update = true;
+          }
+        }
+
+        if (should_update)
+        {
+          cyl.radius = pred_radius;
+        }
       }
     }
   }
@@ -257,7 +282,7 @@ void QSM::reconstruct_missing_radii(double tip_radius)
       // The first cylinder is the root of the branch. We search for its parent
       const int parent_id = axe.front()->parent_ID;
       QSMcylinder& parent = get_cylinder_by_id(parent_id);
-      const double r0 = parent.radius;
+      const double r0 = parent.radius*0.9;
       const double w0 = parent.subtree_length;
 
       // Compute theoretical radii by conic radiometry. This is our fallback value
