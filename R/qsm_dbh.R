@@ -52,7 +52,8 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
   main_axis <- qsm[branch_order == 1]
   ground_z  <- min(qsm$startZ)
 
-  dist_to_root = cumsum(main_axis$cyl_length)
+  len = with(qsm, sqrt((endX - startX)^2 + (endY - startY)^2 +(endZ - startZ)^2))
+  dist_to_root = cumsum(len)
   idx = which.min(abs(dist_to_root-bh))
   cyl <- main_axis[idx, ]
   if (nrow(cyl) != 1) stop("Invalid number of cylinders at breast height")
@@ -81,7 +82,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
   tree  <- filter_tree(tree)
 
   # Interpolate BH origin
-  t <- (bh - start[3]) / (end[3] - start[3])
+  t <- (bh+ground_z - start[3]) / (end[3] - start[3])
   P_bh <- start + t * (end - start)
 
   # Slice extraction
@@ -151,7 +152,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
     )
     on.exit(graphics::par(opar))
 
-    butt = lidR::filter_poi(tree, Z < bh + 1)
+    butt = lidR::filter_poi(tree, Z < bh+ground_z + 1)
 
     # World diagnostic
     circle_xyz1 <- .circle_world(c(0, 0), dbh_qsm/2, P_bh, a, b)
@@ -169,7 +170,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
     graphics::lines(circle_xyz2$Y, circle_xyz2$Z, col = "red", lwd = 2)
     graphics::abline(h = ground_z, col = "black", lty = 1, lwd = 2)
 
-    butt = lidR::filter_poi(tree, Z > bh - 0.2, Z < bh + 0.2)
+    butt = lidR::filter_poi(tree, Z > bh+ground_z - 0.2, Z < bh+ground_z + 0.2)
 
     graphics::plot(butt@data$X, butt@data$Z, asp = 1, pch = 19, cex = 0.2,  xlab = "X", ylab = "Z", main = "")
     graphics::points(slice@data$X, slice@data$Z, asp = 1, pch = 19, cex = 0.5, col = "purple")
