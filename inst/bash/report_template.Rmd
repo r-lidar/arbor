@@ -1,42 +1,19 @@
 ---
 title: "Forest Inventory Report"
-subtitle: "High-Resolution LiDAR QSM Report"
+subtitle: "Automatic report"
 author: "r-lidar inc."
-date: "`r format(Sys.time(), '%B %d, %Y', usetz = FALSE, locale = 'en_US.UTF-8')`"
+date: "`r {Sys.setlocale('LC_TIME', 'C'); format(Sys.time(), '%B %d, %Y')}`"
 output:
   bookdown::pdf_document2:
     toc: false
-    number_sections: true
+    number_sections: false
     fig_caption: true
     highlight: tango
-    keep_tex: false
-geometry: "left=2cm,right=2cm,top=2cm,bottom=2cm"
-header-includes:
-  - \usepackage{booktabs}
-  - \usepackage{longtable}
-  - \usepackage{array}
-  - \usepackage{multirow}
-  - \usepackage{float}
-  - \usepackage{colortbl}
-  - \usepackage{xcolor}
-  - \usepackage{tcolorbox}
-  - \usepackage{fancyhdr}
-  - \usepackage{titlesec}
-  - \usepackage{tcolorbox}
-  - \usepackage{graphicx}
-  - \renewcommand{\familydefault}{\sfdefault} % Modern Sans-Serif Font
-  - \definecolor{brandgreen}{RGB}{28, 107, 60} % Custom Forest Green
-  - \pagestyle{fancy}
-  - \fancyhf{}
-  - \rhead{\textcolor{gray}{Inventory Report}}
-  - \lhead{\textcolor{brandgreen}{\textbf{r-lidar}}}
-  - \cfoot{\thepage}
-  - \titleformat{\section}{\Large\bfseries\color{brandgreen}}{\thesection}{1em}{}
-  - \titleformat{\subsection}{\large\bfseries\color{gray}}{\thesubsection}{1em}{}
-editor_options: 
-  chunk_output_type: console
+    includes:
+      in_header: preamble.tex
+geometry: "left=4cm,right=2cm,top=2cm,bottom=2cm" # Added extra left margin for the band
 params:
-  idir: NULL
+  idir: "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/qsm/csv"
 ---
 
 ```{r setup, include=FALSE}
@@ -57,6 +34,8 @@ library(sf)
 library(kableExtra)
 library(patchwork)
 library(scales)
+library(rnaturalearth)
+library(rnaturalearthdata)
 ```
 
 ```{r}
@@ -132,12 +111,87 @@ ans <- lapply(files, function(f) {
 })
 
 ans <- do.call(rbind, ans)
+st_crs(ans) <- "EPSG:32735"
 
 Vtot  <- sum(ans$volume)
 Ntree <- nrow(ans)
 area  <- st_area(st_as_sfc(st_bbox(ans)))
 area  <- round(area / 50) * 50
 ba    <- sum((ans$dbh/2)^2*pi)
+```
+
+# Location
+
+```{r}
+# World map
+world <- ne_countries(scale = "medium", returnclass = "sf")
+rivers <- ne_download(
+  scale = 10, type = "rivers_lake_centerlines",
+  category = "physical", returnclass = "sf"
+)
+cities <- ne_download(
+  scale = 10, type = "populated_places",
+  category = "cultural", returnclass = "sf"
+)
+
+bb = st_as_sfc(st_bbox(ans))
+
+centroids <- ans |>
+st_transform(3857) |>
+st_centroid() |>
+st_transform(4326)
+
+bb <- st_bbox(centroids)
+pad <- 2
+bb_local <- st_bbox(c(
+bb["xmin"] - pad,
+bb["ymin"] - pad,
+bb["xmax"] + pad,
+bb["ymax"] + pad
+), crs = st_crs(4326))
+
+pad <- 45
+bb_global <- st_bbox(c(
+bb["xmin"] - pad,
+bb["ymin"] - pad,
+bb["xmax"] + pad,
+bb["ymax"] + pad
+), crs = st_crs(4326))
+
+# ---- Local zoom ----
+p_local <- ggplot() +
+  geom_sf(data = world, fill = "grey98", color = "grey80", linewidth = 0.2) +
+  geom_sf(data = rivers, color = "steelblue", linewidth = 0.4, alpha = 0.7) +
+  geom_sf(data = cities, color = "black", size = 1) +
+  geom_sf_text(
+    data = cities,
+    aes(label = NAME_EN),
+    size = 2,
+    check_overlap = TRUE
+  ) +
+  geom_sf(data = centroids, color = "red", size = 3) +
+  coord_sf(
+    xlim = c(bb_local["xmin"], bb_local["xmax"]),
+    ylim = c(bb_local["ymin"], bb_local["ymax"]),
+    expand = FALSE
+  ) +
+  theme_minimal()
+
+
+# Plot world map + centroids
+p_global <- ggplot() +
+geom_sf(data = world, fill = "grey95", color = "grey70", linewidth = 0.2) +
+geom_sf(data = centroids, color = "red", size = 2) +
+geom_sf(data = st_as_sfc(bb_local), color = "black", size = 1, alpha = 0) +
+  coord_sf(
+    xlim = c(bb_global["xmin"], bb_global["xmax"]),
+    ylim = c(bb_global["ymin"], bb_global["ymax"]),
+    expand = FALSE
+  ) +
+  xlab("") + ylab("") +
+theme_minimal()
+
+p_global | p_local
 ```
 
 # Global Statistics
@@ -183,6 +237,8 @@ kbl(summary_df, booktabs = T, escape = F, align = c('l', 'l', 'l')) %>%
   column_spec(1, bold = T, width = "4cm") %>%
   column_spec(3, italic = T)
 ```
+
+\pagebreak
 
 # Allometrics
 
@@ -243,11 +299,13 @@ p2 = ggplot(ans, aes(x = height)) +
 p1 | p2
 ```
 
-# Contribution
+\pagebreak
+
+# Contributions
 
 ```{r}
 # --- Data Preparation ---
-V <- sort(ans$volume)           # Sort volumes ascending
+V <- sort(ans$volume, decreasing = TRUE)           # Sort volumes ascending
 Vcum <- cumsum(V)               # Cumulative volume
 Vtot <- sum(V)
 Vp <- Vcum / Vtot * 100         # Cumulative percentage
@@ -261,10 +319,10 @@ half_vol_idx <- which(Vp >= 50)[1]
 half_vol_value <- Vp[half_vol_idx]
 ```
 
-The `r Ntree - half_vol_idx` (`r round((Ntree - half_vol_idx)/Ntree*100)`%)  biggest trees represent 50% of the volume. The `r half_vol_idx` (`r round((half_vol_idx)/Ntree*100)`%) smallest trees represent 50% of the volume.
+The `r half_vol_idx` (`r round((half_vol_idx)/Ntree*100)`%)  biggest trees represent 50% of the volume. The `r Ntree - half_vol_idx` (`r round((Ntree - half_vol_idx)/Ntree*100)`%) smallest trees represent 50% of the volume.
 
 
-```{r}
+```{r fig.height=4}
 p1 <- ggplot(data, aes(x = Tree, y = Vp)) +
   geom_line(color = "darkgreen", size = 1.2) +
   geom_point(color = "forestgreen", size = 2) +
@@ -272,7 +330,7 @@ p1 <- ggplot(data, aes(x = Tree, y = Vp)) +
   geom_vline(xintercept = half_vol_idx, linetype = "dashed", size = 0.5) +
   geom_text(
     aes(x = half_vol_idx + 1, y = 98,
-        label = paste0(Ntree - half_vol_idx, " trees")),
+        label = paste0(Ntree - half_vol_idx)),
     hjust = 0,
     size = 3.5, # smaller
     fontface = "plain", # not bold
@@ -280,7 +338,7 @@ p1 <- ggplot(data, aes(x = Tree, y = Vp)) +
   ) +
   geom_text(
     aes(x = 0, y = 98,
-        label = paste0(half_vol_idx, " trees")),
+        label = paste0(half_vol_idx)),
     hjust = 0,
     size = 3.5,
     fontface = "plain",
