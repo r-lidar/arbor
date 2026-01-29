@@ -1,6 +1,6 @@
 qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 {
-  cat("Measuring diameters... ") ; ti = tic()
+  cat("Measuring diameters...\n") ; ti = tic()
 
   H <- max(tree$hag)
   R0_first_guess <- DBH_vs_H_allometry(H)/2
@@ -12,8 +12,13 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 
   if (R0 < 0.04) return(qsm)
 
+  cat("   Measuring diameters ")
   qsm <- qsm_measure(tree, qsm, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.03)
   #qsm <- qsm_measure_r(tree, qsm)
+  n = sum(!is.na(qsm$radius))
+  cat("(", n, " radii measured)\n", sep = "")
+
+  cat("   Polynomial fitting\n ")
   qsm <- qsm_polynomial_fitting(qsm, tip_radius)
 
   # If we still have NAs on main axis it means interpolation failed on main
@@ -27,6 +32,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
     return(qsm)
   }
 
+  cat("  Reconstruction\n ")
   qsm <- qsm_reconstruction(qsm, tip_radius)
 
   toc(ti)

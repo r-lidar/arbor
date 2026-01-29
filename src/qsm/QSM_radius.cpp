@@ -116,6 +116,7 @@ void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float si
 
 void QSM::polynomial_fitting(double tip_radius)
 {
+
   // Group Cylinder IDs by Axis ID
   std::map<int, std::vector<int>> axes;
   for (auto& kv : cylinders_)
@@ -124,109 +125,117 @@ void QSM::polynomial_fitting(double tip_radius)
     axes[cyl.axis_ID].push_back(cyl.cyl_ID);
   }
 
-  // Iterate over each axis
+  // For each axe
   for (auto& group : axes)
   {
     int axis_id = group.first;
     const std::vector<int>& cyl_ids = group.second;
 
-    // Collect valid measurements for regression
-    // We need to solve: (radius - tip) = a * length + b * length^2
-    // Let y = radius - tip_radius
-    // Let x = subtree_length
-    // Equation: y = a*x + b*x^2
-
     std::vector<std::pair<double, double>> data_points;
     data_points.reserve(cyl_ids.size());
 
+    // Collect valid data
     for (int id : cyl_ids)
     {
-      // Access via map to ensure we get the actual object
       const auto& cyl = cylinders_[id];
-
-      // Corresponds to R: sum(!is.na(axe$radius))
       if (cyl.radius != RADIUS_UNSET && cyl.subtree_length != SUBTREE_LENGTH_UNSET)
       {
         double y = cyl.radius - tip_radius;
         double x = cyl.subtree_length;
+        if (y < 0) y = 0;
         data_points.push_back({x, y});
       }
     }
 
-    // No interpolation if less than 6 points
-    if (data_points.size() <= 6)
-    {
-      continue;
-    }
+    // No polynomial fitting on less than 7 points
+    if (data_points.size() <= 6) continue;
 
-    // 3. Solve Linear Least Squares (OLS) for 2 variables (a, b)
-    // We want to minimize sum of squared errors.
-    // System of Normal Equations for y = c1*x + c2*x^2:
-    // | sum(x^2)  sum(x^3) |  | a |   | sum(x*y)   |
-    // | sum(x^3)  sum(x^4) |  | b | = | sum(x^2*y) |
-
-    double sum_x2 = 0.0;
-    double sum_x3 = 0.0;
-    double sum_x4 = 0.0;
-    double sum_xy = 0.0;
-    double sum_x2y = 0.0;
+    // --- Compute Sums ---
+    double sum_x2 = 0.0, sum_x3 = 0.0, sum_x4 = 0.0;
+    double sum_xy = 0.0, sum_x2y = 0.0;
 
     for (const auto& p : data_points)
     {
       double x = p.first;
       double y = p.second;
       double x2 = x * x;
-      double x3 = x2 * x;
-      double x4 = x3 * x;
-
       sum_x2  += x2;
-      sum_x3  += x3;
-      sum_x4  += x4;
+      sum_x3  += x2 * x;
+      sum_x4  += x2 * x2;
       sum_xy  += x * y;
       sum_x2y += x2 * y;
     }
 
-    // Determinant of the 2x2 matrix
     double det = sum_x2 * sum_x4 - sum_x3 * sum_x3;
+    if (std::abs(det) < 1e-12) continue;
 
-    // Check for singular matrix (collinear points or not enough spread)
-    // Fallback or skip: Matrix is singular, cannot fit polynomial.
-    if (std::abs(det) < 1e-12)
-    {
-      continue;
-    }
-
-    // Solve using Cramer's rule
+    // --- Step 1: Unconstrained OLS ---
     double a = (sum_xy * sum_x4 - sum_x2y * sum_x3) / det;
     double b = (sum_x2 * sum_x2y - sum_xy * sum_x3) / det;
 
+    // --- Step 2: Apply Non-Negative Constraints (NNLS) ---
+    // If coefficients are negative, the unconstrained fit is physically impossible
+    // (branch gets thinner towards root or dips below tip radius).
+    if (a < 0 || b < 0)
+    {
+      // The optimum must be on the boundary. We compare two models:
+      // Model 1: y = a*x (Force b=0)
+      // Model 2: y = b*x^2 (Force a=0)
 
-    // Apply prediction to cylinders in this axis
+      // 1. Fit Linear (b=0): a = sum(xy) / sum(x^2)
+      double a_linear = (sum_x2 > 1e-12) ? sum_xy / sum_x2 : 0.0;
+      if (a_linear < 0) a_linear = 0; // Clamp
+
+      // 2. Fit Quadratic (a=0): b = sum(x^2y) / sum(x^4)
+      double b_quad = (sum_x4 > 1e-12) ? sum_x2y / sum_x4 : 0.0;
+      if (b_quad < 0) b_quad = 0; // Clamp
+
+      // Calculate Sum of Squared Errors (SSE) for both to pick the best
+      double sse_linear = 0.0;
+      double sse_quad = 0.0;
+
+      for (const auto& p : data_points)
+      {
+        double x = p.first;
+        double y = p.second;
+
+        double err_l = y - (a_linear * x);
+        sse_linear += err_l * err_l;
+
+        double err_q = y - (b_quad * x * x);
+        sse_quad += err_q * err_q;
+      }
+
+      // Assign the winner
+      if (sse_linear < sse_quad)
+      {
+        a = a_linear;
+        b = 0.0;
+      }
+      else
+      {
+        a = 0.0;
+        b = b_quad;
+      }
+    }
+
+    // --- Step 3: Apply Prediction ---
     for (int id : cyl_ids)
     {
       QSMcylinder& cyl = cylinders_[id];
-
       if (cyl.subtree_length != SUBTREE_LENGTH_UNSET)
       {
         double len = cyl.subtree_length;
         double pred_radius = tip_radius + a * len + b * len * len;
-        if (pred_radius < 0) pred_radius = 0; // Safety clamp
 
         bool should_update = false;
-
-        // Condition 1: Value is missing
         if (cyl.radius == RADIUS_UNSET)
         {
           should_update = true;
         }
-        // Condition 2: Measured radius is > 10% different than prediction
         else
         {
-          // Calculate absolute difference
           double diff = std::abs(cyl.radius - pred_radius);
-
-          // Check if difference > 10% of the PREDICTED value
-          // (Using prediction as the baseline for the "ideal" curve)
           if (diff > 0.10 * pred_radius)
           {
             should_update = true;
