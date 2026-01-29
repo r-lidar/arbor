@@ -132,10 +132,10 @@ Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
   return df;
 }
 
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, int root_id = 1)
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, int root_id = 1, bool use_volume = false)
 {
   QSM qsm = as_qsm(df);
-  qsm.compute_architecture(root_id); // Rcpp catches exceptions
+  qsm.compute_architecture(root_id, use_volume); // Rcpp catches exceptions
 
   // Prepare new columns
   int n = (int)qsm.size();

@@ -122,13 +122,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsm_architecture_cpp
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id);
-RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP root_idSEXP) {
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id, bool use_volume);
+RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP root_idSEXP, SEXP use_volumeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
     Rcpp::traits::input_parameter< int >::type root_id(root_idSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, root_id));
+    Rcpp::traits::input_parameter< bool >::type use_volume(use_volumeSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, root_id, use_volume));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -258,7 +259,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
-    {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
+    {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},

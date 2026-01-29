@@ -244,7 +244,7 @@ void QSM::polynomial_fitting(double tip_radius)
 
 void QSM::reconstruct_missing_radii(double tip_radius)
 {
-  // Group cylinders by "branch_order" for efficient iteration.
+  // Group cylinders by "branch_order"
   std::map<int, std::vector<QSMcylinder*>> cylinders_by_branch_order;
   for (auto& [_, cyl] : cylinders_)  cylinders_by_branch_order[cyl.branch_order].push_back(&cyl);
 
@@ -253,7 +253,7 @@ void QSM::reconstruct_missing_radii(double tip_radius)
   {
     if (branch_order == 1) continue;
 
-    // Group cylinders of the current "branch_order" by "axis_ID"
+    // Group cylinders of the current "branch_order" by "axis_ID". Order does not matter
     std::unordered_map<int, std::vector<QSMcylinder*>> axes;
     for (QSMcylinder* c : cyls) axes[c->axis_ID].push_back(c);
 
@@ -276,8 +276,9 @@ void QSM::reconstruct_missing_radii(double tip_radius)
       }
       if (!needs_reconstruction) continue;
 
-      // Sort the cylinder by ID
-      std::sort(axe.begin(), axe.end(), [](const QSMcylinder* a, const QSMcylinder* b) { return a->cyl_ID < b->cyl_ID; });
+      // Sort the cylinder by subtree_length to get them from root to tip
+      std::sort(axe.begin(), axe.end(), [](const QSMcylinder* a, const QSMcylinder* b) {
+        return a->subtree_length > b->subtree_length; });
 
       // The first cylinder is the root of the branch. We search for its parent
       const int parent_id = axe.front()->parent_ID;
@@ -292,7 +293,7 @@ void QSM::reconstruct_missing_radii(double tip_radius)
         r_theoretical.push_back(conic_allometry(tip_radius, c->subtree_length, w0, r0));
 
       // Collect measurements if any
-      std::vector<double> r_measured(axe.size());
+      /*std::vector<double> r_measured(axe.size());
       int valid_measurements = 0;
 
       std::transform(axe.begin(), axe.end(), r_measured.begin(), [&](const QSMcylinder* c)
@@ -303,13 +304,13 @@ void QSM::reconstruct_missing_radii(double tip_radius)
           return c->radius;
         }
         return std::numeric_limits<double>::quiet_NaN(); // preserve alignment
-      });
+      });*/
 
       // By default the final measurement are the theoretical values
       std::vector<double> r_final = r_theoretical;
 
       // If we have more than 3 measurements we can try to estimate a better profile
-      if (valid_measurements >= 3)
+      /*if (valid_measurements >= 3)
       {
         // Compute ratios only for valid measured radii
         std::vector<double> ratios;
@@ -331,7 +332,7 @@ void QSM::reconstruct_missing_radii(double tip_radius)
           const double wi = axe[k]->subtree_length;
           r_final[k] = conic_allometry(tip_radius, wi, w0, r0 * ratio_median);
         }
-      }
+      }*/
 
       // Update QSM
       for (size_t k = 0; k < axe.size(); ++k)

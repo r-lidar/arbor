@@ -52,7 +52,7 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1);
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1, bool use_volume = false);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);

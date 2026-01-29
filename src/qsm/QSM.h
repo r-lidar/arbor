@@ -13,6 +13,7 @@ using PointCloud = DataFrameAdaptor;
 
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
+static constexpr double SUBTREE_VOLUME_UNSET    = -1;
 static constexpr double RADIUS_UNSET            = -1.0;
 static constexpr double Z_EPS = 1e-9;
 
@@ -28,6 +29,7 @@ struct QSMcylinder
   double conic_allometry = RADIUS_UNSET;
   double subtree_length = SUBTREE_LENGTH_UNSET;
   double subtree_max_endZ = SUBTREE_MAXZ_UNSET;
+  double subtree_volume = SUBTREE_VOLUME_UNSET;
   int cyl_ID = 0;
   int parent_ID = 0;
   int axis_ID = 0;
@@ -57,7 +59,7 @@ public:
 
   void compute_topology();
   void smooth_skeleton(int niter, double th);
-  void compute_architecture(int root_id = 1);
+  void compute_architecture(int root_id = 1, bool use_volume = true);
   void prolongate(double d, double L = 0.1);
   void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
   void polynomial_fitting(double tip_radius);
@@ -86,7 +88,8 @@ private:
   // recursive helpers
   double compute_subtree_length(int node_id);
   double compute_subtree_max_z(int node_id);
-  void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id);
+  double compute_subtree_volume(int node_id);
+  void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume);
 
   // mesh and write
   void build_mesh(std::vector<std::array<double,3>>& vertices,  std::vector<std::array<int,3>>& faces, int resolution = 16) const;

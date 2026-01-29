@@ -64,22 +64,28 @@ void QSM::compute_topology()
   }
 }
 
-void QSM::compute_architecture(int root_id)
+// 1. Update the entry point to accept the option
+void QSM::compute_architecture(int root_id, bool use_volume)
 {
-  // initialize caches inside cylinders
+  // Initialize caches inside cylinders
   for (auto& kv : cylinders_)
   {
     kv.second.subtree_length    = SUBTREE_LENGTH_UNSET;
     kv.second.subtree_max_endZ  = SUBTREE_MAXZ_UNSET;
+    kv.second.subtree_volume    = SUBTREE_VOLUME_UNSET;
     kv.second.axis_ID           = 0;
     kv.second.branch_order      = 0;
   }
 
   compute_subtree_length(root_id);
-  compute_subtree_max_z(root_id);
+
+  if (use_volume)
+    compute_subtree_volume(root_id);
+  else
+    compute_subtree_max_z(root_id);
 
   int next_axis_id = 2;
-  assign_subtree_ids(root_id, 1, 1, next_axis_id);
+  assign_subtree_ids(root_id, 1, 1, next_axis_id, use_volume);
 }
 
 double QSM::compute_subtree_length(int node_id)
@@ -129,7 +135,34 @@ double QSM::compute_subtree_max_z(int node_id)
   return maxz;
 }
 
-void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id)
+double QSM::compute_subtree_volume(int node_id)
+{
+  auto& node = cylinders_[node_id];
+
+  // Cache hit?
+  if (node.subtree_volume >= 0)
+    return node.subtree_volume;
+
+  const auto& kids = children_map_[node_id];
+  if (kids.empty())
+  {
+    node.subtree_volume = 0.0;
+    return 0.0;
+  }
+
+  double max_v = 0.0;
+  for (int child_id : kids)
+  {
+    auto& child = cylinders_[child_id];
+    double candidate = compute_subtree_volume(child_id) + child.volume();
+    max_v = std::max(max_v, candidate);
+  }
+
+  node.subtree_length = max_v;
+  return max_v;
+}
+
+void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume)
 {
   auto& node = cylinders_[node_id];
   node.axis_ID = current_axis_id;
@@ -138,23 +171,43 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
   const auto& kids = children_map_[node_id];
   if (kids.empty()) return;
 
-  // Select main child: highest endZ, then longest subtree
   int main_child = -1;
-  double bestZ = -1e300;
-  double bestSecondary = -1e300;
+  double best_score = -1e300;     // General score variable
+  double best_secondary = -1e300; // Used only for Z logic tie-breaking
 
   for (int child_id : kids)
   {
     auto& child = cylinders_[child_id];
+    bool is_better = false;
 
-    double z = child.subtree_max_endZ;
-    double secondary = child.subtree_length + child.length();
+    if (use_volume)
+    {
+      // Strategy A: Follow the path with the Highest Volume
+      // We look at the child's path volume + the child's own volume
+      double current_vol = child.subtree_volume + child.volume();
+      if (current_vol > best_score)
+      {
+        is_better = true;
+        best_score = current_vol;
+      }
+    }
+    else
+    {
+      // Strategy B: Original (Height + Length tie-breaker)
+      double z = child.subtree_max_endZ;
+      double secondary = child.subtree_length + child.length();
 
-    if (z > bestZ + Z_EPS || (std::abs(z - bestZ) <= Z_EPS && secondary > bestSecondary))
+      if (z > best_score + Z_EPS || (std::abs(z - best_score) <= Z_EPS && secondary > best_secondary))
+      {
+        is_better = true;
+        best_score = z;
+        best_secondary = secondary;
+      }
+    }
+
+    if (is_better)
     {
       main_child = child_id;
-      bestZ = z;
-      bestSecondary = secondary;
     }
   }
 
@@ -162,12 +215,14 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
   {
     if (child_id == main_child)
     {
-      assign_subtree_ids(child_id, current_axis_id, current_branch_order, next_axis_id);
+      // Continue the current axis
+      assign_subtree_ids(child_id, current_axis_id, current_branch_order, next_axis_id, use_volume);
     }
     else
     {
+      // Start a new axis
       int new_id = next_axis_id++;
-      assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id);
+      assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id, use_volume);
     }
   }
 }

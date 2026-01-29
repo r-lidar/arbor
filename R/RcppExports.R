@@ -37,8 +37,8 @@ qsm_topology_cpp <- function(qsm) {
     .Call(`_arbor_qsm_topology_cpp`, qsm)
 }
 
-qsm_architecture_cpp <- function(qsm, root_id = 1L) {
-    .Call(`_arbor_qsm_architecture_cpp`, qsm, root_id)
+qsm_architecture_cpp <- function(qsm, root_id = 1L, use_volume = FALSE) {
+    .Call(`_arbor_qsm_architecture_cpp`, qsm, root_id, use_volume)
 }
 
 cpp_build_skeleton <- function(data, max_d) {
