@@ -116,136 +116,140 @@ void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float si
 
 void QSM::polynomial_fitting(double tip_radius)
 {
-
-  // Group Cylinder IDs by Axis ID
-  std::map<int, std::vector<int>> axes;
+  // Group cylindera by axis
+  std::map<int, Axe> axes;
   for (auto& kv : cylinders_)
   {
-    const QSMcylinder& cyl = kv.second;
-    axes[cyl.axis_ID].push_back(cyl.cyl_ID);
+    QSMcylinder& cyl = kv.second;
+    axes[cyl.axis_ID].add_cylinder(&cyl);
   }
 
-  // For each axe
+  // Iterate over each axis
   for (auto& group : axes)
   {
     int axis_id = group.first;
-    const std::vector<int>& cyl_ids = group.second;
+    Axe& axe = group.second;
+    axe.sort();
+
+    // Collect valid measurements for regression
+    // We need to solve: (radius - tip) = a * length + b * length^2
+    // Let y = radius - tip_radius
+    // Let x = subtree_length
+    // Equation: y = a*x + b*x^2
 
     std::vector<std::pair<double, double>> data_points;
-    data_points.reserve(cyl_ids.size());
+    data_points.reserve(axe.size());
 
-    // Collect valid data
-    for (int id : cyl_ids)
+    for (QSMcylinder* cyl : axe)
     {
-      const auto& cyl = cylinders_[id];
-      if (cyl.radius != RADIUS_UNSET && cyl.subtree_length != SUBTREE_LENGTH_UNSET)
+      // Corresponds to R: sum(!is.na(axe$radius))
+      if (cyl->radius != RADIUS_UNSET && cyl->subtree_length != SUBTREE_LENGTH_UNSET)
       {
-        double y = cyl.radius - tip_radius;
-        double x = cyl.subtree_length;
-        if (y < 0) y = 0;
+        double y = cyl->radius - tip_radius;
+        double x = cyl->subtree_length;
         data_points.push_back({x, y});
       }
     }
 
-    // No polynomial fitting on less than 7 points
-    if (data_points.size() <= 6) continue;
+    // No interpolation if less than 6 points
+    if (data_points.size() <= 6)
+    {
+      continue;
+    }
 
-    // --- Compute Sums ---
-    double sum_x2 = 0.0, sum_x3 = 0.0, sum_x4 = 0.0;
-    double sum_xy = 0.0, sum_x2y = 0.0;
+    // 3. Solve Linear Least Squares (OLS) for 2 variables (a, b)
+    // We want to minimize sum of squared errors.
+    // System of Normal Equations for y = c1*x + c2*x^2:
+    // | sum(x^2)  sum(x^3) |  | a |   | sum(x*y)   |
+    // | sum(x^3)  sum(x^4) |  | b | = | sum(x^2*y) |
+
+    double sum_x2 = 0.0;
+    double sum_x3 = 0.0;
+    double sum_x4 = 0.0;
+    double sum_xy = 0.0;
+    double sum_x2y = 0.0;
 
     for (const auto& p : data_points)
     {
       double x = p.first;
       double y = p.second;
       double x2 = x * x;
+      double x3 = x2 * x;
+      double x4 = x3 * x;
+
       sum_x2  += x2;
-      sum_x3  += x2 * x;
-      sum_x4  += x2 * x2;
+      sum_x3  += x3;
+      sum_x4  += x4;
       sum_xy  += x * y;
       sum_x2y += x2 * y;
     }
 
+    // Determinant of the 2x2 matrix
     double det = sum_x2 * sum_x4 - sum_x3 * sum_x3;
+
+    // Check for singular matrix (collinear points or not enough spread)
+    // Fallback or skip: Matrix is singular, cannot fit polynomial.
     if (std::abs(det) < 1e-12) continue;
 
-    // --- Step 1: Unconstrained OLS ---
+    // Solve using Cramer's rule
     double a = (sum_xy * sum_x4 - sum_x2y * sum_x3) / det;
     double b = (sum_x2 * sum_x2y - sum_xy * sum_x3) / det;
 
-    // --- Step 2: Apply Non-Negative Constraints (NNLS) ---
-    // If coefficients are negative, the unconstrained fit is physically impossible
-    // (branch gets thinner towards root or dips below tip radius).
-    if (a < 0 || b < 0)
+    // Compute the whole prediction for this axis
+    std::vector<double> predictions;
+    for (QSMcylinder* cyl : axe)
     {
-      // The optimum must be on the boundary. We compare two models:
-      // Model 1: y = a*x (Force b=0)
-      // Model 2: y = b*x^2 (Force a=0)
-
-      // 1. Fit Linear (b=0): a = sum(xy) / sum(x^2)
-      double a_linear = (sum_x2 > 1e-12) ? sum_xy / sum_x2 : 0.0;
-      if (a_linear < 0) a_linear = 0; // Clamp
-
-      // 2. Fit Quadratic (a=0): b = sum(x^2y) / sum(x^4)
-      double b_quad = (sum_x4 > 1e-12) ? sum_x2y / sum_x4 : 0.0;
-      if (b_quad < 0) b_quad = 0; // Clamp
-
-      // Calculate Sum of Squared Errors (SSE) for both to pick the best
-      double sse_linear = 0.0;
-      double sse_quad = 0.0;
-
-      for (const auto& p : data_points)
-      {
-        double x = p.first;
-        double y = p.second;
-
-        double err_l = y - (a_linear * x);
-        sse_linear += err_l * err_l;
-
-        double err_q = y - (b_quad * x * x);
-        sse_quad += err_q * err_q;
-      }
-
-      // Assign the winner
-      if (sse_linear < sse_quad)
-      {
-        a = a_linear;
-        b = 0.0;
-      }
-      else
-      {
-        a = 0.0;
-        b = b_quad;
-      }
+      double len = cyl->subtree_length;
+      double pred_radius = tip_radius + a * len + b * len * len;
+      if (pred_radius < 0) pred_radius = 0; // Safety clamp
+      predictions.push_back(pred_radius);
     }
 
-    // --- Step 3: Apply Prediction ---
-    for (int id : cyl_ids)
+    // Sometime the polynomial fitting can mess-up the branch with parent cylinder
+    // smaller than child. Usually this happens if the measure we have are centered
+    // on the branch with no data on the insertion point (or root). In this case the
+    // polynomial is not constrained and weird behavior can arise. So we check that
+    // we have no increasing diameters and repair otherwise.
+    double previous_radius = predictions.back();
+    for (auto it = predictions.rbegin(); it != predictions.rend(); ++it)
     {
-      QSMcylinder& cyl = cylinders_[id];
-      if (cyl.subtree_length != SUBTREE_LENGTH_UNSET)
-      {
-        double len = cyl.subtree_length;
-        double pred_radius = tip_radius + a * len + b * len * len;
+      if (*it < previous_radius) { *it = previous_radius; }
+      previous_radius = *it;
+    }
 
-        bool should_update = false;
-        if (cyl.radius == RADIUS_UNSET)
+    // Apply prediction to cylinders in this axis
+    int i = 0;
+    for (QSMcylinder* cyl : axe)
+    {
+      double pred_radius = predictions[i]; i++;
+
+      if (cyl->subtree_length == SUBTREE_LENGTH_UNSET)
+        throw std::logic_error("subtree_length unset during polynomial fitting");
+
+      bool should_update = false;
+
+      // Condition 1: Value is missing
+      if (cyl->radius == RADIUS_UNSET)
+      {
+        should_update = true;
+      }
+      // Condition 2: Measured radius is > X% different than prediction
+      else
+      {
+        // Calculate absolute difference
+        double diff = std::abs(cyl->radius - pred_radius);
+
+        // Check if difference > X% of the PREDICTED value
+        // (Using prediction as the baseline for the "ideal" curve)
+        if (diff > 0.20 * pred_radius)
         {
           should_update = true;
         }
-        else
-        {
-          double diff = std::abs(cyl.radius - pred_radius);
-          if (diff > 0.10 * pred_radius)
-          {
-            should_update = true;
-          }
-        }
+      }
 
-        if (should_update)
-        {
-          cyl.radius = pred_radius;
-        }
+      if (should_update)
+      {
+        cyl->radius = pred_radius;
       }
     }
   }
