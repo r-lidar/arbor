@@ -1,3 +1,8 @@
+# arbor 0.7.2
+
+- Fix QSM. There is no longer any irrelevant and biologically impossible branches.
+- Polynomial fitting applied only on missing diameters and outliers. Raw measurements preserved.
+
 # arbor 0.7.1
 
 - Default breast height is 1.30 m instead of 1.37 m
