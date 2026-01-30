@@ -50,6 +50,52 @@ struct QSMcylinder
   }
 };
 
+struct Axe
+{
+  using container_type = std::vector<QSMcylinder*>;
+  using iterator       = container_type::iterator;
+  using const_iterator = container_type::const_iterator;
+
+  container_type cylinders_;
+
+  void add_cylinder(QSMcylinder* cyl) { cylinders_.push_back(cyl); }
+
+  void sort()
+  {
+    // Sort cylinders from root to tip
+    std::sort(cylinders_.begin(), cylinders_.end(),
+      [](const QSMcylinder* a, const QSMcylinder* b) {  return a->subtree_length > b->subtree_length; });
+  }
+
+  bool need_reconstruction() const
+  {
+    for (const QSMcylinder* cyl : cylinders_)
+    {
+      if (cyl->radius == RADIUS_UNSET)
+        return true;
+    }
+    return false;
+  }
+
+  void scale(double factor)
+  {
+    for (QSMcylinder* cyl : cylinders_) { cyl->radius *= factor; }
+  }
+
+  // --- vector-like access ---
+  std::size_t size() const noexcept { return cylinders_.size(); }
+  bool empty() const noexcept { return cylinders_.empty(); }
+  QSMcylinder*& operator[](std::size_t i) { return cylinders_[i]; }
+  const QSMcylinder* operator[](std::size_t i) const { return cylinders_[i]; }
+  iterator begin() noexcept { return cylinders_.begin(); }
+  iterator end()   noexcept { return cylinders_.end(); }
+  const_iterator begin() const noexcept { return cylinders_.begin(); }
+  const_iterator end()   const noexcept { return cylinders_.end(); }
+  const_iterator cbegin() const noexcept { return cylinders_.cbegin(); }
+  const_iterator cend()   const noexcept { return cylinders_.cend(); }
+};
+
+
 class QSM
 {
 public:

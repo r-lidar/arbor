@@ -263,90 +263,39 @@ void QSM::reconstruct_missing_radii(double tip_radius)
     if (branch_order == 1) continue;
 
     // Group cylinders of the current "branch_order" by "axis_ID". Order does not matter
-    std::unordered_map<int, std::vector<QSMcylinder*>> axes;
-    for (QSMcylinder* c : cyls) axes[c->axis_ID].push_back(c);
+    std::unordered_map<int, Axe> axes;
+    for (QSMcylinder* c : cyls) axes[c->axis_ID].add_cylinder(c);
 
     // Loop on each axis
     for (auto& [axis_id, axe] : axes)
     {
       if (axe.empty()) continue;
 
-      // Check if ANY cylinder in the axis needs reconstruction. This means that polynomial
-      // fitting failed.
-      // Iterate through cylinders to check for UNSET radius and count valid measurements
-      bool needs_reconstruction = false;
-      for (const QSMcylinder* c : axe)
-      {
-        if (c->radius == RADIUS_UNSET)
-        {
-          needs_reconstruction = true;
-          break;
-        }
-      }
-      if (!needs_reconstruction) continue;
-
       // Sort the cylinder by subtree_length to get them from root to tip
-      std::sort(axe.begin(), axe.end(), [](const QSMcylinder* a, const QSMcylinder* b) {
-        return a->subtree_length > b->subtree_length; });
+      axe.sort();
 
       // The first cylinder is the root of the branch. We search for its parent
-      const int parent_id = axe.front()->parent_ID;
+      const int parent_id = axe[0]->parent_ID;
       QSMcylinder& parent = get_cylinder_by_id(parent_id);
       const double r0 = parent.radius*0.9;
       const double w0 = parent.subtree_length;
 
-      // Compute theoretical radii by conic radiometry. This is our fallback value
-      std::vector<double> r_theoretical;
-      r_theoretical.reserve(axe.size());
-      for (const QSMcylinder* c : axe)
-        r_theoretical.push_back(conic_allometry(tip_radius, c->subtree_length, w0, r0));
-
-      // Collect measurements if any
-      /*std::vector<double> r_measured(axe.size());
-      int valid_measurements = 0;
-
-      std::transform(axe.begin(), axe.end(), r_measured.begin(), [&](const QSMcylinder* c)
+      // If the axes has missing radii it means no polynomial fitting was performed
+      // we need to reconstruct the radii
+      if (axe.need_reconstruction())
       {
-        if (c->radius != RADIUS_UNSET)
-        {
-          valid_measurements++;
-          return c->radius;
-        }
-        return std::numeric_limits<double>::quiet_NaN(); // preserve alignment
-      });*/
-
-      // By default the final measurement are the theoretical values
-      std::vector<double> r_final = r_theoretical;
-
-      // If we have more than 3 measurements we can try to estimate a better profile
-      /*if (valid_measurements >= 3)
+        // Compute theoretical radii by conic allometry. This is our fallback value
+        for (QSMcylinder* c : axe)
+          c->radius = conic_allometry(tip_radius, c->subtree_length, w0, r0);
+      }
+      // If the axes has no missing radii it means polynomial fitting was performed
+      // However sometime the fitting may generate branch bigger than their parent. This
+      // fixes such ugly output.
+      else
       {
-        // Compute ratios only for valid measured radii
-        std::vector<double> ratios;
-        ratios.reserve(valid_measurements);
-        for (size_t k = 0; k < axe.size(); ++k)
-        {
-          if (!std::isnan(r_measured[k]))
-            ratios.push_back(r_measured[k] / r_theoretical[k]);
-        }
-
-        // Median ratio calculation
-        std::sort(ratios.begin(), ratios.end());
-        const size_t m = ratios.size() / 2;
-        const double ratio_median =  (ratios.size() % 2 != 0) ? ratios[m]: (ratios[m - 1] + ratios[m]) / 2.0;
-
-        // Apply scaling using the conic allometry formulation
-        for (size_t k = 0; k < axe.size(); ++k)
-        {
-          const double wi = axe[k]->subtree_length;
-          r_final[k] = conic_allometry(tip_radius, wi, w0, r0 * ratio_median);
-        }
-      }*/
-
-      // Update QSM
-      for (size_t k = 0; k < axe.size(); ++k)
-      {
-        axe[k]->radius = r_final[k];
+        double r1 = axe[0]->radius;
+        double ratio = r0/r1;
+        if (ratio < 1)  axe.scale(ratio);
       }
     }
   }
