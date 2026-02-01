@@ -1,3 +1,9 @@
+# arbor 0.7.3
+
+- Fix `colorize_trees()` with `darken_foliage = FALSE`
+- Fix `qsm()` for trees > 36 m
+
+
 # arbor 0.7.2
 
 - Fix QSM. There is no longer any irrelevant and biologically impossible branches.
