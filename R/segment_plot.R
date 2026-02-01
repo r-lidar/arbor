@@ -101,6 +101,10 @@ colorize_trees = function(las, darken_foliage = TRUE)
   # Create vector to store RGB for each point
   cols <- pal[p2, ]
 
+  R = as.integer(cols[,1])
+  G = as.integer(cols[,2])
+  B = as.integer(cols[,3])
+
   # Darken foliage points
   if (darken_foliage)
   {
@@ -109,10 +113,11 @@ colorize_trees = function(las, darken_foliage = TRUE)
     R = as.integer(cols[,1])
     G = as.integer(cols[,2])
     B = as.integer(cols[,3])
-    R[is.na(R)] = 150L
-    G[is.na(G)] = 150L
-    B[is.na(B)] = 150L
   }
+
+  R[is.na(R)] = 150L
+  G[is.na(G)] = 150L
+  B[is.na(B)] = 150L
 
   # Assign to LAS
   las = lidR::add_lasrgb(las, R, G, B)
