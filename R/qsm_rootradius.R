@@ -113,7 +113,13 @@ measure_cylinder_radius = function(pc, qsm, id)
 
 # Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
 # tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
+# (Does not work for big trees, thus I made custom modification)
 H_vs_DBH_allometry = function(dbh) { 36.03*(1-exp(-0.05*dbh))^1.1 }
-DBH_vs_H_allometry = function(H) { DBH = -1/0.05*log(1-(H/36.03)^(1/1.1)) ; DBH/100 }
+DBH_vs_H_allometry = function(H)
+{
+  DBH = ifelse(H < 25, 0.993*H, 4*H - 75)
+  #DBH = -1/0.05*log(1-(H/36.03)^(1/1.1))
+  return(DBH/100)
+}
 
 
