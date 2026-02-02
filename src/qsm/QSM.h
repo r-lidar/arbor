@@ -7,7 +7,7 @@
 #include <cmath>
 #include <string>
 
-#include "nanoflann/Adaptor.h"
+#include "Adaptor.h"
 
 using PointCloud = DataFrameAdaptor;
 

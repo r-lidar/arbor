@@ -1,27 +1,25 @@
-#include <Rcpp.h>
 #include <unordered_map>
 #include <vector>
-using namespace Rcpp;
+#include <random>
 
+#include "Adaptor.h"
 
-LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  NumericVector Z, double res)
+std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true)
 {
 
-  size_t n = X.size();
-  if (Y.size() != n || Z.size() != n)
-    stop("Input vectors must have same length");
+  size_t n = pc.n_points;
 
   // COMPUTE VOXEL ID FOR EACH POINT
   // ===============================
 
   // --- Compute bounding box ---
-  double xmin = X[0], xmax = X[0];
-  double ymin = Y[0], ymax = Y[0];
-  double zmin = Z[0], zmax = Z[0];
+  double xmin = pc.get_x(0), xmax = pc.get_x(0);
+  double ymin = pc.get_y(0), ymax = pc.get_y(0);
+  double zmin = pc.get_z(0), zmax = pc.get_z(0);
 
   for (size_t i = 1; i < n; ++i)
   {
-    double x = X[i], y = Y[i], z = Z[i];
+    double x = pc.get_x(i), y = pc.get_y(i), z = pc.get_z(i);
     if (x < xmin) xmin = x;
     if (x > xmax) xmax = x;
     if (y < ymin) ymin = y;
@@ -39,9 +37,9 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
   std::vector<int64_t> id(n);
   for (size_t i = 0; i < n; ++i)
   {
-    int64_t ix = static_cast<int64_t>(std::floor((X[i] - xmin) / res));
-    int64_t iy = static_cast<int64_t>(std::floor((Y[i] - ymin) / res));
-    int64_t iz = static_cast<int64_t>(std::floor((Z[i] - zmin) / res));
+    int64_t ix = static_cast<int64_t>(std::floor((pc.get_x(i) - xmin) / res));
+    int64_t iy = static_cast<int64_t>(std::floor((pc.get_y(i) - ymin) / res));
+    int64_t iz = static_cast<int64_t>(std::floor((pc.get_z(i) - zmin) / res));
     id[i] = ((iz * ny) + iy) * nx + ix;
   }
 
@@ -61,6 +59,7 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
   std::swap(id, remapped);
 
   // SELECT POINTS TO RETAIN
+  // (Barycentric decimation)
   // ===============================
 
   // Step 1: group indices by voxel ID
@@ -74,7 +73,7 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
   }
 
   // Step 2: result vector (initialized to FALSE)
-  LogicalVector keep(n, false);
+  std::vector<bool> keep(n, false);
 
   // Step 3: for each voxel group, find closest to mean
   for (auto &kv : groups)
@@ -92,9 +91,9 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
     double mx = 0, my = 0, mz = 0;
     for (int j : idx)
     {
-      mx += X[j];
-      my += Y[j];
-      mz += Z[j];
+      mx += pc.get_x(j);
+      my += pc.get_y(j);
+      mz += pc.get_z(j);
     }
     mx /= m;
     my /= m;
@@ -105,9 +104,9 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
     int bestIdx = idx[0];
     for (int j : idx)
     {
-      double dx = X[j] - mx;
-      double dy = Y[j] - my;
-      double dz = Z[j] - mz;
+      double dx = pc.get_x(j) - mx;
+      double dy = pc.get_y(j) - my;
+      double dz = pc.get_z(j) - mz;
       double d = dx * dx + dy * dy + dz * dz;
       if (d < bestDist) {
         bestDist = d;
@@ -116,6 +115,41 @@ LogicalVector C_voxel_barycenter_decimate(NumericVector X, NumericVector Y,  Num
     }
 
     keep[bestIdx] = true;
+  }
+
+  if (!hybrid) return keep;
+
+  // ===============================
+  // (HYBRID DECIMATION
+  // Random reinjection of non sampled point
+  // ===============================
+
+  // Count TRUEs
+  n = std::count(keep.begin(), keep.end(), true);
+
+  // Collect indices where keep == false
+  std::vector<size_t> rm;
+  rm.reserve(keep.size());
+  for (size_t i = 0; i < keep.size(); ++i)
+  {
+    if (!keep[i]) {
+      rm.push_back(i);
+    }
+  }
+
+  // Number of indices to sample
+  size_t k = std::min(static_cast<size_t>(n * 0.1), rm.size());
+  if (k == 0) return keep;
+
+  // Random generator
+  static std::mt19937 rng(std::random_device{}());
+
+  // Shuffle and take first k
+  std::shuffle(rm.begin(), rm.end(), rng);
+
+  for (size_t i = 0; i < k; ++i)
+  {
+    keep[rm[i]] = true;
   }
 
   return keep;

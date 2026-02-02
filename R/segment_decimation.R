@@ -11,22 +11,22 @@
 barycentric_predecimation = function(las, params = default_arbor_parameters)
 {
   res <- params$decimation$barycentric_predecimation_resolution
-  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
+  keep <- C_homogeneization(las@data, res, hybrid = FALSE)
   las@data$decimated <- keep
   free(keep)
+  cat("Final retention ", sum(keep), " points (", round(sum(keep)/length(keep)*100, 1), "%)\n", sep = "")
   return(las)
 }
 
 barycentric_decimation = function(las, res)
 {
   decimated <- TRUE
-  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
-  las@data$decimated <- keep
-  las <- lidR::filter_poi(las, decimated == TRUE)
-  las@data$decimated = NULL
+  keep <- C_homogeneization(las@data, res, hybrid = FALSE)
+  las <- las[keep]
   free(keep)
   return(las)
 }
+
 #' Homogenization of the Point Cloud
 #'
 #' Homogenization of the point cloud using a hybrid approach that includes
@@ -35,19 +35,15 @@ barycentric_decimation = function(las, res)
 #' @param las LAS object from lidR
 #' @param res Voxel resolution.
 #' @export
-hybrid_homogeneization = function(las, res = 0.02)
+hybrid_homogeneization = function(las, res = 0.02, verbose = TRUE)
 {
   decimated <- TRUE
-  keep <- C_voxel_barycenter_decimate(las@data$X, las@data$Y, las@data$Z, res)
-  n = sum(keep)
-  rm = which(!keep)
-  i = sample(rm, min((n*0.1), length(rm)))
-  keep[i] = TRUE
+  keep <- C_homogeneization(las@data, res)
   las = las[keep]
   free(keep)
+  cat("Final retention ", sum(keep), " points (", round(sum(keep)/length(keep)*100, 1), "%)\n", sep = "")
   return(las)
 }
-
 
 get_barycentric_predecimation <- function(las, params = default_arbor_parameters)
 {

@@ -28,7 +28,7 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
 
   ti <- tic() ; cat("Point cloud decimation... (1/8)\n") ; t0 = tic()
 
-  core    <- get_barycentric_predecimation(las, params)
+  core   <- get_barycentric_predecimation(las, params)
   target <- barycentric_decimation(core, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
   master <- make_master_seed(gnd)

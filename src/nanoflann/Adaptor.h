@@ -1,8 +1,9 @@
 #ifndef ADAPTATOR_H
 #define ADAPTATOR_H
 
-#include <Rcpp.h>
 #include <vector>
+
+#include <Rcpp.h>
 
 class DataFrameAdaptor
 {
@@ -126,6 +127,9 @@ struct SimpleAdaptor
   template <class BBOX>
   bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
 };
+
+
+using PointCloud = DataFrameAdaptor;
 
 
 #endif
