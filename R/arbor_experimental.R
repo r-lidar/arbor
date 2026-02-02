@@ -1,0 +1,121 @@
+#' Extract the local tree context from a LAS object
+#'
+#' Extracts points belonging to trees surrounding a target tree, based on
+#' different spatial context definitions (contact, crown extent, or root zone).
+#' This is useful for analysing neighbourhood interactions, competition, or
+#' structural context around individual trees.
+#'
+#' @param las A \code{LAS} object (from \pkg{lidR}) containing a segmented forest
+#'   point cloud with a \code{treeID} attribute.
+#' @param tree Either a numeric tree ID corresponding to \code{treeID} in
+#'   \code{las}, or a \code{LAS} object containing points from a single tree.
+#' @param context Character string defining how the spatial context is computed.
+#'   One of:
+#'   \describe{
+#'     \item{\code{"contact"}}{Keeps only neighbouring trees that are in direct
+#'     spatial contact with the target tree, based on nearest-neighbour queries.}
+#'     \item{\code{"extent"}}{Keeps all trees whose points intersect the convex
+#'     hull of the target tree.}
+#'     \item{\code{"root"}}{Keeps trees intersecting the convex hull of the target
+#'     tree restricted to points below 2 m height above ground.}
+#'   }
+#' @param exclude_tree Logical. If \code{TRUE}, the target tree itself is removed
+#'   from the returned context.
+#'
+#' @return A \code{LAS} object containing points from neighbouring trees that form
+#'   the selected context.
+#'
+#' @examples
+#' \dontrun{
+#' las <- readLAS("segmented_forest.las")
+#'
+#' tree <- lidR::filter_poi(las, treeID == 10)
+#' context <- extract_tree_context(las, tree, exclude_tree = TRUE)
+#' x <- plot_instance(context)
+#' plot(tree, add = x, pal = "red")
+#' }
+#'
+#' @export
+#' @family experimental
+extract_tree_context = function(las, tree, context = "contact", exclude_tree = FALSE, verbose = TRUE)
+{
+  warning("This is an experimental function and may not be retained in later versions of arbor.")
+
+  # ---- Argument checks --------------------------------------------------
+
+  if (!inherits(las, "LAS")) stop("'las' must be a LAS object")
+  if (lidR::is.empty(las)) stop("'las' is empty")
+  if (!"treeID" %in% names(las)) stop("'las' must contain a 'treeID' attribute")
+  if (!is.logical(exclude_tree) || length(exclude_tree) != 1) stop("'exclude_tree' must be a single logical value")
+  if (is.numeric(tree))
+  {
+    if (length(tree) != 1 || is.na(tree))
+      stop("'tree' must be a single, non-missing numeric treeID")
+  }
+  context <- match.arg(context, c("contact", "extent", "root"))
+
+  if (is.numeric(tree))
+  {
+    id   <- tree
+    tree <- lidR::filter_poi(las, treeID == id)
+    if (is.empty(tree)) stop(paste0("No tree with treeID = ", id))
+  }
+  else
+  {
+    id   <- tree$treeID[1]
+  }
+
+  if (context == "root")
+  {
+    base  <- lidR::filter_poi(tree, hag < 2)
+    chull <- sf::st_convex_hull(base)
+  }
+  else
+  {
+    chull <- sf::st_convex_hull(tree)
+  }
+
+  roi <- lidR::clip_roi(las, chull)
+  ids <- unique(roi$treeID)
+  ids <- na.omit(ids)
+
+  if (exclude_tree)
+  {
+    ids <- ids[ids != id]
+  }
+
+  res <- lidR::filter_poi(las, treeID %in% ids)
+
+  if (context == "contact")
+  {
+    ll  <- lidR::decimate_points(res, lidR::random_per_voxel(0.25, 2))
+    nn  <- lidR::knnx(ll, tree)
+    idx <- ll$treeID[unique(as.integer(nn$nn.index))]
+    idx <- unique(idx)
+    res <- lidR::filter_poi(res, treeID %in% idx)
+  }
+
+  return(res)
+}
+
+
+#' Semantic segmentation of a tree point cloud using a QSM
+#'
+#' Performs an experimental semantic segmentation of a single-tree point cloud
+#' using distances derived from a Quantitative Structure Model (QSM). Points
+#' are labelled as foliage or non-foliage based on their proximity to QSM
+#' elements.
+#'
+#' @param tree A \code{LAS} object containing points from a single tree
+#' @param qsm A Quantitative Structure Model associated with \code{tree}.
+#'
+#' @family experimental
+#' @export
+segment_sementic_from_qsm = function(tree, qsm)
+{
+  warning("This is an experimental function and may not be retained in later versions of arbor.")
+  res <- compute_qsm_distances(qsm, tree@data)
+  tree@data$foliage = 0
+  tree@data$foliage[b] = 2
+  return(tree)
+}

@@ -81,3 +81,7 @@ read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }
 
+compute_qsm_distances <- function(qsm_df, pts_df) {
+    .Call(`_arbor_compute_qsm_distances`, qsm_df, pts_df)
+}
+

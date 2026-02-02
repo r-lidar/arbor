@@ -83,3 +83,10 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
+
+// ========================
+// EXPERIMENTAL
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame compute_qsm_distances(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);

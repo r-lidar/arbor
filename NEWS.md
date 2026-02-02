@@ -1,3 +1,8 @@
+# arbor 0.8.0
+
+- New: experimental function `segment_semantic_from_qsm()`
+- New: experimental function `extract_tree_context()`
+
 # arbor 0.7.3
 
 - Fix `colorize_trees()` with `darken_foliage = FALSE`

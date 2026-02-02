@@ -56,9 +56,10 @@ file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fracti
 file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
 file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 0.6"
 
-# French Guyana'
+# Olivier Martim
 file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
-
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_Cacao.laz" ; filter = "-keep_random_fraction 0.4"
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_2021_FTH_1.laz" ; filter = "-keep_random_fraction 0.3"
 
 # UAV
 file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_above_ground = 0.25
@@ -66,12 +67,13 @@ file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_abo
 # ===== PROCESSING PARAMETERS =====
 
 params = default_arbor_parameters
+params$path_finder$max_gap = 1
 
 # ====== READ POINT CLOUD =======
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
 
-las <- readTLS(file, select = "xyz", filter = filter)
+las <- readTLS(file, select = "xyz0", filter = filter)
 las <- hybrid_homogeneization(las)
 
 plot(header(las))
@@ -151,6 +153,12 @@ if (FALSE)
 
 las <- compute_anisotropy(las, params)
 
+if (FALSE)
+{
+  las = add_lasattribute(las, 0, "anisotropy", "anisotropy proxy")
+  las$anisotropy = pmin(pmax(las$Reflectance + 5, 0), 1)+ runif(npoints(las), 0, 0.001)
+}
+
 if (display) plot_anisotropy(las)
 
 # ====== SEGMENT FOLIAGE/WOOD ======
@@ -185,8 +193,6 @@ if (display)
 #
 # To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
 # and aggregate them using connected component analysis.
-
-params$path_finder$max_gap = 1
 
 seeds <- find_seeds(las, params)
 
@@ -261,8 +267,8 @@ v <- paste0(o, "_validtrees.laz")
 o <- paste0(o, "_segmented.laz")
 r <- paste0(o, "_dtm.tif")
 
-las = colorize_trees(las)
-trees = colorize_trees(trees)
+las = colorize_trees(las, darken_foliage = F)
+trees = colorize_trees(trees, darken_foliage = F)
 valid_trees = colorize_trees(valid_trees)
 
 
@@ -288,7 +294,8 @@ tree <- lidR::filter_poi(trees, treeID == id)
 plot_semantic(tree)
 qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
 x <- plot_semantic(tree)
-plot_qsm(qsm, color = "branch_order", add = x + c(-5, 0), skeleton = F)
+qsm_dbh(qsm, tree, display = T)
+plot_qsm(qsm, color = "branch_order", add = x, skeleton = F)
 
 # ==== QSM batch =====
 
