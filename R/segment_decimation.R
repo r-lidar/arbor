@@ -40,8 +40,8 @@ hybrid_homogeneization = function(las, res = 0.02, verbose = TRUE)
   decimated <- TRUE
   keep <- C_homogeneization(las@data, res)
   las = las[keep]
-  free(keep)
   cat("Final retention ", sum(keep), " points (", round(sum(keep)/length(keep)*100, 1), "%)\n", sep = "")
+  free(keep)
   return(las)
 }
 
