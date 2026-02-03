@@ -2,6 +2,7 @@
 
 - Fix `colorize_trees()` with `darken_foliage = FALSE`
 - Fix `qsm()` for trees > 36 m
+- Enhance: `plot_qsm()` renders instantaneously.
 
 
 # arbor 0.7.2

@@ -7,10 +7,11 @@
 plot_qsm(
   qsm,
   add = NULL,
-  sides = 16,
+  sides = 12,
   color = "cyl_ID",
   skeleton = TRUE,
-  cylinder = TRUE
+  cylinder = TRUE,
+  pal = c("blue", "green", "yellow", "orange", "red")
 )
 }
 \arguments{
