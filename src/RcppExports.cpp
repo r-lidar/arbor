@@ -247,6 +247,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsf_write_cpp
+void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
+RcppExport SEXP _arbor_qsf_write_cpp(SEXP xSEXP, SEXP dirSEXP, SEXP formatSEXP, SEXP binarySEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::string >::type dir(dirSEXP);
+    Rcpp::traits::input_parameter< std::string >::type format(formatSEXP);
+    Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
+    qsf_write_cpp(x, dir, format, binary);
+    return R_NilValue;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
@@ -269,6 +281,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
+    {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {NULL, NULL, 0}
 };
 

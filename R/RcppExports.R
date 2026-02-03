@@ -81,3 +81,7 @@ read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }
 
+qsf_write_cpp <- function(x, dir, format, binary) {
+    invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
+}
+

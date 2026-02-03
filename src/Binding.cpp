@@ -104,3 +104,10 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
+
+// ========================
+// QSF
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);

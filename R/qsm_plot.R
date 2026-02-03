@@ -2,7 +2,7 @@
 #'
 #' Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
 #'
-#' @param qsm A data frame containing QSM data with segment attributes.
+#' @param x,qsm A data frame containing QSM data with segment attributes.
 #' @param add A numeric vector for translation offsets. Like in the lidR package.
 #' @param sides Number of sides for each cylinder.
 #' @param color The attribute for color mapping.
@@ -10,93 +10,159 @@
 #' @param skeleton,cylinder boolean. plot the skeleton or the cylinders or both.
 #' @method plot qsm
 #' @export
+#' @rdname plot
 #' @md
-plot.qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
+plot.qsm = function(x, ...)
 {
-  color_palette <- grDevices::colorRampPalette(pal)
-  colattr = qsm[[color]]
+  plot_qsm(x, ...)
+}
 
-  if (!"radius" %in% names(qsm)) cylinder = FALSE
-
-  # --- Color Logic (Kept same) ---
-  if (color %in% names(qsm)) {
-    if (color == "branch_order") {
-      colattr = colattr
-    } else if (is.logical(colattr)) {
-      colattr = colattr + 1
-    } else {
-      colattr = findInterval(colattr, seq(min(colattr), max(colattr), length.out = 20))
-    }
-    # Ensure indices are within bounds of palette
-    colattr[colattr < 1] <- 1
-    colors_mapped <- color_palette(max(colattr, na.rm=TRUE))[colattr]
+#' @export
+#' @rdname plot
+plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
+{
+  # --- Input Normalization ---
+  # Ensure qsm is a list of dataframes
+  if (is.data.frame(qsm)) {
+    qsm_list <- list(qsm)
+  } else if (is.list(qsm)) {
+    qsm_list <- qsm
   } else {
-    colors_mapped = rep("black", nrow(qsm))
+    stop("Input must be a data.frame or a list of data.frames")
   }
 
-  # --- Translation Logic ---
-  if (!"translateX" %in% names(qsm)) qsm$translateX = min(qsm$startX)
-  if (!"translateY" %in% names(qsm)) qsm$translateY = min(qsm$startY)
-  if (!"translateZ" %in% names(qsm)) qsm$translateZ = 0
+  color_palette <- grDevices::colorRampPalette(pal)
 
+  # --- Global Translation Logic ---
+  # Determine translation based on 'add' or the first QSM object
   if (!is.null(add)) {
     tx = add[1]; ty = add[2]; tz = 0
   } else {
-    tx = qsm$translateX[1]
-    ty = qsm$translateY[1]
-    tz = 0
+    # Check first QSM for defaults
+    q1 <- qsm_list[[1]]
+    if (!"translateX" %in% names(q1)) tx = min(q1$startX) else tx = q1$translateX[1]
+    if (!"translateY" %in% names(q1)) ty = min(q1$startY) else ty = q1$translateY[1]
+    if (!"translateZ" %in% names(q1)) tz = 0 else tz = q1$translateZ[1]
+
     rgl::open3d()
   }
 
-  # Apply Translation to the dataframe temporarily for plotting
-  qsm_t <- qsm
-  qsm_t$startX <- qsm$startX - tx
-  qsm_t$startY <- qsm$startY - ty
-  qsm_t$startZ <- qsm$startZ - tz
-  qsm_t$endX   <- qsm$endX - tx
-  qsm_t$endY   <- qsm$endY - ty
-  qsm_t$endZ   <- qsm$endZ - tz
+  # Storage for batch rendering
+  meshes_to_merge   <- list()
+  skeleton_segments <- list()
+  skeleton_colors   <- list()
+  skeleton_points   <- list()
+  skeleton_pcolors  <- list()
 
-  # --- FAST RENDERING ---
-  if (cylinder)
+  # Track global Z range for axes
+  z_min_glob <- Inf
+  z_max_glob <- -Inf
+
+  # --- Loop over Objects ---
+  for (i in seq_along(qsm_list))
   {
-    # Generate one single mesh for all cylinders
-    mesh <- cylinders_as_mesh(qsm_t, sides = sides, color_vec = colors_mapped)
-    rgl::shade3d(mesh)
+    q <- qsm_list[[i]]
+
+    # Check per-object cylinder capability
+    local_cylinder <- cylinder
+    if (!"radius" %in% names(q)) local_cylinder <- FALSE
+
+    # --- Color Logic ---
+    colattr = q[[color]]
+    if (color %in% names(q)) {
+      if (color == "branch_order") {
+        colattr = colattr
+      } else if (is.logical(colattr)) {
+        colattr = colattr + 1
+      } else {
+        # Handle case where min == max to avoid seq error
+        mn <- min(colattr, na.rm = TRUE)
+        mx <- max(colattr, na.rm = TRUE)
+        if (mn == mx) {
+          colattr <- rep(1, length(colattr))
+        } else {
+          colattr = findInterval(colattr, seq(mn, mx, length.out = 20))
+        }
+      }
+      colattr[colattr < 1] <- 1
+      colors_mapped <- color_palette(max(colattr, na.rm=TRUE))[colattr]
+    } else {
+      colors_mapped = rep("black", nrow(q))
+    }
+
+    # --- Apply Translation ---
+    q_t <- q
+    q_t$startX <- q$startX - tx
+    q_t$startY <- q$startY - ty
+    q_t$startZ <- q$startZ - tz
+    q_t$endX   <- q$endX - tx
+    q_t$endY   <- q$endY - ty
+    q_t$endZ   <- q$endZ - tz
+
+    # Update bounds for axes
+    if (is.null(add)) {
+      z_min_glob <- min(z_min_glob, min(q_t$startZ), min(q_t$endZ))
+      z_max_glob <- max(z_max_glob, max(q_t$startZ), max(q_t$endZ))
+    }
+
+    # --- Generate Mesh ---
+    if (local_cylinder) {
+      # Assuming cylinders_as_mesh returns a mesh3d object
+      mesh <- cylinders_as_mesh(q_t, sides = sides, color_vec = colors_mapped)
+      meshes_to_merge[[length(meshes_to_merge) + 1]] <- mesh
+    }
+
+    # --- Prepare Skeleton ---
+    if (skeleton) {
+      # Interleave Start and End for segments
+      pts <- matrix(NA, nrow=nrow(q)*2, ncol=3)
+      pts[seq(1, nrow(pts), 2), ] <- as.matrix(q_t[, c("startX","startY","startZ")])
+      pts[seq(2, nrow(pts), 2), ] <- as.matrix(q_t[, c("endX","endY","endZ")])
+
+      line_cols <- rep(colors_mapped, each=2)
+
+      skeleton_segments[[length(skeleton_segments)+1]] <- pts
+      skeleton_colors[[length(skeleton_colors)+1]]     <- line_cols
+
+      skeleton_points[[length(skeleton_points)+1]]     <- as.matrix(q_t[, c("startX","startY","startZ")])
+      skeleton_pcolors[[length(skeleton_pcolors)+1]]   <- colors_mapped
+    }
   }
 
-  # --- Skeleton (Lines) ---
-  if (skeleton)
-  {
-    # Fast segment plotting
-    # Interleave Start and End for segments3d
-    pts <- matrix(NA, nrow=nrow(qsm)*2, ncol=3)
-    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm_t[, c("startX","startY","startZ")])
-    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm_t[, c("endX","endY","endZ")])
+  # --- Fast Rendering ---
 
-    # Interleave colors
-    line_cols <- rep(colors_mapped, each=2)
+  # 1. Plot merged mesh
+  if (length(meshes_to_merge) > 0) {
+    if (length(meshes_to_merge) == 1) {
+      rgl::shade3d(meshes_to_merge[[1]])
+    } else {
+      # Merge all meshes into a single mesh object for efficiency
+      full_mesh <- do.call(merge, meshes_to_merge)
+      rgl::shade3d(full_mesh)
+    }
+  }
 
-    rgl::segments3d(pts, col = line_cols)
+  # 2. Plot skeleton (batched)
+  if (skeleton && length(skeleton_segments) > 0) {
+    full_segments <- do.call(rbind, skeleton_segments)
+    full_seg_cols <- unlist(skeleton_colors)
+    rgl::segments3d(full_segments, col = full_seg_cols)
 
-    # Points at start
-    rgl::points3d(qsm_t[, c("startX","startY","startZ")], col = colors_mapped)
+    full_pts <- do.call(rbind, skeleton_points)
+    full_pts_cols <- unlist(skeleton_pcolors)
+    rgl::points3d(full_pts, col = full_pts_cols)
   }
 
   # --- Axes ---
-  if (is.null(add))
-  {
-    z_limits <- range(c(qsm_t$startZ, qsm_t$endZ))
-    z_ticks <- seq(floor(z_limits[1]), ceiling(z_limits[2]), by = 0.5)
-    rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
-    rgl::axis3d("x", col = "black")
-    rgl::axis3d("y", col = "black")
-  }
+  # Handle case with no data gracefully
+  if (is.infinite(z_min_glob)) { z_min_glob <- 0; z_max_glob <- 1 }
 
-  if (is.null(add))
-  {
-    lidR:::.pan3d(2)
-  }
+  z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
+  rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
+  rgl::axis3d("x", col = "black")
+  rgl::axis3d("y", col = "black")
+
+  lidR:::.pan3d(2)
 
   return(invisible(c(tx, ty)))
 }
