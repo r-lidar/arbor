@@ -1,28 +1,3 @@
-#' Plot a Cylinder in 3D Space
-#'
-#' Creates and plots a 3D cylinder between two points with a specified radius and color.
-#'
-#' @param start A numeric vector of length 3 representing the starting point of the cylinder.
-#' @param end A numeric vector of length 3 representing the ending point of the cylinder.
-#' @param radius A numeric value representing the radius of the cylinder.
-#' @param color A character string for the cylinder color (default is "blue").
-#' @param pal color palette
-#' @noRd
-plot_cylinder <- function(start, end, radius, color="blue")
-{
-  # Create a cylinder object from start to end with specified radius
-  cyl <- rgl::cylinder3d(
-    radius = radius,
-    sides = 10,
-    # Define the two end points
-    v1 = start,
-    v2 = end
-  )
-
-  # Add the cylinder to the 3D plot
-  rgl::shade3d(cyl, color = color, alpha = 0.5)
-}
-
 #' Plot QSM Data in 3D
 #'
 #' Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
@@ -31,10 +6,12 @@ plot_cylinder <- function(start, end, radius, color="blue")
 #' @param add A numeric vector for translation offsets. Like in the lidR package.
 #' @param sides Number of sides for each cylinder.
 #' @param color The attribute for color mapping.
+#' @param ... Unused (for S3 compatibility).
 #' @param skeleton,cylinder boolean. plot the skeleton or the cylinders or both.
+#' @method plot qsm
 #' @export
 #' @md
-plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"))
+plot.qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
 {
   color_palette <- grDevices::colorRampPalette(pal)
   colattr = qsm[[color]]

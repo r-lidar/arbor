@@ -1,9 +1,9 @@
 # arbor 0.7.3
 
+- New: QSMs now have a class `qsm` and dedicated methods `print()` and `plot()`. `plot_qsm()` has been removed.
+- Enhance: `plot()` renders QSMs instantaneously. It no longer takes several seconds.
 - Fix `colorize_trees()` with `darken_foliage = FALSE`
 - Fix `qsm()` for trees > 36 m
-- Enhance: `plot_qsm()` renders instantaneously.
-
 
 # arbor 0.7.2
 
