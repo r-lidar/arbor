@@ -4,7 +4,7 @@
 \alias{hybrid_homogeneization}
 \title{Homogenization of the Point Cloud}
 \usage{
-hybrid_homogeneization(las, res = 0.02, verbose = TRUE)
+hybrid_homogeneization(las, res = 0.02)
 }
 \arguments{
 \item{las}{LAS object from lidR}

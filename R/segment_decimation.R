@@ -35,7 +35,7 @@ barycentric_decimation = function(las, res)
 #' @param las LAS object from lidR
 #' @param res Voxel resolution.
 #' @export
-hybrid_homogeneization = function(las, res = 0.02, verbose = TRUE)
+hybrid_homogeneization = function(las, res = 0.02)
 {
   decimated <- TRUE
   keep <- C_homogeneization(las@data, res)

@@ -9,21 +9,15 @@
 #'
 #' @param qsf A QSF object to be written.
 #' @param dir A string giving the director to the output files.
-#' @param format the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").
+#' @param formats the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").
 #' @param binary Boolean. Used if the format supports ASCII or binary
 #'
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' qsf_write(qsf, "directory/csv", format = "csv")
-#' qsf_write(qsf, "directory/obj", format = "obj")
-#' }
 #' @export
 #' @md
-qsf_write = function(qsf, dir, format = "csv", binary = TRUE)
+qsf_write = function(qsf, dir, formats = c("csv", "obj"), binary = TRUE)
 {
   file = normalizePath(dir, mustWork = FALSE)
-  qsf_write_cpp(qsf, file, binary)
+  for (format in formats) qsf_write_cpp(qsf, dir, format, binary)
   return(invisible(TRUE))
 }

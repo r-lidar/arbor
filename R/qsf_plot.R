@@ -1,9 +1,9 @@
 #' @method plot qsf
 #' @export
 #' @rdname plot
-plot.qsf = function(qsf, ...)
+plot.qsf = function(x, ...)
 {
-  qsf <- data.table::rbindlist(qsf)
+  qsf <- data.table::rbindlist(x)
   plot_qsm(qsf, ...)
 }
 

@@ -2,10 +2,12 @@
 #'
 #' Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
 #'
-#' @param x,qsm A data frame containing QSM data with segment attributes.
+#' @param x A QSM of QSF
+#' @param qsm A QSM
 #' @param add A numeric vector for translation offsets. Like in the lidR package.
 #' @param sides Number of sides for each cylinder.
 #' @param color The attribute for color mapping.
+#' @param pal Color palette
 #' @param ... Unused (for S3 compatibility).
 #' @param skeleton,cylinder boolean. plot the skeleton or the cylinders or both.
 #' @method plot qsm

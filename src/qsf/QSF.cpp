@@ -31,7 +31,7 @@ void QSF::write(const std::string& dir, const std::string& format, bool binary) 
     throw std::runtime_error("QSF::write: path exists but is not a directory");
   }
 
-  // Optional subfolder per format (recommended)
+  // Optional subfolder per format
   fs::path out_dir = base_dir / format;
 
   if (!fs::exists(out_dir))
@@ -40,8 +40,7 @@ void QSF::write(const std::string& dir, const std::string& format, bool binary) 
   // Write each QSM
   for (const auto& [key, qsm] : qsm_)
   {
-    if (key.empty())
-      continue; // or throw if you prefer strict behavior
+    if (key.empty()) continue;
 
     fs::path filename = out_dir / (key + "." + format);
     qsm.write(filename.string(), binary);

@@ -60,6 +60,8 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 
   qsm <- set_qsm_class(qsm)
 
+  st_crs(qsm) <- sf::st_crs(tree)
+
   toc(t0, space = "")
 
   return(qsm)

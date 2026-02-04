@@ -12,7 +12,7 @@
 \alias{colorize_trees}
 \title{Plot QSM Data in 3D}
 \usage{
-\method{plot}{qsf}(qsf, ...)
+\method{plot}{qsf}(x, ...)
 
 \method{plot}{qsm}(x, ...)
 
@@ -40,9 +40,11 @@ plot_passage(las, dtm = NULL, th = 0, ...)
 colorize_trees(las, darken_foliage = TRUE)
 }
 \arguments{
+\item{x}{A QSM of QSF}
+
 \item{...}{propagated to lidR::plot}
 
-\item{x, qsm}{A data frame containing QSM data with segment attributes.}
+\item{qsm}{A QSM}
 
 \item{add}{A numeric vector for translation offsets. Like in the lidR package.}
 
@@ -51,6 +53,8 @@ colorize_trees(las, darken_foliage = TRUE)
 \item{color}{The attribute for color mapping.}
 
 \item{skeleton, cylinder}{boolean. plot the skeleton or the cylinders or both.}
+
+\item{pal}{Color palette}
 
 \item{las}{LAS object}
 
