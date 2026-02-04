@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <Rcpp.h>
 #include "QSM.h"
+#include "QSF.h"
 
 static inline QSM as_qsm(Rcpp::DataFrame df)
 {
@@ -56,6 +57,23 @@ static inline QSM as_qsm(Rcpp::DataFrame df)
   }
 
   return qsm;
+}
+
+static inline QSF as_qsf(Rcpp::List x)
+{
+  QSF qsf;
+
+  Rcpp::CharacterVector names = x.names();
+
+  for (int i = 0; i < x.size(); ++i)
+  {
+    std::string name = Rcpp::as<std::string>(names[i]);
+    Rcpp::DataFrame df = Rcpp::as<Rcpp::DataFrame>(x[i]);
+    QSM qsm = as_qsm(df);
+    qsf.add_qsm(name, qsm);
+  }
+
+  return qsf;
 }
 
 static inline Rcpp::DataFrame as_dataframe(const QSM& qsm)
@@ -256,3 +274,10 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius)
   Rcpp::DataFrame ans = as_dataframe(qsm);
   return ans;
 }
+
+void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary)
+{
+  QSF qsf = as_qsf(x);
+  qsf.write(dir, format, binary);
+}
+

@@ -10,16 +10,15 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// C_voxel_barycenter_decimate
-Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, double res);
-RcppExport SEXP _arbor_C_voxel_barycenter_decimate(SEXP XSEXP, SEXP YSEXP, SEXP ZSEXP, SEXP resSEXP) {
+// C_homogeneization
+Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid);
+RcppExport SEXP _arbor_C_homogeneization(SEXP dfSEXP, SEXP resSEXP, SEXP hybridSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type X(XSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Y(YSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type res(resSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_voxel_barycenter_decimate(X, Y, Z, res));
+    Rcpp::traits::input_parameter< bool >::type hybrid(hybridSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_homogeneization(df, res, hybrid));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -248,6 +247,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsf_write_cpp
+void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
+RcppExport SEXP _arbor_qsf_write_cpp(SEXP xSEXP, SEXP dirSEXP, SEXP formatSEXP, SEXP binarySEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::string >::type dir(dirSEXP);
+    Rcpp::traits::input_parameter< std::string >::type format(formatSEXP);
+    Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
+    qsf_write_cpp(x, dir, format, binary);
+    return R_NilValue;
+END_RCPP
+}
 // compute_qsm_distances
 Rcpp::DataFrame compute_qsm_distances(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
 RcppExport SEXP _arbor_compute_qsm_distances(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
@@ -261,7 +272,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_arbor_C_voxel_barycenter_decimate", (DL_FUNC) &_arbor_C_voxel_barycenter_decimate, 4},
+    {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
     {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
@@ -281,6 +292,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
+    {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_compute_qsm_distances", (DL_FUNC) &_arbor_compute_qsm_distances, 2},
     {NULL, NULL, 0}
 };

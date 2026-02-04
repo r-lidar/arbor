@@ -1,4 +1,3 @@
-#include <Rcpp.h>
 #include <vector>
 #include <atomic>
 #include <cmath>
@@ -8,14 +7,12 @@
 #include "Adaptor.h"
 #include "progressbar.h"
 
-using PointCloud = DataFrameAdaptor;
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu)
+std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
 {
-  PointCloud pc(df);
-  size_t n = pc.kdtree_get_point_count();
+  size_t n = pc.n_points;
 
   if (k <= 2) throw std::invalid_argument("k must be > 2");
   if (k >= n) throw std::invalid_argument("k must be < number of points");
@@ -90,5 +87,5 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
   for (size_t i = 0; i < n; ++i)
     out[i] = (dmean[i] > threshold);
 
-  return Rcpp::wrap(out);
+  return out;
 }

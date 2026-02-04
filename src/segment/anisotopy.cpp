@@ -1,12 +1,10 @@
-#include <Rcpp.h>
-
 #include <vector>
+
 #include "myomp.h"
 #include "nanoflann.h"
 #include "Adaptor.h"
 #include "progressbar.h"
 
-using PointCloud = DataFrameAdaptor;
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
@@ -53,12 +51,11 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
   lmid = 3.0*m - lmax - lmin;
 }
 
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
+std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1)
 {
-  const int n = df.nrow();
+  const int n = adaptor.n_points;
 
-  Rcpp::NumericVector out(n);
-  PointCloud adaptor(df);
+  std::vector<float> out(n);
 
   KDTree tree(3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(40));
   tree.buildIndex();
@@ -130,7 +127,7 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1)
       double lmin, lmid, lmax;
       eigenvalues_sym_3x3(cxx, cxy, cxz, cyy, cyz, czz, lmin, lmid, lmax);
 
-      out[i] = (lmax > 1e-14) ? (lmax - lmin) / lmax : 0.0;
+      out[i] = static_cast<float>((lmax > 1e-14) ? (lmax - lmin) / lmax : 0.0);
     }
 
     pb.tick();

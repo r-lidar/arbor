@@ -1,15 +1,29 @@
-#include <Rcpp.h>
+#include "Adaptor.h"
 #include "Grid3D.h"
 
 // =======================
 // PRE-PROCESSING
 // =======================
 
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector C_voxel_barycenter_decimate(Rcpp::NumericVector X, Rcpp::NumericVector Y, Rcpp::NumericVector Z, double res);
+std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu = 1);
+Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
+{
+  PointCloud pc(df);
+  auto ans = homogeneization(pc, res);
+  return(Rcpp::wrap(ans));
+}
+
+std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1)
+{
+  PointCloud pc(df);
+  auto ans = anisotropy(pc, k, ncpu);
+  return(Rcpp::wrap(ans));
+}
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity)
@@ -25,8 +39,15 @@ Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int co
   return Rcpp::wrap(grid.connected_components(connectivity));
 }
 
+std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
+
 //[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1);
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1)
+{
+  PointCloud pc(df);
+  auto ans = sor(pc, k, m, ncpu);
+  return(Rcpp::wrap(ans));
+}
 
 // ========================
 // SEGMENTATION
@@ -83,6 +104,13 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
+
+// ========================
+// QSF
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
 
 // ========================
 // EXPERIMENTAL

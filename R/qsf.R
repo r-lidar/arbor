@@ -1,11 +1,13 @@
-#' Batch processing of QSM models with parallel execution
+#' Quantitative Structural Forest
 #'
-#' This function processes multiple LAS files using \link{qsm} in parallel.
-#' It supports exporting CSV/OBJ/PLY QSM outputs, optional overwriting of
-#' existing files, and returns detailed logs for each processed file.
+#' Batch processing of QSM models with parallel execution. This function processes multiple LAS files
+#' using \link{qsm} in parallel. It supports exporting CSV/OBJ/PLY QSM outputs, optional overwriting
+#' of existing files, and returns detailed logs for each processed file.
 #'
-#' @param ifiles Character vector of input file paths, or a single directory containing LAS/LAZ files.
-#' @param odir Output directory where `csv/`, `obj/`, and `ply/` folders will be created.
+#' @param input Character vector of input file paths, or a single directory containing LAS/LAZ files
+#' or a LAS object with semantic and instance segmentation.
+#' @param odir Output directory where `csv/`, `obj/`, and `ply/` folders will be created. odir can
+#' be missing but in this case nothing is exported. Only a table is returned.
 #' @param formats Character; write QSM results in which formats? See \link{qsm_write}.
 #' @param overwrite Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
 #' existing QSMs
@@ -23,8 +25,8 @@
 #'
 #' @export
 #' @seealso  \link{qsm}
-qsm_batch <- function(
-    ifiles,
+qsf <- function(
+    input,
     odir,
     formats = c("csv", "obj"),
     overwrite = FALSE,
@@ -34,6 +36,19 @@ qsm_batch <- function(
 {
   ti <- tic()
 
+  if (inherits(input, "LAS"))
+  {
+    cat("Input is a point cloud: exporting trees in temporary files\n")
+    treeID <- NULL
+    dir = tempdir()
+    input = sapply(unique(input$treeID), function(i)
+    {
+      tree <- lidR::filter_poi(input, treeID == i)
+      olas <- paste0(dir, "/tree_", i, ".las")
+      lidR::writeLAS(tree, olas)
+    })
+  }
+
   # ---------------------------------------------------------------------------
   # 1. Validation and directory setup
   # ---------------------------------------------------------------------------
@@ -42,28 +57,37 @@ qsm_batch <- function(
   if (length(formats) == 0)
     stop("At least one format must be specified.")
 
-  odir <- normalizePath(odir, mustWork = FALSE)
+  if (!missing(odir))
+  {
+    odir <- normalizePath(odir, mustWork = FALSE)
 
-  format_dirs <- stats::setNames(file.path(odir, formats), formats)
-  for (d in format_dirs)
-    if (!dir.exists(d))
-      dir.create(d, recursive = TRUE)
+    format_dirs <- stats::setNames(file.path(odir, formats), formats)
+    for (d in format_dirs)
+      if (!dir.exists(d))
+        dir.create(d, recursive = TRUE)
+  }
+  else
+  {
+    format_dirs = NULL
+    odir = NULL
+  }
 
   # ---------------------------------------------------------------------------
   # 2. Handle inputs
   # ---------------------------------------------------------------------------
 
-  if (length(ifiles) == 1 && dir.exists(ifiles)) {
-    ifiles <- list.files(
-      ifiles,
+  if (length(input) == 1 && dir.exists(input))
+  {
+    input <- list.files(
+      input,
       pattern = "\\.(las|laz)$",
       full.names = TRUE,
       ignore.case = TRUE
     )
   }
 
-  ifiles <- normalizePath(ifiles, mustWork = TRUE)
-  if (length(ifiles) == 0)
+  input <- normalizePath(input, mustWork = TRUE)
+  if (length(input) == 0)
     stop("No valid input files found.")
 
   dots <- list(...)
@@ -101,15 +125,20 @@ qsm_batch <- function(
 
   res <- progressr::with_progress(
   {
-    p <- progressr::progressor(steps = length(ifiles))
+    p <- progressr::progressor(steps = length(input))
 
-    future.apply::future_lapply(ifiles, function(f)
+    future.apply::future_lapply(input, function(f)
     {
       on.exit(p(), add = TRUE)
 
       name <- tools::file_path_sans_ext(basename(f))
-      out_paths <- file.path(format_dirs, paste0(name, ".", formats))
-      names(out_paths) <- formats
+
+      out_paths = NULL
+      if (!is.null(format_dirs))
+      {
+        out_paths <- file.path(format_dirs, paste0(name, ".", formats))
+        names(out_paths) <- formats
+      }
 
       # Initialize log
       log <- list(
@@ -131,10 +160,13 @@ qsm_batch <- function(
         return(paste(unique(all_msgs), collapse = " | "))
       }
 
-      if (!overwrite && all(file.exists(out_paths)))
+      if (!is.null(out_paths))
       {
-        log$status <- "skipped_existing"
-        return(log)
+        if (!overwrite && all(file.exists(out_paths)))
+        {
+          log$status <- "skipped_existing"
+          return(log)
+        }
       }
 
       # --- Step 1: Read LAS ---
@@ -159,7 +191,7 @@ qsm_batch <- function(
       }
 
       # --- Step 2: QSM & Write ---
-      tryCatch(
+      q <- tryCatch(
       {
         utils::capture.output(
         {
@@ -186,6 +218,7 @@ qsm_batch <- function(
           log$message <- format_msg(w_msgs)
         }
 
+        q
       },
       error = function(e)
       {
@@ -194,13 +227,27 @@ qsm_batch <- function(
         log$message   <- format_msg(w_msgs, e$message)
       })
 
-      log
+      attr(q, "name") = name
+      attr(q, "log") = log
+      q
     },
     future.seed = TRUE)
   })
 
-  res <- data.table::rbindlist(res)
+  log <- lapply(res, function(x) attr(x, "log"))
+  log <- data.table::rbindlist(log)
+
+  names <- sapply(res, function(x) attr(x, "name"))
+  names(res) <- names
+  res <- set_qsf_class(res)
+  attr(res, "log") = log
 
   toc(ti)
   res
+}
+
+set_qsf_class <- function(x)
+{
+  class(x) <- c("qsf", class(x))
+  x
 }

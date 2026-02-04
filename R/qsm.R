@@ -55,6 +55,13 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
   qsm  <- qsm_volume(qsm)
   qsm  <- shift(qsm, -tx, -ty, -tz)
 
+  order = c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
+  data.table::setcolorder(qsm, order)
+
+  qsm <- set_qsm_class(qsm)
+
+  st_crs(qsm) <- sf::st_crs(tree)
+
   toc(t0, space = "")
 
   return(qsm)
@@ -96,3 +103,11 @@ estimate_prolongation = function(tree, qsm)
 
   return(d)
 }
+
+set_qsm_class <- function(x)
+{
+  stopifnot(data.table::is.data.table(x))
+  class(x) <- c("qsm", class(x))
+  x
+}
+
