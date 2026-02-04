@@ -85,7 +85,7 @@ qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
 }
 
-compute_qsm_distances <- function(qsm_df, pts_df) {
-    .Call(`_arbor_compute_qsm_distances`, qsm_df, pts_df)
+qsm_distances_cpp <- function(qsm_df, pts_df) {
+    .Call(`_arbor_qsm_distances_cpp`, qsm_df, pts_df)
 }
 

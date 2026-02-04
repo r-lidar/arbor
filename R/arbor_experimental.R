@@ -39,7 +39,7 @@
 #' @family experimental
 extract_tree_context = function(las, tree, context = "contact", exclude_tree = FALSE, verbose = TRUE)
 {
-  warning("This is an experimental function and may not be retained in later versions of arbor.")
+  warn_experimental()
 
   # ---- Argument checks --------------------------------------------------
 
@@ -106,16 +106,23 @@ extract_tree_context = function(las, tree, context = "contact", exclude_tree = F
 #' are labelled as foliage or non-foliage based on their proximity to QSM
 #' elements.
 #'
-#' @param tree A \code{LAS} object containing points from a single tree
-#' @param qsm A Quantitative Structure Model associated with \code{tree}.
+#' @param las A \code{LAS} object containing points from a single tree
+#' @param qsf A Quantitative Structure Forest associated with \code{las}.
 #'
 #' @family experimental
 #' @export
-segment_sementic_from_qsm = function(tree, qsm)
+segment_sementic_from_qsf = function(las, qsf)
 {
-  warning("This is an experimental function and may not be retained in later versions of arbor.")
-  res <- compute_qsm_distances(qsm, tree@data)
-  tree@data$foliage = 0
-  tree@data$foliage[b] = 2
-  return(tree)
+  warn_experimental()
+  if (inherits(qsf, "qsf")) qsf = data.table::rbindlist(qsf)
+  res <- qsm_distances_cpp(qsf, las@data)
+  b <- res$dist < res$radius*1.3 + 0.02
+  las@data$foliage <- 1
+  las@data$foliage[b] <- 0
+  return(las)
+}
+
+warn_experimental = function()
+{
+  message("This is an experimental function that may not be retained in later versions of arbor.")
 }

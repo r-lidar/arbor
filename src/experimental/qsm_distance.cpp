@@ -1,9 +1,12 @@
+// [[Rcpp::plugins(openmp)]]
 #include <Rcpp.h>
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <limits>
 
+#include "myomp.h"
+#include "progressbar.h"
 #include "nanoflann/nanoflann.h"
 
 using namespace Rcpp;
@@ -12,38 +15,37 @@ using namespace Rcpp;
 //  1. Data Structures
 // ============================================================================
 
-struct Point3D
-{
-  double x, y, z;
-};
-
-// Simplified QSMcylinder based on your provided structure
 struct QSMcylinder
 {
   double startX, startY, startZ;
-  double endX, endY, endZ;
+  double ab_x, ab_y, ab_z;   // Vector AB
+  double ab_sqnorm;          // Squared length of AB
+  double mid_x, mid_y, mid_z;
   double radius;
   int cyl_ID;
 
-  // Precomputed properties for optimization
-  double ab_x, ab_y, ab_z; // Vector AB
-  double ab_sqnorm;        // Squared length of AB
-  double mid_x, mid_y, mid_z; // Midpoint for KD-tree
-
-  void precompute()
+  void setup(double sX, double sY, double sZ, double eX, double eY, double eZ, double r, int id)
   {
-    ab_x = endX - startX;
-    ab_y = endY - startY;
-    ab_z = endZ - startZ;
+    startX = sX; startY = sY; startZ = sZ;
+    radius = r;
+    cyl_ID = id;
+
+    ab_x = eX - sX;
+    ab_y = eY - sY;
+    ab_z = eZ - sZ;
     ab_sqnorm = ab_x*ab_x + ab_y*ab_y + ab_z*ab_z;
-    mid_x = (startX + endX) / 2.0;
-    mid_y = (startY + endY) / 2.0;
-    mid_z = (startZ + endZ) / 2.0;
+
+    // Safety check for zero-length cylinders to avoid NaN
+    if(ab_sqnorm < 1e-12) ab_sqnorm = 1e-12;
+
+    mid_x = (sX + eX) * 0.5;
+    mid_y = (sY + eY) * 0.5;
+    mid_z = (sZ + eZ) * 0.5;
   }
 };
 
 // ============================================================================
-//  2. Nanoflann Adaptor for Cylinder Midpoints
+//  2. Nanoflann Adaptor
 // ============================================================================
 
 struct CylinderCloud
@@ -68,49 +70,68 @@ typedef nanoflann::KDTreeSingleIndexAdaptor<
 > CylinderKDTree;
 
 // ============================================================================
-//  3. Geometric Logic
+//  3. Geometric Logic (Optimized)
 // ============================================================================
 
-inline void get_point_cylinder_dist(const Point3D& p, const QSMcylinder& cyl, double& out_dist, double& out_r, int& out_id)
+// Returns true if a closer distance was found and updates best_*
+inline void update_if_closer(const double px, const double py, const double pz,
+                             const QSMcylinder& cyl,
+                             double& best_dist, int& best_id, double& best_rad)
 {
-  // Vector AP = P - A
-  double ap_x = p.x - cyl.startX;
-  double ap_y = p.y - cyl.startY;
-  double ap_z = p.z - cyl.startZ;
+  // 1. Calculate projection t
+  double ap_x = px - cyl.startX;
+  double ap_y = py - cyl.startY;
+  double ap_z = pz - cyl.startZ;
 
-  // t = dot(AP, AB) / ||AB||^2
   double dot = ap_x * cyl.ab_x + ap_y * cyl.ab_y + ap_z * cyl.ab_z;
   double t = dot / cyl.ab_sqnorm;
 
-  // Clamp t to segment [0, 1]
+  // 2. Clamp t to [0, 1] - manual logic is faster than std::clamp in some compilers
   if (t < 0.0) t = 0.0;
   else if (t > 1.0) t = 1.0;
 
-  // Closest point C = A + t * AB
+  // 3. Distance to axis squared (avoid sqrt yet)
   double c_x = cyl.startX + t * cyl.ab_x;
   double c_y = cyl.startY + t * cyl.ab_y;
   double c_z = cyl.startZ + t * cyl.ab_z;
 
-  // Euclidean distance ||P - C||
-  double dx = p.x - c_x;
-  double dy = p.y - c_y;
-  double dz = p.z - c_z;
-  double dist_center = std::sqrt(dx*dx + dy*dy + dz*dz);
+  double dx = px - c_x;
+  double dy = py - c_y;
+  double dz = pz - c_z;
+  double dist_sq_axis = dx*dx + dy*dy + dz*dz;
 
-  // Surface distance
-  out_dist = std::max(0.0, dist_center - cyl.radius);
-  out_r    = cyl.radius;
-  out_id   = cyl.cyl_ID;
+  // 4. Optimization: "Lazy Sqrt"
+  // We want to know if:  max(0, dist_axis - R) < best_dist
+  // Logic:
+  // If dist_axis < R (point inside cylinder), surface dist is 0.
+  //    -> 0 is always <= best_dist (since best_dist >= 0). Update.
+  // If dist_axis > R, we check: dist_axis - R < best_dist
+  //    -> dist_axis < best_dist + R
+  //    -> dist_axis^2 < (best_dist + R)^2
+
+  double dist_check = best_dist + cyl.radius;
+
+  // Only calculate sqrt if there is a chance this is the closest point
+  if (dist_sq_axis < dist_check * dist_check) {
+    double dist_axis = std::sqrt(dist_sq_axis);
+    double surf_dist = (dist_axis > cyl.radius) ? (dist_axis - cyl.radius) : 0.0;
+
+    if (surf_dist < best_dist) {
+      best_dist = surf_dist;
+      best_id   = cyl.cyl_ID;
+      best_rad  = cyl.radius;
+    }
+  }
 }
 
 // ============================================================================
 //  4. Main Rcpp Export
 // ============================================================================
 
-DataFrame compute_qsm_distances(DataFrame qsm_df, DataFrame pts_df)
+// [[Rcpp::export]]
+DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
 {
-  // --- 1. Parse QSM Data ---
-  // Extract vectors from DataFrame
+  // --- 1. Parse QSM Data (Direct Pointer Access) ---
   NumericVector sX = qsm_df["startX"];
   NumericVector sY = qsm_df["startY"];
   NumericVector sZ = qsm_df["startZ"];
@@ -122,20 +143,14 @@ DataFrame compute_qsm_distances(DataFrame qsm_df, DataFrame pts_df)
 
   int n_cyl = sX.size();
   CylinderCloud cloud;
-  cloud.cylinders.reserve(n_cyl);
+  cloud.cylinders.resize(n_cyl);
 
-  for(int i = 0; i < n_cyl; ++i)
-  {
-    QSMcylinder c;
-    c.startX = sX[i]; c.startY = sY[i]; c.startZ = sZ[i];
-    c.endX = eX[i];   c.endY = eY[i];   c.endZ = eZ[i];
-    c.radius = rad[i];
-    c.cyl_ID = id[i];
-    c.precompute(); // Calcs midpoints and vectors
-    cloud.cylinders.push_back(c);
+  // Standard loop for setup (this is fast enough usually)
+  for(int i = 0; i < n_cyl; ++i) {
+    cloud.cylinders[i].setup(sX[i], sY[i], sZ[i], eX[i], eY[i], eZ[i], rad[i], id[i]);
   }
 
-  // --- 2. Build KD-Tree on Cylinders ---
+  // --- 2. Build KD-Tree ---
   CylinderKDTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
@@ -145,58 +160,67 @@ DataFrame compute_qsm_distances(DataFrame qsm_df, DataFrame pts_df)
   NumericVector pZ = pts_df["Z"];
   int n_pts = pX.size();
 
-  // --- 4. Prepare Outputs ---
-  NumericVector out_dist(n_pts);
-  IntegerVector out_id(n_pts);
-  NumericVector out_rad(n_pts);
+  // Prepare Output (std::vector for thread safety)
+  std::vector<double> out_dist(n_pts);
+  std::vector<int>    out_id(n_pts);
+  std::vector<double> out_rad(n_pts);
 
-  // --- 5. Computation Loop ---
-  // Adaptive k: 1% of cylinders or 10, whichever is smaller (min 1)
+  // Get raw pointers for thread-safe read access without Rcpp overhead
+  const double* ptr_pX = &pX[0];
+  const double* ptr_pY = &pY[0];
+  const double* ptr_pZ = &pZ[0];
+
   size_t k = std::min((size_t)10, (size_t)std::ceil(n_cyl * 0.01));
   if (k < 1) k = 1;
 
-  std::vector<uint32_t> ret_index(k);
-  std::vector<double> out_dist_sqr(k);
+  Progress pb(n_pts, "Point2Cylinders");
+  std::atomic<bool> abort(false);
 
-  for(int i = 0; i < n_pts; ++i)
+  #pragma omp parallel
   {
-    Point3D p = { pX[i], pY[i], pZ[i] };
-    double query_pt[3] = { p.x, p.y, p.z };
+    // Thread-local storage to avoid reallocation inside loop
+    std::vector<uint32_t> ret_index(k);
+    std::vector<double> out_dist_sqr(k);
 
-    // Find k nearest cylinder midpoints
-    index.knnSearch(query_pt, k, &ret_index[0], &out_dist_sqr[0]);
-
-    double min_d = std::numeric_limits<double>::max();
-    int best_id = -1;
-    double best_r = 0.0;
-
-    // Check exact geometric distance for candidates
-    for(size_t j = 0; j < k; ++j)
+    #pragma omp for schedule(static)
+    for(int i = 0; i < n_pts; ++i)
     {
+      if (abort.load(std::memory_order_relaxed)) continue;
+      if(pb.check_interrupt()) abort = true;
+      pb.tick();
 
-      int idx = ret_index[j];
-      double d_val, r_val;
-      int id_val;
+      double px = ptr_pX[i];
+      double py = ptr_pY[i];
+      double pz = ptr_pZ[i];
+      double query_pt[3] = { px, py, pz };
 
-      get_point_cylinder_dist(p, cloud.cylinders[idx], d_val, r_val, id_val);
+      // 1. KNN Search
+      index.knnSearch(query_pt, k, &ret_index[0], &out_dist_sqr[0]);
 
-      if (d_val < min_d)
+      // 2. Exact Distance Check
+      double min_d = std::numeric_limits<double>::max();
+      int best_id_val = -1;
+      double best_r_val = 0.0;
+
+      for(size_t j = 0; j < k; ++j)
       {
-        min_d = d_val;
-        best_id = id_val;
-        best_r = r_val;
+        int idx = ret_index[j];
+        // Pass current min_d. The function will only update if it finds something smaller.
+        update_if_closer(px, py, pz, cloud.cylinders[idx], min_d, best_id_val, best_r_val);
       }
+
+      out_dist[i] = min_d;
+      out_id[i]   = best_id_val;
+      out_rad[i]  = best_r_val;
     }
 
-    out_dist[i] = min_d;
-    out_id[i]   = best_id;
-    out_rad[i]  = best_r;
+    if (abort.load()) Rcpp::stop("Computation aborted");
   }
 
   // Return as new DataFrame
   return DataFrame::create(
-    Named("dist") = out_dist,
-    Named("cyl_ID") = out_id,
-    Named("radius") = out_rad
+    Named("dist") = wrap(out_dist),
+    Named("cyl_ID") = wrap(out_id),
+    Named("radius") = wrap(out_rad)
   );
 }

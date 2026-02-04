@@ -1,3 +1,6 @@
+#ifndef Progress_H
+#define Progress_H
+
 #include <atomic>
 #include <string>
 #include <chrono>
@@ -32,3 +35,4 @@ private:
   double min_interval_; // seconds
 };
 
+#endif

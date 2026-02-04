@@ -117,4 +117,4 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
 // ========================
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame compute_qsm_distances(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
+Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);

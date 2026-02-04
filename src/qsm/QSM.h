@@ -35,7 +35,7 @@ struct QSMcylinder
   int axis_ID = 0;
   int branch_order = 0;
 
-  double length() const noexcept
+  inline double length() const noexcept
   {
     double dx = endX - startX;
     double dy = endY - startY;
@@ -43,10 +43,50 @@ struct QSMcylinder
     return std::sqrt(dx*dx + dy*dy + dz*dz);
   }
 
-  double volume() const noexcept
+  inline double volume() const noexcept
   {
     double r2 = radius * radius;
     return M_PI * r2 * length();
+  }
+
+  // Compute distance on the fly
+  inline double distance(double px, double py, double pz) const
+  {
+    // 1. Compute Vector AB (Cylinder Axis)
+    double ab_x = endX - startX;
+    double ab_y = endY - startY;
+    double ab_z = endZ - startZ;
+
+    // 2. Compute Squared Length of AB
+    double ab_sq = ab_x*ab_x + ab_y*ab_y + ab_z*ab_z;
+    if(ab_sq < 1e-12) ab_sq = 1e-12; // Avoid division by zero
+
+    // 3. Compute Vector AP (Start to Point)
+    double ap_x = px - startX;
+    double ap_y = py - startY;
+    double ap_z = pz - startZ;
+
+    // 4. Project AP onto AB (Dot Product)
+    double t = (ap_x*ab_x + ap_y*ab_y + ap_z*ab_z) / ab_sq;
+
+    // 5. Clamp t to [0, 1] to stay within the segment
+    if (t < 0.0) t = 0.0;
+    else if (t > 1.0) t = 1.0;
+
+    // 6. Find Closest Point on Axis
+    double c_x = startX + t * ab_x;
+    double c_y = startY + t * ab_y;
+    double c_z = startZ + t * ab_z;
+
+    // 7. Distance from Point to Axis
+    double dx = px - c_x;
+    double dy = py - c_y;
+    double dz = pz - c_z;
+
+    double dist_axis = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+    // 8. Subtract radius for surface distance (clamped to 0)
+    return (dist_axis > radius) ? (dist_axis - radius) : 0.0;
   }
 };
 

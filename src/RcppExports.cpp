@@ -259,14 +259,14 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
-// compute_qsm_distances
-Rcpp::DataFrame compute_qsm_distances(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
-RcppExport SEXP _arbor_compute_qsm_distances(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
+// qsm_distances_cpp
+Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
+RcppExport SEXP _arbor_qsm_distances_cpp(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm_df(qsm_dfSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type pts_df(pts_dfSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_qsm_distances(qsm_df, pts_df));
+    rcpp_result_gen = Rcpp::wrap(qsm_distances_cpp(qsm_df, pts_df));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -293,7 +293,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
-    {"_arbor_compute_qsm_distances", (DL_FUNC) &_arbor_compute_qsm_distances, 2},
+    {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {NULL, NULL, 0}
 };
 
