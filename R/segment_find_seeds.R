@@ -212,7 +212,7 @@ find_seeds <- function(las, params)
     cat("Discs to seeds conversion...\n") ; t0 = tic()
 
     # Convert circle to points
-    res= params$decimation$barycentric_predecimation_resolution
+    res= params$decimation$barycentric_predecimation_resolution*0.75
     circle_points_list <- lapply(1:nrow(circles), function(i) {
       generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
     })
