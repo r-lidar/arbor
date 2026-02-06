@@ -111,7 +111,7 @@ extract_tree_context = function(las, tree, context = "contact", exclude_tree = F
 #'
 #' @family experimental
 #' @export
-segment_sementic_from_qsf = function(las, qsf)
+qsf_segment_semantic = function(las, qsf)
 {
   warn_experimental()
   if (inherits(qsf, "qsf")) qsf = data.table::rbindlist(qsf)

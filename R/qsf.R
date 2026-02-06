@@ -187,7 +187,7 @@ qsf <- function(
         log$success <- FALSE
         log$status <- "failed_readLAS"
         log$message  <- format_msg(w_msgs, las$message)
-        return(log)
+        return(NULL)
       }
 
       # --- Step 2: QSM & Write ---
@@ -236,6 +236,13 @@ qsf <- function(
 
   log <- lapply(res, function(x) attr(x, "log"))
   log <- data.table::rbindlist(log)
+  log$status <- ifelse(!is.na(log$message) & log$success, "warning", log$status)
+
+  nwarn = sum(log$status == "warning")
+  nfail = sum(!log$success)
+
+  if (nwarn > 0 | nfail > 0)
+    warning(paste("csf() produced", nwarn, "warning(s) and", nfail, "error(s).\nSee qsf_log(qsf) to read the logs"))
 
   names <- sapply(res, function(x) attr(x, "name"))
   names(res) <- names
@@ -250,4 +257,15 @@ set_qsf_class <- function(x)
 {
   class(x) <- c("qsf", class(x))
   x
+}
+
+#' QSF log
+#'
+#' Use qsf_log() after qsf() to get the logs
+#'
+#' @param qsf qsf
+#' @export
+qsf_log = function(qsf)
+{
+  attr(qsf, "log")
 }

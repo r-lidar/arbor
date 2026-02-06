@@ -1,5 +1,6 @@
 qsf_treemap = function(qsf)
 {
+  ans = Filter(function(x) inherits(x, "qsm"), qsf)
   ans = lapply(qsf, function(x) qsm_stats(x)$stats_global)
   ans = data.table::rbindlist(ans)
   ans = ans[,-c("X_bh", "Y_bh", "Z_bh")]

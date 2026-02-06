@@ -37,6 +37,7 @@ file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneucsd6_01_s
 
 
 # Petawawa Research Forest
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF002_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
 file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
@@ -60,6 +61,10 @@ file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 
 file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_Cacao.laz" ; filter = "-keep_random_fraction 0.4"
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_2021_FTH_1.laz" ; filter = "-keep_random_fraction 0.3"
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip40.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated50_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
+
 
 # UAV
 file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_above_ground = 0.25
@@ -68,6 +73,7 @@ file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_abo
 
 params = default_arbor_parameters
 params$path_finder$max_gap = 1
+params$path_finder$k_neighborhood_connectivity = 30
 
 # ====== READ POINT CLOUD =======
 
@@ -292,10 +298,10 @@ for (i in unique(valid_trees$treeID))
 id   <- sample(unique(trees$treeID), 1)
 tree <- lidR::filter_poi(trees, treeID == id)
 plot_semantic(tree)
-qsm  <- qsm(tree, step = 0.1, cl_dist = 0.2)
+qsm  <- qsm(tree, step = 0.5, cl_dist = 0.2)
 x <- plot_semantic(tree)
 qsm_dbh(qsm, tree, display = T)
-plot_qsm(qsm, color = "branch_order", add = x, skeleton = F)
+plot_qsm(qsm, color = "branch_order", add = x, skeleton = T)
 
 # ==== QSM batch =====
 

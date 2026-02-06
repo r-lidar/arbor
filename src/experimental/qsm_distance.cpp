@@ -1,4 +1,3 @@
-// [[Rcpp::plugins(openmp)]]
 #include <Rcpp.h>
 #include <vector>
 #include <cmath>
@@ -78,48 +77,109 @@ inline void update_if_closer(const double px, const double py, const double pz,
                              const QSMcylinder& cyl,
                              double& best_dist, int& best_id, double& best_rad)
 {
-  // 1. Calculate projection t
+  // 1. Vector AP (Start to Point)
   double ap_x = px - cyl.startX;
   double ap_y = py - cyl.startY;
   double ap_z = pz - cyl.startZ;
 
+  // 2. Project AP onto AB to find t
   double dot = ap_x * cyl.ab_x + ap_y * cyl.ab_y + ap_z * cyl.ab_z;
   double t = dot / cyl.ab_sqnorm;
 
-  // 2. Clamp t to [0, 1] - manual logic is faster than std::clamp in some compilers
-  if (t < 0.0) t = 0.0;
-  else if (t > 1.0) t = 1.0;
+  double closest_x, closest_y, closest_z;
 
-  // 3. Distance to axis squared (avoid sqrt yet)
-  double c_x = cyl.startX + t * cyl.ab_x;
-  double c_y = cyl.startY + t * cyl.ab_y;
-  double c_z = cyl.startZ + t * cyl.ab_z;
+  // Case A: The point projects onto the finite axis (0 <= t <= 1)
+  // Distance is distance to the cylindrical surface
+  if (t >= 0.0 && t <= 1.0) {
+    double axis_pt_x = cyl.startX + t * cyl.ab_x;
+    double axis_pt_y = cyl.startY + t * cyl.ab_y;
+    double axis_pt_z = cyl.startZ + t * cyl.ab_z;
 
-  double dx = px - c_x;
-  double dy = py - c_y;
-  double dz = pz - c_z;
-  double dist_sq_axis = dx*dx + dy*dy + dz*dz;
+    double dx = px - axis_pt_x;
+    double dy = py - axis_pt_y;
+    double dz = pz - axis_pt_z;
+    double dist_sq_to_axis = dx*dx + dy*dy + dz*dz;
+    double dist_to_axis = std::sqrt(dist_sq_to_axis);
 
-  // 4. Optimization: "Lazy Sqrt"
-  // We want to know if:  max(0, dist_axis - R) < best_dist
-  // Logic:
-  // If dist_axis < R (point inside cylinder), surface dist is 0.
-  //    -> 0 is always <= best_dist (since best_dist >= 0). Update.
-  // If dist_axis > R, we check: dist_axis - R < best_dist
-  //    -> dist_axis < best_dist + R
-  //    -> dist_axis^2 < (best_dist + R)^2
+    // If inside the radius, distance is 0. If outside, it's (dist - R)
+    double d = (dist_to_axis > cyl.radius) ? (dist_to_axis - cyl.radius) : 0.0;
 
-  double dist_check = best_dist + cyl.radius;
+    if (d < best_dist) {
+      best_dist = d;
+      best_id = cyl.cyl_ID;
+      best_rad = cyl.radius;
+    }
+  }
+  // Case B: The point projects beyond the ends (Caps)
+  else {
+    // Determine which cap we are closest to (Start or End)
+    double cap_x, cap_y, cap_z;
 
-  // Only calculate sqrt if there is a chance this is the closest point
-  if (dist_sq_axis < dist_check * dist_check) {
-    double dist_axis = std::sqrt(dist_sq_axis);
-    double surf_dist = (dist_axis > cyl.radius) ? (dist_axis - cyl.radius) : 0.0;
+    if (t < 0.0) {
+      // Closest to Start Cap
+      cap_x = cyl.startX;
+      cap_y = cyl.startY;
+      cap_z = cyl.startZ;
+    } else { // t > 1.0
+      // Closest to End Cap
+      cap_x = cyl.startX + cyl.ab_x;
+      cap_y = cyl.startY + cyl.ab_y;
+      cap_z = cyl.startZ + cyl.ab_z;
+    }
 
-    if (surf_dist < best_dist) {
-      best_dist = surf_dist;
-      best_id   = cyl.cyl_ID;
-      best_rad  = cyl.radius;
+    // Vector from Cap Center to Point
+    double cp_x = px - cap_x;
+    double cp_y = py - cap_y;
+    double cp_z = pz - cap_z;
+
+    // We need to find the distance to the *disk* defined by the cap.
+    // However, since we are in the "beyond ends" region, the closest point
+    // on the cylinder is either:
+    // 1. On the rim of the cap (if point is outside the cylinder's infinite tube radius)
+    // 2. On the flat face of the cap (if point is inside the infinite tube radius)
+
+    // Calculate distance from point to the axis line (infinite)
+    // We can reuse the projection logic or cross product.
+    // Let's use the vector rejection from the axis.
+
+    // Re-project onto axis relative to the specific cap is redundant if we trust t logic,
+    // but let's be geometric:
+    // Distance along the axis (longitudinal distance)
+    double dist_along_axis;
+    if (t < 0.0) dist_along_axis = std::sqrt(cyl.ab_sqnorm) * (-t); // Distance behind start
+    else         dist_along_axis = std::sqrt(cyl.ab_sqnorm) * (t - 1.0); // Distance beyond end
+
+    // Radial distance (distance from the infinite line)
+    // We can compute the point on the infinite line corresponding to t
+    double axis_inf_x = cyl.startX + t * cyl.ab_x;
+    double axis_inf_y = cyl.startY + t * cyl.ab_y;
+    double axis_inf_z = cyl.startZ + t * cyl.ab_z;
+
+    double rad_dx = px - axis_inf_x;
+    double rad_dy = py - axis_inf_y;
+    double rad_dz = pz - axis_inf_z;
+    double dist_radial = std::sqrt(rad_dx*rad_dx + rad_dy*rad_dy + rad_dz*rad_dz);
+
+    double final_dist;
+
+    if (dist_radial <= cyl.radius) {
+      // Point is within the tube's radius, but past the end.
+      // Distance is purely the longitudinal distance to the flat cap face.
+      final_dist = dist_along_axis;
+    } else {
+      // Point is outside the tube and past the end.
+      // The closest point is on the circular rim (edge of the cap).
+      // We form a right triangle:
+      // leg 1: distance from cap plane (dist_along_axis)
+      // leg 2: distance from rim in radial direction (dist_radial - radius)
+      double d_rim = dist_radial - cyl.radius;
+      final_dist = std::sqrt(dist_along_axis*dist_along_axis + d_rim*d_rim);
+    }
+
+    if (final_dist < best_dist) {
+      best_dist = final_dist;
+      best_id = cyl.cyl_ID;
+      best_rad = cyl.radius;
     }
   }
 }

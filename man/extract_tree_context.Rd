@@ -56,6 +56,6 @@ plot(tree, add = x, pal = "red")
 }
 \seealso{
 Other experimental: 
-\code{\link{segment_sementic_from_qsf}()}
+\code{\link{qsf_segment_semantic}()}
 }
 \concept{experimental}

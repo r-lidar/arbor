@@ -1,16 +1,20 @@
-# arbor 0.9.0
-
-- New: experimental function `segment_semantic_from_qsm()`
-- New: experimental function `extract_tree_context()`
-
 # arbor 0.8.0
 
-- New: QSMs now have a class `qsm` and dedicated methods `print()` and `plot()`.
-- New: function `qsf` replaces `qsm_batch()` and introduces the concept of Quantitative Structure Forest
-- New: functions `qsf_write()` and other `qsf_*()` tools.
-- Enhance: `plot()` or `plot_qsm()` render QSMs instantaneously. It no longer takes several seconds. `plot()` can render QSF to render the entire forest.
-- Fix `colorize_trees()` with `darken_foliage = FALSE`
-- Fix `qsm()` for trees > 36 m
+## New features
+- Introduced the `qsm` class with dedicated `print()` and `plot()` methods.
+- Added the `qsf()` function, replacing `qsm_batch()` and introducing the Quantitative Structure Forest (QSF) concept and class.
+- Added `qsf_write()` and a suite of `qsf_*()` utility functions.
+- Added experimental function `segment_semantic_from_qsm()`.
+- Added experimental function `extract_tree_context()`.
+- Added experimental function `editor_seeds()`.
+
+## Enhancements
+- Significantly improved rendering performance of `plot()` / `plot_qsm()`: QSMs now render instantaneously instead of taking several seconds.
+- Extended `plot()` to support rendering QSFs (entire forests).
+
+## Bug fixes
+- Fixed `colorize_trees()` when `darken_foliage = FALSE`.
+- Fixed `qsm()` for trees taller than 36 m
 
 # arbor 0.7.2
 
