@@ -37,7 +37,7 @@
 #'
 #' @export
 #' @family experimental
-extract_tree_context = function(las, tree, context = "contact", exclude_tree = FALSE, verbose = TRUE)
+extract_tree_context = function(las, tree, exclude_tree = FALSE, verbose = TRUE)
 {
   warn_experimental()
 
@@ -52,7 +52,6 @@ extract_tree_context = function(las, tree, context = "contact", exclude_tree = F
     if (length(tree) != 1 || is.na(tree))
       stop("'tree' must be a single, non-missing numeric treeID")
   }
-  context <- match.arg(context, c("contact", "extent", "root"))
 
   if (is.numeric(tree))
   {
@@ -65,17 +64,8 @@ extract_tree_context = function(las, tree, context = "contact", exclude_tree = F
     id   <- tree$treeID[1]
   }
 
-  if (context == "root")
-  {
-    base  <- lidR::filter_poi(tree, hag < 2)
-    chull <- sf::st_convex_hull(base)
-  }
-  else
-  {
-    chull <- sf::st_convex_hull(tree)
-  }
-
-  roi <- lidR::clip_roi(las, chull)
+  bb  <- sf::st_bbox(tree)
+  roi <- lidR::clip_rectangle(las, bb[1], bb[2], bb[3], bb[4])
   ids <- unique(roi$treeID)
   ids <- na.omit(ids)
 
@@ -86,14 +76,11 @@ extract_tree_context = function(las, tree, context = "contact", exclude_tree = F
 
   res <- lidR::filter_poi(las, treeID %in% ids)
 
-  if (context == "contact")
-  {
-    ll  <- lidR::decimate_points(res, lidR::random_per_voxel(0.25, 2))
-    nn  <- lidR::knnx(ll, tree)
-    idx <- ll$treeID[unique(as.integer(nn$nn.index))]
-    idx <- unique(idx)
-    res <- lidR::filter_poi(res, treeID %in% idx)
-  }
+  ll  <- lidR::decimate_points(res, lidR::random_per_voxel(0.25, 2))
+  nn  <- lidR::knnx(ll, tree)
+  idx <- ll$treeID[unique(as.integer(nn$nn.index))]
+  idx <- unique(idx)
+  res <- lidR::filter_poi(res, treeID %in% idx)
 
   return(res)
 }
