@@ -5,7 +5,7 @@
 - Introduced the `qsm` class with dedicated `print()` and `plot()` methods.
 - Added the `qsf()` function, replacing `qsm_batch()` and introducing the Quantitative Structure Forest (QSF) concept and class.
 - Added `qsf_write()` and a suite of `qsf_*()` utility functions.
-- Added experimental function `segment_semantic_from_qsm()`.
+- Added experimental function `qsf_segment_semantic()`.
 - Added experimental function `extract_tree_context()`.
 - Added experimental function `arbor_studio_seeds()`.
 - Added experimental function `arbor_studio_instance()`.
