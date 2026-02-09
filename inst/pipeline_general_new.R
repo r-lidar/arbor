@@ -149,16 +149,16 @@ if (FALSE)
 # This is not the actual segmentation, so it is not intended to be perfect,
 # but this step should make sense and look roughly correct.
 
-las <- compute_anisotropy(las, params)
+las <- wood_likelihood(las, params)
 
-if (display) plot_anisotropy(las)
+if (display) plot_likelihood(las)
 
 # ====== SEGMENT FOLIAGE/WOOD ======
 
 # segment_foliage relies, at least partially, on a good anisotropy measurement.
 # If the previous step is bad this step will be bad too.
 
-las <- segment_foliage(las, dtm, params)
+las <- segment_semantic(las, dtm, params)
 
 if (display)
 {
@@ -200,7 +200,7 @@ if (display)
 
 # Finding seed is THE critical step here.
 
-las <- segment_vegetation(las, seeds, params)
+las <- segment_instance(las, seeds, params)
 
 if (display)
 {

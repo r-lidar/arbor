@@ -4,10 +4,9 @@
 #' using k-nearest neighbors (KNN). A pathfinding algorithm navigates this network to identify the
 #' tree skeleton by finding the least-cost path from every point in space to the ground. Each point
 #' is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
-#' (2) Anisotropy exceeding a given threshold. The function \link{compute_anisotropy} must be applied
+#' (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 #' first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
-#' Finally, a connected component step removes small clusters incorrectly classified as wood,
-#' since some foliage points may exhibit high anisotropy.
+#' Finally, a connected component step removes small clusters incorrectly classified as wood.
 #'
 #' @param las A LAS object from lidR.
 #' @param dtm A SpatRaster object. Digital Terrain Model
@@ -16,13 +15,12 @@
 #' @rdname segment_semantic
 #' @name segment_semantic
 #' @export
-segment_foliage = function(las, dtm, params = default_arbor_parameters)
+segment_semantic = function(las, dtm, params = default_arbor_parameters)
 {
-  # The point cloud must have hag and anisotropy computed
   attributes <- names(las)
-  stopifnot("anisotropy" %in% attributes)
+  stopifnot("pwood" %in% attributes)
   stopifnot("hag" %in% attributes)
-  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- anisotropy <- pointID <- wood <- decimated <- NULL
+  . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- pwood <- pointID <- wood <- decimated <- NULL
 
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
@@ -47,9 +45,9 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   params <- evaluate_penalty(params)
   graph  <- build_semantic_graph(core@data, target@data, gnd@data, master@data, params)
 
-  # The cost is weighted by the anisotropy
-  #A1 <- core$anisotropy[point_network$from]
-  #A2 <- core$anisotropy[point_network$to]
+  # The cost is weighted by the pwood
+  #A1 <- core$pwood[point_network$from]
+  #A2 <- core$pwood[point_network$to]
   #W  <- 1-(A1+A2)/2
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
@@ -102,26 +100,26 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
 
   free(skeleton_neighbors, rm, id)
 
-  toc(t0) ; cat("Filter high anisotropy... (5/8)\n") ; t0 = tic()
+  toc(t0) ; cat("Filter high likeliwood... (5/8)\n") ; t0 = tic()
 
   z_factor <- params$path_finder$z_scale
 
-  # Remove foliage based on high anisotropy only. High anistropy = wood
+  # Remove foliage based on high likelihood only. High anistropy = wood
 
-  th_high_                 <- params$semantic$high_anisotropy_threshold
+  th_high_                 <- params$semantic$high_pwood_threshold
   connected_components_res <- params$semantic$connected_components_res
   connected_components_min <- params$semantic$connected_components_min
 
-  nofoliage <- lidR::filter_poi(las, anisotropy > th_high_ | wood == TRUE)
+  nofoliage <- lidR::filter_poi(las, pwood > th_high_ | wood == TRUE)
 
   # Plot for debuging
   if (FALSE)
   {
     plot(nofoliage, pal = foliage.colors[1])
-    plot_anisotropy(nofoliage)
+    plot_likelihood(nofoliage)
   }
 
-  # Looking only at wood points (high anisotropy), perform a connected component
+  # Looking only at wood points (high likelihood), perform a connected component
   # scan, remove patches with not enough points. They are reasigned as foliage
 
   nofoliage$Z <- nofoliage$Z * z_factor
@@ -135,18 +133,18 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   if (FALSE) plot(nofoliage) # Plot for debugging
 
   # 100% sure those ones are wood
-  high_anisotropy_wood <- rep(FALSE, lidR::npoints(las))
-  high_anisotropy_wood[nofoliage$pointID] <- TRUE
+  high_pwood_wood <- rep(FALSE, lidR::npoints(las))
+  high_pwood_wood[nofoliage$pointID] <- TRUE
 
-  toc(t0) ; cat("Filter medium anisotropy... (Step 6/8)\n") ; t0 = tic()
+  toc(t0) ; cat("Filter medium likelihood (Step 6/8)\n") ; t0 = tic()
 
-  th_medium_               <- params$semantic$medium_anisotropy_thresold
-  sor_k                    <- params$semantic$medium_anisotropy_sor_k
-  sor_m                    <- params$semantic$medium_anisotropy_sor_m
+  th_medium_               <- params$semantic$medium_pwood_thresold
+  sor_k                    <- params$semantic$medium_pwood_sor_k
+  sor_m                    <- params$semantic$medium_pwood_sor_m
   connected_components_res <- params$semantic$connected_components_res
   connected_components_min <- params$semantic$connected_components_min
 
-  nofoliage <- lidR::filter_poi(las, (anisotropy > th_medium_ & anisotropy < th_high_)  | wood == TRUE)
+  nofoliage <- lidR::filter_poi(las, (pwood > th_medium_ & pwood < th_high_)  | wood == TRUE)
   nofoliage <- sor(nofoliage, sor_k, sor_m)
   if (FALSE) plot(nofoliage, color = "Classification") # Plot for debuging
   nofoliage <- lidR::remove_noise(nofoliage)
@@ -161,7 +159,7 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   medium_anistropy_wood <- rep(FALSE, lidR::npoints(las))
   medium_anistropy_wood[nofoliage$pointID] <- TRUE
 
-  las@data$wood <- path_finder_based_wood | medium_anistropy_wood | high_anisotropy_wood
+  las@data$wood <- path_finder_based_wood | medium_anistropy_wood | high_pwood_wood
 
   if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors)) # Plot for debuging
 
@@ -191,8 +189,8 @@ segment_foliage = function(las, dtm, params = default_arbor_parameters)
   toc(t0) ; cat("Extra foliage reasignation... (8/8)\n") ; t0 = tic()
 
   foliage <- lidR::filter_poi(las, foliage == 1)
-  if (FALSE) plot_anisotropy(foliage)
-  high_ani <- lidR::filter_poi(foliage, anisotropy > th_high_)
+  if (FALSE) plot_likelihood(foliage)
+  high_ani <- lidR::filter_poi(foliage, pwood > th_high_)
   las@data$foliage[high_ani$pointID] <- 2
 
   free(high_ani)

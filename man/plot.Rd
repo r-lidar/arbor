@@ -4,7 +4,7 @@
 \alias{plot.qsf}
 \alias{plot.qsm}
 \alias{plot_qsm}
-\alias{plot_anisotropy}
+\alias{plot_likelihood}
 \alias{plot_semantic}
 \alias{plot_instance}
 \alias{plot_semantic_instance}
@@ -27,7 +27,7 @@ plot_qsm(
   ...
 )
 
-plot_anisotropy(las, dtm = NULL, ...)
+plot_likelihood(las, dtm = NULL, ...)
 
 plot_semantic(las, dtm = NULL, ...)
 

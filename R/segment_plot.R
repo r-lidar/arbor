@@ -9,9 +9,9 @@
 #' @param th threshold to remove points with few passages
 #' @export
 #' @rdname plot
-plot_anisotropy = function(las, dtm = NULL, ...)
+plot_likelihood = function(las, dtm = NULL, ...)
 {
-  x <- lidR::plot(las, color = "anisotropy", legend = T, breaks = "quantile", ...)
+  x <- lidR::plot(las, color = "pwood", legend = T, breaks = "quantile", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
 }

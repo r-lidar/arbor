@@ -267,7 +267,7 @@ find_seeds <- function(las, params)
 
   sink(tempfile())
   on.exit(suppressWarnings(sink()), add = TRUE)
-  short_passages = segment_vegetation(short_passages, long_passages_seeds, p)
+  short_passages = segment_instance(short_passages, long_passages_seeds, p)
   sink()
 
   if (FALSE)

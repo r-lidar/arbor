@@ -6,6 +6,10 @@
 - Enhance: `plot()` or `plot_qsm()` render QSMs instantaneously. It no longer takes several seconds. `plot()` can render QSF to render the entire forest.
 - Fix `colorize_trees()` with `darken_foliage = FALSE`
 - Fix `qsm()` for trees > 36 m
+- Change: `wood_likelihood()` replaces `compute_anisotropy()`
+- Change: `plot_likelihood()` replaces `plot_anisotropy()`
+- Change: `segment_semantic()` replaces `segment_foliage()`
+- Change: `segment_instance()` replaces `segment_vegetation()`
 
 # arbor 0.7.2
 

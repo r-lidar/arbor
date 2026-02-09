@@ -17,16 +17,16 @@ default_parameters_v1 = list(
     angle_penalty = function(x) { y = exp(0.046051*x); ifelse(x > 100, 100, y) }
   ),
   semantic = list(
-    high_anisotropy_threshold = 0.9,
-    medium_anisotropy_thresold = 0.75,
+    high_pwood_threshold = 0.9,
+    medium_pwood_thresold = 0.75,
     connected_components_res = 0.05,
     connected_components_min = 2000,
     wood_assignation_k = 50,
     wood_assignation_dist = 0.05,
     wood_extra_reasignation_k = 10,
     wood_extra_reasignation_dist = 0.03,
-    medium_anisotropy_sor_k = 50,
-    medium_anisotropy_sor_m = 0.05,
+    medium_pwood_sor_k = 50,
+    medium_pwood_sor_m = 0.05,
     ground_res = 0.2
   ),
   seed = list (

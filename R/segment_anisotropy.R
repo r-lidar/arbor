@@ -1,4 +1,4 @@
-#' Compute Local Anisotropy
+#' Compute Local Wood Likelihood
 #'
 #' This function calculates the local anisotropy of each point in a LAS object using
 #' a k-nearest neighbors (KNN) approach. Anisotropy describes the degree of directional
@@ -9,15 +9,18 @@
 #' The key consideration is that `k` must be large enough to capture local geometric structures but
 #' small enough to remain "local." If k = 0 it uses an auto-adaptive value (experimental)
 #'
+#' It returns a new LAS object with an extra attribute \code{pwood}. This allows any user to use
+#' alternative wood likelihood function before to use the function \link{segment_semantic}.
+#'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
 #' @export
-compute_anisotropy = function(las, params = default_arbor_parameters)
+wood_likelihood = function(las, params = default_arbor_parameters)
 {
   t0 <- tic()
   k <- params$anistotropy$k
   anisotropy <- C_anisotropy(las@data, k, lidR::get_lidr_threads())
-  las <- lidR::add_lasattribute_manual(las, anisotropy, "anisotropy", "anisotropy", "float")
+  las <- lidR::add_lasattribute_manual(las, anisotropy, "pwood", "wood likelyhood", "float")
   free(anisotropy)
   toc(t0)
   return(las)
