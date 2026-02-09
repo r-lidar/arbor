@@ -185,10 +185,9 @@ inline void update_if_closer(const double px, const double py, const double pz,
 }
 
 // ============================================================================
-//  4. Main Rcpp Export
+//  4. Main Rcpp
 // ============================================================================
 
-// [[Rcpp::export]]
 DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
 {
   // --- 1. Parse QSM Data (Direct Pointer Access) ---

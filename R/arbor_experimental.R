@@ -9,16 +9,6 @@
 #'   point cloud with a \code{treeID} attribute.
 #' @param tree Either a numeric tree ID corresponding to \code{treeID} in
 #'   \code{las}, or a \code{LAS} object containing points from a single tree.
-#' @param context Character string defining how the spatial context is computed.
-#'   One of:
-#'   \describe{
-#'     \item{\code{"contact"}}{Keeps only neighbouring trees that are in direct
-#'     spatial contact with the target tree, based on nearest-neighbour queries.}
-#'     \item{\code{"extent"}}{Keeps all trees whose points intersect the convex
-#'     hull of the target tree.}
-#'     \item{\code{"root"}}{Keeps trees intersecting the convex hull of the target
-#'     tree restricted to points below 2 m height above ground.}
-#'   }
 #' @param exclude_tree Logical. If \code{TRUE}, the target tree itself is removed
 #'   from the returned context.
 #'
@@ -37,52 +27,23 @@
 #'
 #' @export
 #' @family experimental
-extract_tree_context = function(las, tree, exclude_tree = FALSE, verbose = TRUE)
+extract_tree_context = function(las, tree, exclude_tree = FALSE)
 {
   warn_experimental()
-
-  # ---- Argument checks --------------------------------------------------
 
   if (!inherits(las, "LAS")) stop("'las' must be a LAS object")
   if (lidR::is.empty(las)) stop("'las' is empty")
   if (!"treeID" %in% names(las)) stop("'las' must contain a 'treeID' attribute")
   if (!is.logical(exclude_tree) || length(exclude_tree) != 1) stop("'exclude_tree' must be a single logical value")
-  if (is.numeric(tree))
-  {
-    if (length(tree) != 1 || is.na(tree))
-      stop("'tree' must be a single, non-missing numeric treeID")
-  }
+  if (is.numeric(tree)) { if (length(tree) != 1 || is.na(tree)) stop("'tree' must be a single, non-missing numeric treeID") }
 
-  if (is.numeric(tree))
-  {
-    id   <- tree
-    tree <- lidR::filter_poi(las, treeID == id)
-    if (is.empty(tree)) stop(paste0("No tree with treeID = ", id))
-  }
-  else
-  {
-    id   <- tree$treeID[1]
-  }
+  if (is.numeric(tree)) { id <- tree } else { id <- tree$treeID[1] }
 
-  bb  <- sf::st_bbox(tree)
-  roi <- lidR::clip_rectangle(las, bb[1], bb[2], bb[3], bb[4])
-  ids <- unique(roi$treeID)
-  ids <- na.omit(ids)
+  treeID <- NULL
+  idx <- extract_tree_context_cpp(las@data, 45, exclude_tree = exclude_tree)
+  con <- lidR::filter_poi(las, treeID %in% idx)
 
-  if (exclude_tree)
-  {
-    ids <- ids[ids != id]
-  }
-
-  res <- lidR::filter_poi(las, treeID %in% ids)
-
-  ll  <- lidR::decimate_points(res, lidR::random_per_voxel(0.25, 2))
-  nn  <- lidR::knnx(ll, tree)
-  idx <- ll$treeID[unique(as.integer(nn$nn.index))]
-  idx <- unique(idx)
-  res <- lidR::filter_poi(res, treeID %in% idx)
-
-  return(res)
+  return(con)
 }
 
 

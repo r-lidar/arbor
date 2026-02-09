@@ -73,5 +73,5 @@ Internal Processing Steps:
 }
 }
 \seealso{
-\link{find_seeds}, \link{segment_foliage}
+\link{find_seeds}, \link{segment_semantic}
 }

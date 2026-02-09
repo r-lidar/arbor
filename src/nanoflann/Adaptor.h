@@ -8,38 +8,96 @@
 class DataFrameAdaptor
 {
 public:
-  const double* coords[3]; // raw pointers to column data
+  // Mandatory coordinates
+  const double* coords[3];
+
+  // Optional attributes (nullptr if absent)
+  const int*    treeid = nullptr;
+  const double* woodlikelihood = nullptr;
+  const int*    foliage = nullptr;
+
   size_t n_points;
 
-  DataFrameAdaptor(const Rcpp::DataFrame& df, std::vector<std::string> col_names = {"X", "Y", "Z"})
+  DataFrameAdaptor(const Rcpp::DataFrame& df)
   {
-    if (col_names.size() != 3) throw std::runtime_error("Invalide point cloud dimensions");
-
-    for (size_t i = 0; i < 3; ++i)
-    {
-      Rcpp::NumericVector col = df[col_names[i]];
-      coords[i] = col.begin(); // store pointer to first element
-    }
+    std::vector<std::string> coord_names = {"X", "Y", "Z"};
+    std::string treeid_name = "treeID";
+    std::string woodlikelihood_name = "pwood";
+    std::string foliage_name = "foliage";
 
     n_points = df.rows();
+
+    // --- Mandatory coordinates ---
+    for (size_t i = 0; i < 3; ++i)
+    {
+      if (!df.containsElementNamed(coord_names[i].c_str()))
+        throw std::runtime_error("Missing mandatory coordinate column: " + coord_names[i]);
+
+      Rcpp::NumericVector col = df[coord_names[i]];
+      coords[i] = col.begin();
+    }
+
+    // --- Optional attributes ---
+    if (df.containsElementNamed(treeid_name.c_str()))
+    {
+      Rcpp::IntegerVector col = df[treeid_name];
+      treeid = col.begin();
+    }
+
+    if (df.containsElementNamed(woodlikelihood_name.c_str()))
+    {
+      Rcpp::NumericVector col = df[woodlikelihood_name];
+      woodlikelihood = col.begin();
+    }
+
+    if (df.containsElementNamed(foliage_name.c_str()))
+    {
+      Rcpp::IntegerVector col = df[foliage_name];
+      foliage = col.begin();
+    }
   }
 
+  // --- Nanoflann KD-tree interface ---
   inline size_t kdtree_get_point_count() const { return n_points; }
   inline size_t point_count() const { return n_points; }
   inline double kdtree_get_pt(const size_t idx, const size_t d) const { return coords[d][idx]; }
-
   template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
 
+  // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const
   {
-    for (size_t d = 0; d < 3; ++d)  q[d] = coords[d][idx];
+    for (size_t d = 0; d < 3; ++d)
+      q[d] = coords[d][idx];
   }
 
   inline double get_x(const size_t idx) const { return coords[0][idx]; }
   inline double get_y(const size_t idx) const { return coords[1][idx]; }
   inline double get_z(const size_t idx) const { return coords[2][idx]; }
 
-  // Translate in-place (requires copying into separate arrays if you want to modify)
+  // --- Optional attribute access ---
+  inline bool has_treeid() const { return treeid != nullptr; }
+  inline bool has_woodlikelihood() const { return woodlikelihood != nullptr; }
+  inline bool has_foliage() const { return foliage != nullptr; }
+
+  inline int get_treeid(const size_t idx) const
+  {
+    if (!treeid) throw std::runtime_error("Tree ID data not available in this point cloud");
+    return treeid[idx];
+  }
+
+  inline double get_woodlikelihood(const size_t idx) const
+  {
+    if (!woodlikelihood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    return woodlikelihood[idx];
+  }
+
+  inline int get_foliage(const size_t idx) const
+  {
+    if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
+    return foliage[idx];
+  }
+
+  // --- In-place transforms ---
   void translate(double x, double y, double z)
   {
     for (size_t i = 0; i < n_points; ++i)

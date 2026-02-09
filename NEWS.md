@@ -7,7 +7,8 @@
 - Added `qsf_write()` and a suite of `qsf_*()` utility functions.
 - Added experimental function `segment_semantic_from_qsm()`.
 - Added experimental function `extract_tree_context()`.
-- Added experimental function `editor_seeds()`.
+- Added experimental function `arbor_studio_seeds()`.
+- Added experimental function `arbor_studio_instance()`.
 
 ## Enhancements
 

@@ -270,6 +270,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// extract_tree_context_cpp
+Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id, bool exclude_tree, int k);
+RcppExport SEXP _arbor_extract_tree_context_cpp(SEXP lasSEXP, SEXP tree_idSEXP, SEXP exclude_treeSEXP, SEXP kSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< int >::type tree_id(tree_idSEXP);
+    Rcpp::traits::input_parameter< bool >::type exclude_tree(exclude_treeSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    rcpp_result_gen = Rcpp::wrap(extract_tree_context_cpp(las, tree_id, exclude_tree, k));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
@@ -294,6 +307,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
+    {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
     {NULL, NULL, 0}
 };
 

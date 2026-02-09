@@ -56,7 +56,7 @@
 #' @rdname segment_instance
 #' @name segment_instance
 #' @importFrom Rcpp sourceCpp
-#' @seealso \link{find_seeds}, \link{segment_foliage}
+#' @seealso \link{find_seeds}, \link{segment_semantic}
 segment_instance = function(las, seeds, params)
 {
   # The point cloud must have hag, and foliage computed

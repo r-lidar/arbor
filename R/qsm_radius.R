@@ -40,49 +40,49 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   return(qsm)
 }
 
-qsm_refine_radius = function(qsm, tree)
-{
-  u = qsm_distances_cpp(qsm, tree@data)
-  tree@data$r = u$radius
-  bigcyls = filter_poi(tree, r > 0.05)
-  bigcyls@data$cyl_ID =  as.integer(factor(bigcyls$cyl_ID)) - 1
-  bigcyls = split(bigcyl@data, by  = "cyl_ID")
-
-  for (i in seq_along(bigcyls))
-  {
-    cyl = bigcyls[[i]][, c("X", "Y", "Z")]
-    cyl = as.matrix(cyl)
-    circle = fit_circle(cyl)
-
-    center = c(circle$center_x, circle$center_y)
-    ffp = fit_fourier_polar(cyl, center, fill_radius = circle$radius)
-    curve = ffp$curve
-    curve = rbind(curve, curve[1,])
-    pol = st_polygon(list(as.matrix(curve)))
-    A1 = st_area(pol)
-    A2 = pi*circle$radius^2
-    ffp_inliers = length(ffp$inliers)
-    ransac_inlier = length(circle$inliers)
-    rransc = round(sqrt(A1/pi),3)
-    rffp = round(circle$radius,3)
-
-    plot(cyl[, 1:2], asp = 1, main = i)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, fg = "red", add = T, lwd = 2)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01, inches = FALSE, fg = "red", add = T, lty = 3)
-    symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01, inches = FALSE, fg = "red", add = T, lty = 3)
-    lines(curve, col = "purple", lwd = 2)
-    legend(
-      "topright",
-      bty = "n",
-      legend = c(
-        paste0("RANSAC radius: ", rffp),
-        paste0("FFP equiv radius: ", rransc),
-        paste0("RANSAC inliers: ", ransac_inlier),
-        paste0("FFP inliers: ", ffp_inliers)
-      )
-    )
-  }
-}
+# qsm_refine_radius = function(qsm, tree)
+# {
+#   u = qsm_distances_cpp(qsm, tree@data)
+#   tree@data$r = u$radius
+#   bigcyls = filter_poi(tree, r > 0.05)
+#   bigcyls@data$cyl_ID =  as.integer(factor(bigcyls$cyl_ID)) - 1
+#   bigcyls = split(bigcyl@data, by  = "cyl_ID")
+#
+#   for (i in seq_along(bigcyls))
+#   {
+#     cyl = bigcyls[[i]][, c("X", "Y", "Z")]
+#     cyl = as.matrix(cyl)
+#     circle = fit_circle(cyl)
+#
+#     center = c(circle$center_x, circle$center_y)
+#     ffp = fit_fourier_polar(cyl, center, fill_radius = circle$radius)
+#     curve = ffp$curve
+#     curve = rbind(curve, curve[1,])
+#     pol = st_polygon(list(as.matrix(curve)))
+#     A1 = st_area(pol)
+#     A2 = pi*circle$radius^2
+#     ffp_inliers = length(ffp$inliers)
+#     ransac_inlier = length(circle$inliers)
+#     rransc = round(sqrt(A1/pi),3)
+#     rffp = round(circle$radius,3)
+#
+#     plot(cyl[, 1:2], asp = 1, main = i)
+#     symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, fg = "red", add = T, lwd = 2)
+#     symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01, inches = FALSE, fg = "red", add = T, lty = 3)
+#     symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01, inches = FALSE, fg = "red", add = T, lty = 3)
+#     lines(curve, col = "purple", lwd = 2)
+#     legend(
+#       "topright",
+#       bty = "n",
+#       legend = c(
+#         paste0("RANSAC radius: ", rffp),
+#         paste0("FFP equiv radius: ", rransc),
+#         paste0("RANSAC inliers: ", ransac_inlier),
+#         paste0("FFP inliers: ", ffp_inliers)
+#       )
+#     )
+#   }
+# }
 
 
 qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025, power = 1)

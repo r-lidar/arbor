@@ -4,13 +4,7 @@
 \alias{extract_tree_context}
 \title{Extract the local tree context from a LAS object}
 \usage{
-extract_tree_context(
-  las,
-  tree,
-  context = "contact",
-  exclude_tree = FALSE,
-  verbose = TRUE
-)
+extract_tree_context(las, tree, exclude_tree = FALSE)
 }
 \arguments{
 \item{las}{A \code{LAS} object (from \pkg{lidR}) containing a segmented forest
@@ -18,17 +12,6 @@ point cloud with a \code{treeID} attribute.}
 
 \item{tree}{Either a numeric tree ID corresponding to \code{treeID} in
 \code{las}, or a \code{LAS} object containing points from a single tree.}
-
-\item{context}{Character string defining how the spatial context is computed.
-One of:
-\describe{
-  \item{\code{"contact"}}{Keeps only neighbouring trees that are in direct
-  spatial contact with the target tree, based on nearest-neighbour queries.}
-  \item{\code{"extent"}}{Keeps all trees whose points intersect the convex
-  hull of the target tree.}
-  \item{\code{"root"}}{Keeps trees intersecting the convex hull of the target
-  tree restricted to points below 2 m height above ground.}
-}}
 
 \item{exclude_tree}{Logical. If \code{TRUE}, the target tree itself is removed
 from the returned context.}

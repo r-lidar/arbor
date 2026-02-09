@@ -89,3 +89,7 @@ qsm_distances_cpp <- function(qsm_df, pts_df) {
     .Call(`_arbor_qsm_distances_cpp`, qsm_df, pts_df)
 }
 
+extract_tree_context_cpp <- function(las, tree_id, exclude_tree = FALSE, k = 10L) {
+    .Call(`_arbor_extract_tree_context_cpp`, las, tree_id, exclude_tree, k)
+}
+
