@@ -1,6 +1,7 @@
 # arbor 0.8.0
 
 ## New features
+
 - Introduced the `qsm` class with dedicated `print()` and `plot()` methods.
 - Added the `qsf()` function, replacing `qsm_batch()` and introducing the Quantitative Structure Forest (QSF) concept and class.
 - Added `qsf_write()` and a suite of `qsf_*()` utility functions.
@@ -9,12 +10,21 @@
 - Added experimental function `editor_seeds()`.
 
 ## Enhancements
+
 - Significantly improved rendering performance of `plot()` / `plot_qsm()`: QSMs now render instantaneously instead of taking several seconds.
 - Extended `plot()` to support rendering QSFs (entire forests).
 
 ## Bug fixes
+
 - Fixed `colorize_trees()` when `darken_foliage = FALSE`.
 - Fixed `qsm()` for trees taller than 36 m
+
+## Changes
+
+- Change: `wood_likelihood()` replaces `compute_anisotropy()`
+- Change: `plot_likelihood()` replaces `plot_anisotropy()`
+- Change: `segment_semantic()` replaces `segment_foliage()`
+- Change: `segment_instance()` replaces `segment_vegetation()`
 
 # arbor 0.7.2
 

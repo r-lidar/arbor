@@ -2,10 +2,9 @@
 % Please edit documentation in R/segment_semantic.R
 \name{segment_semantic}
 \alias{segment_semantic}
-\alias{segment_foliage}
 \title{Wood-Foliage Semantic Segmentation}
 \usage{
-segment_foliage(las, dtm, params = default_arbor_parameters)
+segment_semantic(las, dtm, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
@@ -19,8 +18,7 @@ This function performs wood-foliage semantic segmentation by constructing a netw
 using k-nearest neighbors (KNN). A pathfinding algorithm navigates this network to identify the
 tree skeleton by finding the least-cost path from every point in space to the ground. Each point
 is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
-(2) Anisotropy exceeding a given threshold. The function \link{compute_anisotropy} must be applied
+(2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
-Finally, a connected component step removes small clusters incorrectly classified as wood,
-since some foliage points may exhibit high anisotropy.
+Finally, a connected component step removes small clusters incorrectly classified as wood.
 }

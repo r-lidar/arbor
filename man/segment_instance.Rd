@@ -2,10 +2,9 @@
 % Please edit documentation in R/segment_instance.R
 \name{segment_instance}
 \alias{segment_instance}
-\alias{segment_vegetation}
 \title{Individual Tree Instance Segmentation}
 \usage{
-segment_vegetation(las, seeds, params)
+segment_instance(las, seeds, params)
 }
 \arguments{
 \item{las}{A \code{LAS} object (from the \code{lidR} package) containing the point cloud data. It must have

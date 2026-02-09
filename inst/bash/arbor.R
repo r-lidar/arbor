@@ -174,16 +174,16 @@ Exports
 
   cat("Anisotropy\n")
   las    <- barycentric_predecimation(las, params)
-  las    <- compute_anisotropy(las, params)
+  las    <- wood_likeliwood(las, params)
 
   cat("Semantic segmentation\n")
-  las    <- segment_foliage(las, dtm, params)
+  las    <- segment_semantic(las, dtm, params)
 
   cat("Seeds\n")
   seeds  <- find_seeds(las, params)
 
   cat("Instance segmentation\n")
-  las    <- segment_vegetation(las, seeds, params)
+  las    <- segment_instance(las, seeds, params)
 
   cat("Cleaning segmentation\n")
   trees <- remove_small_trees(las, max_height = min_tree_height)
