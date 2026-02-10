@@ -237,7 +237,8 @@ void QSM::polynomial_fitting(double tip_radius)
       else
       {
         // Calculate absolute difference
-        double diff = std::abs(cyl->radius - pred_radius);
+        double diff = 99999; // Desactivate feature
+        //double diff = std::abs(cyl->radius - pred_radius);
 
         // Check if difference > X% of the PREDICTED value
         // (Using prediction as the baseline for the "ideal" curve)
