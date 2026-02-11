@@ -1,5 +1,6 @@
 #include "Adaptor.h"
 #include "Grid3D.h"
+#include "ransac.h"
 
 // =======================
 // PRE-PROCESSING
@@ -111,6 +112,50 @@ Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 
 //[[Rcpp::export(rng = false)]]
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
+
+// ========================
+// FITTING
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0)
+{
+  MatrixAdaptor pc(x);
+  RansacCircle rc(num_iterations, inlier_threshold, early_exit);
+  for (int i = 0 ; i < pc.point_count() ; i++)
+    rc.add_point(pc.get_x(i), pc.get_y(i), pc.get_z(i));
+  rc.find_circle();
+
+  std::array<double, 3> center = rc.get_center();
+  double radius = rc.get_radius();
+  double inlier_pct = rc.get_inlier_percentage();
+  double inside_pct = rc.get_inside_percentage();
+  double arc_deg = rc.get_arc_coverage();
+  const std::vector<int>& inliers = rc.get_inliers();
+
+  // Calculate CFQI (matching R implementation)
+  double arc_score = arc_deg / 360.0;
+  double score_inside = (inside_pct == 0.0) ? 1.0 : (1.0 - inside_pct);
+
+  double w_arc = 0.4;
+  double w_inside = 0.1;
+  double w_inlier = 0.4;
+  double cfqi = (w_arc * arc_score + w_inlier * inlier_pct + w_inside / score_inside);
+
+  Rcpp::IntegerVector r_inliers = Rcpp::wrap(inliers);
+
+  return Rcpp::List::create(
+    Rcpp::Named("center_x") = center[0],
+    Rcpp::Named("center_y") = center[1],
+    Rcpp::Named("radius") = radius,
+    Rcpp::Named("z") = center[2],
+    Rcpp::Named("covered_arc_degree") = arc_deg,
+    Rcpp::Named("percentage_inlier") = inlier_pct,
+    Rcpp::Named("percentage_inside") = inside_pct,
+    Rcpp::Named("inliers") = r_inliers+1,
+    Rcpp::Named("CFQI") = cfqi
+  );
+}
 
 // ========================
 // EXPERIMENTAL

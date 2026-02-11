@@ -47,15 +47,7 @@ private:
   int max_insiders = 0;
   std::vector<int> inlier_indices;
 
-  static Vec3 fit_circle_on_3_points(double x1, double y1,
-                                     double x2, double y2,
-                                     double x3, double y3);
-
-  std::array<std::array<double, 3>, 3> compute_rotation_matrix(
-      const std::array<double, 3>& from,
-      const std::array<double, 3>& to) const;
-
-  Vec3 apply_rotation(
-      const Vec3& p,
-      const std::array<std::array<double, 3>, 3>& R) const;
+  static Vec3 fit_circle_on_3_points(double x1, double y1, double x2, double y2, double x3, double y3);
+  std::array<std::array<double, 3>, 3> compute_rotation_matrix(const std::array<double, 3>& from, const std::array<double, 3>& to) const;
+  Vec3 apply_rotation(const Vec3& p, const std::array<std::array<double, 3>, 3>& R) const;
 };

@@ -166,16 +166,19 @@ double RansacCircle::get_arc_coverage() const
 {
   if (inlier_indices.empty()) return 0.0;
 
+  const double bin_size = 10.0;
   std::set<int> unique_bins;
+
   for (int idx : inlier_indices)
   {
     const auto& p = points[idx];
     double angle = std::atan2(p.y - center_y, p.x - center_x) * 180.0 / M_PI;
-    int bin = static_cast<int>(std::round(angle / 10.0)); // 10° bins
+    if (angle < 0.0) angle += 360.0;  // Normalize to [0, 360) range
+    int bin = static_cast<int>(angle / bin_size); // Floor division to get bin (matches R's round behavior in this context)
     unique_bins.insert(bin);
   }
 
-  return unique_bins.size() * 10.0;
+  return unique_bins.size() * bin_size;
 }
 
 // ---- Validation ----

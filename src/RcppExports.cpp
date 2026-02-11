@@ -259,6 +259,19 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// ransac_circle_cpp
+Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations, double inlier_threshold, double early_exit);
+RcppExport SEXP _arbor_ransac_circle_cpp(SEXP xSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP early_exitSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type num_iterations(num_iterationsSEXP);
+    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
+    Rcpp::traits::input_parameter< double >::type early_exit(early_exitSEXP);
+    rcpp_result_gen = Rcpp::wrap(ransac_circle_cpp(x, num_iterations, inlier_threshold, early_exit));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_distances_cpp
 Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
 RcppExport SEXP _arbor_qsm_distances_cpp(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
@@ -306,6 +319,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
+    {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
     {NULL, NULL, 0}

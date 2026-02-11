@@ -125,7 +125,7 @@ struct MatrixAdaptor
 public:
   Rcpp::NumericMatrix& coords;
 
-  explicit MatrixAdaptor(Rcpp::NumericMatrix& m) : coords(m)
+  MatrixAdaptor(Rcpp::NumericMatrix& m) : coords(m)
   {
     if (coords.ncol() < 3)
       Rcpp::stop("MatrixAdaptor expects at least 3 columns (x, y, z).");
