@@ -1,7 +1,6 @@
 default_parameters_v1 = list(
   decimation = list(
-    barycentric_predecimation_resolution = 0.05,
-    cut_above_ground = 0.25
+    barycentric_predecimation_resolution = 0.05
   ),
   anistotropy = list(
     k = 80
