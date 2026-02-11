@@ -1,3 +1,7 @@
+# arbor 0.8.1
+
+- Enhancement: there are no longer two versions of ransac fitting in R and C++. All computations are done in C++
+
 # arbor 0.8.0
 
 ## New features
