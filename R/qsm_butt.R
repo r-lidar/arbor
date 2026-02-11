@@ -2,7 +2,7 @@ qsm_detect_weird_butt = function(qsm)
 {
   axis_ID <- cyl_ID <- parent_ID <- NULL
 
-  cat("Validating butt architecture...")  ; ti = tic()
+  logger("Validating butt architecture")
 
   qsm$angle <- with(qsm,{
     dx <- endX - startX
@@ -24,7 +24,7 @@ qsm_detect_weird_butt = function(qsm)
 
   if (i > 1)
   {
-    cat("\n\033[33m  Detection of weird tree butt. Automatic fix triggered.\033[0m\n")
+    logger("Detection of weird tree butt. Automatic fix triggered.", level = "WARN")
 
     main <- qsm[axis_ID == 1]
     rm   <- main[1:i]
@@ -33,8 +33,6 @@ qsm_detect_weird_butt = function(qsm)
     j <- which(qsm$axis_ID == 1)[1]
     qsm[j, parent_ID := 0]
   }
-
-  toc(ti)
 
   return(qsm)
 }

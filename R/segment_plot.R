@@ -29,6 +29,7 @@ plot_semantic = function(las, dtm = NULL, ...)
 #' @rdname plot
 plot_instance = function(las, dtm = NULL, ...)
 {
+  set.seed(42)
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))

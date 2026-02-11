@@ -9,7 +9,7 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
 
 qsm_layers = function(tree, step)
 {
-  cat("Computing layers...") ; ti = tic()
+  logger("Computing layers")
 
   if (step == "auto") {
     dz = diff(range(tree$Z))
@@ -22,8 +22,6 @@ qsm_layers = function(tree, step)
   #data = cpp_compute_layers(as.matrix(tree@data), D)
   data = qsm_layers_cpp(tree@data, D)
   data.table::setDT(data)
-
-  toc(ti)
   return(data[])
 }
 
@@ -32,7 +30,7 @@ qsm_clusters = function(data, cl_dist)
 {
   iter <- cluster <- radius <- X <- Y <- Z <- NULL
 
-  cat("Clustering layers...")  ; ti = tic()
+  logger("Clustering layers")
 
   first = TRUE
   for (i in sort(unique(data$iter)))
@@ -104,14 +102,12 @@ qsm_clusters = function(data, cl_dist)
     rgl::points3d(data$X, data$Y, data$Z, col = col)
   }
 
-  toc(ti)
-
   return(data[])
 }
 
 qsm_nodes = function(data, max_d)
 {
-  cat("Building nodes...")  ; ti = tic()
+  logger("Building nodes")
   skel = cpp_build_skeleton(data, max_d)
   data.table::setDT(skel)
 
@@ -120,12 +116,6 @@ qsm_nodes = function(data, max_d)
     x = plot(tree, bg = "white")
     plot_qsm(skel, add = x)
   }
-
-  # segments length
-  #skel = qsm_length(skel)
-  #skel = skel[skel$length > 0,]
-
-  toc(ti)
 
   return(skel)
 }

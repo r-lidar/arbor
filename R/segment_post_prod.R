@@ -9,46 +9,57 @@
 #'
 #' @param las LAS object from lidR with semantic and instance segmentation
 #' @export
-fix_small_isolated_low_clusters = function(las)
+fix_small_isolated_low_clusters <- function(las)
 {
-  treeID <- clusterID <- foliage <- hag <- NULL
-
-  las@data$pointID = 1:lidR::npoints(las)
-  sub = lidR::filter_poi(las, foliage == FALSE, hag < 3)
-
-  tree_ids = unique(las$treeID)
-  n_trees = length(tree_ids)
-  pb = utils::txtProgressBar(min = 0, max = n_trees, style = 3)  # create progress bar
-
-  for (i in seq_along(tree_ids))
+  if (!interactive())
   {
-    id = tree_ids[i]
-
-    tt = lidR::filter_poi(sub, treeID == id)
-    if (!lidR::is.empty(tt))
-    {
-      tt$Z = tt$Z * 0.1
-      tt = connected_components(tt, 0.05, 200)
-      tt$Z = tt$Z * 10
-
-      n = length(unique(tt$clusterID))
-      if (n > 1)
-      {
-        ids = table(tt$clusterID)
-        ids = as.numeric(names(ids[which.max(ids)]))
-        pid = tt$pointID[tt$clusterID != ids]
-        las$foliage[pid] = TRUE
-      }
-    }
-
-    utils::setTxtProgressBar(pb, i)  # update progress bar
+    options(progressr.enable = TRUE)
   }
 
-  close(pb)  # close progress bar
-  las@data$pointID = NULL
+  treeID <- clusterID <- foliage <- hag <- NULL
 
+  las@data$pointID <- 1:lidR::npoints(las)
+  sub <- lidR::filter_poi(las, foliage == FALSE, hag < 3)
+
+  tree_ids <- unique(las$treeID)
+  n_trees <- length(tree_ids)
+
+  progressr::handlers(
+    progressr::handler_progress(
+      format = ":spin :current/:total [:bar] :percent in :elapsed ETA: :eta",
+      width = 50,
+      complete = "="
+    ))
+
+    progressr::with_progress(
+    {
+      p <- progressr::progressor(steps = n_trees)
+
+      for (id in tree_ids)
+      {
+        tt <- lidR::filter_poi(sub, treeID == id)
+        if (!lidR::is.empty(tt)) {
+          tt$Z <- tt$Z * 0.1
+          tt <- connected_components(tt, 0.05, 200)
+          tt$Z <- tt$Z * 10
+
+          n <- length(unique(tt$clusterID))
+          if (n > 1) {
+            ids <- table(tt$clusterID)
+            ids <- as.numeric(names(ids[which.max(ids)]))
+            pid <- tt$pointID[tt$clusterID != ids]
+            las$foliage[pid] <- TRUE
+          }
+        }
+
+        p()  # update progress
+      }
+    })
+
+  las@data$pointID <- NULL
   return(las)
 }
+
 
 #' Remove Small Trees and Clean Understory
 #'

@@ -69,7 +69,7 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
 
 clean_tree_butt = function(tree)
 {
-  cat("Cleaning tree butt...") ; ti = tic()
+  logger("Cleaning tree butt")
 
   tree@data$pointID <- 1:lidR::npoints(tree)
   bottom <- tree[tree$Z < min(tree$Z) + 0.25]
@@ -77,15 +77,13 @@ clean_tree_butt = function(tree)
 
   if (length(unique(bottom$clusterID)) > 1)
   {
-    cat("\n\033[33m  Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.\033[0m\n")
+    logger("Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.", level = "WARN")
 
     t <- table(bottom$clusterID)
     i <- as.numeric(names(which.max(t)))
     r <- bottom$pointID[bottom$clusterID != i]
     tree <- tree[-r]
   }
-
-  toc(ti)
 
   return(tree)
 }

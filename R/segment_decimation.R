@@ -10,10 +10,11 @@
 #' @export
 barycentric_predecimation = function(las, params = default_arbor_parameters)
 {
+  logger(sprintf("Barycentric predecimation"))
   res <- params$decimation$barycentric_predecimation_resolution
   keep <- C_homogeneization(las@data, res, hybrid = FALSE)
   las@data$decimated <- keep
-  cat("Final retention ", sum(keep), " points (", round(sum(keep)/length(keep)*100, 1), "%)\n", sep = "")
+  logger(sprintf("Retention %d points (%.1f%%)", sum(keep), sum(keep) / length(keep) * 100))
   free(keep)
   return(las)
 }
@@ -37,10 +38,11 @@ barycentric_decimation = function(las, res)
 #' @export
 hybrid_homogeneization = function(las, res = 0.02)
 {
+  logger(sprintf("Hybrid homogeneization"))
   decimated <- TRUE
   keep <- C_homogeneization(las@data, res)
   las = las[keep]
-  cat("Final retention ", sum(keep), " points (", round(sum(keep)/length(keep)*100, 1), "%)\n", sep = "")
+  logger(sprintf("Retention %d points (%.1f%%)", sum(keep), sum(keep) / length(keep) * 100))
   free(keep)
   return(las)
 }

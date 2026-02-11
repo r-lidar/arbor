@@ -94,8 +94,8 @@ plot(header(las))
 
 las    <- lidR::classify_ground(las, lidR::csf(rigidness = 1, class_threshold = 0.05, cloth_resolution = 0.1), last_returns = FALSE)
 ground <- lidR::filter_poi(las, Classification == LASGROUND)
-ground <- lidR::decimate_points(ground, lowest(0.25))
-ground <- lidR::classify_noise(ground, sor(k = 10, m = 2))
+ground <- lidR::decimate_points(ground, lidR::lowest(0.25))
+ground <- lidR::classify_noise(ground, lidR::sor(k = 10, m = 2))
 ground <- lidR::remove_noise(ground)
 ground$Classification <- lidR::LASGROUND
 gc()

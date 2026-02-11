@@ -17,11 +17,12 @@
 #' @export
 wood_likelihood = function(las, params = default_arbor_parameters)
 {
+  logger("Wood likelihood start")
   t0 <- tic()
   k <- params$anistotropy$k
   anisotropy <- C_anisotropy(las@data, k, lidR::get_lidr_threads())
   las <- lidR::add_lasattribute_manual(las, anisotropy, "pwood", "wood likelyhood", "float")
   free(anisotropy)
-  toc(t0)
+  logger("Wood likelihood completed")
   return(las)
 }

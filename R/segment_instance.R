@@ -59,13 +59,15 @@
 #' @seealso \link{find_seeds}, \link{segment_semantic}
 segment_instance = function(las, seeds, params)
 {
+  logger("Instance segmentation start")
+
   # The point cloud must have hag, and foliage computed
   attributes = names(las)
   stopifnot("hag" %in% attributes)
   stopifnot("foliage" %in% attributes)
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
-  ti = tic() ; cat("Decimating the point cloud... (1/4)\n") ; t0 = tic()
+  logger("Decimating the point cloud... (1/4)")
 
   core       <- get_barycentric_predecimation(las, params)
   master     <- make_master_seed(core)
@@ -80,12 +82,12 @@ segment_instance = function(las, seeds, params)
     plot(master, add = x, pal = "white", size = 8)
   }
 
-  toc(t0) ; cat("Constructing the graph object... (Step 2/4)\n") ; t0 = tic()
+  logger("Constructing the graph object (3/4)")
 
   params <- evaluate_penalty(params)
   graph  <- build_instance_graph(core@data, seeds@data, master@data, params);
 
-  toc(t0); cat("Pathfinder... (Step 5/6)\n") ; t0 = tic()
+  logger("Pathfinder (4/6)")
 
   seeds_ids  <- (num_points):(num_points+num_trees-1)
   treeID     <- find_closest_node(graph, seeds_ids)
@@ -101,11 +103,11 @@ segment_instance = function(las, seeds, params)
     plot(seeds, add = x, pal = "red", size = 6)
   }
 
-  toc(t0); cat("Assigning tree IDs to the dense point cloud... (Step 6/6)\n") ; t0 = tic()
+  logger("Assigning tree IDs to the dense point cloud (5/6)")
 
   las <- transfer_attributes(core, las, "treeID")
 
-  toc(ti, space = "") ; gc()
+  logger("Instance segmentation completed")
 
   return(las)
 }

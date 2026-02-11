@@ -17,6 +17,8 @@
 #' @export
 segment_semantic = function(las, dtm, params = default_arbor_parameters)
 {
+  logger("Segmentic segmentation start")
+
   attributes <- names(las)
   stopifnot("pwood" %in% attributes)
   stopifnot("hag" %in% attributes)
@@ -24,7 +26,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
-  ti <- tic() ; cat("Point cloud decimation... (1/8)\n") ; t0 = tic()
+  logger("Point cloud decimation (1/8)")
 
   core   <- get_barycentric_predecimation(las, params)
   target <- barycentric_decimation(core, params$path_finder$space_res)
@@ -40,7 +42,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
     plot(master, add = x, pal = "white", size = 8)
   }
 
-  toc(t0) ; cat("Building point cloud connectivity... (2/8)\n") ; t0 = tic()
+  logger("Building point cloud connectivity (2/8)")
 
   params <- evaluate_penalty(params)
   graph  <- build_semantic_graph(core@data, target@data, gnd@data, master@data, params)
@@ -52,7 +54,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
 
-  toc(t0); cat("Pathfinder... (3/8)\n") ; t0 = tic()
+  logger("Pathfinder (3/8)")
 
   num_points <- lidR::npoints(core)
   num_target <- lidR::npoints(target)
@@ -76,7 +78,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   las@data$passage[core$pointID] <- core$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
-  toc(t0) ; cat("Assigning wood to small structure... (4/8)\n") ; t0 = tic()
+  logger("Assigning wood to small structure (4/8)")
 
   min_passage           <- params$path_finder$min_passage
   wood_assignation_k    <- params$semantic$wood_assignation_k
@@ -100,7 +102,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(skeleton_neighbors, rm, id)
 
-  toc(t0) ; cat("Filter high likeliwood... (5/8)\n") ; t0 = tic()
+  logger("Filter high likeliwood... (5/8)")
 
   z_factor <- params$path_finder$z_scale
 
@@ -136,7 +138,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   high_pwood_wood <- rep(FALSE, lidR::npoints(las))
   high_pwood_wood[nofoliage$pointID] <- TRUE
 
-  toc(t0) ; cat("Filter medium likelihood (Step 6/8)\n") ; t0 = tic()
+  logger("Filter medium likelihood (Step 6/8)")
 
   th_medium_               <- params$semantic$medium_pwood_thresold
   sor_k                    <- params$semantic$medium_pwood_sor_k
@@ -163,8 +165,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors)) # Plot for debuging
 
-  toc(t0)
-  cat("Extra wood reasignation... (7/8)\n") ; t0 = tic()
+  logger("Extra wood reasignation... (7/8)")
 
   # We look at the neighboring points of the wood.  Points close to the wood
   # are wood points too. This assigns extra wood point is the branches and remove
@@ -186,7 +187,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(nofoliage, rm, id, wood_neighbors)
 
-  toc(t0) ; cat("Extra foliage reasignation... (8/8)\n") ; t0 = tic()
+  logger("Extra foliage reasignation... (8/8)")
 
   foliage <- lidR::filter_poi(las, foliage == 1)
   if (FALSE) plot_likelihood(foliage)
@@ -195,8 +196,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(high_ani)
 
-  toc(t0)
-  toc(ti, space = "")
+  logger("Semantic segmentation completed")
   gc()
 
   return(las)

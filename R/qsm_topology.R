@@ -1,6 +1,6 @@
 qsm_topology = function(skeleton)
 {
-  cat("Computing qsm topology...")  ; ti = tic()
+  logger("Computing qsm topology")
 
   skeleton$cyl_ID = 1:nrow(skeleton)
   skeleton$parent_ID = 0
@@ -28,8 +28,6 @@ qsm_topology = function(skeleton)
   }
 
   data.table::setDT(skeleton)
-
-  toc(ti)
 
   return(skeleton)
 }
