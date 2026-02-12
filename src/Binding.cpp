@@ -29,14 +29,8 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1)
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity)
 {
-  Rcpp::NumericVector X = df["X"];
-  Rcpp::NumericVector Y = df["Y"];
-  Rcpp::NumericVector Z = df["Z"];
-  const double* x = X.begin();
-  const double* y = Y.begin();
-  const double* z = Z.begin();
-  int n = X.size();
-  Grid3D grid(x, y, z, n, res);
+  PointCloud pc(df);
+  Grid3D grid(pc, res);
   return Rcpp::wrap(grid.connected_components(connectivity));
 }
 

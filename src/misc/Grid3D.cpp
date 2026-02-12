@@ -5,14 +5,11 @@
 #include <algorithm>
 #include <stdexcept>
 
-Grid3D::Grid3D(const double* x, const double* y, const double* z, int n, double res)
+Grid3D::Grid3D(const PointCloud& pc, double res) : pc(pc)
 {
-  X = x;
-  Y = y;
-  Z = z;
-  npoints = n;
+  npoints = pc.size();
 
-  if (n <= 0)
+  if (npoints <= 0)
   {
     xmin = xmax = ymin = ymax = zmin = zmax = 0.0;
     ncols = nrows = nlayers = 0;
@@ -20,18 +17,18 @@ Grid3D::Grid3D(const double* x, const double* y, const double* z, int n, double 
     return;
   }
 
-  xmin = xmax = x[0];
-  ymin = ymax = y[0];
-  zmin = zmax = z[0];
+  xmin = xmax = pc.get_x(0);
+  ymin = ymax = pc.get_y(0);
+  zmin = zmax = pc.get_z(0);
 
-  for (int i = 1; i < n; ++i)
+  for (int i = 1; i < npoints; ++i)
   {
-    xmin = std::min(xmin, x[i]);
-    xmax = std::max(xmax, x[i]);
-    ymin = std::min(ymin, y[i]);
-    ymax = std::max(ymax, y[i]);
-    zmin = std::min(zmin, z[i]);
-    zmax = std::max(zmax, z[i]);
+    xmin = std::min(xmin, pc.get_x(i));
+    xmax = std::max(xmax, pc.get_x(i));
+    ymin = std::min(ymin, pc.get_y(i));
+    ymax = std::max(ymax, pc.get_y(i));
+    zmin = std::min(zmin, pc.get_z(i));
+    zmax = std::max(zmax, pc.get_z(i));
   }
 
   double inv_res = 1.0 / res;
@@ -45,7 +42,6 @@ Grid3D::Grid3D(const double* x, const double* y, const double* z, int n, double 
   nrows   = static_cast<int64_t>((ymax - ymin) * inv_yres) + 1;
   nlayers = static_cast<int64_t>((zmax - zmin) * inv_zres) + 1;
 }
-
 
 int64_t Grid3D::get_grid_index(int64_t r, int64_t c, int64_t l) const
 {
@@ -97,9 +93,9 @@ std::vector<int> Grid3D::connected_components(int connectivity)
 
   for (int i = 0; i < npoints; ++i)
   {
-    int64_t c = static_cast<int64_t>((X[i] - xmin) * inv_xres);
-    int64_t r = static_cast<int64_t>((Y[i] - ymin) * inv_yres);
-    int64_t l = static_cast<int64_t>((Z[i] - zmin) * inv_zres);
+    int64_t c = static_cast<int64_t>((pc.get_x(i) - xmin) * inv_xres);
+    int64_t r = static_cast<int64_t>((pc.get_y(i) - ymin) * inv_yres);
+    int64_t l = static_cast<int64_t>((pc.get_z(i) - zmin) * inv_zres);
 
     c = std::clamp(c, int64_t(0), ncols   - 1);
     r = std::clamp(r, int64_t(0), nrows   - 1);
