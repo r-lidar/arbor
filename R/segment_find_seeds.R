@@ -19,7 +19,7 @@ find_seeds <- function(las, params)
   stopifnot("foliage" %in% attributes)
 
   # The heights at which we slice
-  # Extract some slices of wood (thickness 3cm)
+  # ( we extract some slices of wood (thickness 3cm))
   thick  <- params$seed$slice_thickness
   heights <- c(min(las$hag)+thick, params$seed$slice_at)
 
@@ -38,16 +38,10 @@ find_seeds <- function(las, params)
 
   logger("Slicing the point cloud")
 
+  # Extract slices of wood low
   slices <- slice_poi(las, heights, thick)
   wood   <- lidR::filter_poi(slices, foliage == 0)
-
-  # wood can be noisy we need to clean noise.
-  #sor_k     <- params$seed$sor_k
-  #sor_m     <- params$seed$sor_m
-  #wood      <- lidR::classify_noise(wood, lidR::sor(k = sor_k, m = sor_m)) # very very aggressive sor
-  #wood      <- lidR::remove_noise(wood)
   wood@data <- wood@data[, .(X,Y,Z, passage, hag)]
-
   if (FALSE)
   {
     x = plot(wood)
@@ -396,7 +390,8 @@ generate_group_points <- function(df_group, step_z = 0.05)
 }
 
 # --- Wrapper for all groups ---
-generate_all_groups <- function(df, step_z = 0.05) {
+generate_all_groups <- function(df, step_z = 0.05)
+{
   groups <- unique(df$group_id)
   res_disks <- list()
   res_centers <- list()
