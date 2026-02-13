@@ -11,7 +11,6 @@ default_parameters_v1 = list(
     space_res = 0.2,
     max_gap = 0.2,
     min_passage = 3,
-    z_scale = 1.0,
     distance_power = 3,
     angle_penalty = function(x) { y = exp(0.046051*x); ifelse(x > 100, 100, y) }
   ),

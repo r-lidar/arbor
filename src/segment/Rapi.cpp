@@ -33,8 +33,7 @@
 #include <algorithm>
 
 #include "myomp.h"
-#include "GraphBuilder.h"
-#include "Graph.h"
+#include "segmentation_api.h"
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;
@@ -50,103 +49,54 @@ inline void assert_exists(const Rcpp::List& p, const char* name)
   }
 }
 
-// ---------------------------------------------------------
-// R wrappers
-// ---------------------------------------------------------
-
-SEXP build_semantic_graph(DF dec, DF target, DF gnd, DF master_seed, Rcpp::List params)
+// Helper function to extract parameters from R list
+GraphBuilderParams extract_params(Rcpp::List params)
 {
-  // Extract parameters
-  assert_exists(params, "path_finder");
-  Rcpp::List p = params["path_finder"];
-  assert_exists(p, "k_neighborhood_connectivity");
-  assert_exists(p, "max_gap");
-  assert_exists(p, "z_scale");
-  assert_exists(p, "penalty");
-
-  int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
-  double max_gap = Rcpp::as<double>(p["max_gap"]);
-  double z_scale = Rcpp::as<double>(p["z_scale"]);
-  std::vector<float> penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
-
-  GraphBuilder builder;
-  builder.k = k;
-  builder.max_gap = max_gap;
-  builder.set_angle_penalty(penalty);
-
-  PointCloud core(dec);
-  PointCloud targets(target);
-  PointCloud ground(gnd);
-  PointCloud master(master_seed);
-
-  core.scale(1,1, z_scale);
-  targets.scale(1,1, z_scale);
-  ground.scale(1,1, z_scale);
-
-  builder.add_core_layer(core);
-  builder.add_target_layer(core, targets);
-  builder.add_seed_layer(core, ground);
-  builder.add_master_seed_layer(ground, master);
-
-  // Unscale because scaled by reference
-  core.scale(1,1, 1/z_scale);
-  targets.scale(1,1, 1/z_scale);
-  ground.scale(1,1, 1/z_scale);
-
-  GraphPtr ptr(builder.get_graph(), true);
-  return ptr;
-}
-
-SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
-{
-  // We are expecting a column foliage
-  if (!dec.containsElementNamed("foliage")) Rcpp::stop("No wood/foliage segmentation found");
-  Rcpp::IntegerVector foliage = dec["foliage"];
-
-  // Extract parameters
   assert_exists(params, "path_finder");
   Rcpp::List p = params["path_finder"];
   assert_exists(p, "k_neighborhood_connectivity");
   assert_exists(p, "k_seed_connectivity");
   assert_exists(p, "max_gap");
-  assert_exists(p, "z_scale");
   assert_exists(p, "penalty");
   assert_exists(p, "distance_power");
 
-  int k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
-  int k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
-  double max_gap = Rcpp::as<double>(p["max_gap"]);
-  double z_scale = Rcpp::as<double>(p["z_scale"]);
-  double power = Rcpp::as<double>(p["distance_power"]);
-  std::vector<float> penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
+  GraphBuilderParams gparams;
+  gparams.k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
+  gparams.k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
+  gparams.max_gap = Rcpp::as<double>(p["max_gap"]);
+  gparams.power = Rcpp::as<double>(p["distance_power"]);
+  gparams.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
-  // Convert foliage column to vector<bool>
-  std::vector<bool> wood; wood.reserve(foliage.size());
-  for (int i = 0; i < foliage.size(); ++i) wood.push_back(foliage[i] == 0);
+  return gparams;
+}
 
-  GraphBuilder builder;
-  builder.k = k;
-  builder.k_seed = k_seed;
-  builder.power = power;
-  builder.max_gap = max_gap;
-  builder.set_wood(wood);
-  builder.set_angle_penalty(penalty);
+SEXP build_semantic_graph(DF dec, DF targets, DF gnd, DF master_seed, Rcpp::List params)
+{
+  GraphBuilderParams gparams = extract_params(params);
+
+  PointCloud core(dec);
+  PointCloud trgt(targets);
+  PointCloud ground(gnd);
+  PointCloud master(master_seed);
+
+  Graph* graph = build_semantic_graph(core, trgt, ground, master, gparams);
+  GraphPtr ptr(graph, true);
+  return ptr;
+}
+
+SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
+{
+  GraphBuilderParams gparams = extract_params(params);
 
   PointCloud core(dec);
   PointCloud seeds(seed);
   PointCloud master(master_seed);
 
-  core.scale(1,1, z_scale);
-  seeds.scale(1,1, z_scale);
+  Graph* graph = build_instance_graph(core, seeds, master, gparams);
 
-  builder.add_core_layer(core);
-  builder.add_seed_layer(core, seeds);
-  builder.add_master_seed_layer(seeds, master);
-
-  GraphPtr ptr(builder.get_graph(), true);
+  GraphPtr ptr(graph, true);
   return ptr;
 }
-
 
 /*
  *  For a start_node (expected master seed id) and a set of target nodes.

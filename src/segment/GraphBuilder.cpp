@@ -12,11 +12,33 @@ using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<
 // Constructor / Destructor
 // --------------------------------------------------------
 
-GraphBuilder::GraphBuilder() { graph = new Graph(); }
+GraphBuilder::GraphBuilder(const GraphBuilderParams& p)
+{
+  set_angle_penalty(p.angle_penalty);
+  params = p;
+  graph = new Graph();
+}
+
 GraphBuilder::~GraphBuilder() { if (graph_owner) delete graph; }
 Graph* GraphBuilder::get_graph() { graph_owner = false; return graph; }
 void GraphBuilder::set_wood(const std::vector<bool>& x) { wood = x; }
-void GraphBuilder::set_angle_penalty(const std::vector<float>& x) { angle_penalty = x; }
+void GraphBuilder::set_angle_penalty(const std::vector<float>& x)
+{
+  constexpr std::size_t expected_size = 181;
+
+  if (x.size() != expected_size)
+  {
+    throw std::runtime_error(
+        "Invalid angle penalty factor vector size: expected " +
+          std::to_string(expected_size) +
+          ", got " +
+          std::to_string(x.size()) + "."
+    );
+  }
+
+  params.angle_penalty = x;
+}
+
 
 // ---------------------------------------------------------
 // 1. Core Layer (bidirectional)
@@ -28,10 +50,10 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   if (total_target_nodes > 0) throw std::runtime_error("Core layer must be populated first");
   if (total_seed_nodes > 0)   throw std::runtime_error("Core layer must be populated first");
   if (total_master_nodes > 0) throw std::runtime_error("Core layer must be populated first");
-  if (angle_penalty.size() != 181) throw std::runtime_error("Invalid angle penalty factor vector");
+
 
   // Because self point is included in knn
-  k++;
+  params.k++;
 
   int n_points = dec.point_count();
   bool use_wood = wood.size() > 0;
@@ -51,8 +73,8 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
 
   #pragma omp parallel
   {
-    std::vector<size_t> idx(k);
-    std::vector<double> dist(k);
+    std::vector<size_t> idx(params.k);
+    std::vector<double> dist(params.k);
 
     // Thread-local storage for edges
     std::vector<std::tuple<NodeId, NodeId, Cost>> local_edges;
@@ -62,20 +84,20 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
     for (int from = 0; from < n_points; ++from)
     {
       // Get the knn
-      nanoflann::KNNResultSet<double> result(k);
+      nanoflann::KNNResultSet<double> result(params.k);
       result.init(&idx[0], &dist[0]);
       double q[3];
       dec.get_point(from, q);
       index.findNeighbors(result, q, nanoflann::SearchParameters());
 
       // For each knn, compute the cost to connect 'from' and 'to'
-      for (int j = 0; j < k; ++j)
+      for (int j = 0; j < params.k; ++j)
       {
         int to = idx[j];                 // This is our target index
         if (to == from) continue;        // If 'from' == 'to', skip because this is the 0-nn
         float cost = std::sqrt(dist[j]); // The cost is the euclidean distance
-        if (cost > max_gap) continue;    // If the cost is above a threshold; no connection
-        cost = std::pow(cost, power);    // The cost is the cube of the eucliandian distance
+        if (cost > params.max_gap) continue;    // If the cost is above a threshold; no connection
+        cost = std::pow(cost, params.power);    // The cost is the cube of the eucliandian distance
 
         double coord_from[3];
         double coord_to[3];
@@ -90,19 +112,19 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
         float magnitude = std::sqrt(dx*dx + dy*dy + dz*dz);
         if (magnitude < 1e-12) continue;
         float cos_theta = -dz / magnitude;
-        if (downward) cos_theta = -cos_theta;
+        if (params.downward) cos_theta = -cos_theta;
         float angle_deg = std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI;
         int angle = std::round(angle_deg);
-        cost *= angle_penalty[angle_deg];
+        cost *= params.angle_penalty[angle_deg];
 
         // If we have a wood/foliage classification we apply extra cost factors
         if (use_wood)
         {
           bool is_wood1 = wood[from];
           bool is_wood2 = wood[to];
-          if (is_wood1 && is_wood2) cost *= wood2wood;
-          else if (!is_wood1 && !is_wood2) cost *= leaf2leaf;
-          else if (is_wood1 && !is_wood2) cost *= wood2leaf;
+          if (is_wood1 && is_wood2) cost *= params.wood2wood;
+          else if (!is_wood1 && !is_wood2) cost *= params.leaf2leaf;
+          else if (is_wood1 && !is_wood2) cost *= params.wood2leaf;
         }
 
         // Add an edge per thread
@@ -144,8 +166,8 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
   KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
-  std::vector<size_t> idx(k);
-  std::vector<double> dist(k);
+  std::vector<size_t> idx(params.k);
+  std::vector<double> dist(params.k);
 
   // For each target point, search the closest core point. The connection is
   // core point to target point
@@ -153,7 +175,7 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
   {
     double q[3];
     target.get_point(i, q);
-    nanoflann::KNNResultSet<double> result(k);
+    nanoflann::KNNResultSet<double> result(params.k);
     result.init(&idx[0], &dist[0]);
     index.findNeighbors(result, q, nanoflann::SearchParameters());
 
@@ -176,7 +198,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
   if (total_core_nodes == 0)   throw std::runtime_error("Seed layer must be populated after core layer");
   if (total_master_nodes > 0)  throw std::runtime_error("Seed layer must be populated before master layer");
 
-  int k = this->k_seed;
+  int k = params.k_seed;
   int n_points = seeds.point_count();
 
   offset_seeds = total_nodes;
@@ -202,7 +224,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
     for (int j = 0; j < k; ++j)
     {
       float cost = std::sqrt(dist[j]);
-      cost = std::pow(cost, power);    // The cost is the cube of the eucliandian distance
+      cost = std::pow(cost, params.power);    // The cost is the cube of the eucliandian distance
       int from = i + offset_seeds;
       int to = idx[j];
       graph->add_edge(from, to, cost);
