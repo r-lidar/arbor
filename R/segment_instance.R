@@ -69,7 +69,8 @@ segment_instance = function(las, seeds, params)
 
   logger("Decimating the point cloud... (1/4)")
 
-  core       <- get_barycentric_predecimation(las, params)
+  res        <- params$decimation$barycentric_predecimation_resolution
+  core       <- hybrid_homogeneization(las, res)
   master     <- make_master_seed(core)
   num_points <- lidR::npoints(core)
   num_trees  <- nrow(seeds)
@@ -82,12 +83,12 @@ segment_instance = function(las, seeds, params)
     plot(master, add = x, pal = "white", size = 8)
   }
 
-  logger("Constructing the graph object (3/4)")
+  logger("Constructing the graph object (2/4)")
 
   params <- evaluate_penalty(params)
   graph  <- build_instance_graph(core@data, seeds@data, master@data, params);
 
-  logger("Pathfinder (4/6)")
+  logger("Pathfinder (3/4)")
 
   seeds_ids  <- (num_points):(num_points+num_trees-1)
   treeID     <- find_closest_node(graph, seeds_ids)
@@ -95,7 +96,7 @@ segment_instance = function(las, seeds, params)
   trueTreeID <- treeID[1:lidR::npoints(core)]
   trueTreeID <- trueTreeID - min(seeds_ids) + 1
   ID         <- seeds$treeID[trueTreeID]
-  core      <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
+  core       <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
 
   if (FALSE)
   {
@@ -103,7 +104,7 @@ segment_instance = function(las, seeds, params)
     plot(seeds, add = x, pal = "red", size = 6)
   }
 
-  logger("Assigning tree IDs to the dense point cloud (5/6)")
+  logger("Assigning tree IDs to the dense point cloud (4/4)")
 
   las <- transfer_attributes(core, las, "treeID")
 

@@ -28,7 +28,8 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   logger("Point cloud decimation (1/8)")
 
-  core   <- get_barycentric_predecimation(las, params)
+  res    <- params$decimation$barycentric_predecimation_resolution
+  core   <- hybrid_homogeneization(las, res)
   target <- barycentric_decimation(core, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
   master <- make_master_seed(gnd)
