@@ -53,7 +53,7 @@ void QSM::write_ply(const std::string& filename, bool binary) const
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
 
-  build_mesh(vertices, faces);
+  tmesh(vertices, faces);
 
   if (binary)
   {
@@ -120,7 +120,7 @@ void QSM::write_obj(const std::string& filename) const
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
 
-  build_mesh(vertices, faces);
+  tmesh(vertices, faces);
 
   std::ofstream out(filename);
   if (!out.is_open()) throw std::runtime_error("Cannot open OBJ file.");
@@ -138,7 +138,7 @@ void QSM::write_stl(const std::string& filename, bool binary) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
-  build_mesh(vertices, faces);
+  tmesh(vertices, faces);
 
   // Determine offset from cylinder with cyl_ID == 1
   // because STL is float only and does not support geographic coordinates

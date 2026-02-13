@@ -144,6 +144,58 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius)
   return ans;
 }
 
+Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution)
+{
+  QSM qsm = as_qsm(df);
+
+  std::vector<std::array<double, 3>> verts_vec;
+  std::vector<std::array<int, 3>> faces_vec;
+  qsm.tmesh(verts_vec, faces_vec, resolution);
+
+  Rcpp::NumericMatrix vertices(3, verts_vec.size());
+  for (size_t i = 0; i < verts_vec.size(); ++i) {
+    vertices(0, i) = verts_vec[i][0];
+    vertices(1, i) = verts_vec[i][1];
+    vertices(2, i) = verts_vec[i][2];
+  }
+
+  Rcpp::IntegerMatrix indices(3, faces_vec.size());
+  for (size_t i = 0; i < faces_vec.size(); ++i) {
+    indices(0, i) = faces_vec[i][0] + 1;
+    indices(1, i) = faces_vec[i][1] + 1;
+    indices(2, i) = faces_vec[i][2] + 1;
+  }
+
+  return Rcpp::List::create(Rcpp::Named("vertices") = vertices,  Rcpp::Named("indices")  = indices);
+}
+
+Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution)
+{
+  QSM qsm = as_qsm(df);
+
+  std::vector<std::array<double, 3>> verts_vec;
+  std::vector<std::array<int, 4>> faces_vec;
+  qsm.qmesh(verts_vec, faces_vec, resolution);
+
+  Rcpp::NumericMatrix vertices(3, verts_vec.size());
+  for (size_t i = 0; i < verts_vec.size(); ++i) {
+    vertices(0, i) = verts_vec[i][0];
+    vertices(1, i) = verts_vec[i][1];
+    vertices(2, i) = verts_vec[i][2];
+  }
+
+  Rcpp::IntegerMatrix indices(4, faces_vec.size());
+  for (size_t i = 0; i < faces_vec.size(); ++i) {
+    indices(0, i) = faces_vec[i][0] + 1;
+    indices(1, i) = faces_vec[i][1] + 1;
+    indices(2, i) = faces_vec[i][2] + 1;
+    indices(3, i) = faces_vec[i][3] + 1;
+  }
+
+  return Rcpp::List::create(Rcpp::Named("vertices") = vertices,  Rcpp::Named("indices")  = indices);
+}
+
+
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary)
 {
   QSF qsf = as_qsf(x);

@@ -100,6 +100,12 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
+
 // ========================
 // QSF
 // ========================

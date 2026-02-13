@@ -247,6 +247,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_tmesh_cpp
+Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution);
+RcppExport SEXP _arbor_qsm_tmesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< int >::type resolution(resolutionSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_tmesh_cpp(df, resolution));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_qmesh_cpp
+Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
+RcppExport SEXP _arbor_qsm_qmesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< int >::type resolution(resolutionSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_qmesh_cpp(df, resolution));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsf_write_cpp
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
 RcppExport SEXP _arbor_qsf_write_cpp(SEXP xSEXP, SEXP dirSEXP, SEXP formatSEXP, SEXP binarySEXP) {
@@ -318,6 +340,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {"_arbor_qsm_reconstruction_cpp", (DL_FUNC) &_arbor_qsm_reconstruction_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
+    {"_arbor_qsm_tmesh_cpp", (DL_FUNC) &_arbor_qsm_tmesh_cpp, 2},
+    {"_arbor_qsm_qmesh_cpp", (DL_FUNC) &_arbor_qsm_qmesh_cpp, 2},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
