@@ -104,7 +104,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   logger("Filter high likeliwood... (5/8)")
 
-  z_factor <- params$path_finder$z_scale
+  z_factor <- 1
 
   # Remove foliage based on high likelihood only. High anistropy = wood
 

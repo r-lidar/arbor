@@ -12,7 +12,7 @@ barycentric_predecimation = function(las, params = default_arbor_parameters)
 {
   logger(sprintf("Barycentric predecimation"))
   res <- params$decimation$barycentric_predecimation_resolution
-  keep <- C_homogeneization(las@data, res, hybrid = FALSE)
+  keep <- C_homogeneization(las@data, res, hybrid = TRUE)
   las@data$decimated <- keep
   logger(sprintf("Retention %d points (%.1f%%)", sum(keep), sum(keep) / length(keep) * 100))
   free(keep)
