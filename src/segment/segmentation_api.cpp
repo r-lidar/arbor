@@ -1,6 +1,6 @@
 #include "GraphBuilder.h"
 
-Graph* build_semantic_graph(PointCloud& core, PointCloud& targets, PointCloud& ground, PointCloud& master_seed, const GraphBuilderParams& params)
+Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const PointCloud& master_seed, const GraphBuilderParams& params)
 {
   GraphBuilder builder(params);
 
@@ -12,10 +12,10 @@ Graph* build_semantic_graph(PointCloud& core, PointCloud& targets, PointCloud& g
   return builder.get_graph();
 }
 
-Graph* build_instance_graph(PointCloud& core, PointCloud& seeds, PointCloud& master_seed, const GraphBuilderParams& params)
+Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const PointCloud& master_seed, const GraphBuilderParams& params)
 {
   std::vector<bool> wood; wood.reserve(core.size());
-  for (size_t i = 0; i < core.size(); ++i) wood.push_back(core.get_foliage(i) == 0);
+  for (size_t i = 0; i < core.size(); ++i) wood.push_back(core.is_wood(i));
 
   GraphBuilder builder(params);
   builder.set_wood(wood);

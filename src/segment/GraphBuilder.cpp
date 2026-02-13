@@ -1,5 +1,6 @@
 #include "GraphBuilder.h"
 #include "nanoflann.h"
+#include "Adaptor.h"
 #include "myomp.h"
 
 #include <vector>

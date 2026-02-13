@@ -9,7 +9,7 @@
 #endif
 
 // ============================================================================
-// Virtual base class defining the required interface for all adaptors
+// Virtual base class defining the required interface for all point clouds
 // ============================================================================
 
 class PointCloudAdaptorBase
@@ -42,20 +42,10 @@ public:
   virtual bool has_woodlikelihood() const { return false; }
   virtual bool has_foliage() const { return false; }
 
-  virtual int get_treeid(const size_t idx) const
-  {
-    throw std::runtime_error("Tree ID data not available in this point cloud");
-  }
-
-  virtual double get_woodlikelihood(const size_t idx) const
-  {
-    throw std::runtime_error("Wood likelihood data not available in this point cloud");
-  }
-
-  virtual int get_foliage(const size_t idx) const
-  {
-    throw std::runtime_error("Foliage classification not available in this point cloud");
-  }
+  virtual int get_treeid(const size_t idx) const { throw std::runtime_error("Tree ID data not available in this point cloud"); }
+  virtual double get_woodlikelihood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
+  virtual int get_foliage(const size_t idx) const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+  virtual int is_wood(const size_t idx) const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
 };
 
 // ============================================================================
@@ -158,6 +148,11 @@ public:
   {
     if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
     return foliage[idx];
+  }
+
+  inline int is_wood(const size_t idx) const override
+  {
+    return get_foliage(idx) == 0;
   }
 
   // --- In-place transforms ---
