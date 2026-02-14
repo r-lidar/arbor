@@ -32,6 +32,9 @@ public:
   virtual double get_y(const size_t idx) const = 0;
   virtual double get_z(const size_t idx) const = 0;
 
+  // --- Subset (virtual with default implementations) ----
+  virtual void subset(const std::vector<bool>& keep)  { throw std::runtime_error("This point cloud has no subset implementation"); };
+
   // --- In-place transforms (pure virtual) ---
   virtual void translate(double x, double y, double z) = 0;
   virtual void scale(double x, double y, double z) = 0;
@@ -61,16 +64,18 @@ public:
 
   // Optional attributes (nullptr if absent)
   const int*    treeid = nullptr;
-  const double* woodlikelihood = nullptr;
   const int*    foliage = nullptr;
+  const double* pwood = nullptr;
+
+  bool owns_memory = false;
 
   size_t n_points;
 
   DataFrameAdaptor(const Rcpp::DataFrame& df)
   {
     std::vector<std::string> coord_names = {"X", "Y", "Z"};
-    std::string treeid_name = "treeID";
-    std::string woodlikelihood_name = "pwood";
+    std::string treeid_name  = "treeID";
+    std::string pwood_name   = "pwood";
     std::string foliage_name = "foliage";
 
     n_points = df.rows();
@@ -92,16 +97,41 @@ public:
       treeid = col.begin();
     }
 
-    if (df.containsElementNamed(woodlikelihood_name.c_str()))
+    if (df.containsElementNamed(pwood_name.c_str()))
     {
-      Rcpp::NumericVector col = df[woodlikelihood_name];
-      woodlikelihood = col.begin();
+      Rcpp::NumericVector col = df[pwood_name];
+      pwood = col.begin();
     }
 
     if (df.containsElementNamed(foliage_name.c_str()))
     {
       Rcpp::IntegerVector col = df[foliage_name];
       foliage = col.begin();
+    }
+  }
+
+  ~DataFrameAdaptor() override
+  {
+    cleanup();
+  }
+
+  void cleanup()
+  {
+    if (owns_memory)
+    {
+      delete[] coords[0];
+      delete[] coords[1];
+      delete[] coords[2];
+      if (treeid != nullptr) delete[] treeid;
+      if (foliage != nullptr) delete[] foliage;
+      if (pwood != nullptr) delete[] pwood;
+
+      coords[0] = nullptr;
+      coords[1] = nullptr;
+      coords[2] = nullptr;
+      treeid    = nullptr;
+      foliage   = nullptr;
+      pwood     = nullptr;
     }
   }
 
@@ -129,7 +159,7 @@ public:
 
   // --- Optional attribute access ---
   inline bool has_treeid() const override { return treeid != nullptr; }
-  inline bool has_woodlikelihood() const override { return woodlikelihood != nullptr; }
+  inline bool has_woodlikelihood() const override { return pwood != nullptr; }
   inline bool has_foliage() const override { return foliage != nullptr; }
 
   inline int get_treeid(const size_t idx) const override
@@ -140,8 +170,8 @@ public:
 
   inline double get_woodlikelihood(const size_t idx) const override
   {
-    if (!woodlikelihood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    return woodlikelihood[idx];
+    if (!pwood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    return pwood[idx];
   }
 
   inline int get_foliage(const size_t idx) const override
@@ -174,6 +204,60 @@ public:
       if (y != 1.0) const_cast<double&>(coords[1][i]) *= y;
       if (z != 1.0) const_cast<double&>(coords[2][i]) *= z;
     }
+  }
+
+  void subset(const std::vector<bool>& keep) override
+  {
+    if (keep.size() != n_points)
+      throw std::runtime_error("subset mask size mismatch: expected " +  std::to_string(n_points) + " but got " + std::to_string(keep.size()));
+
+    // Count how many points to keep
+    size_t new_count = std::count(keep.begin(), keep.end(), true);
+
+    if (new_count == n_points) return;
+
+    // Allocate new storage for coordinates
+    double* new_coords[3];
+    for (size_t d = 0; d < 3; ++d) new_coords[d] = new double[new_count];
+
+    // Allocate new storage for optional attributes if present
+    int* new_treeid = nullptr;
+    int* new_foliage = nullptr;
+    double* new_pwood = nullptr;
+
+    if (treeid != nullptr)  new_treeid = new int[new_count];
+    if (foliage != nullptr) new_foliage = new int[new_count];
+    if (pwood != nullptr)   new_pwood = new double[new_count];
+
+    // Copy data for points that are kept
+    size_t j = 0;
+    for (size_t i = 0; i < n_points; ++i)
+    {
+      if (keep[i])
+      {
+        new_coords[0][j] = coords[0][i];
+        new_coords[1][j] = coords[1][i];
+        new_coords[2][j] = coords[2][i];
+        if (treeid != nullptr)  new_treeid[j] = treeid[i];
+        if (foliage != nullptr) new_foliage[j] = foliage[i];
+        if (pwood != nullptr)   new_pwood[j] = pwood[i];
+        j++;
+      }
+    }
+
+    if (owns_memory) cleanup();
+    owns_memory = true;
+
+    // Update pointers to new data
+    coords[0] = new_coords[0];
+    coords[1] = new_coords[1];
+    coords[2] = new_coords[2];
+    treeid  = new_treeid;
+    pwood   = new_pwood;
+    foliage = new_foliage;
+
+    // Update point count
+    n_points = new_count;
   }
 };
 #endif
@@ -308,7 +392,7 @@ public:
     return points[idx].id;
   }
 
-  // Optional attributes woodlikelihood and foliage use default implementations (not available)
+  // Optional attributes pwood and foliage use default implementations (not available)
 };
 
 
