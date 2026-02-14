@@ -53,7 +53,7 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
 
 std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1)
 {
-  const int n = adaptor.n_points;
+  const int n = adaptor.size();
 
   std::vector<float> out(n);
 

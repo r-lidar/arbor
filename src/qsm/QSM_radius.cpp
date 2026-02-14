@@ -5,8 +5,8 @@
 #include <algorithm>
 
 #include "QSM.h"
-#include "nanoflann/Adaptor.h"
-#include "nanoflann/nanoflann.h"
+#include "Adaptor.h"
+#include "nanoflann.h"
 #include "ransac.h"
 
 using PointCloud = DataFrameAdaptor;

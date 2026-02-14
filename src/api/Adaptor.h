@@ -32,9 +32,6 @@ public:
   virtual double get_y(const size_t idx) const = 0;
   virtual double get_z(const size_t idx) const = 0;
 
-  // --- Subset (virtual with default implementations) ----
-  virtual void subset(const std::vector<bool>& keep)  { throw std::runtime_error("This point cloud has no subset implementation"); };
-
   // --- In-place transforms (pure virtual) ---
   virtual void translate(double x, double y, double z) = 0;
   virtual void scale(double x, double y, double z) = 0;
@@ -59,20 +56,10 @@ public:
 class DataFrameAdaptor : public PointCloudAdaptorBase
 {
 public:
-  // Mandatory coordinates
-  const double* coords[3];
-
-  // Optional attributes (nullptr if absent)
-  const int*    treeid = nullptr;
-  const int*    foliage = nullptr;
-  const double* pwood = nullptr;
-
-  bool owns_memory = false;
-
-  size_t n_points;
-
   DataFrameAdaptor(const Rcpp::DataFrame& df)
   {
+    owns_memory = false;
+
     std::vector<std::string> coord_names = {"X", "Y", "Z"};
     std::string treeid_name  = "treeID";
     std::string pwood_name   = "pwood";
@@ -206,28 +193,28 @@ public:
     }
   }
 
-  void subset(const std::vector<bool>& keep) override
+  DataFrameAdaptor subset(const std::vector<bool>& keep, bool xyz_only = false) const
   {
     if (keep.size() != n_points)
-      throw std::runtime_error("subset mask size mismatch: expected " +  std::to_string(n_points) + " but got " + std::to_string(keep.size()));
+      throw std::runtime_error("subset mask size mismatch: expected " + std::to_string(n_points) + " but got " + std::to_string(keep.size()));
 
     // Count how many points to keep
     size_t new_count = std::count(keep.begin(), keep.end(), true);
 
-    if (new_count == n_points) return;
+    // If keeping all points, return a copy
+    if (new_count == n_points) {
+      return *this; // *TODO* use copy constructor
+    }
+
+    // Create new object
+    DataFrameAdaptor result;
+    result.n_points = new_count;
+    result.owns_memory = true;
 
     // Allocate new storage for coordinates
-    double* new_coords[3];
-    for (size_t d = 0; d < 3; ++d) new_coords[d] = new double[new_count];
-
-    // Allocate new storage for optional attributes if present
-    int* new_treeid = nullptr;
-    int* new_foliage = nullptr;
-    double* new_pwood = nullptr;
-
-    if (treeid != nullptr)  new_treeid = new int[new_count];
-    if (foliage != nullptr) new_foliage = new int[new_count];
-    if (pwood != nullptr)   new_pwood = new double[new_count];
+    result.coords[0] = new double[new_count];
+    result.coords[1] = new double[new_count];
+    result.coords[2] = new double[new_count];
 
     // Copy data for points that are kept
     size_t j = 0;
@@ -235,30 +222,49 @@ public:
     {
       if (keep[i])
       {
-        new_coords[0][j] = coords[0][i];
-        new_coords[1][j] = coords[1][i];
-        new_coords[2][j] = coords[2][i];
-        if (treeid != nullptr)  new_treeid[j] = treeid[i];
-        if (foliage != nullptr) new_foliage[j] = foliage[i];
-        if (pwood != nullptr)   new_pwood[j] = pwood[i];
+        result.coords[0][j] = coords[0][i];
+        result.coords[1][j] = coords[1][i];
+        result.coords[2][j] = coords[2][i];
         j++;
       }
     }
 
-    if (owns_memory) cleanup();
-    owns_memory = true;
+    if (xyz_only) return result;
 
-    // Update pointers to new data
-    coords[0] = new_coords[0];
-    coords[1] = new_coords[1];
-    coords[2] = new_coords[2];
-    treeid  = new_treeid;
-    pwood   = new_pwood;
-    foliage = new_foliage;
+    // Allocate new storage for optional attributes if present
+    if (treeid != nullptr)  result.treeid = new int[new_count];
+    if (foliage != nullptr) result.foliage = new int[new_count];
+    if (pwood != nullptr)   result.pwood = new double[new_count];
 
-    // Update point count
-    n_points = new_count;
+    j = 0;
+    for (size_t i = 0; i < n_points; ++i)
+    {
+      if (keep[i])
+      {
+        if (treeid != nullptr)  result.treeid[j] = treeid[i];
+        if (foliage != nullptr) result.foliage[j] = foliage[i];
+        if (pwood != nullptr)   result.pwood[j] = pwood[i];
+        j++;
+      }
+    }
+
+
+    return result;
   }
+
+private:
+  double* coords[3] = {nullptr, nullptr, nullptr};
+
+  // Optional attributes (nullptr if absent)
+  int*    treeid = nullptr;
+  int*    foliage = nullptr;
+  double* pwood = nullptr;
+
+  bool owns_memory = false;
+
+  size_t n_points;
+
+  DataFrameAdaptor() = default;
 };
 #endif
 

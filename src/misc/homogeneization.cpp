@@ -7,7 +7,7 @@
 
 std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true)
 {
-  size_t n = pc.n_points;
+  size_t n = pc.size();
 
   // COMPUTE VOXEL ID FOR EACH POINT
   // ===============================

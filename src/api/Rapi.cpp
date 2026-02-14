@@ -33,7 +33,7 @@
 #include <algorithm>
 
 #include "myomp.h"
-#include "segmentation_api.h"
+#include "api.h"
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;

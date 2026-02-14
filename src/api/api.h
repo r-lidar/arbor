@@ -1,5 +1,5 @@
-#ifndef SEGMENTATION_API_H
-#define SEGMENTATION_API_H
+#ifndef API_H
+#define API_H
 
 #include "Adaptor.h"
 #include "GraphBuilder.h"
