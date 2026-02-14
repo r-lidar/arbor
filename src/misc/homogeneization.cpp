@@ -1,12 +1,12 @@
 #include <unordered_map>
 #include <vector>
 #include <random>
+#include <algorithm>
 
 #include "Adaptor.h"
 
 std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true)
 {
-
   size_t n = pc.n_points;
 
   // COMPUTE VOXEL ID FOR EACH POINT
@@ -43,74 +43,71 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid 
     id[i] = ((iz * ny) + iy) * nx + ix;
   }
 
-  // --- Deduplicate IDs ---
-  std::vector<int64_t> sorted = id;
-  std::sort(sorted.begin(), sorted.end());
-  sorted.erase(std::unique(sorted.begin(), sorted.end()), sorted.end());
+  // OPTIMIZATION 1: Use counting sort instead of std::sort for better performance
+  // when the number of unique voxels is much smaller than n
+  // BUT: Only if we expect many duplicates. Otherwise fallback to original.
+  // Let's optimize the remap step instead.
 
-  // --- Remap to dense integers using binary search ---
-  std::vector<int64_t> remapped(n);
-  for (size_t i = 0; i < n; ++i)
-  {
-    int64_t idx = std::lower_bound(sorted.begin(), sorted.end(), id[i]) - sorted.begin();
-    remapped[i] = idx;
-  }
+  // OPTIMIZATION 2: Combined sort and remap using indices
+  // Create index array to avoid multiple passes
+  std::vector<int> indices(n);
+  for (size_t i = 0; i < n; ++i) indices[i] = i;
 
-  std::swap(id, remapped);
+  // Sort indices by voxel ID (not the IDs themselves)
+  std::sort(indices.begin(), indices.end(), [&id](int a, int b) {
+    return id[a] < id[b];
+  });
 
-  // SELECT POINTS TO RETAIN
-  // (Barycentric decimation)
-  // ===============================
+  // Now points with same voxel ID are adjacent in the sorted order
+  // We can build groups AND do remapping in one pass
 
-  // Step 1: group indices by voxel ID
-  std::unordered_map<int, std::vector<int>> groups;
-  groups.reserve(n / 10);
-
-  for (int i = 0; i < n; ++i)
-  {
-    int key = (int)id[i];
-    groups[key].push_back(i);
-  }
-
-  // Step 2: result vector (initialized to FALSE)
   std::vector<bool> keep(n, false);
 
-  // Step 3: for each voxel group, find closest to mean
-  for (auto &kv : groups)
+  size_t i = 0;
+  while (i < n)
   {
-    const std::vector<int> &idx = kv.second;
-    const int m = idx.size();
+    int64_t current_voxel = id[indices[i]];
+    size_t group_start = i;
 
-    if (m == 1)
+    // Find end of this voxel group
+    while (i < n && id[indices[i]] == current_voxel) {
+      ++i;
+    }
+
+    size_t group_size = i - group_start;
+
+    if (group_size == 1)
     {
-      keep[idx[0]] = true;
+      keep[indices[group_start]] = true;
       continue;
     }
 
-    // compute mean
+    // Compute mean for this group
     double mx = 0, my = 0, mz = 0;
-    for (int j : idx)
+    for (size_t j = group_start; j < i; ++j)
     {
-      mx += pc.get_x(j);
-      my += pc.get_y(j);
-      mz += pc.get_z(j);
+      int idx = indices[j];
+      mx += pc.get_x(idx);
+      my += pc.get_y(idx);
+      mz += pc.get_z(idx);
     }
-    mx /= m;
-    my /= m;
-    mz /= m;
+    mx /= group_size;
+    my /= group_size;
+    mz /= group_size;
 
-    // find closest
+    // Find closest point to mean
     double bestDist = R_PosInf;
-    int bestIdx = idx[0];
-    for (int j : idx)
+    int bestIdx = indices[group_start];
+    for (size_t j = group_start; j < i; ++j)
     {
-      double dx = pc.get_x(j) - mx;
-      double dy = pc.get_y(j) - my;
-      double dz = pc.get_z(j) - mz;
+      int idx = indices[j];
+      double dx = pc.get_x(idx) - mx;
+      double dy = pc.get_y(idx) - my;
+      double dz = pc.get_z(idx) - mz;
       double d = dx * dx + dy * dy + dz * dz;
       if (d < bestDist) {
         bestDist = d;
-        bestIdx = j;
+        bestIdx = idx;
       }
     }
 
@@ -120,31 +117,24 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid 
   if (!hybrid) return keep;
 
   // ===============================
-  // (HYBRID DECIMATION
-  // Random reinjection of non sampled point
+  // HYBRID DECIMATION
   // ===============================
 
-  // Count TRUEs
-  n = std::count(keep.begin(), keep.end(), true);
+  size_t kept = std::count(keep.begin(), keep.end(), true);
 
-  // Collect indices where keep == false
   std::vector<size_t> rm;
-  rm.reserve(keep.size());
-  for (size_t i = 0; i < keep.size(); ++i)
+  rm.reserve(n - kept);
+  for (size_t i = 0; i < n; ++i)
   {
     if (!keep[i]) {
       rm.push_back(i);
     }
   }
 
-  // Number of indices to sample
-  size_t k = std::min(static_cast<size_t>(n * 0.1), rm.size());
+  size_t k = std::min(static_cast<size_t>(kept * 0.1), rm.size());
   if (k == 0) return keep;
 
-  // Random generator
   static std::mt19937 rng(std::random_device{}());
-
-  // Shuffle and take first k
   std::shuffle(rm.begin(), rm.end(), rng);
 
   for (size_t i = 0; i < k; ++i)
