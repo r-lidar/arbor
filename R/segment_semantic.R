@@ -32,7 +32,6 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   core   <- hybrid_homogeneization(las, res)
   target <- barycentric_decimation(core, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
-  master <- make_master_seed(gnd)
 
   # Plot for debugging
   if (FALSE)
@@ -40,13 +39,12 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
     x <- plot(core)
     plot(target, add = x, pal = "red", size = 4)
     plot(gnd, add = x, pal = "green", size = 6)
-    plot(master, add = x, pal = "white", size = 8)
   }
 
   logger("Building point cloud connectivity (2/8)")
 
   params <- evaluate_penalty(params)
-  graph  <- build_semantic_graph(core@data, target@data, gnd@data, master@data, params)
+  graph  <- build_semantic_graph(core@data, target@data, gnd@data, params)
 
   # The cost is weighted by the pwood
   #A1 <- core$pwood[point_network$from]

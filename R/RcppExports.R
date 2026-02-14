@@ -17,12 +17,12 @@ C_sor <- function(df, k, m, ncpu = 1L) {
     .Call(`_arbor_C_sor`, df, k, m, ncpu)
 }
 
-build_semantic_graph <- function(dec, target, gnd, master_seed, params) {
-    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, master_seed, params)
+build_semantic_graph <- function(dec, target, gnd, params) {
+    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, params)
 }
 
-build_instance_graph <- function(dec, seed, master_seed, params) {
-    .Call(`_arbor_build_instance_graph`, dec, seed, master_seed, params)
+build_instance_graph <- function(dec, seed, params) {
+    .Call(`_arbor_build_instance_graph`, dec, seed, params)
 }
 
 accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {

@@ -60,29 +60,27 @@ BEGIN_RCPP
 END_RCPP
 }
 // build_semantic_graph
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, Rcpp::List params);
-RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
+SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
+RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type target(targetSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, master_seed, params));
+    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, params));
     return rcpp_result_gen;
 END_RCPP
 }
 // build_instance_graph
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, Rcpp::List params);
-RcppExport SEXP _arbor_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP master_seedSEXP, SEXP paramsSEXP) {
+SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
+RcppExport SEXP _arbor_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type master_seed(master_seedSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, master_seed, params));
+    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, params));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -324,8 +322,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
     {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
-    {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 5},
-    {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 4},
+    {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 4},
+    {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
     {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},

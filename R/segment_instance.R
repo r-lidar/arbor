@@ -71,7 +71,6 @@ segment_instance = function(las, seeds, params)
 
   res        <- params$decimation$barycentric_predecimation_resolution
   core       <- hybrid_homogeneization(las, res)
-  master     <- make_master_seed(core)
   num_points <- lidR::npoints(core)
   num_trees  <- nrow(seeds)
 
@@ -80,13 +79,12 @@ segment_instance = function(las, seeds, params)
   {
     x <- plot(core)
     plot(seeds, add = x, pal = "green", size = 6)
-    plot(master, add = x, pal = "white", size = 8)
   }
 
   logger("Constructing the graph object (2/4)")
 
   params <- evaluate_penalty(params)
-  graph  <- build_instance_graph(core@data, seeds@data, master@data, params);
+  graph  <- build_instance_graph(core@data, seeds@data, params);
 
   logger("Pathfinder (3/4)")
 

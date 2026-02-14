@@ -27,7 +27,7 @@ public:
   void add_core_layer(const PointCloud& dec);
   void add_target_layer(const PointCloud& dec, const PointCloud& target);
   void add_seed_layer(const PointCloud& dec,  const PointCloud& seeds);
-  void add_master_seed_layer(const PointCloud& gnd, const PointCloud& master_seed);
+  void add_master_seed_layer();
 
   void set_wood(const std::vector<bool>& x);
 

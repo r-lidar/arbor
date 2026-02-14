@@ -70,29 +70,27 @@ GraphBuilderParams extract_params(Rcpp::List params)
   return gparams;
 }
 
-SEXP build_semantic_graph(DF dec, DF targets, DF gnd, DF master_seed, Rcpp::List params)
+SEXP build_semantic_graph(DF dec, DF targets, DF gnd, Rcpp::List params)
 {
   GraphBuilderParams gparams = extract_params(params);
 
   PointCloud core(dec);
   PointCloud trgt(targets);
   PointCloud ground(gnd);
-  PointCloud master(master_seed);
 
-  Graph* graph = build_semantic_graph(core, trgt, ground, master, gparams);
+  Graph* graph = build_semantic_graph(core, trgt, ground, gparams);
   GraphPtr ptr(graph, true);
   return ptr;
 }
 
-SEXP build_instance_graph(DF dec, DF seed, DF master_seed, Rcpp::List params)
+SEXP build_instance_graph(DF dec, DF seed, Rcpp::List params)
 {
   GraphBuilderParams gparams = extract_params(params);
 
   PointCloud core(dec);
   PointCloud seeds(seed);
-  PointCloud master(master_seed);
 
-  Graph* graph = build_instance_graph(core, seeds, master, gparams);
+  Graph* graph = build_instance_graph(core, seeds, gparams);
 
   GraphPtr ptr(graph, true);
   return ptr;

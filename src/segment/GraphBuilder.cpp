@@ -45,7 +45,7 @@ void GraphBuilder::set_angle_penalty(const std::vector<float>& x)
 // 1. Core Layer (bidirectional)
 // ---------------------------------------------------------
 
-void GraphBuilder::add_core_layer(const PointCloud& dec)
+void GraphBuilder::add_core_layer(const PointCloud& core)
 {
   if (total_core_nodes > 0)   throw std::runtime_error("Core layer already populated");
   if (total_target_nodes > 0) throw std::runtime_error("Core layer must be populated first");
@@ -56,7 +56,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   // Because self point is included in knn
   params.k++;
 
-  int n_points = dec.point_count();
+  int n_points = core.point_count();
   bool use_wood = wood.size() > 0;
 
   offset_points = 0;
@@ -66,7 +66,7 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
   graph->ensure_size(total_nodes);
 
   // Build the KD-tree index
-  KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
   // Num. threads used
@@ -88,22 +88,22 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
       nanoflann::KNNResultSet<double> result(params.k);
       result.init(&idx[0], &dist[0]);
       double q[3];
-      dec.get_point(from, q);
+      core.get_point(from, q);
       index.findNeighbors(result, q, nanoflann::SearchParameters());
 
       // For each knn, compute the cost to connect 'from' and 'to'
       for (int j = 0; j < params.k; ++j)
       {
-        int to = idx[j];                 // This is our target index
-        if (to == from) continue;        // If 'from' == 'to', skip because this is the 0-nn
-        float cost = std::sqrt(dist[j]); // The cost is the euclidean distance
+        int to = idx[j];                        // This is our target index
+        if (to == from) continue;               // If 'from' == 'to', skip because this is the 0-nn
+        float cost = std::sqrt(dist[j]);        // The cost is the euclidean distance
         if (cost > params.max_gap) continue;    // If the cost is above a threshold; no connection
         cost = std::pow(cost, params.power);    // The cost is the cube of the eucliandian distance
 
         double coord_from[3];
         double coord_to[3];
-        dec.get_point(from, coord_from);
-        dec.get_point(to, coord_to);
+        core.get_point(from, coord_from);
+        core.get_point(to, coord_to);
 
         // Apply a extra cost factor base on the direction of the link
         // Moving upward is cheap. Downward is expensive.
@@ -148,14 +148,14 @@ void GraphBuilder::add_core_layer(const PointCloud& dec)
 
 // Each target point is connected to its 1-nn core point
 
-void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& target)
+void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& target)
 {
   if (total_target_nodes > 0) throw std::runtime_error("Target layer already populated");
   if (total_core_nodes == 0)  throw std::runtime_error("Target layer must be populated after core layer");
   if (total_seed_nodes > 0)   throw std::runtime_error("Target layer must be populated before seed layer");
   if (total_master_nodes > 0) throw std::runtime_error("Target layer must be populated before master layer");
 
-  int n_points = dec.point_count();
+  int n_points = core.point_count();
   int n_target = target.point_count();
 
   offset_targets = total_nodes;
@@ -164,7 +164,7 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
 
   graph->ensure_size(total_nodes);
 
-  KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
   std::vector<size_t> idx(params.k);
@@ -193,7 +193,7 @@ void GraphBuilder::add_target_layer(const PointCloud& dec, const PointCloud& tar
 // 3. Ground or seed Layer (ground → point)
 // ---------------------------------------------------------
 
-void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds)
+void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seeds)
 {
   if (total_seed_nodes > 0)    throw std::runtime_error("Seed layer already populated");
   if (total_core_nodes == 0)   throw std::runtime_error("Seed layer must be populated after core layer");
@@ -208,7 +208,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
 
   graph->ensure_size(total_nodes);
 
-  KDTree index(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
   std::vector<size_t> idx(k);
@@ -239,13 +239,11 @@ void GraphBuilder::add_seed_layer(const PointCloud& dec, const PointCloud& seeds
 
 // A master seed is connected to all ground points with cost 0
 
-void GraphBuilder::add_master_seed_layer(const PointCloud& gnd, const PointCloud& master_seed)
+void GraphBuilder::add_master_seed_layer()
 {
   if (total_master_nodes > 0)  throw std::runtime_error("Master layer already populated");
   if (total_core_nodes == 0)   throw std::runtime_error("Master layer must be populated after core layer");
-  if (total_master_nodes > 0)  throw std::runtime_error("Seed layer must be populated before master layer");
-
-  int n_gnd = gnd.point_count();
+  if (total_seed_nodes == 0)   throw std::runtime_error("Seed layer must be populated before master layer");
 
   offset_master = total_nodes;
   total_master_nodes = 1;
@@ -253,7 +251,7 @@ void GraphBuilder::add_master_seed_layer(const PointCloud& gnd, const PointCloud
 
   graph->ensure_size(total_nodes);
 
-  for (int i = 0; i < n_gnd; ++i)
+  for (int i = 0; i < total_seed_nodes; ++i)
   {
     graph->add_edge(offset_master, offset_seeds + i, 0.0f);
   }
