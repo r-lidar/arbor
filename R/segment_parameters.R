@@ -1,13 +1,11 @@
 default_parameters_v1 = list(
-  decimation = list(
-    barycentric_predecimation_resolution = 0.05
-  ),
   anistotropy = list(
     k = 80
   ),
   path_finder = list(
     k_neighborhood_connectivity = 10,
     k_seed_connectivity = 100,
+    decimation = 0.05,
     space_res = 0.2,
     max_gap = 0.2,
     min_passage = 3,

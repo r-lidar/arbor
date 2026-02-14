@@ -6,15 +6,24 @@
 
 struct GraphBuilderParams
 {
+  bool downward = false;
   int k = 10;
   int k_seed = 100;
-  float max_gap = 1.0f;
+  float decimation = 0.05f;
+  float max_gap = 0.2f;
   float power = 3.0f;
   float wood2wood = 0.1;
   float leaf2leaf = 20;
   float wood2leaf = 100;
-  bool downward = false;
   std::vector<float> angle_penalty;
+  GraphBuilderParams(): angle_penalty(181)
+  {
+    for (int x = 0; x <= 180; ++x)
+    {
+      float y = std::exp(0.046051f * x);
+      angle_penalty[x] = (x > 100) ? 100.0f : y;
+    }
+  }
 };
 
 class GraphBuilder

@@ -17,6 +17,10 @@ C_sor <- function(df, k, m, ncpu = 1L) {
     .Call(`_arbor_C_sor`, df, k, m, ncpu)
 }
 
+segment_instance_cpp <- function(core, seeds, params) {
+    .Call(`_arbor_segment_instance_cpp`, core, seeds, params)
+}
+
 build_semantic_graph <- function(dec, target, gnd, params) {
     .Call(`_arbor_build_semantic_graph`, dec, target, gnd, params)
 }

@@ -25,7 +25,6 @@ file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm.laz" ;
 file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm_segmented.laz" ; filter = ""
 
 # Indonesia
-file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/Waykambawalk1RTK_01.las" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/Walk1area2slam_20x20plot.laz" ; filter = "-keep_random_fraction 0.3"
 file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/MasiveButtroot/Waykananbindotree_01_isolated.laz" ; filter="-keep_random_fraction 0.6"
 
@@ -60,7 +59,7 @@ file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 
 # Olivier Martim
 file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_Cacao.laz" ; filter = "-keep_random_fraction 0.4"
-file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_2021_FTH_1.laz" ; filter = "-keep_random_fraction 0.3"
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_2021_FTH_1.laz" ; filter = "-keep_random_fraction 0.4"
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip40.laz" ; filter = "" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
 file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated50_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
@@ -73,7 +72,7 @@ file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_abo
 
 params = default_arbor_parameters
 params$path_finder$max_gap = 1
-params$path_finder$k_neighborhood_connectivity = 30
+params$path_finder$k_neighborhood_connectivity = 10
 
 # ====== READ POINT CLOUD =======
 
@@ -120,17 +119,6 @@ las <- lidR::filter_poi(las, hag > cut_above_ground)
 if (display) plot(las) |> add_dtm3d(dtm)
 
 gc()
-
-# ===== PRECOMPUTE DECIMATION =====
-
-# In order to compute fast the point cloud must be temporarily decimated during the computation
-# in some steps. The decimation technic is not straightforward (no voxel decimation) and a little
-# computationally demanding. Since the decimation is computed several times we can precompute it once
-# and avoid recomputation by labeling retained points. Default 5 cm decimation is good.
-
-las <- barycentric_predecimation(las, params)
-
-if (display) plot(filter_poi(las, decimated == TRUE))
 
 # ====== CLEAN BOTTOM NOISE  ======
 

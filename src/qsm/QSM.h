@@ -9,8 +9,6 @@
 
 #include "Adaptor.h"
 
-using PointCloud = DataFrameAdaptor;
-
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
 static constexpr double SUBTREE_VOLUME_UNSET    = -1;

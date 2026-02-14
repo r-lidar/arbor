@@ -49,6 +49,9 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
 // ========================
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
 SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]

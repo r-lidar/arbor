@@ -77,7 +77,7 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
   size_t N = adjacency_list.size();
 
   distances.assign(N, INF);
-  closest_nodeids.assign(N, N); // invalid default
+  closest_nodeids.assign(N, -1); // invalid default
 
   using PQElement = std::pair<double, NodeId>;
   std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;

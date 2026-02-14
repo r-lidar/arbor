@@ -2,6 +2,8 @@
 #define ADAPTATOR_H
 
 #include <vector>
+#include <string>
+#include <algorithm>
 #include <stdexcept>
 
 #ifdef USING_R
@@ -38,14 +40,17 @@ public:
 
   // --- Optional attribute access (virtual with default implementations) ---
   // These can be missing
-  virtual bool has_treeid() const { return false; }
-  virtual bool has_woodlikelihood() const { return false; }
+  virtual bool has_hag()     const { return false; }
+  virtual bool has_treeid()  const { return false; }
+  virtual bool has_pwood()   const { return false; }
   virtual bool has_foliage() const { return false; }
 
-  virtual int get_treeid(const size_t idx) const { throw std::runtime_error("Tree ID data not available in this point cloud"); }
-  virtual double get_woodlikelihood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
-  virtual int get_foliage(const size_t idx) const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
-  virtual int is_wood(const size_t idx) const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+  virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+
+  virtual int get_foliage(const size_t idx)  const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+  virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Tree ID data not available in this point cloud"); }
+  virtual double get_pwood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
+  virtual double get_hag(const size_t idx)   const { throw std::runtime_error("HAG data not available in this point cloud"); }
 };
 
 // ============================================================================
@@ -53,219 +58,89 @@ public:
 // ============================================================================
 
 #ifdef USING_R
-class DataFrameAdaptor : public PointCloudAdaptorBase
+class PointCloud : public PointCloudAdaptorBase
 {
 public:
-  DataFrameAdaptor(const Rcpp::DataFrame& df)
-  {
-    owns_memory = false;
+  // Constructors / destructor
+  explicit PointCloud(const Rcpp::DataFrame& df);
+  PointCloud(const PointCloud& other);
+  PointCloud(PointCloud&& other) noexcept;
 
-    std::vector<std::string> coord_names = {"X", "Y", "Z"};
-    std::string treeid_name  = "treeID";
-    std::string pwood_name   = "pwood";
-    std::string foliage_name = "foliage";
+  PointCloud& operator=(const PointCloud& other);
+  PointCloud& operator=(PointCloud&& other) noexcept;
 
-    n_points = df.rows();
-
-    // --- Mandatory coordinates ---
-    for (size_t i = 0; i < 3; ++i)
-    {
-      if (!df.containsElementNamed(coord_names[i].c_str()))
-        throw std::runtime_error("Missing mandatory coordinate column: " + coord_names[i]);
-
-      Rcpp::NumericVector col = df[coord_names[i]];
-      coords[i] = col.begin();
-    }
-
-    // --- Optional attributes ---
-    if (df.containsElementNamed(treeid_name.c_str()))
-    {
-      Rcpp::IntegerVector col = df[treeid_name];
-      treeid = col.begin();
-    }
-
-    if (df.containsElementNamed(pwood_name.c_str()))
-    {
-      Rcpp::NumericVector col = df[pwood_name];
-      pwood = col.begin();
-    }
-
-    if (df.containsElementNamed(foliage_name.c_str()))
-    {
-      Rcpp::IntegerVector col = df[foliage_name];
-      foliage = col.begin();
-    }
-  }
-
-  ~DataFrameAdaptor() override
-  {
-    cleanup();
-  }
-
-  void cleanup()
-  {
-    if (owns_memory)
-    {
-      delete[] coords[0];
-      delete[] coords[1];
-      delete[] coords[2];
-      if (treeid != nullptr) delete[] treeid;
-      if (foliage != nullptr) delete[] foliage;
-      if (pwood != nullptr) delete[] pwood;
-
-      coords[0] = nullptr;
-      coords[1] = nullptr;
-      coords[2] = nullptr;
-      treeid    = nullptr;
-      foliage   = nullptr;
-      pwood     = nullptr;
-    }
-  }
+  ~PointCloud() override;
 
   // --- Nanoflann KD-tree interface ---
   inline size_t kdtree_get_point_count() const override { return n_points; }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override
-  {
-    return coords[dim][idx];
-  }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override{ return coords[dim][idx]; }
 
-  // --- Num. points ----
+  // --- Num. points ---
   inline size_t point_count() const override { return n_points; }
   inline size_t size() const override { return n_points; }
 
   // --- Geometry access ---
-  inline void get_point(const size_t idx, double* q) const override
-  {
-    for (size_t d = 0; d < 3; ++d)
-      q[d] = coords[d][idx];
-  }
+  inline void get_point(const size_t idx, double* q) const override { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
 
   inline double get_x(const size_t idx) const override { return coords[0][idx]; }
   inline double get_y(const size_t idx) const override { return coords[1][idx]; }
   inline double get_z(const size_t idx) const override { return coords[2][idx]; }
 
   // --- Optional attribute access ---
+  inline bool has_hag() const override { return hag != nullptr; }
   inline bool has_treeid() const override { return treeid != nullptr; }
-  inline bool has_woodlikelihood() const override { return pwood != nullptr; }
+  inline bool has_pwood() const override { return pwood != nullptr; }
   inline bool has_foliage() const override { return foliage != nullptr; }
 
-  inline int get_treeid(const size_t idx) const override
-  {
+  inline int get_treeid(const size_t idx) const override {
     if (!treeid) throw std::runtime_error("Tree ID data not available in this point cloud");
     return treeid[idx];
   }
 
-  inline double get_woodlikelihood(const size_t idx) const override
-  {
+  inline double get_pwood(const size_t idx) const override {
     if (!pwood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
     return pwood[idx];
   }
 
-  inline int get_foliage(const size_t idx) const override
-  {
+  inline double get_hag(const size_t idx) const override {
+    if (!hag) throw std::runtime_error("HAG data not available in this point cloud");
+    return hag[idx];
+  }
+
+  inline int get_foliage(const size_t idx) const override {
     if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
     return foliage[idx];
   }
 
-  inline int is_wood(const size_t idx) const override
-  {
+  inline bool is_wood(const size_t idx) const override {
     return get_foliage(idx) == 0;
   }
 
   // --- In-place transforms ---
-  void translate(double x, double y, double z) override
-  {
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (x != 0) const_cast<double&>(coords[0][i]) -= x;
-      if (y != 0) const_cast<double&>(coords[1][i]) -= y;
-      if (z != 0) const_cast<double&>(coords[2][i]) -= z;
-    }
-  }
+  void translate(double x, double y, double z) override;
+  void scale(double x, double y, double z) override;
 
-  void scale(double x, double y, double z) override
-  {
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (x != 1.0) const_cast<double&>(coords[0][i]) *= x;
-      if (y != 1.0) const_cast<double&>(coords[1][i]) *= y;
-      if (z != 1.0) const_cast<double&>(coords[2][i]) *= z;
-    }
-  }
+  // --- Subset ---
+  PointCloud subset(const std::vector<bool>& keep, bool xyz_only = false) const;
 
-  DataFrameAdaptor subset(const std::vector<bool>& keep, bool xyz_only = false) const
-  {
-    if (keep.size() != n_points)
-      throw std::runtime_error("subset mask size mismatch: expected " + std::to_string(n_points) + " but got " + std::to_string(keep.size()));
-
-    // Count how many points to keep
-    size_t new_count = std::count(keep.begin(), keep.end(), true);
-
-    // If keeping all points, return a copy
-    if (new_count == n_points) {
-      return *this; // *TODO* use copy constructor
-    }
-
-    // Create new object
-    DataFrameAdaptor result;
-    result.n_points = new_count;
-    result.owns_memory = true;
-
-    // Allocate new storage for coordinates
-    result.coords[0] = new double[new_count];
-    result.coords[1] = new double[new_count];
-    result.coords[2] = new double[new_count];
-
-    // Copy data for points that are kept
-    size_t j = 0;
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (keep[i])
-      {
-        result.coords[0][j] = coords[0][i];
-        result.coords[1][j] = coords[1][i];
-        result.coords[2][j] = coords[2][i];
-        j++;
-      }
-    }
-
-    if (xyz_only) return result;
-
-    // Allocate new storage for optional attributes if present
-    if (treeid != nullptr)  result.treeid = new int[new_count];
-    if (foliage != nullptr) result.foliage = new int[new_count];
-    if (pwood != nullptr)   result.pwood = new double[new_count];
-
-    j = 0;
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (keep[i])
-      {
-        if (treeid != nullptr)  result.treeid[j] = treeid[i];
-        if (foliage != nullptr) result.foliage[j] = foliage[i];
-        if (pwood != nullptr)   result.pwood[j] = pwood[i];
-        j++;
-      }
-    }
-
-
-    return result;
-  }
+private:
+  void cleanup();
 
 private:
   double* coords[3] = {nullptr, nullptr, nullptr};
 
   // Optional attributes (nullptr if absent)
-  int*    treeid = nullptr;
+  int*    treeid  = nullptr;
   int*    foliage = nullptr;
-  double* pwood = nullptr;
+  double* hag     = nullptr;
+  double* pwood   = nullptr;
 
   bool owns_memory = false;
+  size_t n_points  = 0;
 
-  size_t n_points;
-
-  DataFrameAdaptor() = default;
+  PointCloud() = default;
 };
+
 #endif
 
 // ============================================================================
@@ -400,8 +275,5 @@ public:
 
   // Optional attributes pwood and foliage use default implementations (not available)
 };
-
-
-using PointCloud = DataFrameAdaptor;
 
 #endif
