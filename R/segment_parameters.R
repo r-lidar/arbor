@@ -8,16 +8,15 @@ default_parameters_v1 = list(
     decimation = 0.05,
     space_res = 0.2,
     max_gap = 0.2,
-    min_passage = 3,
     distance_power = 3,
     angle_penalty = function(x) { y = exp(0.046051*x); ifelse(x > 100, 100, y) }
   ),
   semantic = list(
+    min_passage = 3,
     high_pwood_threshold = 0.9,
     medium_pwood_thresold = 0.75,
     connected_components_res = 0.05,
     connected_components_min = 2000,
-    wood_assignation_k = 50,
     wood_assignation_dist = 0.05,
     wood_extra_reasignation_k = 10,
     wood_extra_reasignation_dist = 0.03,

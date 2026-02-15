@@ -45,13 +45,14 @@ inline void assert_exists(const Rcpp::List& p, const char* name)
 }
 
 // Helper function to extract parameters from R list
-GraphBuilderParams extract_params(Rcpp::List params)
+GraphBuilderParams extract_pathfinder_params(Rcpp::List params)
 {
   assert_exists(params, "path_finder");
   Rcpp::List p = params["path_finder"];
   assert_exists(p, "k_neighborhood_connectivity");
   assert_exists(p, "k_seed_connectivity");
   assert_exists(p, "decimation");
+  assert_exists(p, "space_res");
   assert_exists(p, "max_gap");
   assert_exists(p, "penalty");
   assert_exists(p, "distance_power");
@@ -60,6 +61,7 @@ GraphBuilderParams extract_params(Rcpp::List params)
   gparams.k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
   gparams.k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
   gparams.decimation = Rcpp::as<double>(p["decimation"]);
+  gparams.space_res = Rcpp::as<double>(p["space_res"]);
   gparams.max_gap = Rcpp::as<double>(p["max_gap"]);
   gparams.power = Rcpp::as<double>(p["distance_power"]);
   gparams.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
@@ -67,21 +69,94 @@ GraphBuilderParams extract_params(Rcpp::List params)
   return gparams;
 }
 
+SemanticParams extract_semantic_params(const Rcpp::List& params)
+{
+  assert_exists(params, "semantic");
+  Rcpp::List p = params["semantic"];
+
+  assert_exists(p, "min_passage");
+  assert_exists(p, "high_pwood_threshold");
+  assert_exists(p, "medium_pwood_thresold");
+  assert_exists(p, "connected_components_res");
+  assert_exists(p, "connected_components_min");
+  assert_exists(p, "wood_assignation_dist");
+  assert_exists(p, "wood_extra_reasignation_k");
+  assert_exists(p, "wood_extra_reasignation_dist");
+  assert_exists(p, "medium_pwood_sor_k");
+  assert_exists(p, "medium_pwood_sor_m");
+  assert_exists(p, "ground_res");
+
+  SemanticParams s;
+  s.min_passage = Rcpp::as<int>(p["min_passage"]);
+  s.high_pwood_threshold   = Rcpp::as<double>(p["high_pwood_threshold"]);
+  s.medium_pwood_threshold = Rcpp::as<double>(p["medium_pwood_thresold"]);
+  s.connected_components_res = Rcpp::as<double>(p["connected_components_res"]);
+  s.connected_components_min = Rcpp::as<int>(p["connected_components_min"]);
+  s.wood_assignation_dist = Rcpp::as<double>(p["wood_assignation_dist"]);
+  s.wood_extra_reasignation_k = Rcpp::as<int>(p["wood_extra_reasignation_k"]);
+  s.wood_extra_reasignation_dist = Rcpp::as<double>(p["wood_extra_reasignation_dist"]);
+  s.medium_pwood_sor_k = Rcpp::as<int>(p["medium_pwood_sor_k"]);
+  s.medium_pwood_sor_m = Rcpp::as<double>(p["medium_pwood_sor_m"]);
+  s.ground_res = Rcpp::as<double>(p["ground_res"]);
+
+  return s;
+}
+
+
 Rcpp::IntegerVector segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
 {
-  GraphBuilderParams gparams = extract_params(params);
-
+  GraphBuilderParams gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(seeds);
-
   std::vector<int> ans = segment_instance(p, s, gparams, logger());
   for (auto& id : ans) { if (id == -1) id = NA_INTEGER; }
   return Rcpp::IntegerVector(ans.begin(), ans.end());
 }
 
+Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
+{
+  GraphBuilderParams gparams = extract_pathfinder_params(params);
+  PointCloud p(core);
+  PointCloud s(gnd);
+  std::vector<int> ans = accumulate_passages(p, s, gparams, logger());
+  return Rcpp::IntegerVector(ans.begin(), ans.end());
+}
+
+Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
+{
+  SemanticParams sparams = extract_semantic_params(params);
+  PointCloud p(core);
+  std::vector<bool> ans = assign_wood_from_passage(p, sparams, logger());
+  return Rcpp::LogicalVector(ans.begin(), ans.end());
+}
+
+Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(DF core, Rcpp::List params)
+{
+  SemanticParams sparams = extract_semantic_params(params);
+  PointCloud p(core);
+  std::vector<bool> ans = assign_wood_from_high_likelihood(p, sparams, logger());
+  return Rcpp::LogicalVector(ans.begin(), ans.end());
+}
+
+Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(DF core, Rcpp::List params)
+{
+  SemanticParams sparams = extract_semantic_params(params);
+  PointCloud p(core);
+  std::vector<bool> ans = assign_wood_from_medium_likelihood(p, sparams, logger());
+  return Rcpp::LogicalVector(ans.begin(), ans.end());
+}
+
+Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List params)
+{
+  SemanticParams sparams = extract_semantic_params(params);
+  PointCloud p(core);
+  std::vector<bool> ans = assign_wood_from_wood_dilatation(p, sparams, logger());
+  return Rcpp::LogicalVector(ans.begin(), ans.end());
+}
+
 SEXP build_semantic_graph(DF dec, DF targets, DF gnd, Rcpp::List params)
 {
-  GraphBuilderParams gparams = extract_params(params);
+  GraphBuilderParams gparams = extract_pathfinder_params(params);
 
   PointCloud core(dec);
   PointCloud trgt(targets);
@@ -94,7 +169,7 @@ SEXP build_semantic_graph(DF dec, DF targets, DF gnd, Rcpp::List params)
 
 SEXP build_instance_graph(DF dec, DF seed, Rcpp::List params)
 {
-  GraphBuilderParams gparams = extract_params(params);
+  GraphBuilderParams gparams = extract_pathfinder_params(params);
 
   PointCloud core(dec);
   PointCloud seeds(seed);
@@ -105,12 +180,7 @@ SEXP build_instance_graph(DF dec, DF seed, Rcpp::List params)
   return ptr;
 }
 
-/*
- *  For a start_node (expected master seed id) and a set of target nodes.
- *  Accumulate for each node the number of passage by the nodes to reach
- *  all target nodes from start node
- */
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points)
+Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points)
 {
   GraphPtr graph(graph_ptr);
   const int n_goals = goal_nodes.size();
@@ -149,7 +219,7 @@ Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::In
     }
   }
 
-  return Rcpp::wrap(passage);
+return Rcpp::wrap(passage);
 }
 
 /*

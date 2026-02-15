@@ -71,6 +71,62 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// accumulate_passages_cpp
+Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
+RcppExport SEXP _arbor_accumulate_passages_cpp(SEXP coreSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_passages_cpp(core, gnd, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// assign_wood_from_passage_cpp
+Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_assign_wood_from_passage_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(assign_wood_from_passage_cpp(core, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// assign_wood_from_high_likelihood_cpp
+Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_assign_wood_from_high_likelihood_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(assign_wood_from_high_likelihood_cpp(core, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// assign_wood_from_medium_likelihood_cpp
+Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_assign_wood_from_medium_likelihood_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(assign_wood_from_medium_likelihood_cpp(core, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// assign_wood_from_wood_dilatation_cpp
+Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_assign_wood_from_wood_dilatation_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(assign_wood_from_wood_dilatation_cpp(core, params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // build_semantic_graph
 SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
 RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
@@ -96,16 +152,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// accumulate_passages
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
-RcppExport SEXP _arbor_accumulate_passages(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
+// accumulate_passages_old
+Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
+RcppExport SEXP _arbor_accumulate_passages_old(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
     Rcpp::traits::input_parameter< int >::type start_node(start_nodeSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_nodes(goal_nodesSEXP);
     Rcpp::traits::input_parameter< int >::type num_points(num_pointsSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_passages(graph_ptr, start_node, goal_nodes, num_points));
+    rcpp_result_gen = Rcpp::wrap(accumulate_passages_old(graph_ptr, start_node, goal_nodes, num_points));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -335,9 +391,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
     {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
+    {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
+    {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},
+    {"_arbor_assign_wood_from_high_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_high_likelihood_cpp, 2},
+    {"_arbor_assign_wood_from_medium_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_medium_likelihood_cpp, 2},
+    {"_arbor_assign_wood_from_wood_dilatation_cpp", (DL_FUNC) &_arbor_assign_wood_from_wood_dilatation_cpp, 2},
     {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 4},
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
-    {"_arbor_accumulate_passages", (DL_FUNC) &_arbor_accumulate_passages, 4},
+    {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},

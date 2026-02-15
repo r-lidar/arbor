@@ -21,15 +21,75 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   attributes <- names(las)
   stopifnot("pwood" %in% attributes)
+  . <- treeID <- X <- Y <- Z <- pwood <- pointID <- wood <- decimated <- NULL
+
+  if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
+
+  # Accumulate passages
+  params   <- evaluate_penalty(params)
+  gnd      <- make_ground_points(dtm, params$semantic$ground_res, las@header)
+  passages <- accumulate_passages_cpp(las@data, gnd@data, params)
+  las      <- lidR::add_lasattribute_manual(las, passages, name = "passage", desc = "passage points", type = "int")
+
+  # Wood from pathfinder
+  path_finder_based_wood = assign_wood_from_passage_cpp(las@data, params)
+  las@data$foliage = as.integer(!path_finder_based_wood)
+
+  # Wood from likelihood
+  high_likelihood_based_wood = assign_wood_from_high_likelihood_cpp(las@data, params)
+  medium_likelihood_based_wood = assign_wood_from_medium_likelihood_cpp(las@data, params)
+
+  is_wood = path_finder_based_wood | high_likelihood_based_wood | medium_likelihood_based_wood
+  las@data$foliage = as.integer(!is_wood)
+
+  # Wood from dilatation
+  is_wood = assign_wood_from_wood_dilatation_cpp(las@data, params)
+  las@data$foliage = as.integer(!is_wood)
+
+  logger("Extra class 2 foliage re-assignation... (9/10)")
+  las@data[foliage == 1 & pwood > params$semantic$high_pwood_threshold, foliage := 2L]
+
+  las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
+
+  logger("Semantic segmentation completed")
+  gc()
+
+  return(las)
+}
+
+make_ground_points = function(dtm, res, header)
+{
+  gnd   <- seed_from_dtm(dtm, res = res)
+  lidR::quantize(gnd[["X"]], 0.01, header[["X offset"]])
+  lidR::quantize(gnd[["Y"]], 0.01, header[["Y offset"]])
+  lidR::quantize(gnd[["Z"]], 0.01, header[["Z offset"]])
+  header  <- rlas::header_create(gnd)
+  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
+  gnd
+}
+
+seed_from_dtm = function(dtm, res)
+{
+  seeds = terra::rast(terra::ext(dtm), res = res)
+  seeds = terra::resample(dtm, seeds)
+  seeds = as.data.frame(seeds, xy = T)
+  seeds = data.table::as.data.table(seeds)
+  names(seeds) = c("X", "Y", "Z")
+  seeds
+}
+
+segment_semantic_r = function(las, dtm, params = default_arbor_parameters)
+{
+  attributes <- names(las)
+  stopifnot("pwood" %in% attributes)
   stopifnot("hag" %in% attributes)
   . <- treeID <- X <- Y <- Z <-  hag <- hag_max <- hag_min <- pwood <- pointID <- wood <- decimated <- NULL
 
   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
-  logger("Point cloud decimation (1/8)")
+  ti <- tic() ; cat("Point cloud decimation... (1/8)\n") ; t0 = tic()
 
-  res    <- params$path_finder$decimation
-  core   <- hybrid_homogeneization(las, res)
+  core   <- hybrid_homogeneization(las, params$path_finder$decimation)
   target <- barycentric_decimation(core, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
 
@@ -41,7 +101,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
     plot(gnd, add = x, pal = "green", size = 6)
   }
 
-  logger("Building point cloud connectivity (2/8)")
+  toc(t0) ; cat("Building point cloud connectivity... (2/8)\n") ; t0 = tic()
 
   params <- evaluate_penalty(params)
   graph  <- build_semantic_graph(core@data, target@data, gnd@data, params)
@@ -53,7 +113,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   #point_network$cost = point_network$cost * W
   #free(W, A1, A2)
 
-  logger("Pathfinder (3/8)")
+  toc(t0); cat("Pathfinder... (3/8)\n") ; t0 = tic()
 
   num_points <- lidR::npoints(core)
   num_target <- lidR::npoints(target)
@@ -62,7 +122,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   ground_ids <- 1:num_gnd + num_target + num_points - 1
   master_id  <- num_points + num_target + num_gnd
 
-  core@data$passage <- accumulate_passages(graph, master_id, target_ids, num_points)
+  core@data$passage <- accumulate_passages_old(graph, master_id, target_ids, num_points)
 
   if (FALSE)
   {
@@ -77,10 +137,10 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   las@data$passage[core$pointID] <- core$passage
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
 
-  logger("Assigning wood to small structure (4/8)")
+  toc(t0) ; cat("Assigning wood to small structure... (4/8)\n") ; t0 = tic()
 
-  min_passage           <- params$path_finder$min_passage
-  wood_assignation_k    <- params$semantic$wood_assignation_k
+  min_passage           <- params$semantic$min_passage
+  wood_assignation_k    <- 10
   wood_assignation_dist <- params$semantic$wood_assignation_dist
 
   passage    <- NULL
@@ -101,7 +161,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(skeleton_neighbors, rm, id)
 
-  logger("Filter high likeliwood... (5/8)")
+  toc(t0) ; cat("Filter high likeliwood... (5/8)\n") ; t0 = tic()
 
   z_factor <- 1
 
@@ -137,7 +197,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
   high_pwood_wood <- rep(FALSE, lidR::npoints(las))
   high_pwood_wood[nofoliage$pointID] <- TRUE
 
-  logger("Filter medium likelihood (Step 6/8)")
+  toc(t0) ; cat("Filter medium likelihood (Step 6/8)\n") ; t0 = tic()
 
   th_medium_               <- params$semantic$medium_pwood_thresold
   sor_k                    <- params$semantic$medium_pwood_sor_k
@@ -164,7 +224,8 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   if (FALSE) plot(las, color = "wood", pal = rev(foliage.colors)) # Plot for debuging
 
-  logger("Extra wood reasignation... (7/8)")
+  toc(t0)
+  cat("Extra wood reasignation... (7/8)\n") ; t0 = tic()
 
   # We look at the neighboring points of the wood.  Points close to the wood
   # are wood points too. This assigns extra wood point is the branches and remove
@@ -186,7 +247,7 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(nofoliage, rm, id, wood_neighbors)
 
-  logger("Extra foliage reasignation... (8/8)")
+  toc(t0) ; cat("Extra foliage reasignation... (8/8)\n") ; t0 = tic()
 
   foliage <- lidR::filter_poi(las, foliage == 1)
   if (FALSE) plot_likelihood(foliage)
@@ -195,29 +256,9 @@ segment_semantic = function(las, dtm, params = default_arbor_parameters)
 
   free(high_ani)
 
-  logger("Semantic segmentation completed")
+  toc(t0)
+  toc(ti, space = "")
   gc()
 
   return(las)
-}
-
-make_ground_points = function(dtm, res, header)
-{
-  gnd   <- seed_from_dtm(dtm, res = res)
-  lidR::quantize(gnd[["X"]], 0.01, header[["X offset"]])
-  lidR::quantize(gnd[["Y"]], 0.01, header[["Y offset"]])
-  lidR::quantize(gnd[["Z"]], 0.01, header[["Z offset"]])
-  header  <- rlas::header_create(gnd)
-  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
-  gnd
-}
-
-seed_from_dtm = function(dtm, res)
-{
-  seeds = terra::rast(terra::ext(dtm), res = res)
-  seeds = terra::resample(dtm, seeds)
-  seeds = as.data.frame(seeds, xy = T)
-  seeds = data.table::as.data.table(seeds)
-  names(seeds) = c("X", "Y", "Z")
-  seeds
 }

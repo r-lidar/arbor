@@ -52,13 +52,28 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
 Rcpp::IntegerVector segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
 SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
+Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);

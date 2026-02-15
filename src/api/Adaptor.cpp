@@ -10,6 +10,7 @@ PointCloud::PointCloud(const Rcpp::DataFrame& df)
   std::string pwood_name   = "pwood";
   std::string foliage_name = "foliage";
   std::string hag_name     = "hag";
+  std::string passage_name = "passage";
 
   n_points = df.rows();
 
@@ -46,6 +47,12 @@ PointCloud::PointCloud(const Rcpp::DataFrame& df)
   {
     Rcpp::IntegerVector col = df[foliage_name];
     foliage = col.begin();
+  }
+
+  if (df.containsElementNamed(passage_name.c_str()))
+  {
+    Rcpp::IntegerVector col = df[passage_name];
+    passage = col.begin();
   }
 }
 
@@ -88,6 +95,12 @@ PointCloud::PointCloud(const PointCloud& other)
     hag = new double[n_points];
     std::copy(other.hag, other.hag + n_points, hag);
   }
+
+  if (other.hag)
+  {
+    passage = new int[n_points];
+    std::copy(other.passage, other.passage + n_points, passage);
+  }
 }
 
 // ------------------------------------------------------------
@@ -105,11 +118,13 @@ PointCloud::PointCloud(PointCloud&& other) noexcept
   foliage   = other.foliage;
   pwood     = other.pwood;
   hag       = other.hag;
+  passage   = other.passage;
 
   other.coords[0] = other.coords[1] = other.coords[2] = nullptr;
   other.treeid = other.foliage = nullptr;
   other.pwood = nullptr;
   other.hag = nullptr;
+  other.passage = nullptr;
   other.owns_memory = false;
 }
 
@@ -146,11 +161,13 @@ PointCloud& PointCloud::operator=(PointCloud&& other) noexcept
     foliage   = other.foliage;
     pwood     = other.pwood;
     hag       = other.hag;
+    passage   = other.passage;
 
     other.coords[0] = other.coords[1] = other.coords[2] = nullptr;
     other.treeid = other.foliage = nullptr;
     other.pwood = nullptr;
     other.hag = nullptr;
+    other.passage = nullptr;
     other.owns_memory = false;
   }
   return *this;
@@ -180,6 +197,7 @@ void PointCloud::cleanup()
   delete[] foliage;
   delete[] pwood;
   delete[] hag;
+  delete[] passage;
 
   coords[0] = coords[1] = coords[2] = nullptr;
   treeid = foliage = nullptr;
@@ -246,8 +264,10 @@ PointCloud PointCloud::subset(const std::vector<bool>& keep, bool xyz_only) cons
 
   if (treeid)  result.treeid  = new int[new_count];
   if (foliage) result.foliage = new int[new_count];
+  if (passage) result.passage = new int[new_count];
   if (pwood)   result.pwood   = new double[new_count];
   if (hag)     result.hag     = new double[new_count];
+
 
   j = 0;
   for (size_t i = 0; i < n_points; ++i)
@@ -256,6 +276,7 @@ PointCloud PointCloud::subset(const std::vector<bool>& keep, bool xyz_only) cons
     {
       if (treeid)  result.treeid[j]  = treeid[i];
       if (foliage) result.foliage[j] = foliage[i];
+      if (passage) result.passage[j] = passage[i];
       if (pwood)   result.pwood[j]   = pwood[i];
       if (hag)     result.hag[j]     = hag[i];
       ++j;

@@ -21,6 +21,26 @@ segment_instance_cpp <- function(core, seeds, params) {
     .Call(`_arbor_segment_instance_cpp`, core, seeds, params)
 }
 
+accumulate_passages_cpp <- function(core, gnd, params) {
+    .Call(`_arbor_accumulate_passages_cpp`, core, gnd, params)
+}
+
+assign_wood_from_passage_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_passage_cpp`, core, params)
+}
+
+assign_wood_from_high_likelihood_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_high_likelihood_cpp`, core, params)
+}
+
+assign_wood_from_medium_likelihood_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_medium_likelihood_cpp`, core, params)
+}
+
+assign_wood_from_wood_dilatation_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_wood_dilatation_cpp`, core, params)
+}
+
 build_semantic_graph <- function(dec, target, gnd, params) {
     .Call(`_arbor_build_semantic_graph`, dec, target, gnd, params)
 }
@@ -29,8 +49,8 @@ build_instance_graph <- function(dec, seed, params) {
     .Call(`_arbor_build_instance_graph`, dec, seed, params)
 }
 
-accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {
-    .Call(`_arbor_accumulate_passages`, graph_ptr, start_node, goal_nodes, num_points)
+accumulate_passages_old <- function(graph_ptr, start_node, goal_nodes, num_points) {
+    .Call(`_arbor_accumulate_passages_old`, graph_ptr, start_node, goal_nodes, num_points)
 }
 
 find_closest_node <- function(graph_ptr, ids) {

@@ -44,11 +44,13 @@ public:
   virtual bool has_treeid()  const { return false; }
   virtual bool has_pwood()   const { return false; }
   virtual bool has_foliage() const { return false; }
+  virtual bool has_passage() const { return false; }
 
   virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
 
   virtual int get_foliage(const size_t idx)  const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
   virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Tree ID data not available in this point cloud"); }
+  virtual int get_passage(const size_t idx)  const { throw std::runtime_error("Passage data not available in this point cloud"); }
   virtual double get_pwood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
   virtual double get_hag(const size_t idx)   const { throw std::runtime_error("HAG data not available in this point cloud"); }
 };
@@ -91,6 +93,7 @@ public:
   inline bool has_treeid() const override { return treeid != nullptr; }
   inline bool has_pwood() const override { return pwood != nullptr; }
   inline bool has_foliage() const override { return foliage != nullptr; }
+  inline bool has_passage() const override { return passage != nullptr; }
 
   inline int get_treeid(const size_t idx) const override {
     if (!treeid) throw std::runtime_error("Tree ID data not available in this point cloud");
@@ -110,6 +113,11 @@ public:
   inline int get_foliage(const size_t idx) const override {
     if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
     return foliage[idx];
+  }
+
+  inline int get_passage(const size_t idx) const override {
+    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    return passage[idx];
   }
 
   inline bool is_wood(const size_t idx) const override {
@@ -132,6 +140,7 @@ private:
   // Optional attributes (nullptr if absent)
   int*    treeid  = nullptr;
   int*    foliage = nullptr;
+  int*    passage = nullptr;
   double* hag     = nullptr;
   double* pwood   = nullptr;
 
