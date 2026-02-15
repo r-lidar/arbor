@@ -7,13 +7,13 @@ struct GraphBuilderParams
   bool downward = false;
   int k = 10;
   int k_seed = 100;
-  float decimation = 0.05f;
-  float space_res = 0.2;
-  float max_gap = 0.2f;
-  float power = 3.0f;
-  float wood2wood = 0.1;
-  float leaf2leaf = 20;
-  float wood2leaf = 100;
+  double decimation = 0.05;
+  double space_res = 0.2;
+  double max_gap = 0.2;
+  double power = 3.0;
+  double wood2wood = 0.1;
+  double leaf2leaf = 20;
+  double wood2leaf = 100;
   std::vector<float> angle_penalty;
   GraphBuilderParams(): angle_penalty(181)
   {
@@ -28,21 +28,15 @@ struct GraphBuilderParams
 struct SemanticParams
 {
   int   min_passage = 3;
-
-  float high_pwood_threshold   = 0.9f;
-  float medium_pwood_threshold = 0.75f;
-
-  float connected_components_res = 0.05f;
-  int   connected_components_min = 2000;
-
-  float wood_assignation_dist = 0.05f;
-
-  int   wood_extra_reasignation_k = 10;
-  float wood_extra_reasignation_dist = 0.03f;
-
-  int   medium_pwood_sor_k = 50;
-  float medium_pwood_sor_m = 0.05f;
-
-  float ground_res = 0.2f;
+  double high_pwood_threshold   = 0.9;
+  double medium_pwood_threshold = 0.75;
+  double connected_components_res = 0.05;
+  int    connected_components_min = 2000;
+  double wood_assignation_dist = 0.05f;
+  int    wood_extra_reasignation_k = 10;
+  double wood_extra_reasignation_dist = 0.03;
+  int    medium_pwood_sor_k = 50;
+  double medium_pwood_sor_m = 0.05;
+  double ground_res = 0.2;
 };
 

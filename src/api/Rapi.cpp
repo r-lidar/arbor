@@ -57,16 +57,16 @@ GraphBuilderParams extract_pathfinder_params(Rcpp::List params)
   assert_exists(p, "penalty");
   assert_exists(p, "distance_power");
 
-  GraphBuilderParams gparams;
-  gparams.k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
-  gparams.k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
-  gparams.decimation = Rcpp::as<double>(p["decimation"]);
-  gparams.space_res = Rcpp::as<double>(p["space_res"]);
-  gparams.max_gap = Rcpp::as<double>(p["max_gap"]);
-  gparams.power = Rcpp::as<double>(p["distance_power"]);
-  gparams.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
+  GraphBuilderParams g;
+  g.k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
+  g.k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
+  g.decimation = Rcpp::as<double>(p["decimation"]);
+  g.space_res = Rcpp::as<double>(p["space_res"]);
+  g.max_gap = Rcpp::as<double>(p["max_gap"]);
+  g.power = Rcpp::as<double>(p["distance_power"]);
+  g.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
-  return gparams;
+  return g;
 }
 
 SemanticParams extract_semantic_params(const Rcpp::List& params)

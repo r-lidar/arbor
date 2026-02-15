@@ -90,7 +90,7 @@ segment_semantic_r = function(las, dtm, params = default_arbor_parameters)
   ti <- tic() ; cat("Point cloud decimation... (1/8)\n") ; t0 = tic()
 
   core   <- hybrid_homogeneization(las, params$path_finder$decimation)
-  target <- barycentric_decimation(core, params$path_finder$space_res)
+  target <- barycentric_decimation(las, params$path_finder$space_res)
   gnd    <- make_ground_points(dtm, params$semantic$ground_res, las@header)
 
   # Plot for debugging

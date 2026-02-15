@@ -5,7 +5,7 @@
 
 #include "Adaptor.h"
 
-std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true)
+std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
 {
   size_t n = pc.size();
 
@@ -134,7 +134,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid 
   size_t k = std::min(static_cast<size_t>(kept * 0.1), rm.size());
   if (k == 0) return keep;
 
-  static std::mt19937 rng(42);
+  std::mt19937 rng(42);
   std::shuffle(rm.begin(), rm.end(), rng);
 
   for (size_t i = 0; i < k; ++i)

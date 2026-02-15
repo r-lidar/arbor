@@ -12,7 +12,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid 
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
 {
   PointCloud pc(df);
-  auto ans = homogeneization(pc, res);
+  auto ans = homogeneization(pc, res, hybrid);
   return(Rcpp::wrap(ans));
 }
 

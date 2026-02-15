@@ -106,26 +106,26 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   if (core.size() == 0)   throw std::runtime_error("segment_instance: core point cloud is empty.");
   if (ground.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
 
-  logger("Decimating the point cloud... (1/10)");
+  logger("Decimating the point cloud (1/9)");
 
   // Decimation
   std::vector<bool> keep1 = homogeneization(core, params.decimation, true);
   PointCloud dec = core.subset(keep1, true);
 
 
-  logger("Discretizing scene space... (2/10)");
+  logger("Discretizing scene space (2/9)");
 
   std::vector<bool> keep2 = homogeneization(core, params.space_res, false);
   PointCloud targets = core.subset(keep2, true);
 
-  logger("Constructing the graph (3/10)");
+  logger("Constructing the graph (3/9)");
 
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, ground, params);
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
-  logger("Pathfinder (4/10)");
+  logger("Accumulating passages (4/9)");
 
   size_t num_raw_points = core.size();
   size_t num_points = dec.size();
@@ -195,7 +195,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticP
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage: point cloud is empty.");
   if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage: point cloud is missing required 'passage' attribute.");
 
-  logger("Pathfinder-based wood segmentation (5/10)");
+  logger("Pathfinder-based wood segmentation (5/9)");
 
   // Filter pseudo-skeleton: points with passage > min_passage
   std::vector<bool> skeleton_mask(pc.size(), false);
@@ -208,11 +208,15 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticP
 
   if (passages.size() == 0) throw std::runtime_error("assign_wood_from_passage: no passage points found (no points with passage > min_passage)");
 
+  logger("  Building KDtree");
+
   // Spatial index of the skeleton
   KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   tree.buildIndex();
   nanoflann::SearchParameters nanoparams;
   nanoparams.sorted = false;
+
+  logger("  k-nn search");
 
   // Each point close enough from a passage is assigned wood
   std::vector<bool> is_wood(pc.size(), false);
@@ -251,7 +255,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const S
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'foliage' attribute.");
   if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'pwood' attribute.");
 
-  logger("High likelihood based wood segmentation (6/10)");
+  logger("High likelihood based wood segmentation (6/9)");
 
   // Extract only high likelihood + already wood in previous step (assign_wood_from_passage)
   std::vector<bool> mask(pc.size(), false);
@@ -261,9 +265,13 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const S
   }
   PointCloud wood = pc.subset(mask, true);
 
+  logger("  Connected components computing");
+
   // Connected components to detect big clusters
   Grid3D grid(wood, params.connected_components_res);
   std::vector<int> cluster_ids = grid.connected_components(26);
+
+  logger("  Connected components filtering");
 
   // Remove small clusters
   int max_id = *std::max_element(cluster_ids.begin(), cluster_ids.end());
@@ -279,17 +287,17 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const S
 
   // Assign original point cloud with wood/foliage
   std::vector<bool> is_wood(pc.size(), false);
-  size_t j = 0;  // Index into cluster_ids (corresponds to wood)
+  size_t j = 0;
   for (size_t i = 0; i < pc.size(); ++i)
   {
-    if (pc.is_wood(i))
-    {
-      is_wood[i] = true;
-    }
-    else if (mask[i])  // This point is in wood
-    {
-      if (cluster_ids[j] > 0)
+    if (mask[i]) {
+      // In R, a point only survives if its cluster_id > 0
+      // AND its count >= min.
+      int cid = cluster_ids[j];
+      if (cid > 0 && counts[cid] >= (size_t)params.connected_components_min) {
         is_wood[i] = true;
+      }
+
       ++j;
     }
   }
@@ -303,15 +311,17 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
   if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'pwood' attribute.");
 
-  logger("Medium likelihood based wood segmentation (7/10)");
+  logger("Medium likelihood based wood segmentation (7/9)");
 
   // Extract only medium likelihood + already wood in previous steps
   std::vector<bool> mask(pc.size(), false);
   for (size_t i = 0; i < pc.size(); ++i) {
-    if (pc.is_wood(i) || (pc.get_pwood(i) >= params.medium_pwood_threshold && pc.get_pwood(i) < params.high_pwood_threshold))
+    if (pc.is_wood(i) || (pc.get_pwood(i) > params.medium_pwood_threshold && pc.get_pwood(i) < params.high_pwood_threshold))
       mask[i] = true;
   }
   PointCloud wood = pc.subset(mask, true);
+
+  logger("  sor noise segmentation");
 
   // SOR. Detect noise
   std::vector<bool> is_noise = sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m, 12);
@@ -319,10 +329,15 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   // Remove noise
   is_noise.flip();
   wood = wood.subset(is_noise, true);
+  is_noise.flip();
+
+  logger("  Connected components computing");
 
   // Connected components to detect big clusters
   Grid3D grid(wood, params.connected_components_res);
   std::vector<int> cluster_ids = grid.connected_components(26);
+
+  logger("  Connected components filtering");
 
   // Remove small clusters
   int max_id = *std::max_element(cluster_ids.begin(), cluster_ids.end());
@@ -338,23 +353,24 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
 
   // Assign original point cloud with wood/foliage
   std::vector<bool> is_wood(pc.size(), false);
-  size_t j = 0;  // Index into wood (first subset)
-  size_t k = 0;  // Index into cluster_ids (second subset, after noise removal)
+  size_t j = 0; // Index for wood_subset (mask)
+  size_t k = 0; // Index for clustered_subset (survival_mask)
+
   for (size_t i = 0; i < pc.size(); ++i)
   {
-    if (pc.is_wood(i))
+    if (mask[i])
     {
-      is_wood[i] = true;
-    }
-    else if (mask[i])  // This point is in wood (first subset)
-    {
-      if (is_noise[j])  // This point survived noise removal (second subset)
+      // Point was in the first subset. Did it survive SOR?
+      if (!is_noise[j])
       {
-        if (cluster_ids[k] > 0)
+        // Point was in the second subset. Did it survive Cluster Filtering?
+        int cid = cluster_ids[k];
+        if (cid > 0 && counts[cid] >= (size_t)params.connected_components_min) {
           is_wood[i] = true;
-        ++k;
+        }
+        k++; // Increment k only if the point survived SOR
       }
-      ++j;
+      j++; // Increment j every time mask[i] is true
     }
   }
 
@@ -370,7 +386,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
   // are wood points too. This assigns extra wood point is the branches and remove
   // some false negatives
 
-  logger("Dilatation based wood segmentation... (8/10)");
+  logger("Dilatation based wood segmentation... (8/9)");
 
   // Extract wood points
   std::vector<bool> is_wood(pc.size(), false);
@@ -380,11 +396,17 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
   }
   PointCloud wood = pc.subset(is_wood, true);
 
+
+  logger("  Building KDtree");
+
   // Build KDTree on wood points
   KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   tree.buildIndex();
   nanoflann::SearchParameters nanoparams;
   nanoparams.sorted = false;
+
+
+  logger("  knn search");
 
   double max_dist_sq = params.wood_extra_reasignation_dist * params.wood_extra_reasignation_dist;
 
