@@ -17,13 +17,9 @@
 #' @export
 segment_semantic = function(las, dtm, params = default_arbor_parameters)
 {
+  stopifnot("pwood" %in% names(las))
+
   logger("Segmentic segmentation start")
-
-  attributes <- names(las)
-  stopifnot("pwood" %in% attributes)
-  . <- treeID <- X <- Y <- Z <- pwood <- pointID <- wood <- decimated <- NULL
-
-  if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
 
   # Accumulate passages
   params   <- evaluate_penalty(params)

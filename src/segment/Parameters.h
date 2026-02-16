@@ -32,6 +32,7 @@ struct SemanticParams
   double medium_pwood_threshold = 0.75;
   double connected_components_res = 0.05;
   int    connected_components_min = 2000;
+  int    wood_assignation_k = 50;
   double wood_assignation_dist = 0.05f;
   int    wood_extra_reasignation_k = 10;
   double wood_extra_reasignation_dist = 0.03;

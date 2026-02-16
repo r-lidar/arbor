@@ -79,6 +79,7 @@ SemanticParams extract_semantic_params(const Rcpp::List& params)
   assert_exists(p, "medium_pwood_thresold");
   assert_exists(p, "connected_components_res");
   assert_exists(p, "connected_components_min");
+  assert_exists(p, "wood_assignation_k");
   assert_exists(p, "wood_assignation_dist");
   assert_exists(p, "wood_extra_reasignation_k");
   assert_exists(p, "wood_extra_reasignation_dist");
@@ -92,6 +93,7 @@ SemanticParams extract_semantic_params(const Rcpp::List& params)
   s.medium_pwood_threshold = Rcpp::as<double>(p["medium_pwood_thresold"]);
   s.connected_components_res = Rcpp::as<double>(p["connected_components_res"]);
   s.connected_components_min = Rcpp::as<int>(p["connected_components_min"]);
+  s.wood_assignation_k = Rcpp::as<int>(p["wood_assignation_k"]);
   s.wood_assignation_dist = Rcpp::as<double>(p["wood_assignation_dist"]);
   s.wood_extra_reasignation_k = Rcpp::as<int>(p["wood_extra_reasignation_k"]);
   s.wood_extra_reasignation_dist = Rcpp::as<double>(p["wood_extra_reasignation_dist"]);

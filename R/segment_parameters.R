@@ -17,6 +17,7 @@ default_parameters_v1 = list(
     medium_pwood_thresold = 0.75,
     connected_components_res = 0.05,
     connected_components_min = 2000,
+    wood_assignation_k = 50,
     wood_assignation_dist = 0.05,
     wood_extra_reasignation_k = 10,
     wood_extra_reasignation_dist = 0.03,

@@ -223,18 +223,19 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticP
 
   // Precompute squared distance threshold to avoid repeated multiplication or sqrt
   const double dist_threshold_sq = params.wood_assignation_dist * params.wood_assignation_dist;
+  const int k = params.wood_assignation_k;
 
   #pragma omp parallel
   {
-    std::vector<index_t> idx(10);
-    std::vector<double> dist(10);
+    std::vector<index_t> idx(k);
+    std::vector<double> dist(k);
     double q[3];
 
     #pragma omp for schedule(static)
     for (size_t i = 0; i < passages.size(); ++i)
     {
       passages.get_point(i, q);
-      nanoflann::KNNResultSet<double> resultSet(10);
+      nanoflann::KNNResultSet<double> resultSet(k);
       resultSet.init(idx.data(), dist.data());
       tree.findNeighbors(resultSet, q, nanoparams);
 
@@ -408,19 +409,20 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
 
   logger("  knn search");
 
-  double max_dist_sq = params.wood_extra_reasignation_dist * params.wood_extra_reasignation_dist;
+  const double max_dist_sq = params.wood_extra_reasignation_dist * params.wood_extra_reasignation_dist;
+  const int k = params.wood_extra_reasignation_k;
 
   #pragma omp parallel
   {
-    std::vector<index_t> idx(10);
-    std::vector<double> dist(10);
+    std::vector<index_t> idx(k);
+    std::vector<double> dist(k);
     double q[3];
 
     #pragma omp for schedule(static)
     for (size_t i = 0; i < wood.size(); ++i)
     {
       wood.get_point(i, q);
-      nanoflann::KNNResultSet<double> resultSet(10);  // 1-NN
+      nanoflann::KNNResultSet<double> resultSet(k);
       resultSet.init(idx.data(), dist.data());
       tree.findNeighbors(resultSet, q, nanoparams);
 
