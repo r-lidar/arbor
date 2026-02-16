@@ -59,6 +59,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// segment_semantic_cpp
+void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::DataFrame ground, Rcpp::List params);
+RcppExport SEXP _arbor_segment_semantic_cpp(SEXP coreSEXP, SEXP groundSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type ground(groundSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    segment_semantic_cpp(core, ground, params);
+    return R_NilValue;
+END_RCPP
+}
 // segment_instance_cpp
 void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 RcppExport SEXP _arbor_segment_instance_cpp(SEXP coreSEXP, SEXP seedsSEXP, SEXP paramsSEXP) {
@@ -389,6 +400,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
     {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
+    {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 3},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
     {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
     {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},

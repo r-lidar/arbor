@@ -47,12 +47,7 @@ struct SemanticParams
 using Logger = std::function<void(const std::string&)>;
 
 void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params, const Logger& logger = [](const std::string&) {});
-
-std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphBuilderParams& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
+void segment_semantic(PointCloud& core, const PointCloud& ground, const GraphBuilderParams& gbpar, const SemanticParams& spar, const Logger& logger = [](const std::string&) {});
 
 std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
 std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);

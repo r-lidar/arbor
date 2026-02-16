@@ -17,6 +17,11 @@ using GraphPtr = Rcpp::XPtr<Graph>;
 using GraphCache = std::pair<Graph::DistanceVector, Graph::PredecessorMap>;
 using DF = Rcpp::DataFrame;
 
+std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphBuilderParams& params, const Logger& logger = [](const std::string&) {});
+std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
+std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
+std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
+std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParams& params, const Logger& logger = [](const std::string&) {});
 Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, const PointCloud& gnd, const GraphBuilderParams& params);
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params);
 
@@ -120,6 +125,14 @@ SemanticParams extract_semantic_params(const Rcpp::List& params)
   return s;
 }
 
+void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
+{
+  GraphBuilderParams gbpar = extract_pathfinder_params(params);
+  SemanticParams spar = extract_semantic_params(params);
+  PointCloud p(core);
+  PointCloud s(ground);
+  segment_semantic(p, s, gbpar, spar, logger());
+}
 
 void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
 {

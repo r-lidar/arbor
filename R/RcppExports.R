@@ -17,6 +17,10 @@ C_sor <- function(df, k, m, ncpu = 1L) {
     .Call(`_arbor_C_sor`, df, k, m, ncpu)
 }
 
+segment_semantic_cpp <- function(core, ground, params) {
+    invisible(.Call(`_arbor_segment_semantic_cpp`, core, ground, params))
+}
+
 segment_instance_cpp <- function(core, seeds, params) {
     invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
 }

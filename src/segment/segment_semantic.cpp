@@ -352,3 +352,33 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
 
   return is_wood;
 }
+
+void segment_semantic(PointCloud& scene, const PointCloud& ground, const GraphBuilderParams& gbpar, const SemanticParams& spar, const Logger& logger)
+{
+  size_t n = scene.size();
+
+  std::vector<int> passages = accumulate_passages(scene, ground, gbpar, logger);
+  for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);
+
+  std::vector<bool> path_finder_based_wood = assign_wood_from_passage(scene, spar, logger);
+  for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!path_finder_based_wood[i]);
+
+  std::vector<bool> high_likelihood_based_wood = assign_wood_from_high_likelihood(scene, spar, logger);
+  std::vector<bool> medium_likelihood_based_wood = assign_wood_from_medium_likelihood(scene, spar, logger);
+
+  for (size_t i = 0 ; i < n ; i++) {
+    bool wood = path_finder_based_wood[i] || high_likelihood_based_wood[i] || medium_likelihood_based_wood[i];
+    scene.set_foliage(i, (int)(!wood));
+  }
+
+  std::vector<bool> is_wood = assign_wood_from_wood_dilatation(scene, spar, logger);
+  for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!is_wood[i]);
+
+  logger("Extra class 2 foliage re-assignation... (9/10)");
+  for (size_t i = 0 ; i < n ; i++)
+  {
+    if (!scene.is_wood(i) && scene.get_pwood(i) > spar.high_pwood_threshold)
+      scene.set_foliage(i, 2);
+  }
+}
+
