@@ -60,15 +60,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // segment_instance_cpp
-Rcpp::IntegerVector segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
+void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 RcppExport SEXP _arbor_segment_instance_cpp(SEXP coreSEXP, SEXP seedsSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seeds(seedsSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(segment_instance_cpp(core, seeds, params));
-    return rcpp_result_gen;
+    segment_instance_cpp(core, seeds, params);
+    return R_NilValue;
 END_RCPP
 }
 // accumulate_passages_cpp

@@ -1,6 +1,7 @@
 #include <limits>
 #include <algorithm>
 #include <iostream>
+#include <queue>
 
 #include "Graph.h"
 
@@ -15,7 +16,7 @@ void Graph::ensure_size(size_t n)
     adjacency_list.resize(n);
 }
 
-std::pair<DistanceVector, PredecessorMap> Graph::compute_distances(NodeId start) const
+std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances(NodeId start) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
   distances[start] = 0.0f;
@@ -49,7 +50,7 @@ std::pair<DistanceVector, PredecessorMap> Graph::compute_distances(NodeId start)
 }
 
 // --- Path reconstruction ---
-std::pair<Path, Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const
+std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const
 {
   const auto& [distances, predecessors] = precomputed_data;
 

@@ -3,27 +3,26 @@
 
 #include <vector>
 #include <unordered_map>
-#include <queue>
-
-#include "myomp.h"
-
-using NodeId = int;
-using Cost = float;
-using DistanceVector = std::vector<Cost>;
-using PredecessorMap = std::unordered_map<NodeId, NodeId>;
-using Path = std::vector<NodeId>;
-using NodeIDs = std::vector<NodeId>;
-
-struct Node
-{
-  NodeId destination;
-  Cost cost;
-};
-
-using AdjacencyList = std::vector<std::vector<Node>>;
 
 class Graph
 {
+public:
+  using NodeId = int;
+  using Cost = float;
+  using DistanceVector = std::vector<Cost>;
+  using PredecessorMap = std::unordered_map<NodeId, NodeId>;
+  using Path = std::vector<NodeId>;
+  using NodeIDs = std::vector<NodeId>;
+  using GraphCache = std::pair<DistanceVector, PredecessorMap>;
+
+  struct Node
+  {
+    NodeId destination;
+    Cost cost;
+  };
+
+  using AdjacencyList = std::vector<std::vector<Node>>;
+
 public:
   AdjacencyList adjacency_list;
 

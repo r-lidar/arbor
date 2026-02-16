@@ -60,8 +60,9 @@
 segment_instance = function(las, seeds, params)
 {
   params <- evaluate_penalty(params)
-  treeID <- segment_instance_cpp(las@data, seeds@data, params)
-  las    <- lidR::add_lasattribute(las, treeID, name = "treeID", desc = "Unique ID per tree")
+  las@data$treeID = integer(lidR::npoints(las))
+  segment_instance_cpp(las@data, seeds@data, params)
+  las <- lidR::add_lasattribute(las, name = "treeID", desc = "Unique ID per tree")
   return(las)
 }
 

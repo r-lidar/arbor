@@ -46,13 +46,19 @@ public:
   virtual bool has_foliage() const { return false; }
   virtual bool has_passage() const { return false; }
 
-  virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+  virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
 
   virtual int get_foliage(const size_t idx)  const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
-  virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Tree ID data not available in this point cloud"); }
+  virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Instance segmentatiom not available in this point cloud"); }
   virtual int get_passage(const size_t idx)  const { throw std::runtime_error("Passage data not available in this point cloud"); }
   virtual double get_pwood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
   virtual double get_hag(const size_t idx)   const { throw std::runtime_error("HAG data not available in this point cloud"); }
+
+  virtual void set_foliage(const size_t idx, int v)    { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
+  virtual void set_treeid(const size_t idx, int v)     { throw std::runtime_error("Instance segmentation data not available in this point cloud"); }
+  virtual void set_passage(const size_t idx, int v)    { throw std::runtime_error("Passage data not available in this point cloud"); }
+  virtual void set_pwood(const size_t idx, double v)   { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
+  virtual void set_hag(const size_t idx, double v)     { throw std::runtime_error("HAG data not available in this point cloud"); }
 };
 
 // ============================================================================
@@ -96,28 +102,53 @@ public:
   inline bool has_passage() const override { return passage != nullptr; }
 
   inline int get_treeid(const size_t idx) const override {
-    if (!treeid) throw std::runtime_error("Tree ID data not available in this point cloud");
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
     return treeid[idx];
   }
 
+  inline void set_treeid(const size_t idx, int v) override {
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
+    treeid[idx] = v;
+  }
+
   inline double get_pwood(const size_t idx) const override {
-    if (!pwood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
     return pwood[idx];
   }
 
-  inline double get_hag(const size_t idx) const override {
-    if (!hag) throw std::runtime_error("HAG data not available in this point cloud");
-    return hag[idx];
+  inline void set_pwood(const size_t idx, double v) override {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
   }
 
   inline int get_foliage(const size_t idx) const override {
-    if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
     return foliage[idx];
+  }
+
+  inline void set_foliage(const size_t idx, int v) override {
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
+    foliage[idx] = v;
+  }
+
+  inline double get_hag(const size_t idx) const override {
+    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
+    return hag[idx];
+  }
+
+  inline void set_hag(const size_t idx, double v) override {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
   }
 
   inline int get_passage(const size_t idx) const override {
     if (!passage) throw std::runtime_error("Passage not available in this point cloud");
     return passage[idx];
+  }
+
+  inline void set_passage(const size_t idx, int v) override {
+    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    passage[idx] = v;
   }
 
   inline bool is_wood(const size_t idx) const override {

@@ -78,7 +78,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
     std::vector<double> dist(params.k);
 
     // Thread-local storage for edges
-    std::vector<std::tuple<NodeId, NodeId, Cost>> local_edges;
+    std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> local_edges;
 
     // For each point we connect to its knn. The current point is 'from'
     #pragma omp for schedule(static)

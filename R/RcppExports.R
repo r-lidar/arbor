@@ -18,7 +18,7 @@ C_sor <- function(df, k, m, ncpu = 1L) {
 }
 
 segment_instance_cpp <- function(core, seeds, params) {
-    .Call(`_arbor_segment_instance_cpp`, core, seeds, params)
+    invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
 }
 
 accumulate_passages_cpp <- function(core, gnd, params) {

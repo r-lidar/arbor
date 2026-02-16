@@ -1,3 +1,7 @@
+// ! This file exist because Rcpp does not export things that are not in root folder.
+// Otherwise most is defined in R/Rapi.cpp
+
+
 #include "Adaptor.h"
 #include "Grid3D.h"
 #include "ransac.h"
@@ -49,7 +53,7 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
 // ========================
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
+void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);

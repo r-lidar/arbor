@@ -9,11 +9,16 @@
 
 #include "myomp.h"
 #include "api.h"
+#include "GraphBuilder.h"
+
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<Graph>;
-using GraphCache = std::pair<DistanceVector, PredecessorMap>;
+using GraphCache = std::pair<Graph::DistanceVector, Graph::PredecessorMap>;
 using DF = Rcpp::DataFrame;
+
+Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, const PointCloud& gnd, const GraphBuilderParams& params);
+Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params);
 
 auto logger()
 {
@@ -66,6 +71,17 @@ GraphBuilderParams extract_pathfinder_params(Rcpp::List params)
   g.power = Rcpp::as<double>(p["distance_power"]);
   g.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
 
+
+  assert_exists(params, "instance");
+  p = params["instance"];
+  assert_exists(p, "wood2leaf_factor");
+  assert_exists(p, "leaf2leaf_factor");
+  assert_exists(p, "wood2wood_factor");
+
+  g.wood2leaf = Rcpp::as<double>(p["wood2leaf_factor"]);
+  g.leaf2leaf = Rcpp::as<double>(p["leaf2leaf_factor"]);
+  g.wood2wood = Rcpp::as<double>(p["wood2wood_factor"]);
+
   return g;
 }
 
@@ -105,14 +121,17 @@ SemanticParams extract_semantic_params(const Rcpp::List& params)
 }
 
 
-Rcpp::IntegerVector segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
+void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
 {
   GraphBuilderParams gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(seeds);
-  std::vector<int> ans = segment_instance(p, s, gparams, logger());
-  for (auto& id : ans) { if (id == -1) id = NA_INTEGER; }
-  return Rcpp::IntegerVector(ans.begin(), ans.end());
+  segment_instance(p, s, gparams, logger());
+  for (size_t i = 0 ; i < p.size() ; i++) {
+    if (p.get_treeid(i) == -1) {
+      p.set_treeid(i, NA_INTEGER);
+    }
+  }
 }
 
 Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
@@ -191,7 +210,7 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
   std::vector<int> passage(num_points, 0);
 
   // Precompute distances for fast access
-  GraphCache cache = graph->compute_distances(start_node);
+  Graph::GraphCache cache = graph->compute_distances(start_node);
 
   // Parallel loop over goal nodes
   #pragma omp parallel
@@ -201,13 +220,13 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
     #pragma omp for schedule(dynamic, 100)
     for (int i = 0; i < n_goals; ++i)
     {
-      NodeId goal  = goal_nodes[i];
+      Graph::NodeId goal  = goal_nodes[i];
 
       auto [path, cost] = graph->findPath(start_node, goal, cache);
 
       for (size_t j = 0; j < path.size(); ++j)
       {
-        NodeId id = path[j];
+        Graph::NodeId id = path[j];
         if (id >= 0 && id < num_points)
           local_passage[id] += 1;
       }
@@ -234,10 +253,10 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids)
   GraphPtr graph(graph_ptr);
 
   // Convert R vector of ground nodes to std::vector<NodeId>
-  NodeIDs node_ids(ids.begin(), ids.end());
+  Graph::NodeIDs node_ids(ids.begin(), ids.end());
 
   std::vector<double> distances;
-  NodeIDs closest_nodeids;
+  Graph::NodeIDs closest_nodeids;
 
   // Run the optimized multi-source Dijkstra
   graph->shortest_paths_from_node(node_ids, distances, closest_nodeids);
