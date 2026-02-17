@@ -5,11 +5,10 @@
 #include <algorithm>
 
 #include "QSM.h"
-#include "nanoflann/Adaptor.h"
-#include "nanoflann/nanoflann.h"
+#include "Adaptor.h"
+#include "nanoflann.h"
 #include "ransac.h"
 
-using PointCloud = DataFrameAdaptor;
 typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, SimpleAdaptor>, SimpleAdaptor, 3> CentroidKDTree;
 
 inline double QSM::conic_allometry(double tip_radius, double wi, double w0, double r0) const

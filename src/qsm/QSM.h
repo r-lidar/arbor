@@ -9,8 +9,6 @@
 
 #include "Adaptor.h"
 
-using PointCloud = DataFrameAdaptor;
-
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
 static constexpr double SUBTREE_VOLUME_UNSET    = -1;
@@ -150,6 +148,8 @@ public:
   void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
   void polynomial_fitting(double tip_radius);
   void reconstruct_missing_radii(double tip_radius);
+  void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int resolution = 16) const;
+  void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int resolution = 16) const;
   void write(const std::string& filename, bool binary = true) const;
 
   const auto& cylinders() const { return cylinders_; }
@@ -178,7 +178,7 @@ private:
   void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume);
 
   // mesh and write
-  void build_mesh(std::vector<std::array<double,3>>& vertices,  std::vector<std::array<int,3>>& faces, int resolution = 16) const;
+  void mesh(std::vector<std::array<double,3>>& vertices, int resolution) const;
   void write_ply(const std::string& filename, bool binary) const;
   void write_stl(const std::string& filename, bool binary) const;
   void write_obj(const std::string& filename) const;

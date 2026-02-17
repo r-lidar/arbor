@@ -1,6 +1,10 @@
 # arbor 0.8.1
 
 - Enhancement: there are no longer two versions of ransac fitting in R and C++. All computations are done in C++
+- Enhancement: lot of C++ change
+- Enhancement: `segment_semantic()` 20% faster
+- Fix: bug with small trees in `qsm()`
+- Fix: bug when rendering `qsf` with `plot()`
 
 # arbor 0.8.0
 

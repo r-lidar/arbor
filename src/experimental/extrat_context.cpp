@@ -10,8 +10,8 @@ std::vector<int> extract_tree_context(const PointCloud& pc, int target_tree_id, 
 {
   // Find all points belonging to the target tree
   std::vector<size_t> target_indices;
-  target_indices.reserve(pc.n_points / 100);
-  for (size_t i = 0; i < pc.n_points; ++i)
+  target_indices.reserve(pc.size() / 100);
+  for (size_t i = 0; i < pc.size(); ++i)
   {
     if (pc.get_treeid(i) == target_tree_id)
     {

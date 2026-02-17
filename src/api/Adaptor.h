@@ -2,6 +2,8 @@
 #define ADAPTATOR_H
 
 #include <vector>
+#include <string>
+#include <algorithm>
 #include <stdexcept>
 
 #ifdef USING_R
@@ -9,7 +11,7 @@
 #endif
 
 // ============================================================================
-// Virtual base class defining the required interface for all adaptors
+// Virtual base class defining the required interface for all point clouds
 // ============================================================================
 
 class PointCloudAdaptorBase
@@ -38,24 +40,25 @@ public:
 
   // --- Optional attribute access (virtual with default implementations) ---
   // These can be missing
-  virtual bool has_treeid() const { return false; }
-  virtual bool has_woodlikelihood() const { return false; }
+  virtual bool has_hag()     const { return false; }
+  virtual bool has_treeid()  const { return false; }
+  virtual bool has_pwood()   const { return false; }
   virtual bool has_foliage() const { return false; }
+  virtual bool has_passage() const { return false; }
 
-  virtual int get_treeid(const size_t idx) const
-  {
-    throw std::runtime_error("Tree ID data not available in this point cloud");
-  }
+  virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
 
-  virtual double get_woodlikelihood(const size_t idx) const
-  {
-    throw std::runtime_error("Wood likelihood data not available in this point cloud");
-  }
+  virtual int get_foliage(const size_t idx)  const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
+  virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Instance segmentatiom not available in this point cloud"); }
+  virtual int get_passage(const size_t idx)  const { throw std::runtime_error("Passage data not available in this point cloud"); }
+  virtual double get_pwood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
+  virtual double get_hag(const size_t idx)   const { throw std::runtime_error("HAG data not available in this point cloud"); }
 
-  virtual int get_foliage(const size_t idx) const
-  {
-    throw std::runtime_error("Foliage classification not available in this point cloud");
-  }
+  virtual void set_foliage(const size_t idx, int v)    { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
+  virtual void set_treeid(const size_t idx, int v)     { throw std::runtime_error("Instance segmentation data not available in this point cloud"); }
+  virtual void set_passage(const size_t idx, int v)    { throw std::runtime_error("Passage data not available in this point cloud"); }
+  virtual void set_pwood(const size_t idx, double v)   { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
+  virtual void set_hag(const size_t idx, double v)     { throw std::runtime_error("HAG data not available in this point cloud"); }
 };
 
 // ============================================================================
@@ -63,124 +66,121 @@ public:
 // ============================================================================
 
 #ifdef USING_R
-class DataFrameAdaptor : public PointCloudAdaptorBase
+class PointCloud : public PointCloudAdaptorBase
 {
 public:
-  // Mandatory coordinates
-  const double* coords[3];
+  // Constructors / destructor
+  explicit PointCloud(const Rcpp::DataFrame& df);
+  PointCloud(const PointCloud& other);
+  PointCloud(PointCloud&& other) noexcept;
 
-  // Optional attributes (nullptr if absent)
-  const int*    treeid = nullptr;
-  const double* woodlikelihood = nullptr;
-  const int*    foliage = nullptr;
+  PointCloud& operator=(const PointCloud& other);
+  PointCloud& operator=(PointCloud&& other) noexcept;
 
-  size_t n_points;
-
-  DataFrameAdaptor(const Rcpp::DataFrame& df)
-  {
-    std::vector<std::string> coord_names = {"X", "Y", "Z"};
-    std::string treeid_name = "treeID";
-    std::string woodlikelihood_name = "pwood";
-    std::string foliage_name = "foliage";
-
-    n_points = df.rows();
-
-    // --- Mandatory coordinates ---
-    for (size_t i = 0; i < 3; ++i)
-    {
-      if (!df.containsElementNamed(coord_names[i].c_str()))
-        throw std::runtime_error("Missing mandatory coordinate column: " + coord_names[i]);
-
-      Rcpp::NumericVector col = df[coord_names[i]];
-      coords[i] = col.begin();
-    }
-
-    // --- Optional attributes ---
-    if (df.containsElementNamed(treeid_name.c_str()))
-    {
-      Rcpp::IntegerVector col = df[treeid_name];
-      treeid = col.begin();
-    }
-
-    if (df.containsElementNamed(woodlikelihood_name.c_str()))
-    {
-      Rcpp::NumericVector col = df[woodlikelihood_name];
-      woodlikelihood = col.begin();
-    }
-
-    if (df.containsElementNamed(foliage_name.c_str()))
-    {
-      Rcpp::IntegerVector col = df[foliage_name];
-      foliage = col.begin();
-    }
-  }
+  ~PointCloud() override;
 
   // --- Nanoflann KD-tree interface ---
   inline size_t kdtree_get_point_count() const override { return n_points; }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override
-  {
-    return coords[dim][idx];
-  }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override{ return coords[dim][idx]; }
 
-  // --- Num. points ----
+  // --- Num. points ---
   inline size_t point_count() const override { return n_points; }
   inline size_t size() const override { return n_points; }
 
   // --- Geometry access ---
-  inline void get_point(const size_t idx, double* q) const override
-  {
-    for (size_t d = 0; d < 3; ++d)
-      q[d] = coords[d][idx];
-  }
+  inline void get_point(const size_t idx, double* q) const override { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
 
   inline double get_x(const size_t idx) const override { return coords[0][idx]; }
   inline double get_y(const size_t idx) const override { return coords[1][idx]; }
   inline double get_z(const size_t idx) const override { return coords[2][idx]; }
 
   // --- Optional attribute access ---
+  inline bool has_hag() const override { return hag != nullptr; }
   inline bool has_treeid() const override { return treeid != nullptr; }
-  inline bool has_woodlikelihood() const override { return woodlikelihood != nullptr; }
+  inline bool has_pwood() const override { return pwood != nullptr; }
   inline bool has_foliage() const override { return foliage != nullptr; }
+  inline bool has_passage() const override { return passage != nullptr; }
 
-  inline int get_treeid(const size_t idx) const override
-  {
-    if (!treeid) throw std::runtime_error("Tree ID data not available in this point cloud");
+  inline int get_treeid(const size_t idx) const override {
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
     return treeid[idx];
   }
 
-  inline double get_woodlikelihood(const size_t idx) const override
-  {
-    if (!woodlikelihood) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    return woodlikelihood[idx];
+  inline void set_treeid(const size_t idx, int v) override {
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
+    treeid[idx] = v;
   }
 
-  inline int get_foliage(const size_t idx) const override
-  {
-    if (!foliage) throw std::runtime_error("Foliage classification not available in this point cloud");
+  inline double get_pwood(const size_t idx) const override {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    return pwood[idx];
+  }
+
+  inline void set_pwood(const size_t idx, double v) override {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
+  }
+
+  inline int get_foliage(const size_t idx) const override {
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
     return foliage[idx];
   }
 
-  // --- In-place transforms ---
-  void translate(double x, double y, double z) override
-  {
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (x != 0) const_cast<double&>(coords[0][i]) -= x;
-      if (y != 0) const_cast<double&>(coords[1][i]) -= y;
-      if (z != 0) const_cast<double&>(coords[2][i]) -= z;
-    }
+  inline void set_foliage(const size_t idx, int v) override {
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
+    foliage[idx] = v;
   }
 
-  void scale(double x, double y, double z) override
-  {
-    for (size_t i = 0; i < n_points; ++i)
-    {
-      if (x != 1.0) const_cast<double&>(coords[0][i]) *= x;
-      if (y != 1.0) const_cast<double&>(coords[1][i]) *= y;
-      if (z != 1.0) const_cast<double&>(coords[2][i]) *= z;
-    }
+  inline double get_hag(const size_t idx) const override {
+    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
+    return hag[idx];
   }
+
+  inline void set_hag(const size_t idx, double v) override {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
+  }
+
+  inline int get_passage(const size_t idx) const override {
+    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    return passage[idx];
+  }
+
+  inline void set_passage(const size_t idx, int v) override {
+    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    passage[idx] = v;
+  }
+
+  inline bool is_wood(const size_t idx) const override {
+    return get_foliage(idx) == 0;
+  }
+
+  // --- In-place transforms ---
+  void translate(double x, double y, double z) override;
+  void scale(double x, double y, double z) override;
+
+  // --- Subset ---
+  PointCloud subset(const std::vector<bool>& keep, bool xyz_only = false) const;
+
+private:
+  void cleanup();
+
+private:
+  double* coords[3] = {nullptr, nullptr, nullptr};
+
+  // Optional attributes (nullptr if absent)
+  int*    treeid  = nullptr;
+  int*    foliage = nullptr;
+  int*    passage = nullptr;
+  double* hag     = nullptr;
+  double* pwood   = nullptr;
+
+  bool owns_memory = false;
+  size_t n_points  = 0;
+
+  PointCloud() = default;
 };
+
 #endif
 
 // ============================================================================
@@ -313,10 +313,7 @@ public:
     return points[idx].id;
   }
 
-  // Optional attributes woodlikelihood and foliage use default implementations (not available)
+  // Optional attributes pwood and foliage use default implementations (not available)
 };
-
-
-using PointCloud = DataFrameAdaptor;
 
 #endif

@@ -10,11 +10,15 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   qsm <- qsm_conic_allometry(qsm, 2*R0, tip_radius)
   conic <- qsm$radius
 
-  if (R0 < 0.04) return(qsm)
+  if (R0 < 0.04)
+  {
+    warning("This tree is too small to be mesured. The QSM is a pure reconstruction based on allometry", call. = FALSE)
+    qsm <- qsm_conic_allometry(qsm, R0_first_guess, tip_radius)
+    return(qsm)
+  }
 
   logger("Measuring diameters")
   qsm <- qsm_measure(tree, qsm, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.03)
-
 
   logger("Polynomial fitting")
   qsm <- qsm_polynomial_fitting(qsm, tip_radius)

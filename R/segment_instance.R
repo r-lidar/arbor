@@ -59,55 +59,67 @@
 #' @seealso \link{find_seeds}, \link{segment_semantic}
 segment_instance = function(las, seeds, params)
 {
-  logger("Instance segmentation start")
-
-  # The point cloud must have hag, and foliage computed
-  attributes = names(las)
-  stopifnot("hag" %in% attributes)
-  stopifnot("foliage" %in% attributes)
-  if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
-
-  logger("Decimating the point cloud... (1/4)")
-
-  core       <- get_barycentric_predecimation(las, params)
-  master     <- make_master_seed(core)
-  num_points <- lidR::npoints(core)
-  num_trees  <- nrow(seeds)
-
-  # Plot for debugging
-  if (FALSE)
-  {
-    x <- plot(core)
-    plot(seeds, add = x, pal = "green", size = 6)
-    plot(master, add = x, pal = "white", size = 8)
-  }
-
-  logger("Constructing the graph object (3/4)")
-
   params <- evaluate_penalty(params)
-  graph  <- build_instance_graph(core@data, seeds@data, master@data, params);
-
-  logger("Pathfinder (4/6)")
-
-  seeds_ids  <- (num_points):(num_points+num_trees-1)
-  treeID     <- find_closest_node(graph, seeds_ids)
-
-  trueTreeID <- treeID[1:lidR::npoints(core)]
-  trueTreeID <- trueTreeID - min(seeds_ids) + 1
-  ID         <- seeds$treeID[trueTreeID]
-  core      <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
-
-  if (FALSE)
-  {
-    x = plot(core, color = "treeID", size =2)
-    plot(seeds, add = x, pal = "red", size = 6)
-  }
-
-  logger("Assigning tree IDs to the dense point cloud (5/6)")
-
-  las <- transfer_attributes(core, las, "treeID")
-
-  logger("Instance segmentation completed")
-
+  las@data$treeID = integer(lidR::npoints(las))
+  segment_instance_cpp(las@data, seeds@data, params)
+  las <- lidR::add_lasattribute(las, name = "treeID", desc = "Unique ID per tree")
   return(las)
 }
+
+
+# segment_instance_r = function(las, seeds, params)
+# {
+#   logger("Instance segmentation start")
+#
+#   # The point cloud must have hag, and foliage computed
+#   attributes = names(las)
+#   stopifnot("hag" %in% attributes)
+#   stopifnot("foliage" %in% attributes)
+#   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
+#
+#   logger("Decimating the point cloud... (1/4)")
+#
+#   res        <- params$path_finder$decimation
+#   core       <- hybrid_homogeneization(las, res)
+#
+#   num_points <- lidR::npoints(core)
+#   num_trees  <- nrow(seeds)
+#
+#   cat(sprintf("raw %d, dec %d, seeds %d\n", lidR::npoints(las), num_points, num_trees));
+#
+#   # Plot for debugging
+#   if (FALSE)
+#   {
+#     x <- plot(core)
+#     plot(seeds, add = x, pal = "green", size = 6)
+#   }
+#
+#   logger("Constructing the graph object (2/4)")
+#
+#   params <- evaluate_penalty(params)
+#   graph  <- build_instance_graph(core@data, seeds@data, params);
+#
+#   logger("Pathfinder (3/4)")
+#
+#   seeds_ids  <- (num_points):(num_points+num_trees-1)
+#   treeID     <- find_closest_node(graph, seeds_ids)
+#
+#   trueTreeID <- treeID[1:lidR::npoints(core)]
+#   trueTreeID <- trueTreeID - min(seeds_ids) + 1
+#   ID         <- seeds$treeID[trueTreeID]
+#   core       <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
+#
+#   if (FALSE)
+#   {
+#     x = plot(core, color = "treeID", size =2)
+#     plot(seeds, add = x, pal = "red", size = 6)
+#   }
+#
+#   logger("Assigning tree IDs to the dense point cloud (4/4)")
+#
+#   las <- transfer_attributes(core, las, "treeID")
+#
+#   logger("Instance segmentation completed")
+#
+#   return(las)
+# }

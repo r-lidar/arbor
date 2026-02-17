@@ -1,3 +1,7 @@
+// ! This file exist because Rcpp does not export things that are not in root folder.
+// Otherwise most is defined in R/Rapi.cpp
+
+
 #include "Adaptor.h"
 #include "Grid3D.h"
 #include "ransac.h"
@@ -12,7 +16,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid 
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
 {
   PointCloud pc(df);
-  auto ans = homogeneization(pc, res);
+  auto ans = homogeneization(pc, res, hybrid);
   return(Rcpp::wrap(ans));
 }
 
@@ -29,14 +33,8 @@ Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1)
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity)
 {
-  Rcpp::NumericVector X = df["X"];
-  Rcpp::NumericVector Y = df["Y"];
-  Rcpp::NumericVector Z = df["Z"];
-  const double* x = X.begin();
-  const double* y = Y.begin();
-  const double* z = Z.begin();
-  int n = X.size();
-  Grid3D grid(x, y, z, n, res);
+  PointCloud pc(df);
+  Grid3D grid(pc, res);
   return Rcpp::wrap(grid.connected_components(connectivity));
 }
 
@@ -55,13 +53,34 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu
 // ========================
 
 //[[Rcpp::export(rng = false)]]
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::DataFrame master_seed, Rcpp::List params);
+void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::DataFrame ground, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::DataFrame master_seed, Rcpp::List params);
+void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector accumulate_passages(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
+Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
@@ -105,6 +124,12 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
 
 // ========================
 // QSF

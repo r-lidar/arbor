@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <cstdint>
 
+#include "Adaptor.h"
+
 struct Offset
 {
   int dx, dy, dz;
@@ -13,7 +15,7 @@ struct Offset
 class Grid3D
 {
 public:
-  Grid3D(const double* x, const double* y, const double* z, int n, double res);
+  Grid3D(const PointCloud& pc, double res);
 
   // Grid dimensions
   int64_t ncols, nrows, nlayers;
@@ -30,7 +32,7 @@ public:
   std::vector<int> connected_components(int connectivity);
 
 private:
-  const double *X, *Y, *Z;
+  const PointCloud& pc;
 
   int64_t get_grid_index(int64_t r, int64_t c, int64_t l) const;
   void decode_grid_index(int64_t idx, int64_t& r, int64_t& c, int64_t& l) const;

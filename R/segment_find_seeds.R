@@ -30,6 +30,10 @@ find_seeds <- function(las, params)
   short_passages       <- lidR::filter_poi(las, passage > 1, hag < min(hag) + 0.5, passage < 10)
   long_passages@data   <- long_passages@data[, .(X,Y,Z, passage, hag)]
   short_passages@data  <- short_passages@data[, .(X,Y,Z, passage, hag)]
+  long_passages@data   <- densify_passage(long_passages@data)
+  short_passages@data  <- densify_passage(short_passages@data)
+
+
   if (FALSE)
   {
     plot(long_passages)
@@ -54,16 +58,23 @@ find_seeds <- function(las, params)
   cl_wood <- connected_components(wood, 0.05, 10, connectivity = 26)
   cl_wood <- lidR::filter_poi(cl_wood, clusterID != 0)
 
+  if (FALSE)
+  {
+    x = plot(cl_wood, color = "clusterID", pal = pastel.colors(200))
+    plot(long_passages, add = x, pal = "green")
+  }
+
   logger("Circle detection per component")
 
   # For each cluster search for circles. If we have a nice circle we have a tree
   is.valid.circle <- function(radius, angle_range, pinliner, pinside)
   {
+    if (radius > 2) return(FALSE)
     if (radius < 0.02)  return(FALSE)
     if (radius  < 0.05)  return(angle_range > 180 & pinliner > 30)
     if (pinside > 20)   return(FALSE)
-    if (radius < 0.10)  return(angle_range > 90 & pinliner > 50)
-    return(angle_range > 130 & pinliner > 30)
+    if (radius < 0.10)  return(angle_range > 130 & pinliner > 60)
+    return(angle_range > 140 & pinliner > 40)
   }
   fit_circle_to_seed <- function(cl)
   {
@@ -77,10 +88,12 @@ find_seeds <- function(las, params)
     if (FALSE)
     {
       if (valid) col = "darkgreen" else col = "red"
-      plot(cl$X, cl$Y, asp = 1, main = id)
+      plot(cl[,1], cl[,2], asp = 1, main = paste(i, "id =", id))
+      inl = circle$inliers
+      points(cl[inl,1], cl[inl,2], pch = 19)
       symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = col)
-      symbols(circle$center_x, circle$center_y, circles = circle$radius+0.01, inches = FALSE, add = TRUE, fg = col)
-      symbols(circle$center_x, circle$center_y, circles = circle$radius-0.01, inches = FALSE, add = TRUE, fg = col)
+      symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, inches = FALSE, add = TRUE, fg = col)
+      symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, inches = FALSE, add = TRUE, fg = col)
     }
 
     if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
@@ -104,10 +117,11 @@ find_seeds <- function(las, params)
 
   circles_detected = length(circles) > 0
 
-  if (!circles_detected)
+  if (!circles_detected) {
     warning("No circle dectected")
-  else
+  } else {
     circles  <- do.call(rbind, circles)
+  }
 
   if (FALSE)
   {
@@ -199,7 +213,7 @@ find_seeds <- function(las, params)
     logger("Discs to seeds conversion")
 
     # Convert circle to points
-    res= params$decimation$barycentric_predecimation_resolution*0.75
+    res= params$path_finder$decimation*0.75
     circle_points_list <- lapply(1:nrow(circles), function(i) {
       generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
     })
@@ -217,7 +231,7 @@ find_seeds <- function(las, params)
     lidR::st_crs(long_passages) = lidR::st_crs(wood)
     lidR::st_crs(circle_points) = lidR::st_crs(wood)
     temp   <- suppressWarnings(rbind(wood, long_passages, circle_points))
-    res    <- round(params$decimation$barycentric_predecimation_resolution*0.8, 2)
+    res    <- round(params$path_finder$decimation*0.8, 2)
     temp$Z <- temp$Z * 0.5
     temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
     temp$Z <- temp$Z / 0.5
@@ -260,7 +274,6 @@ find_seeds <- function(las, params)
   {
     u = short_passages
     u@data$foliage = NULL
-    u@data$pointID = NULL
     v = rbind(long_passages_seeds, u)
     plot(v, color = "treeID")
   }
@@ -277,9 +290,10 @@ find_seeds <- function(las, params)
   # connected component and merge passage from the same trees for big tree only
   short_passages_withid = short_passages[!is.na(short_passages$treeID)]
   short_passages_withid$foliage = NULL
-  short_passages_withid$pointID = NULL
   short_passages_noid$foliage = NULL
-  short_passages_noid$pointID = NULL
+
+  short_passages_withid = lidR::filter_poi(short_passages_withid, passage > 0)
+  short_passages_noid = lidR::filter_poi(short_passages_noid, passage > 0)
 
   if (FALSE)
   {
@@ -306,6 +320,19 @@ slice_poi = function(las, heights, thinkness = 0.02)
   }))
 
   lidR::filter_poi(las, slice_filter)
+}
+
+densify_passage <- function(data, offset = 0.01)
+{
+  data_up <- data
+  data_up[["Z"]] <- data[["Z"]] + offset
+  data_up[["passage"]] = -1
+
+  data_down <- data
+  data_down[["Z"]] <- data[["Z"]] - offset
+  data_down[["passage"]] = -1
+
+  return(rbind(data, data_up, data_down))
 }
 
 # Convert to points

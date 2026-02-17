@@ -17,16 +17,44 @@ C_sor <- function(df, k, m, ncpu = 1L) {
     .Call(`_arbor_C_sor`, df, k, m, ncpu)
 }
 
-build_semantic_graph <- function(dec, target, gnd, master_seed, params) {
-    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, master_seed, params)
+segment_semantic_cpp <- function(core, ground, params) {
+    invisible(.Call(`_arbor_segment_semantic_cpp`, core, ground, params))
 }
 
-build_instance_graph <- function(dec, seed, master_seed, params) {
-    .Call(`_arbor_build_instance_graph`, dec, seed, master_seed, params)
+segment_instance_cpp <- function(core, seeds, params) {
+    invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
 }
 
-accumulate_passages <- function(graph_ptr, start_node, goal_nodes, num_points) {
-    .Call(`_arbor_accumulate_passages`, graph_ptr, start_node, goal_nodes, num_points)
+accumulate_passages_cpp <- function(core, gnd, params) {
+    .Call(`_arbor_accumulate_passages_cpp`, core, gnd, params)
+}
+
+assign_wood_from_passage_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_passage_cpp`, core, params)
+}
+
+assign_wood_from_high_likelihood_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_high_likelihood_cpp`, core, params)
+}
+
+assign_wood_from_medium_likelihood_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_medium_likelihood_cpp`, core, params)
+}
+
+assign_wood_from_wood_dilatation_cpp <- function(core, params) {
+    .Call(`_arbor_assign_wood_from_wood_dilatation_cpp`, core, params)
+}
+
+build_semantic_graph <- function(dec, target, gnd, params) {
+    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, params)
+}
+
+build_instance_graph <- function(dec, seed, params) {
+    .Call(`_arbor_build_instance_graph`, dec, seed, params)
+}
+
+accumulate_passages_old <- function(graph_ptr, start_node, goal_nodes, num_points) {
+    .Call(`_arbor_accumulate_passages_old`, graph_ptr, start_node, goal_nodes, num_points)
 }
 
 find_closest_node <- function(graph_ptr, ids) {
@@ -79,6 +107,14 @@ qsm_reconstruction_cpp <- function(df, tip_radius) {
 
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
+}
+
+qsm_tmesh_cpp <- function(df, resolution) {
+    .Call(`_arbor_qsm_tmesh_cpp`, df, resolution)
+}
+
+qsm_qmesh_cpp <- function(df, resolution) {
+    .Call(`_arbor_qsm_qmesh_cpp`, df, resolution)
 }
 
 qsf_write_cpp <- function(x, dir, format, binary) {

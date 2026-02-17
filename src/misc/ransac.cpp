@@ -167,24 +167,51 @@ double RansacCircle::get_arc_coverage() const
   if (inlier_indices.empty()) return 0.0;
 
   const double bin_size = 10.0;
-  std::set<int> unique_bins;
+  std::vector<double> angles;
+  angles.reserve(inlier_indices.size());
 
   for (int idx : inlier_indices)
   {
     const auto& p = points[idx];
     double angle = std::atan2(p.y - center_y, p.x - center_x) * 180.0 / M_PI;
-    if (angle < 0.0) angle += 360.0;  // Normalize to [0, 360) range
-    int bin = static_cast<int>(angle / bin_size); // Floor division to get bin (matches R's round behavior in this context)
+    if (angle < 0.0) angle += 360.0;
+    angles.push_back(angle);
+  }
+
+  std::sort(angles.begin(), angles.end());
+
+  std::set<int> unique_bins;
+  for (double angle : angles)
+  {
+    int bin = static_cast<int>(std::round(angle / bin_size) * bin_size);
     unique_bins.insert(bin);
   }
 
-  return unique_bins.size() * bin_size;
+  std::vector<int> sorted_bins(unique_bins.begin(), unique_bins.end());
+
+  if (sorted_bins.empty()) return 0.0;
+  if (sorted_bins.size() == 1) return bin_size;
+
+  int consecutive_count = 0;
+  for (size_t i = 1; i < sorted_bins.size(); ++i)
+  {
+    if (sorted_bins[i] - sorted_bins[i-1] <= static_cast<int>(bin_size))
+    {
+      ++consecutive_count;
+    }
+  }
+
+  // Check wraparound: is last bin close to first bin + 360?
+  if (sorted_bins.back() >= 360.0 - bin_size && sorted_bins.front() <= bin_size)
+  {
+    ++consecutive_count;
+  }
+
+  return consecutive_count * bin_size;
 }
 
 // ---- Validation ----
-bool RansacCircle::is_valid(double min_inlier_percentage,
-                            double max_inside_percentage,
-                            double min_arc_coverage_deg) const
+bool RansacCircle::is_valid(double min_inlier_percentage, double max_inside_percentage, double min_arc_coverage_deg) const
 {
   double inlier_p = get_inlier_percentage();
   double inside_p = get_inside_percentage();
@@ -204,26 +231,27 @@ Vec3 RansacCircle::fit_circle_on_3_points(
     double x2, double y2,
     double x3, double y3)
 {
-  double a = x1 * (y2 - y3) -
-    y1 * (x2 - x3) +
-    x2 * y3 - x3 * y2;
+  // Calculate the coefficients for the linear system
+  double A = 2.0 * (x2 - x1);
+  double B = 2.0 * (y2 - y1);
+  double C = x2*x2 + y2*y2 - x1*x1 - y1*y1;
+  double D = 2.0 * (x3 - x1);
+  double E = 2.0 * (y3 - y1);
+  double G = x3*x3 + y3*y3 - x1*x1 - y1*y1;
 
-  if (std::fabs(a) < 1e-12)
+  // Solve for a and b using Cramer's rule
+  double denominator = A * E - B * D;
+
+  if (std::fabs(denominator) < 1e-12)
     return {0, 0, 0};
 
-  double b = (x1 * x1 + y1 * y1) * (y3 - y2) +
-    (x2 * x2 + y2 * y2) * (y1 - y3) +
-    (x3 * x3 + y3 * y3) * (y2 - y1);
+  double a = (C * E - B * G) / denominator;
+  double b = (A * G - C * D) / denominator;
 
-  double c = (x1 * x1 + y1 * y1) * (x2 - x3) +
-    (x2 * x2 + y2 * y2) * (x3 - x1) +
-    (x3 * x3 + y3 * y3) * (x1 - x2);
+  // Calculate the radius
+  double r = std::sqrt((x1 - a) * (x1 - a) + (y1 - b) * (y1 - b));
 
-  double cx = -b / (2 * a);
-  double cy = -c / (2 * a);
-  double r = std::sqrt((x1 - cx) * (x1 - cx) + (y1 - cy) * (y1 - cy));
-
-  return {cx, cy, r};
+  return {a, b, r};
 }
 
 // --- Compute rotation matrix between two vectors ---

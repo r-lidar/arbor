@@ -16,18 +16,15 @@ static inline std::array<double,3> cross(const std::array<double,3>& a, const st
   };
 }
 
-void QSM::build_mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int resolution) const
+void QSM::mesh(std::vector<std::array<double,3>>& vertices, int resolution) const
 {
   vertices.clear();
-  faces.clear();
 
   // ---- sort cylinder IDs ----
   std::vector<int> ids;
   ids.reserve(cylinders_.size());
   for (const auto& kv : cylinders_)  ids.push_back(kv.first);
   std::sort(ids.begin(), ids.end());
-
-  int v_offset = 0;
 
   for (int cid : ids)
   {
@@ -84,10 +81,22 @@ void QSM::build_mesh(std::vector<std::array<double,3>>& vertices, std::vector<st
 
     for (auto& v : bottom) vertices.push_back(v);
     for (auto& v : top)    vertices.push_back(v);
+  }
+}
+
+void QSM::tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int resolution) const
+{
+  mesh(vertices, resolution);
+
+  faces.clear();
+  int num_cylinders = vertices.size() / (2 * resolution);
+
+  for (int i = 0; i < num_cylinders; i++)
+  {
+    int v_offset = i * 2 * resolution;
 
     for (int j=0; j<resolution; j++)
     {
-      // PLY uses 0-based indices -> subtract 1 below
       int a = v_offset + j;
       int b = v_offset + ((j+1) % resolution);
       int c0 = a + resolution;
@@ -96,7 +105,28 @@ void QSM::build_mesh(std::vector<std::array<double,3>>& vertices, std::vector<st
       faces.push_back({a, b, d});
       faces.push_back({a, d, c0});
     }
+  }
+}
 
-    v_offset += 2 * resolution;
+void QSM::qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int resolution) const
+{
+  mesh(vertices, resolution);
+
+  faces.clear();
+  int num_cylinders = vertices.size() / (2 * resolution);
+
+  for (int i = 0; i < num_cylinders; i++)
+  {
+    int v_offset = i * 2 * resolution;
+
+    for (int j=0; j<resolution; j++)
+    {
+      int a = v_offset + j;
+      int b = v_offset + ((j+1) % resolution);
+      int c = b + resolution;
+      int d = a + resolution;
+
+      faces.push_back({a, b, c, d});
+    }
   }
 }
