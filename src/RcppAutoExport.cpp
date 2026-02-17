@@ -86,6 +86,15 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 
 // ========================
+// SEEDS
+// ========================
+
+
+// [[Rcpp::export]]
+Rcpp::DataFrame cpp_detect_tree_circles(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20);
+
+
+// ========================
 // QSM
 // ========================
 

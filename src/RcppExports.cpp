@@ -186,6 +186,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_detect_tree_circles
+Rcpp::DataFrame cpp_detect_tree_circles(Rcpp::DataFrame wood_df, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, int min_cluster_size);
+RcppExport SEXP _arbor_cpp_detect_tree_circles(SEXP wood_dfSEXP, SEXP resolutionSEXP, SEXP connectivitySEXP, SEXP num_ransac_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP min_cluster_sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type wood_df(wood_dfSEXP);
+    Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
+    Rcpp::traits::input_parameter< int >::type connectivity(connectivitySEXP);
+    Rcpp::traits::input_parameter< int >::type num_ransac_iterations(num_ransac_iterationsSEXP);
+    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type min_cluster_size(min_cluster_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_detect_tree_circles(wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_topology_cpp
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
@@ -411,6 +427,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
     {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
+    {"_arbor_cpp_detect_tree_circles", (DL_FUNC) &_arbor_cpp_detect_tree_circles, 6},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
