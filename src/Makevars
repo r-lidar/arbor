@@ -1,7 +1,7 @@
-PKG_CPPFLAGS = -DUSING_R -I./ -I./misc/ -I./qsm/ -I./qsf/ -I./api/ -I./segment/ -I./nanoflann/ -I./R
+PKG_CPPFLAGS = -DUSING_R -I./ -I./misc/ -I./qsm/ -I./qsf/ -I./api/ -I./segment/ -I./seed/ -I./nanoflann/ -I./R
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
 CXX_STD = CXX17
-SOURCES = $(wildcard misc/*.cpp qsm/*.cpp qsf/*.cpp  api/*.cpp segment/*.cpp experimental/*.cpp R/*.cpp ./*.cpp)
+SOURCES = $(wildcard misc/*.cpp qsm/*.cpp qsf/*.cpp  api/*.cpp segment/*.cpp experimental/*.cpp seed/*.cpp R/*.cpp ./*.cpp)
 TEMP1   = $(SOURCES:.cpp=.o)
 OBJECTS = $(TEMP1:.c=.o)

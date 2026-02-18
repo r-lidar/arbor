@@ -67,7 +67,6 @@ find_seeds <- function(las, params)
     for (i in 1:nrow(circles)) add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i], col = col[i])
   }
 
-
   logger("Safe zone exclusion")
 
   if (circles_detected)
@@ -107,27 +106,18 @@ find_seeds <- function(las, params)
         add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
     }
 
-    logger("Discs to seeds conversion")
+    logger("Generate tree cage")
 
-    # Convert circle to points
-    res= params$path_finder$decimation*0.75
-    circle_points_list <- lapply(1:nrow(circles), function(i) {
-      generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
-    })
-    circle_points = do.call(rbind, circle_points_list)
+    cage = generate_cage(circles, params)
 
-    connectors <- generate_all_groups(circles, step_z = res)
-    connectors = rbind(connectors$disks)
+    if (FALSE) qpoints3d(circle_points@data)
 
-    circle_points = rbind(circle_points, connectors)
-    circle_points$passage = 1000
-    circle_points$hag = 0
-    circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
+    logger("Find main tree seeds")
 
-    # Bind the wood and the long passages and compute connected component and merge passage from the same trees
+    # Bind the wood, the long passages and the cage and compute connected component and merge passage from the same trees
     lidR::st_crs(long_passages) = lidR::st_crs(wood)
-    lidR::st_crs(circle_points) = lidR::st_crs(wood)
-    temp   <- suppressWarnings(rbind(wood, long_passages, circle_points))
+    lidR::st_crs(cage) = lidR::st_crs(wood)
+    temp   <- suppressWarnings(rbind(wood, long_passages, cage))
     res    <- round(params$path_finder$decimation*0.8, 2)
     temp$Z <- temp$Z * 0.5
     temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
@@ -140,9 +130,11 @@ find_seeds <- function(las, params)
       for (i in 1:nrow(circles))
         add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
     }
+
+    if (FALSE) plot(temp, color = "treeID")
   }
 
-  logger("Pathfinder")
+  logger("Pathfinder for minor tree seeds")
 
   # We have seed for the big trees (long passage)
   long_passages_seeds = lidR::filter_poi(temp, passage > 0)
@@ -230,6 +222,32 @@ densify_passage <- function(data, offset = 0.01)
   data_down[["passage"]] = -1
 
   return(rbind(data, data_up, data_down))
+}
+
+generate_cage = function(circles, params)
+{
+  # Convert circle to points
+  res = params$path_finder$decimation*0.75
+  circle_points_list <- lapply(1:nrow(circles), function(i) {
+    generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
+  })
+  circle_points = do.call(rbind, circle_points_list)
+
+  if (FALSE) qpoints3d(circle_points)
+
+  connectors <- generate_all_groups(circles, step_z = res)
+  connectors = connectors$disks
+
+  if (FALSE) qpoints3d(connectors)
+
+  circle_points = rbind(circle_points, connectors)
+  circle_points$passage = 1000
+  circle_points$hag = 0
+  circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
+
+  if (FALSE) qpoints3d(circle_points@data)
+
+  return(circle_points)
 }
 
 # Convert to points
@@ -467,5 +485,14 @@ add_circle3d <- function(x, center_x, center_y, radius, height, col = "red")
 
   # Plot the circle in 3D
   rgl::lines3d(xx, yy, zz, lwd = 5, col = col)
+}
+
+qpoints3d = function(x)
+{
+  dx = mean(x[[1]])
+  dy = mean(x[[2]])
+  x[[1]] = x[[1]] - dx
+  x[[2]] = x[[2]] - dy
+  rgl::points3d(x)
 }
 
