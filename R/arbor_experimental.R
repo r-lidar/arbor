@@ -40,7 +40,7 @@ extract_tree_context = function(las, tree, exclude_tree = FALSE)
   if (is.numeric(tree)) { id <- tree } else { id <- tree$treeID[1] }
 
   treeID <- NULL
-  idx <- extract_tree_context_cpp(las@data, 45, exclude_tree = exclude_tree)
+  idx <- extract_tree_context_cpp(las@data, tree, exclude_tree = exclude_tree, k = 20)
   con <- lidR::filter_poi(las, treeID %in% idx)
 
   return(con)

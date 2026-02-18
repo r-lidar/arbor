@@ -27,8 +27,6 @@ arbor_studio_seeds <- function(las, seeds, ...)
   # RENDER 3D SCENE
   # ============================================================================
 
-  #cat("Rendering background point cloud...\n")
-
   passage <- hag <- NULL
 
   pc <- lidR::filter_poi(las, hag < 2)
@@ -36,15 +34,18 @@ arbor_studio_seeds <- function(las, seeds, ...)
 
   x <- plot_semantic(pc)
   lidR::plot(long_passages, add = x, pal = "gray", size = 2)
+  rgl::axes3d()
+  rgl::title3d(main = "TreeID Editor", xlab = "X", ylab = "Y", zlab = "Z")
+  dim = rgl::par3d("windowRect")
+  dim[3] = dim[3] + 256
+  dim[4] = dim[4] + 256
+  rgl::par3d(windowRect = dim)
 
   seeds$X <- seeds$X - x[1]
   seeds$Y <- seeds$Y - x[2]
 
   # Render editable seeds
   seeds_obj_id <- rgl::points3d(seeds$X, seeds$Y, seeds$Z, col = get_colors(seeds$treeID), size = 7)
-
-  rgl::axes3d()
-  rgl::title3d(main = "TreeID Editor", xlab = "X", ylab = "Y", zlab = "Z")
 
   # ============================================================================
   # STATE VARIABLES
@@ -76,8 +77,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
       tryCatch(rgl::pop3d(id = seeds_obj_id), error = function(e) invisible(NULL))
     }
     colors_palette <<- setup_palette(seeds$treeID)
-    seeds_obj_id <<- rgl::points3d(seeds$X, seeds$Y, seeds$Z,
-                                   col = get_colors(seeds$treeID), size = 7)
+    seeds_obj_id <<- rgl::points3d(seeds$X, seeds$Y, seeds$Z, col = get_colors(seeds$treeID), size = 7)
   }
 
   clear_keep_markers <- function()
@@ -153,15 +153,15 @@ arbor_studio_seeds <- function(las, seeds, ...)
   selection_loop <- function()
   {
     state <<- "SELECT_KEEP"
-    update_status("Selection mode ACTIVE - Click KEEP seed in 3D viewer", "blue", "lightblue")
-    update_selection_info("Step 1: Click a KEEP seed in the 3D viewer", "lightblue")
+    update_status("Selection mode ACTIVE")
+    update_selection_info("Click a reference seed in the 3D viewer")
 
     repeat
     {
       # Check if RGL window was closed
       if (length(rgl::rgl.dev.list()) == 0 || rgl::rgl.cur() == 0)
       {
-        #cat("\n\u2713 RGL window closed - exiting\n")
+        #cat("\nRGL window closed - exiting\n")
         selection_active <<- FALSE
         app_running <<- FALSE
         break
@@ -179,7 +179,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
       # Wait for user click (BLOCKING)
       sel <- tryCatch(
       {
-          rgl::identify3d(seeds$X, seeds$Y, seeds$Z, n = 1, plot = FALSE, buttons = "middle", tolerance = 40)
+        rgl::identify3d(seeds$X, seeds$Y, seeds$Z, n = 1, plot = FALSE, buttons = "middle", tolerance = 40)
       },
       error = function(e) NULL)
 
@@ -212,10 +212,8 @@ arbor_studio_seeds <- function(las, seeds, ...)
 
         add_keep_marker(keep_seed)
 
-        update_status(sprintf("KEEP seed selected: %s", keep_seed$treeID), "blue", "lightblue")
-        update_selection_info(sprintf("KEEP: %s | Click CHANGE seeds (or KEEP again to finish)", keep_seed$treeID), "lightblue")
-
-        #cat(sprintf(">>> KEEP seed selected: ID %s\n", keep_seed$treeID))
+        update_status(sprintf("KEEP seed selected: %s", keep_seed$treeID))
+        update_selection_info("Click CHANGE seeds")
       }
       else if (state == "SELECT_CHANGE")
       {
@@ -225,8 +223,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
           if (length(change_seeds) == 0)
           {
             # No CHANGE seeds selected -> cancel and return to IDLE
-            update_status("No CHANGE seeds - canceling selection", "purple", "lavender")
-            cat(">>> No CHANGE seeds to merge. Returning to IDLE.\n")
+            update_status("No CHANGE seeds - canceling selection")
 
             clear_keep_markers()
             clear_change_markers()
@@ -236,7 +233,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
             state <<- "IDLE"
             selection_active <<- FALSE
 
-            update_selection_info("Ready to start new selection", "lightyellow")
+            update_selection_info("Ready to start new selection")
             update_button_states()
 
             Sys.sleep(1)
@@ -246,7 +243,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
           # PERFORM MERGE
           change_ids <- sapply(change_seeds, function(s) s$treeID)
 
-          update_status(sprintf("Merging %d seeds into %s...",  length(change_ids), keep_seed$treeID), "yellow", "lightyellow")
+          update_status(sprintf("Merging %d seeds into %s...",  length(change_ids), keep_seed$treeID))
 
           # Update data
           for (change_id in change_ids)
@@ -257,10 +254,10 @@ arbor_studio_seeds <- function(las, seeds, ...)
           # Refresh visuals
           refresh_seeds_display()
 
-          update_status(sprintf("\u2713 Merged %d seeds successfully!", length(change_ids)), "darkgreen", "lightgreen")
-          update_selection_info(sprintf("\u2713 Merged %d IDs into %s", length(change_ids), keep_seed$treeID), "lightgreen")
+          update_status(sprintf("Merged %d seeds successfully!", length(change_ids)), "darkgreen", "lightgreen")
+          update_selection_info(sprintf("Merged %d IDs into %s", length(change_ids), keep_seed$treeID), "lightgreen")
 
-          #cat(sprintf("\u2713 Successfully merged %d IDs\n\n", length(change_ids)))
+          #cat(sprintf("Successfully merged %d IDs\n\n", length(change_ids)))
 
           # CLEANUP & RESET STATE
           clear_keep_markers()
@@ -274,7 +271,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
           Sys.sleep(1.5)
 
           update_status("Ready", "black")
-          update_selection_info("Ready to start new selection", "lightyellow")
+          update_selection_info("Ready to start new selection")
           update_button_states()
 
           break
@@ -301,7 +298,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
           if (already_selected)
           {
             # UNSELECT THIS CHANGE SEED
-            update_status(sprintf("Unselecting CHANGE seed: %s", selected_id), "purple")
+            update_status(sprintf("Unselecting CHANGE seed: %s", selected_id))
 
             # Remove visual elements
             rgl::pop3d(id = change_markers[[existing_index]])
@@ -314,7 +311,7 @@ arbor_studio_seeds <- function(las, seeds, ...)
             change_texts <<- change_texts[-existing_index]
             change_lines <<- change_lines[-existing_index]
 
-            update_selection_info(sprintf("KEEP: %s | CHANGE seeds: %d (click KEEP to validate)", keep_seed$treeID, length(change_seeds)), "lightblue")
+            update_selection_info(sprintf("KEEP: %s | CHANGE seeds: %d (click KEEP to validate)", keep_seed$treeID, length(change_seeds)))
           }
           else
           {
@@ -322,8 +319,8 @@ arbor_studio_seeds <- function(las, seeds, ...)
             change_seeds[[length(change_seeds) + 1]] <<- selected_seed
             add_change_marker(selected_seed)
 
-            update_status(sprintf("CHANGE seed added: %s", selected_id), "orange", "lightyellow")
-            update_selection_info(sprintf("KEEP: %s | CHANGE seeds: %d (click KEEP to validate)", keep_seed$treeID, length(change_seeds)), "lightyellow")
+            update_status(sprintf("CHANGE seed added: %s", selected_id))
+            update_selection_info(sprintf("KEEP: %s | CHANGE seeds: %d (click KEEP to validate)", keep_seed$treeID, length(change_seeds)))
           }
         }
       }
@@ -350,25 +347,18 @@ arbor_studio_seeds <- function(las, seeds, ...)
     if (app_running)
     {
       update_status("Ready", "black")
-      update_selection_info("Ready to start new selection", "lightyellow")
+      update_selection_info("Ready to start new selection")
       update_button_states()
     }
   }
 
   exit_application <- function()
   {
-    #cat("\n\u2713 Exiting editor\n")
-
+    window_open <<- FALSE
     selection_active <<- FALSE
     app_running <<- FALSE
 
-    # Close RGL window
-    if (length(rgl::rgl.dev.list()) > 0)
-    {
-      tryCatch(rgl::close3d(), error = function(e) invisible(NULL))
-    }
-
-    # Close tcltk window - FIXED: Use tkdestroy instead of tdestroy
+    # Close tcltk window
     tryCatch(tcltk::tkdestroy(tt), error = function(e) invisible(NULL))
   }
 
@@ -376,11 +366,13 @@ arbor_studio_seeds <- function(las, seeds, ...)
   # BUILD TCLTK UI
   # ============================================================================
 
+  window_open <- TRUE
+
   tt <- tcltk::tktoplevel()
   tcltk::tkwm.title(tt, "Arbor Studio - Seed Editor")
 
   # Bind window close event
-  tcltk::tkwm.protocol(tt, "WM_DELETE_WINDOW", exit_application)
+  #tcltk::tkwm.protocol(tt, "WM_DELETE_WINDOW", prevent_close)
 
   # Main frame
   main_frame <- tcltk::tkframe(tt, borderwidth = 2, relief = "groove")
@@ -391,17 +383,17 @@ arbor_studio_seeds <- function(las, seeds, ...)
   tcltk::tkpack(title_label, pady = c(5, 10))
 
   # Status frame
-  status_frame <- tcltk::tkframe(main_frame, borderwidth = 1, relief = "sunken", background = "gray95")
+  status_frame <- tcltk::tkframe(main_frame, borderwidth = 1, relief = "sunken")
   tcltk::tkpack(status_frame, fill = "x", padx = 5, pady = 5)
 
-  status_label <- tcltk::tklabel(status_frame, text = "Status: Ready", anchor = "w", font = tcltk::tkfont.create(size = 10), background = "gray95")
+  status_label <- tcltk::tklabel(status_frame, text = "Status: Ready", anchor = "w", font = tcltk::tkfont.create(size = 10))
   tcltk::tkpack(status_label, fill = "x", padx = 5, pady = 5)
 
   # Selection info frame
-  info_frame <- tcltk::tkframe(main_frame, borderwidth = 1, relief = "sunken", background = "lightyellow")
+  info_frame <- tcltk::tkframe(main_frame, borderwidth = 1, relief = "sunken")
   tcltk::tkpack(info_frame, fill = "x", padx = 5, pady = 5)
 
-  selection_info_label <- tcltk::tklabel(info_frame, text = "Ready to start new selection", anchor = "w", font = tcltk::tkfont.create(size = 9), background = "lightyellow")
+  selection_info_label <- tcltk::tklabel(info_frame, text = "Ready to start new selection", anchor = "w", font = tcltk::tkfont.create(size = 9))
   tcltk::tkpack(selection_info_label, fill = "x", padx = 5, pady = 5)
 
   # Separator
@@ -412,31 +404,32 @@ arbor_studio_seeds <- function(las, seeds, ...)
   tcltk::tkpack(button_section_label, pady = c(0, 5))
 
   # Button 1: Start Selection
-  btn_start_selection <- tcltk::tkbutton(main_frame, text = "\u2316 Start Selection", command = start_selection, width = 25, pady = 10, fg = "dark blue", font = tcltk::tkfont.create(size = 10, weight = "bold"))
+  btn_start_selection <- tcltk::tkbutton(main_frame, text = "Start selection", command = start_selection, pady = 10)
   tcltk::tkpack(btn_start_selection, fill = "x", padx = 10, pady = 8)
+
+  # Button 2: Exit
+  btn_exit <- tcltk::tkbutton(main_frame, text = "Exit and return", command = exit_application, pady = 8, fg = "red")
+  tcltk::tkpack(btn_exit, fill = "x", padx = 10, pady = 5)
 
   # Separator
   tcltk::tkpack(tcltk::tkframe(main_frame, height = 2, borderwidth = 1, relief = "sunken"), fill = "x", pady = 10)
 
-  # Button 2: Exit
-  btn_exit <- tcltk::tkbutton(main_frame, text = "Exit", command = exit_application, width = 25, pady = 8, fg = "red")
-  tcltk::tkpack(btn_exit, fill = "x", padx = 10, pady = 5)
 
   # Help text
   help_text <- "
 Workflow:
-1. Click 'Start Selection' button to begin
-2. Click (middle button) to select one REFERENCE seed
-3. Click (middle button) to select several CHANGE seeds
-4. Click (middle button) CHANGE seeds again to unselect them
-5. Click (middle button) REFERENCE seed again to validate and merge
-6. Redo 1. for more seeds
+1. Click 'Start selection' button
+2. Click (middle) to select one ref. seed in 3D
+3. Click (middle) to select several CHANGE seeds
+4. Click (middle) the ref. seed again to merge
+5. Redo 1. for more seeds to merge
 7. Click 'Exit' to close editor
 
 Note:
-* Buttons are disabled during selection mode
+* App. buttons are disabled during selection mode
 * Validation happens by clicking REFERENCE seed again
-* The only way to quit is the 'exit' button
+* Clicking on an already selected seed = unselect
+* DO NOT close the rgl windows while in selection mode
 "
   help_label <- tcltk::tklabel(main_frame, text = help_text, justify = "left", font = tcltk::tkfont.create(size = 8), fg = "gray40")
   tcltk::tkpack(help_label, pady = c(5, 10))
@@ -455,7 +448,7 @@ Note:
 
     if (length(rgl::rgl.dev.list()) == 0 || rgl::rgl.cur() == 0)
     {
-      cat("\n\u2713 RGL window closed - exiting\n")
+      #cat("\nRGL window closed - exiting\n")
       exit_application()
       return()
     }
@@ -466,7 +459,24 @@ Note:
   check_rgl_window()
 
   # Wait for window to close
-  tcltk::tkwait.window(tt)
+  while (window_open)
+  {
+    tryCatch(
+    {
+      tcltk::tcl("update")  # Process tcltk events
+      Sys.sleep(0.05)       # Small delay to prevent CPU spinning
+    },
+    error = function(e)
+    {
+      window_open <<- FALSE  # Exit loop on any error
+    })
+  }
+
+  # Close RGL window
+  if (length(rgl::rgl.dev.list()) > 0)
+  {
+    tryCatch(rgl::close3d(), error = function(e) invisible(NULL))
+  }
 
   # Restore original coordinates
   seeds$X <- seeds$X + x[1]

@@ -5,6 +5,7 @@
 - Enhancement: `segment_semantic()` 20% faster
 - Fix: bug with small trees in `qsm()`
 - Fix: bug when rendering `qsf` with `plot()`
+- Fix: bugs in arbor studio
 
 # arbor 0.8.0
 
