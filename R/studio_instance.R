@@ -197,7 +197,7 @@ arbor_studio_instance <- function(las, ...)
 
     if (nrow(ids) > 0)
     {
-      selected_idx <- rgl::identify3d(x = env$las_orig$X-env$center_x, y = env$las_orig$Y-env$center_y, z = env$las_orig$Z, n = 1, plot = FALSE)
+      selected_idx <- rgl::identify3d(x = env$las_orig$X-env$center_x, y = env$las_orig$Y-env$center_y, z = env$las_orig$Z, n = 1, plot = FALSE, buttons = "middle", tolerance = 40)
 
       if (length(selected_idx) > 0 && selected_idx > 0)
       {
