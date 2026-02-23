@@ -115,4 +115,6 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuil
   oss << std::fixed << std::setprecision(1) << elapsed.count();
 
   logger("Instance segmentation completed in " + oss.str() + " s");
+
+  delete graph;
 }
