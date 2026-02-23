@@ -1,18 +1,12 @@
-#include <vector>
+#include <Rcpp.h>
 #include <cmath>
+#include <vector>
 #include <algorithm>
+#include <set>
 
-struct CircleResult
-{
-  double X;
-  double Y;
-  double Z;
-  double R;
-  int id;
+using namespace Rcpp;
 
-  CircleResult(double x, double y, double z, double r, int cluster_id) : X(x), Y(y), Z(z), R(r), id(cluster_id) {}
-};
-
+// Structure to hold a 3D point
 struct Point3D
 {
   double X;
@@ -22,16 +16,19 @@ struct Point3D
   Point3D(double x, double y, double z) : X(x), Y(y), Z(z) {}
 };
 
-struct CageResult
-{
-  std::vector<Point3D> points;
-  // Optional: add passage and hag attributes if needed
-  // std::vector<double> passage;
-  // std::vector<double> hag;
+// Structure to hold a circle
+struct Circle {
+  double X;
+  double Y;
+  double Z;
+  double R;
+  int id;
+
+  Circle(double x, double y, double z, double r, int i) : X(x), Y(y), Z(z), R(r), id(i) {}
 };
 
-// Generate points along a circle perimeter
-std::vector<Point3D> generate_circle_points(double x, double y, double z, double r, double step = 0.1)
+// Generate points on a circle circumference
+std::vector<Point3D> generate_circle_points(double x, double y, double z, double r, double step)
 {
   std::vector<Point3D> points;
 
@@ -39,145 +36,229 @@ std::vector<Point3D> generate_circle_points(double x, double y, double z, double
   double circumference = 2.0 * M_PI * r;
   int n_points = static_cast<int>(std::ceil(circumference / step));
 
-  // Generate points around the circle
+  // Safety check
+  if (n_points <= 0)
+  {
+    return points;
+  }
+
+  points.reserve(n_points);
+
+  // Generate points at regular angular intervals
   for (int i = 0; i < n_points; ++i)
   {
     double theta = (2.0 * M_PI * i) / n_points;
     double px = x + r * std::cos(theta);
     double py = y + r * std::sin(theta);
-    points.emplace_back(px, py, z);
+    points.push_back(Point3D(px, py, z));
   }
 
   return points;
 }
 
-// Generate points arranged as radii on a disk (8 directions)
+// Generate points on radii of a disk (8 points at equal angles)
 std::vector<Point3D> generate_disk_radii(double x, double y, double z, double r, int n = 8)
 {
   std::vector<Point3D> points;
+  points.reserve(n);
 
-  for (int i = 0; i < n; ++i)
-  {
+  for (int i = 0; i < n; ++i) {
     double angle = (2.0 * M_PI * i) / n;
     double px = x + r * std::cos(angle);
     double py = y + r * std::sin(angle);
-    points.emplace_back(px, py, z);
+    points.push_back(Point3D(px, py, z));
   }
 
   return points;
 }
 
-// Generate connecting points between circles in a group
-struct GroupResult
+// Generate connectors for a single group of circles
+std::vector<Point3D> generate_connectors(std::vector<Circle> group, double step_z)
 {
-  std::vector<Point3D> disks;
-  std::vector<Point3D> centerline;
-};
+  std::vector<Point3D> connectors;
 
-GroupResult generate_group_points(std::vector<CircleResult>& group, double step_z = 0.05)
-{
+  if (group.size() < 2)
+  {
+    return connectors;
+  }
+
   // Sort by Z coordinate
-  std::sort(group.begin(), group.end(), [](const CircleResult& a, const CircleResult& b) {
-    return a.Z < b.Z;
-  });
+  std::sort(group.begin(), group.end(), [](const Circle& a, const Circle& b) { return a.Z < b.Z; });
 
-  GroupResult result;
-
+  // Iterate through pairs of consecutive circles
   for (size_t i = 0; i < group.size() - 1; ++i)
   {
-    const CircleResult& c1 = group[i];
-    const CircleResult& c2 = group[i + 1];
+    const Circle& c1 = group[i];
+    const Circle& c2 = group[i + 1];
 
-    // Generate Z sequence from c1.Z to c2.Z with step_z increments
+    double dz = c2.Z - c1.Z;
+
+    // Safety check for zero or negative height difference
+    if (dz <= 0.0)
+    {
+      continue;
+    }
+
+    // Generate vertical sequence
     std::vector<double> z_seq;
-    for (double z = c1.Z; z < c2.Z; z += step_z)
+    double z_current = c1.Z;
+
+    while (z_current <= c2.Z - step_z)
     {
-      z_seq.push_back(z);
-    }
-    // Ensure the top circle is included
-    if (z_seq.empty() || z_seq.back() != c2.Z)
-    {
-      z_seq.push_back(c2.Z);
+      z_seq.push_back(z_current);
+      z_current += step_z;
     }
 
-    // Interpolate for each Z level
-    for (double z : z_seq)
-    {
-      double t = (z - c1.Z) / (c2.Z - c1.Z);
+    // Always include the top
+    z_seq.push_back(c2.Z);
 
-      // Interpolate center position and radius
+    // Generate points at each z level
+    for (size_t j = 0; j < z_seq.size(); ++j)
+    {
+      double z = z_seq[j];
+
+      // Interpolation parameter
+      double t = (z - c1.Z) / dz;
+
+      // Interpolate center and radius
       double x_interp = c1.X + t * (c2.X - c1.X);
       double y_interp = c1.Y + t * (c2.Y - c1.Y);
       double r_interp = c1.R + t * (c2.R - c1.R);
 
-      // Add centerline point
-      result.centerline.emplace_back(x_interp, y_interp, z);
+      // Generate disk radii points
+      std::vector<Point3D> disk_points = generate_disk_radii(x_interp, y_interp, z, r_interp, 8);
 
-      // Add disk radii points
-      auto disk_points = generate_disk_radii(x_interp, y_interp, z, r_interp);
-      result.disks.insert(result.disks.end(), disk_points.begin(), disk_points.end());
+      // Reserve space before inserting
+      connectors.reserve(connectors.size() + disk_points.size());
+      connectors.insert(connectors.end(), disk_points.begin(), disk_points.end());
     }
   }
 
-  return result;
+  return connectors;
 }
 
-// Generate points for all groups
-GroupResult generate_all_groups(std::vector<CircleResult>& circles, double step_z = 0.05)
+// Generate all connectors for all groups
+std::vector<Point3D> generate_all_connectors(const std::vector<Circle>& circles, double step_z)
 {
-  GroupResult combined_result;
+  std::vector<Point3D> all_connectors;
 
-  // Find unique group IDs
-  std::vector<int> unique_ids;
-  for (const auto& circle : circles)
-  {
-    if (std::find(unique_ids.begin(), unique_ids.end(), circle.id) == unique_ids.end()) {
-      unique_ids.push_back(circle.id);
-    }
+  if (circles.empty()) {
+    return all_connectors;
   }
 
+  // Find unique IDs using set for efficiency
+  std::set<int> unique_ids_set;
+  for (const auto& circle : circles) {
+    unique_ids_set.insert(circle.id);
+  }
+
+  std::vector<int> unique_ids(unique_ids_set.begin(), unique_ids_set.end());
+
   // Process each group
-  for (int group_id : unique_ids)
+  for (int id : unique_ids)
   {
-    // Extract circles belonging to this group
-    std::vector<CircleResult> group;
+    // Extract circles for this group
+    std::vector<Circle> group;
     for (const auto& circle : circles)
     {
-      if (circle.id == group_id)
-      {
+      if (circle.id == id) {
         group.push_back(circle);
       }
     }
 
-    // Generate points for this group
-    GroupResult group_result = generate_group_points(group, step_z);
+    // Generate connectors for this group
+    if (group.size() > 1)
+    {
+      std::vector<Point3D> group_connectors = generate_connectors(group, step_z);
 
-    // Combine results
-    combined_result.disks.insert(combined_result.disks.end(), group_result.disks.begin(), group_result.disks.end());
-    combined_result.centerline.insert(combined_result.centerline.end(), group_result.centerline.begin(), group_result.centerline.end());
+      // Reserve space before inserting
+      all_connectors.reserve(all_connectors.size() + group_connectors.size());
+      all_connectors.insert(all_connectors.end(), group_connectors.begin(), group_connectors.end());
+    }
   }
 
-  return combined_result;
+  return all_connectors;
 }
 
-// Main function: generate cage from circles
-CageResult generate_cage(std::vector<CircleResult>& circles, double decimation = 0.1)
+// Pure C++ function that does all the work
+std::vector<Point3D> generate_cage(const std::vector<Circle>& circles, double decimation)
 {
-  CageResult cage;
-
-  // Step 1: Generate circle perimeter points
+  // Calculate step size
   double res = decimation * 0.75;
-  for (const auto& circle : circles)
+
+  // Safety check
+  if (res <= 0.0)
   {
-    auto circle_points = generate_circle_points(circle.X, circle.Y, circle.Z, circle.R, res);
-    cage.points.insert(cage.points.end(), circle_points.begin(), circle_points.end());
+    Rcpp::stop("Invalid decimation value, resulting in non-positive step size");
   }
 
-  // Step 2: Generate connector points between circles
-  GroupResult connectors = generate_all_groups(circles, res);
+  // Generate circle points
+  std::vector<Point3D> all_circle_points;
+  for (const auto& circle : circles)
+  {
+    std::vector<Point3D> pts = generate_circle_points(circle.X, circle.Y, circle.Z, circle.R, res);
+    all_circle_points.reserve(all_circle_points.size() + pts.size());
+    all_circle_points.insert(all_circle_points.end(), pts.begin(), pts.end());
+  }
 
-  // Step 3: Combine all points
-  cage.points.insert(cage.points.end(), connectors.disks.begin(), connectors.disks.end());
+  // Generate connectors
+  std::vector<Point3D> all_connectors = generate_all_connectors(circles, res);
 
-  return cage;
+  // Combine all points
+  std::vector<Point3D> cage_points;
+  cage_points.reserve(all_circle_points.size() + all_connectors.size());
+  cage_points.insert(cage_points.end(), all_circle_points.begin(), all_circle_points.end());
+  cage_points.insert(cage_points.end(), all_connectors.begin(), all_connectors.end());
+
+  return cage_points;
+}
+
+// Rcpp wrapper - only converts input/output
+// [[Rcpp::export]]
+DataFrame generate_cage_cpp(DataFrame circles, double decimation)
+{
+  // Convert input: R DataFrame -> C++ vector of Circles
+  NumericVector X = circles["X"];
+  NumericVector Y = circles["Y"];
+  NumericVector Z = circles["Z"];
+  NumericVector R = circles["R"];
+  IntegerVector id = circles["id"];
+
+  int n = X.size();
+
+  if (n == 0) {
+    return DataFrame::create(
+      Named("X") = NumericVector(),
+      Named("Y") = NumericVector(),
+      Named("Z") = NumericVector()
+    );
+  }
+
+  std::vector<Circle> circle_vec;
+  circle_vec.reserve(n);
+  for (int i = 0; i < n; ++i) {
+
+    circle_vec.push_back(Circle(X[i], Y[i], Z[i], R[i], id[i]));
+  }
+
+  // Call pure C++ function
+  std::vector<Point3D> cage_points = generate_cage(circle_vec, decimation);
+
+  // Convert output: C++ vector of Points -> R DataFrame
+  size_t total_points = cage_points.size();
+  NumericVector out_X(total_points);
+  NumericVector out_Y(total_points);
+  NumericVector out_Z(total_points);
+
+  for (size_t i = 0; i < total_points; ++i) {
+    out_X[i] = cage_points[i].X;
+    out_Y[i] = cage_points[i].Y;
+    out_Z[i] = cage_points[i].Z;
+  }
+
+  return DataFrame::create(
+    Named("X") = out_X,
+    Named("Y") = out_Y,
+    Named("Z") = out_Z
+  );
 }

@@ -110,7 +110,7 @@ find_seeds <- function(las, params)
 
     logger("Generate tree cage")
 
-    cage = generate_cage(circles, params)
+    cage = generate_cage(circles, params, lidR::header(las))
 
     if (FALSE) plot(cage)
 

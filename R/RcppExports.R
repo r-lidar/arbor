@@ -61,6 +61,10 @@ find_closest_node <- function(graph_ptr, ids) {
     .Call(`_arbor_find_closest_node`, graph_ptr, ids)
 }
 
+generate_cage_cpp <- function(circles, decimation) {
+    .Call(`_arbor_generate_cage_cpp`, circles, decimation)
+}
+
 cpp_detect_tree_circles <- function(wood_df, resolution = 0.05, connectivity = 26L, num_ransac_iterations = 400L, inlier_threshold = 0.02, min_cluster_size = 20L) {
     .Call(`_arbor_cpp_detect_tree_circles`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }

@@ -89,8 +89,11 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 // SEEDS
 // ========================
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
 
-// [[Rcpp::export]]
+
+  //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame cpp_detect_tree_circles(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20);
 
 
