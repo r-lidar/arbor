@@ -26,6 +26,7 @@ find_seeds <- function(las, params)
   # Extract the passages of big trees and small features
   th                   <- max(heights) + 0.2
   min_passage          <- params$seed$min_passage
+
   long_passages        <- lidR::filter_poi(las, passage > min_passage, hag < th)
   short_passages       <- lidR::filter_poi(las, passage > 1, hag < min(hag) + 0.5, passage < 10)
   long_passages@data   <- long_passages@data[, .(X,Y,Z, passage, hag)]
@@ -46,6 +47,7 @@ find_seeds <- function(las, params)
   slices <- slice_poi(las, heights, thick)
   wood   <- lidR::filter_poi(slices, foliage == 0)
   wood@data <- wood@data[, .(X,Y,Z, passage, hag)]
+
   if (FALSE)
   {
     x = plot(wood)
@@ -110,7 +112,7 @@ find_seeds <- function(las, params)
 
     cage = generate_cage(circles, params)
 
-    if (FALSE) qpoints3d(circle_points@data)
+    if (FALSE) plot(cage)
 
     logger("Find main tree seeds")
 
@@ -122,14 +124,6 @@ find_seeds <- function(las, params)
     temp$Z <- temp$Z * 0.5
     temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
     temp$Z <- temp$Z / 0.5
-
-    if (FALSE)
-    {
-      x <- plot(temp, color = "treeID")
-      #plot(passage, add = x)
-      for (i in 1:nrow(circles))
-        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-    }
 
     if (FALSE) plot(temp, color = "treeID")
   }
@@ -222,133 +216,6 @@ densify_passage <- function(data, offset = 0.01)
   data_down[["passage"]] = -1
 
   return(rbind(data, data_up, data_down))
-}
-
-generate_cage = function(circles, params)
-{
-  # Convert circle to points
-  res = params$path_finder$decimation*0.75
-  circle_points_list <- lapply(1:nrow(circles), function(i) {
-    generate_circle_points(circles$X[i], circles$Y[i], circles$Z[i], circles$R[i], step = res)
-  })
-  circle_points = do.call(rbind, circle_points_list)
-
-  if (FALSE) qpoints3d(circle_points)
-
-  connectors <- generate_all_groups(circles, step_z = res)
-  connectors = connectors$disks
-
-  if (FALSE) qpoints3d(connectors)
-
-  circle_points = rbind(circle_points, connectors)
-  circle_points$passage = 1000
-  circle_points$hag = 0
-  circle_points = suppressWarnings(lidR::LAS(circle_points, lidR::header(las)))
-
-  if (FALSE) qpoints3d(circle_points@data)
-
-  return(circle_points)
-}
-
-# Convert to points
-generate_circle_points <- function(x, y, z, r, step = 0.1)
-{
-  # Circumference
-  circumference <- 2 * pi * r
-  # Number of points for approximately every `step` meters
-  n_points <- ceiling(circumference / step)
-  # Angles for points
-  theta <- seq(0, 2*pi, length.out = n_points + 1)[-1]  # remove last point to avoid duplicate
-  # Generate points
-  data.frame(
-    X = x + r * cos(theta),
-    Y = y + r * sin(theta),
-    Z = rep(z, n_points)
-  )
-}
-
-# --- Generate random points on a disk (XY plane) ---
-generate_disk_points <- function(x, y, z, r, n = 1000)
-{
-  theta  <- stats::runif(n, 0, 2*pi)
-  radius <- sqrt(stats::runif(n)) * r
-  data.frame(
-    X = x + radius * cos(theta),
-    Y = y + radius * sin(theta),
-    Z = rep(z, n)
-  )
-}
-
-generate_disk_radii <- function(x, y, z, r, n = 8)
-{
-  angles <- seq(0, 2*pi, length.out = n + 1)[- (n + 1)]  # remove last to avoid duplicating 0
-
-  data.frame(
-    X = x + r * cos(angles),
-    Y = y + r * sin(angles),
-    Z = rep(z, n)
-  )
-}
-
-
-# --- Generate points for one group ---
-generate_group_points <- function(df_group, step_z = 0.05)
-{
-  df_group <- df_group[order(df_group$Z), ]
-  all_points <- list()
-  centerline <- list()
-
-  for (i in seq_len(nrow(df_group) - 1)) {
-    c1 <- df_group[i, ]
-    c2 <- df_group[i + 1, ]
-
-    # vertical interpolation sequence (every step_z)
-    z_seq <- seq(c1$Z, c2$Z, by = step_z)
-    if (utils::tail(z_seq, 1) != c2$Z)
-      z_seq <- c(z_seq, c2$Z)  # include top
-
-    t_seq <- (z_seq - c1$Z) / (c2$Z - c1$Z)
-
-    # interpolate center and radius
-    x_seq <- c1$X + t_seq * (c2$X - c1$X)
-    y_seq <- c1$Y + t_seq * (c2$Y - c1$Y)
-    r_seq <- c1$R + t_seq * (c2$R - c1$R)
-
-    # add centerline points
-    centerline[[length(centerline) + 1]] <- data.frame(X = x_seq, Y = y_seq, Z = z_seq)
-
-    # add 4-radii disks
-    for (j in seq_along(z_seq)) {
-      all_points[[length(all_points) + 1]] <- generate_disk_radii(
-        x_seq[j], y_seq[j], z_seq[j], r_seq[j]
-      )
-    }
-  }
-
-  list(
-    disks = do.call(rbind, all_points),
-    centerline = do.call(rbind, centerline)
-  )
-}
-
-# --- Wrapper for all groups ---
-generate_all_groups <- function(df, step_z = 0.05)
-{
-  groups <- unique(df$id)
-  res_disks <- list()
-  res_centers <- list()
-
-  for (g in seq_along(groups)) {
-    df_g <- df[df$id == groups[g], ]
-    r <- generate_group_points(df_g, step_z)
-    res_disks[[g]] <- r$disks
-    res_centers[[g]] <- r$centerline
-  }
-
-  list(
-    disks = do.call(rbind, res_disks),
-    centerline = do.call(rbind, res_centers)
-  )
 }
 
 r_detect_tree_circles = function(wood)
