@@ -9,5 +9,5 @@
 QSM as_qsm(Rcpp::DataFrame df);
 QSF as_qsf(Rcpp::List x);
 Rcpp::DataFrame as_dataframe(const QSM& qsm);
-
+Rcpp::DataFrame as_dataframe(const PointCloud& cloud);
 #endif

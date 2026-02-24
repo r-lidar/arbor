@@ -131,3 +131,63 @@ Rcpp::DataFrame as_dataframe(const QSM& qsm)
     Rcpp::Named("stringsAsFactors") = false
   );
 }
+
+Rcpp::DataFrame as_dataframe(const PointCloud& cloud)
+{
+  size_t n = cloud.size();
+
+  Rcpp::NumericVector x(n);
+  Rcpp::NumericVector y(n);
+  Rcpp::NumericVector z(n);
+
+  for (size_t i = 0; i < n; ++i)
+  {
+    x[i] = cloud.get_x(i);
+    y[i] = cloud.get_y(i);
+    z[i] = cloud.get_z(i);
+  }
+
+  Rcpp::List df_list = Rcpp::List::create(
+    Rcpp::_["X"] = x,
+    Rcpp::_["Y"] = y,
+    Rcpp::_["Z"] = z
+  );
+
+  if (cloud.has_treeid())
+  {
+    Rcpp::IntegerVector treeid(n);
+    for (size_t i = 0; i < n; ++i) treeid[i] = cloud.get_treeid(i);
+    df_list["treeID"] = treeid;
+  }
+
+  if (cloud.has_foliage())
+  {
+    Rcpp::IntegerVector foliage(n);
+    for (size_t i = 0; i < n; ++i) foliage[i] = cloud.get_foliage(i);
+    df_list["foliage"] = foliage;
+  }
+
+  if (cloud.has_hag())
+  {
+    Rcpp::NumericVector hag(n);
+    for (size_t i = 0; i < n; ++i) hag[i] = cloud.get_hag(i);
+    df_list["hag"] = hag;
+  }
+
+  if (cloud.has_pwood())
+  {
+    Rcpp::NumericVector pwood(n);
+    for (size_t i = 0; i < n; ++i) pwood[i] = cloud.get_pwood(i);
+    df_list["pwood"] = pwood;
+  }
+
+  if (cloud.has_passage())
+  {
+    Rcpp::IntegerVector passage(n);
+    for (size_t i = 0; i < n; ++i) passage[i] = cloud.get_passage(i);
+    df_list["passage"] = passage;
+  }
+
+  Rcpp::DataFrame df(df_list);
+  return df;
+}

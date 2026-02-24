@@ -8,60 +8,38 @@
 #' @export
 find_seeds <- function(las, params)
 {
-  logger("Seed detection start")
+  params = evaluate_penalty(params)
+  cloud = las@data ; cloud[["treeID"]] = -1 # Allocate memory because C++ assumes memory allocated
+  seeds = find_seeds_cpp(cloud, params)
+  seeds = lidR::LAS(seeds, lidR::header(las))
+  return(seeds)
+}
 
-  foliage <- clusterID <- max_diameter <- passage <- hag <- X <- Y <- Z <- . <- NULL
-
+find_seeds_r <- function(las, params)
+{
   # The point cloud is supposed to have passage hag and foliage
   attributes <- names(las)
   stopifnot("hag" %in% attributes)
   stopifnot("passage" %in% attributes)
   stopifnot("foliage" %in% attributes)
 
-  # The heights at which we slice
-  # ( we extract some slices of wood (thickness 3cm))
-  thick  <- params$seed$slice_thickness
-  heights <- c(min(las$hag)+thick, params$seed$slice_at)
+  logger("Seed detection start")
 
-  # Extract the passages of big trees and small features
-  th                   <- max(heights) + 0.2
-  min_passage          <- params$seed$min_passage
+  logger("Extracting passages");
+  long_passages  <- extract_passages(las, "long", params)
+  short_passages <- extract_passages(las, "short", params)
+  if (FALSE) { x = plot(long_passages, pal = "green") ; plot(short_passages, add = x, pal = "red") }
 
-  long_passages        <- lidR::filter_poi(las, passage > min_passage, hag < th)
-  short_passages       <- lidR::filter_poi(las, passage > 1, hag < min(hag) + 0.5, passage < 10)
-  long_passages@data   <- long_passages@data[, .(X,Y,Z, passage, hag)]
-  short_passages@data  <- short_passages@data[, .(X,Y,Z, passage, hag)]
-  long_passages@data   <- densify_passage(long_passages@data)
-  short_passages@data  <- densify_passage(short_passages@data)
+  logger("Slice wood")
+  wood <- slice_wood(las, heights, thick)
+  if (FALSE) { x = plot(wood) ; plot(long_passages, add = x, pal = "green") }
 
-
-  if (FALSE)
-  {
-    plot(long_passages)
-    plot(short_passages)
-  }
-
-  logger("Slicing the point cloud")
-
-  # Extract slices of wood low
-  slices <- slice_poi(las, heights, thick)
-  wood   <- lidR::filter_poi(slices, foliage == 0)
-  wood@data <- wood@data[, .(X,Y,Z, passage, hag)]
-
-  if (FALSE)
-  {
-    x = plot(wood)
-    plot(long_passages, add = x, pal = "green")
-  }
 
   logger("Circle detection")
+  circles = detect_tree_circles(wood) # r_detect_tree_circles(wood)
+  if (nrow(circles) == 0) stop("No circle detected in wood slices")
 
-  circles = cpp_detect_tree_circles(wood@data)
-  #circles = r_detect_tree_circles(wood)
-  circles_detected = nrow(circles) > 0
-
-  if (FALSE)
-  {
+  if (FALSE) {
     pal = pastel.colors(max(circles$id))
     col = pal[circles$id]
     x <- plot(wood)
@@ -69,140 +47,134 @@ find_seeds <- function(las, params)
     for (i in 1:nrow(circles)) add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i], col = col[i])
   }
 
+
+  logger("Generate tree cages")
+  cage = generate_cage(circles, params, lidR::header(las))
+  if (FALSE) { plot(cage) }
+
+
   logger("Safe zone exclusion")
-
-  if (circles_detected)
-  {
-    # For each circle we exclude wood in a safe zone beyond the circles.
-    # This allow to clean false positive around important trees and prevent
-    # dummy connection caused by noise in the next connected component step
-    px <- wood$X
-    py <- wood$Y
-    pz <- wood$Z
-    rm <- rep(FALSE, lidR::npoints(wood))
-    safe_zone <- 0.2
-    for (i in 1:nrow(circles))
-    {
-      cx <- circles$X[i]
-      cy <- circles$Y[i]
-      cz <- circles$Z[i]
-      r  <- circles$R[i]
-      d  <- sqrt((px-cx)^2 + (py-cy)^2 +(pz-cz)^2)
-      rm[d > (r + 0.02) & d  < (r + safe_zone)] <- TRUE
-    }
-    wood <- wood[!rm]
-
-    if (FALSE)
-    {
-      plot(wood)
-      for (i in 1:nrow(circles))
-        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-    }
-
-    if (FALSE)
-    {
-      x = plot(long_passages, pal = "green")
-      plot(short_passages, add = x, pal = "red")
-      plot(wood, add = x, pal = foliage.colors[1])
-      for (i in 1:nrow(circles))
-        add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-    }
-
-    logger("Generate tree cage")
-
-    cage = generate_cage(circles, params, lidR::header(las))
-
-    if (FALSE) plot(cage)
-
-    logger("Find main tree seeds")
-
-    # Bind the wood, the long passages and the cage and compute connected component and merge passage from the same trees
-    lidR::st_crs(long_passages) = lidR::st_crs(wood)
-    lidR::st_crs(cage) = lidR::st_crs(wood)
-    temp   <- suppressWarnings(rbind(wood, long_passages, cage))
-    res    <- round(params$path_finder$decimation*0.8, 2)
-    temp$Z <- temp$Z * 0.5
-    temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
-    temp$Z <- temp$Z / 0.5
-
-    if (FALSE) plot(temp, color = "treeID")
-  }
-
-  logger("Pathfinder for minor tree seeds")
-
-  # We have seed for the big trees (long passage)
-  long_passages_seeds = lidR::filter_poi(temp, passage > 0)
-
-  if (FALSE)
-  {
-    x <- plot(long_passages_seeds, color = "treeID")
-    plot(short_passages, add = x, pal = "red")
-  }
-
-  # Some short passage could be from big tree. Path finder to attach them.
-  short_passages@data$foliage = 0
-  p = default_arbor_parameters
-  p$path_finder$max_gap = 0.1
-  p$path_finder$k_neighborhood_connectivity = 10
-  p$path_finder$k_seed_connectivity = 2
-  p$path_finder$distance_power = 1
-  p$path_finder$angle_penalty = function(x) {return(rep(1, length(x))) }
-
-  sink(tempfile())
-  on.exit(suppressWarnings(sink()), add = TRUE)
-  short_passages = segment_instance(short_passages, long_passages_seeds, p)
-  sink()
-
-  if (FALSE)
-  {
-    u = short_passages
-    u@data$foliage = NULL
-    v = rbind(long_passages_seeds, u)
-    plot(v, color = "treeID")
-  }
-
-  logger("Connected component")
-
-  # Some short passage don't have IDs
-  short_passages_noid = short_passages[is.na(short_passages$treeID)]
-  short_passages_noid = lidR::connected_components(short_passages_noid, 0.1, 1, "treeID")
-  short_passages_noid$treeID = short_passages_noid$treeID + max(long_passages_seeds$treeID, na.rm = TRUE) + 1
+  wood = safe_zone(wood, circles)
+  if (FALSE) { x = plot(wood) ; plot(long_passages, add = x, pal = "green") }
 
 
-  # Bind the wood and the passage in order to compute
-  # connected component and merge passage from the same trees for big tree only
+  logger("Find primary seeds")
+  primary_seeds = find_primary_seeds(wood, long_passages, cage) # We have seed for the big trees (long passage)
+  if (FALSE) { x <- plot(primary_seeds, color = "treeID") ; plot(short_passages, add = x, pal = "red")}
+
+
+  logger("Pathfinder for minor tree seeds")   # Some short passage could be from big tree. Path finder to attach them.
+  short_passages = merge_short_passages(short_passages, primary_seeds)
   short_passages_withid = short_passages[!is.na(short_passages$treeID)]
   short_passages_withid$foliage = NULL
-  short_passages_noid$foliage = NULL
+  primary_seeds = rbind(primary_seeds, short_passages_withid)
+  if (FALSE) { plot(primary_seeds, color = "treeID") }
 
-  short_passages_withid = lidR::filter_poi(short_passages_withid, passage > 0)
-  short_passages_noid = lidR::filter_poi(short_passages_noid, passage > 0)
 
-  if (FALSE)
-  {
-    x = plot(rbind(long_passages_seeds, short_passages_withid), color = "treeID")
-    plot(short_passages_noid, add = x, pal = "red")
-  }
+  logger("Find secondary seeds")
+  max_id = max(seeds$treeID, na.rm = TRUE)
+  secondary_seeds = find_secondary_seeds(short_passages, max_id)
+  if (FALSE) { x = plot(primary_seeds, color = "treeID") ; plot(secondary_seeds, add = x, color = "treeID") }
 
-  seeds = suppressWarnings(rbind(long_passages_seeds, short_passages_withid, short_passages_noid))
+  logger("Merge primary and secondary seeds")
+  seeds = rbind(primary_seeds, secondary_seeds)
+  seeds = lidR::filter_poi(seeds, passage > 0, hag < 1)
+  if (FALSE) { plot(seeds, color = "treeID") }
 
-  # Retain only the seed below BH
-  seeds <- lidR::filter_poi(seeds, hag < 1)
 
   logger("Seed detection completed")
 
   return(seeds)
 }
 
-slice_poi = function(las, heights, thinkness = 0.02)
+extract_passages = function(las, type, params)
 {
-  # Build dynamic filter for slices
+  X <- Y <- Z <- passage <- hag <- NULL
+
+  # The heights at which we slice
+  # ( we extract some slices of wood (thickness 3cm))
+  thick   <- params$seed$slice_thickness
+  heights <- c(min(las$hag)+thick, params$seed$slice_at)
+
+  # Extract the passages of big trees and small features
+  th                   <- max(heights) + 0.2
+  min_passage          <- params$seed$min_passage
+
+  if (type == "long")
+  {
+    long_passages        <- lidR::filter_poi(las, passage > min_passage, hag < th)
+    long_passages@data   <- long_passages@data[, .(X,Y,Z, passage, hag)]
+    long_passages@data   <- densify_passage(long_passages@data)
+    return(long_passages)
+  }
+
+  if (type == "short")
+  {
+    short_passages       <- lidR::filter_poi(las, passage > 1, hag < min(hag) + 0.5, passage < 10)
+    short_passages@data  <- short_passages@data[, .(X,Y,Z, passage, hag)]
+    short_passages@data  <- densify_passage(short_passages@data)
+    return(short_passages)
+  }
+
+  stop("Internal error: invalid type")
+}
+
+slice_wood = function(las, heights, thinkness = 0.02)
+{
+  hag <- X <- Y <- Z <- . <- passage <- NULL
+
+  logger("Slicing the point cloud")
+
   slice_filter <- Reduce(`|`, lapply(heights, function(s)
   {
     (las$hag > (s-thinkness/2) & las$hag < (s + thinkness/2))
   }))
 
-  lidR::filter_poi(las, slice_filter)
+  wood   <- lidR::filter_poi(las, slice_filter)
+  wood   <- lidR::filter_poi(wood, foliage == 0)
+  wood@data <- wood@data[, .(X,Y,Z, passage, hag)]
+
+  return(wood)
+}
+
+safe_zone = function(wood, circles)
+{
+  # For each circle we exclude wood in a safe zone beyond the circles.
+  # This allow to clean false positive around important trees and prevent
+  # dummy connection caused by noise in the next connected component step
+  px <- wood$X
+  py <- wood$Y
+  pz <- wood$Z
+  rm <- rep(FALSE, lidR::npoints(wood))
+  safe_zone <- 0.2
+  for (i in 1:nrow(circles))
+  {
+    cx <- circles$X[i]
+    cy <- circles$Y[i]
+    cz <- circles$Z[i]
+    r  <- circles$R[i]
+    d  <- sqrt((px-cx)^2 + (py-cy)^2 +(pz-cz)^2)
+    rm[d > (r + 0.02) & d  < (r + safe_zone)] <- TRUE
+  }
+  wood <- wood[!rm]
+
+  if (FALSE)
+  {
+    plot(wood)
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
+
+  if (FALSE)
+  {
+    x = plot(long_passages, pal = "green")
+    plot(short_passages, add = x, pal = "red")
+    plot(wood, add = x, pal = foliage.colors[1])
+    for (i in 1:nrow(circles))
+      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
+  }
+
+  return(wood)
 }
 
 densify_passage <- function(data, offset = 0.01)
@@ -218,129 +190,51 @@ densify_passage <- function(data, offset = 0.01)
   return(rbind(data, data_up, data_down))
 }
 
-r_detect_tree_circles = function(wood)
+find_primary_seeds = function(wood, long_passages, cage)
 {
+  # Bind the wood, the long passages and the cage and compute connected component and merge passage from the same trees
+  lidR::st_crs(long_passages) = lidR::st_crs(wood)
+  lidR::st_crs(cage) = lidR::st_crs(wood)
+  temp   <- suppressWarnings(rbind(wood, long_passages, cage))
+  res    <- round(params$path_finder$decimation*0.8, 2)
+  temp$Z <- temp$Z * 0.5
+  temp   <- connected_components(temp, res, 1, name = "treeID", connectivity = 26)
+  temp$Z <- temp$Z / 0.5
 
-  logger("  Connected component")
+  if (FALSE) plot(temp, color = "treeID")
 
-  # Connect the wood point into clusters
-  cl_wood <- connected_components(wood, 0.05, 10, connectivity = 26)
-  cl_wood <- lidR::filter_poi(cl_wood, clusterID != 0)
+  # We have seed for the big trees (long passage)
+  long_passages_seeds = lidR::filter_poi(temp, passage > 0)
 
-  if (FALSE)
-  {
-    x = plot(cl_wood, color = "clusterID", pal = pastel.colors(200))
-    plot(long_passages, add = x, pal = "green")
-  }
+  long_passages_seeds
+}
 
-  logger("  Circle detection per component")
+find_secondary_seeds = function(short_passages, id_start)
+{
+  # Some short passage don't have IDs. Assign an ID
+  short_passages_noid = short_passages[is.na(short_passages$treeID)]
+  short_passages_noid = connected_components(short_passages_noid, 0.1, 1, "treeID")
+  short_passages_noid$treeID = short_passages_noid$treeID + id_start + 1
+  short_passages_noid@data$foliage = NULL
+  return(short_passages_noid)
+}
 
-  # For each cluster search for circles. If we have a nice circle we have a tree
-  is.valid.circle <- function(radius, angle_range, pinliner, pinside)
-  {
-    if (radius > 2) return(FALSE)
-    if (radius < 0.02)  return(FALSE)
-    if (radius  < 0.05)  return(angle_range > 180 & pinliner > 30)
-    if (pinside > 20)   return(FALSE)
-    if (radius < 0.10)  return(angle_range > 130 & pinliner > 60)
-    return(angle_range > 140 & pinliner > 40)
-  }
-  fit_circle_to_seed <- function(cl)
-  {
-    id = cl$clusterID[1]
-    if (nrow(cl) < 20) return(NULL)
-    cl <- as.matrix(cl[,1:3])
-    circle <- ransac_circle(cl, num_iterations = 400, inlier_threshold = 0.02)
+merge_short_passages = function(short_passages, long_passages_seeds)
+{
+  short_passages@data$foliage = 0 # Everything is wood
+  p = default_arbor_parameters
+  p$path_finder$max_gap = 0.1
+  p$path_finder$k_neighborhood_connectivity = 10
+  p$path_finder$k_seed_connectivity = 2
+  p$path_finder$distance_power = 1
+  p$path_finder$angle_penalty = function(x) {return(rep(1, length(x))) }
 
-    valid  <- is.valid.circle(circle$radius, circle$covered_arc_degree, circle$percentage_inlier*100, circle$percentage_inside*100)
+  sink(tempfile())
+  on.exit(suppressWarnings(sink()), add = TRUE)
+  short_passages = segment_instance(short_passages, long_passages_seeds, p)
+  sink()
 
-    if (FALSE)
-    {
-      if (valid) col = "darkgreen" else col = "red"
-      plot(cl[,1], cl[,2], asp = 1, main = paste(i, "id =", id))
-      inl = circle$inliers
-      points(cl[inl,1], cl[inl,2], pch = 19)
-      symbols(circle$center_x, circle$center_y, circles = circle$radius, inches = FALSE, add = TRUE, fg = col)
-      symbols(circle$center_x, circle$center_y, circles = circle$radius+0.02, inches = FALSE, add = TRUE, fg = col)
-      symbols(circle$center_x, circle$center_y, circles = circle$radius-0.02, inches = FALSE, add = TRUE, fg = col)
-    }
-
-    if (valid) return(data.frame(X = circle$center_x, Y = circle$center_y, Z = circle$z, R = circle$radius, id = id))
-    else return(NULL)
-  }
-
-  clusters <- split(cl_wood@data, by = "clusterID")
-  clusters <- Filter(function(x) { nrow(x) > 20 }, clusters)
-
-  n <- length(clusters)
-  i <- 0
-  circles <- lapply(clusters, function(cl)
-  {
-    i <<- i + 1
-    if (i %% 10 == 0)  cat(sprintf("\r  Processed %d / %d", i, n))
-    fit_circle_to_seed(cl)
-  })
-
-  cat("\n")
-  circles <- Filter(Negate(is.null), circles)
-
-  circles_detected = length(circles) > 0
-
-  if (!circles_detected) {
-    warning("No circle dectected")
-  } else {
-    circles  <- do.call(rbind, circles)
-  }
-
-  if (FALSE)
-  {
-    x <- plot(cl_wood, color = 'clusterID', pal = pastel.colors(500))
-    plot(long_passages, pal = "green", add = x)
-    for (i in 1:nrow(circles))
-      add_circle3d(x, circles$X[i], circles$Y[i], circles$R[i], circles$Z[i])
-  }
-
-  logger("  Overlapping disc detection")
-
-  # Overlapping discs
-  # ------------------
-  # Pairwise distances between centers
-  circles$id = NULL
-  df = circles
-  dist_mat <- as.matrix(stats::dist(df[, c("X", "Y")], diag = TRUE, upper = TRUE))
-
-  # Define an overlap rule (e.g. centers closer than sum of radii)
-  overlap <- dist_mat < outer(df$R, df$R, "+") & dist_mat > 0
-
-  # Build adjacency graph from overlap matrix
-  n <- nrow(df)
-  visited <- logical(n)
-  group <- integer(n)
-  gid <- 0
-
-  for (i in seq_len(n)) {
-    if (!visited[i]) {
-      gid <- gid + 1
-      # breadth-first search (BFS) for connected components
-      queue <- i
-      while (length(queue) > 0) {
-        node <- queue[1]
-        queue <- queue[-1]
-        if (!visited[node]) {
-          visited[node] <- TRUE
-          group[node] <- gid
-          neighbors <- which(overlap[node, ])
-          queue <- c(queue, neighbors[!visited[neighbors]])
-        }
-      }
-    }
-  }
-
-  df$id <- group
-  df
-  circles = df
-
-  return(circles)
+  return(short_passages)
 }
 
 add_circle3d <- function(x, center_x, center_y, radius, height, col = "red")

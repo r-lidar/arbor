@@ -1,5 +1,5 @@
 default_parameters_v1 = list(
-  anistotropy = list(
+  woodlikelihood = list(
     k = 80
   ),
   path_finder = list(

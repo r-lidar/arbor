@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <string>
-#include <algorithm>
 #include <stdexcept>
 
 #ifdef USING_R
@@ -33,6 +32,9 @@ public:
   virtual double get_x(const size_t idx) const = 0;
   virtual double get_y(const size_t idx) const = 0;
   virtual double get_z(const size_t idx) const = 0;
+  virtual void set_x(const size_t idx, double v) = 0;
+  virtual void set_y(const size_t idx, double v) = 0;
+  virtual void set_z(const size_t idx, double v) = 0;
 
   // --- In-place transforms (pure virtual) ---
   virtual void translate(double x, double y, double z) = 0;
@@ -61,21 +63,25 @@ public:
   virtual void set_hag(const size_t idx, double v)     { throw std::runtime_error("HAG data not available in this point cloud"); }
 };
 
-// ============================================================================
-// DataFrameAdaptor - Full-featured adaptor with optional attributes
-// ============================================================================
+// =======================================================================
+// PointCloud - Full-featured adaptor wrapping R's DataFrame memory layout
+// =======================================================================
 
 #ifdef USING_R
 class PointCloud : public PointCloudAdaptorBase
 {
 public:
   // Constructors / destructor
+  PointCloud() = default;
+  PointCloud(size_t n, bool init_attributes = false);
   explicit PointCloud(const Rcpp::DataFrame& df);
   PointCloud(const PointCloud& other);
   PointCloud(PointCloud&& other) noexcept;
 
   PointCloud& operator=(const PointCloud& other);
   PointCloud& operator=(PointCloud&& other) noexcept;
+  PointCloud& operator+=(const PointCloud& other);
+  PointCloud  operator+(const PointCloud& other) const;
 
   ~PointCloud() override;
 
@@ -93,6 +99,9 @@ public:
   inline double get_x(const size_t idx) const override { return coords[0][idx]; }
   inline double get_y(const size_t idx) const override { return coords[1][idx]; }
   inline double get_z(const size_t idx) const override { return coords[2][idx]; }
+  inline void set_x(const size_t idx, double v) override { coords[0][idx] = v; }
+  inline void set_y(const size_t idx, double v) override { coords[1][idx] = v; }
+  inline void set_z(const size_t idx, double v) override { coords[2][idx] = v; }
 
   // --- Optional attribute access ---
   inline bool has_hag() const override { return hag != nullptr; }
@@ -162,6 +171,8 @@ public:
   // --- Subset ---
   PointCloud subset(const std::vector<bool>& keep, bool xyz_only = false) const;
 
+  bool linked_to_dataframe() const { return !owns_memory; }
+
 private:
   void cleanup();
 
@@ -177,8 +188,6 @@ private:
 
   bool owns_memory = false;
   size_t n_points  = 0;
-
-  PointCloud() = default;
 };
 
 #endif
@@ -221,6 +230,9 @@ public:
   inline double get_x(const size_t idx) const override { return coords(idx, 0); }
   inline double get_y(const size_t idx) const override { return coords(idx, 1); }
   inline double get_z(const size_t idx) const override { return coords(idx, 2); }
+  inline void set_x(const size_t idx, double v) override { coords(idx, 0) = v; }
+  inline void set_y(const size_t idx, double v) override { coords(idx, 1) = v; }
+  inline void set_z(const size_t idx, double v) override { coords(idx, 2) = v; }
 
   // --- In-place transforms ---
   void translate(double tx, double ty, double tz) override
@@ -281,6 +293,9 @@ public:
   inline double get_x(const size_t idx) const override { return points[idx].x; }
   inline double get_y(const size_t idx) const override { return points[idx].y; }
   inline double get_z(const size_t idx) const override { return points[idx].z; }
+  inline void set_x(const size_t idx, double v) override { points[idx].x = v; }
+  inline void set_y(const size_t idx, double v) override { points[idx].y = v; }
+  inline void set_z(const size_t idx, double v) override { points[idx].z = v; }
 
   // --- In-place transforms ---
   void translate(double tx, double ty, double tz) override

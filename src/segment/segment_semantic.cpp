@@ -7,7 +7,7 @@
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
-Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const GraphBuilderParams& params)
+Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const GraphParameters& params)
 {
   GraphBuilder builder(params);
 
@@ -19,7 +19,7 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
   return builder.get_graph();
 }
 
-std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphBuilderParams& params, const Logger& logger)
+std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphParameters& params, const Logger& logger)
 {
   if (core.size() == 0)   throw std::runtime_error("segment_instance: core point cloud is empty.");
   if (ground.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
@@ -107,7 +107,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   return core_passage;
 }
 
-std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParams& params, const Logger& logger)
+std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage: point cloud is empty.");
   if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage: point cloud is missing required 'passage' attribute.");
@@ -167,7 +167,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticP
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger)
+std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -223,7 +223,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const S
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const SemanticParams& params, const Logger& logger)
+std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -295,7 +295,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParams& params, const Logger& logger)
+std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -353,31 +353,31 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
   return is_wood;
 }
 
-void segment_semantic(PointCloud& scene, const PointCloud& ground, const GraphBuilderParams& gbpar, const SemanticParams& spar, const Logger& logger)
+void segment_semantic(PointCloud& scene, const PointCloud& ground, const ArborParameters& par, const Logger& logger)
 {
   size_t n = scene.size();
 
-  std::vector<int> passages = accumulate_passages(scene, ground, gbpar, logger);
+  std::vector<int> passages = accumulate_passages(scene, ground, par.pathfinder, logger);
   for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);
 
-  std::vector<bool> path_finder_based_wood = assign_wood_from_passage(scene, spar, logger);
+  std::vector<bool> path_finder_based_wood = assign_wood_from_passage(scene, par.semantic, logger);
   for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!path_finder_based_wood[i]);
 
-  std::vector<bool> high_likelihood_based_wood = assign_wood_from_high_likelihood(scene, spar, logger);
-  std::vector<bool> medium_likelihood_based_wood = assign_wood_from_medium_likelihood(scene, spar, logger);
+  std::vector<bool> high_likelihood_based_wood = assign_wood_from_high_likelihood(scene, par.semantic, logger);
+  std::vector<bool> medium_likelihood_based_wood = assign_wood_from_medium_likelihood(scene, par.semantic, logger);
 
   for (size_t i = 0 ; i < n ; i++) {
     bool wood = path_finder_based_wood[i] || high_likelihood_based_wood[i] || medium_likelihood_based_wood[i];
     scene.set_foliage(i, (int)(!wood));
   }
 
-  std::vector<bool> is_wood = assign_wood_from_wood_dilatation(scene, spar, logger);
+  std::vector<bool> is_wood = assign_wood_from_wood_dilatation(scene, par.semantic, logger);
   for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!is_wood[i]);
 
   logger("Extra class 2 foliage re-assignation... (9/10)");
   for (size_t i = 0 ; i < n ; i++)
   {
-    if (!scene.is_wood(i) && scene.get_pwood(i) > spar.high_pwood_threshold)
+    if (!scene.is_wood(i) && scene.get_pwood(i) > par.semantic.high_pwood_threshold)
       scene.set_foliage(i, 2);
   }
 }

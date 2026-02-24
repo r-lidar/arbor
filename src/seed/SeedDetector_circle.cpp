@@ -6,21 +6,12 @@
 #include <queue>
 #include <map>
 
-#include "Adaptor.h"
+#include "SeedDetector.h"
 #include "ransac.h"
 #include "Grid3D.h"
 
-// Structure to hold circle detection results
-struct CircleResult
+namespace
 {
-  double X;
-  double Y;
-  double Z;
-  double R;
-  int id;
-
-  CircleResult(double x, double y, double z, double r, int cluster_id) : X(x), Y(y), Z(z), R(r), id(cluster_id) {}
-};
 
 // Helper function to validate if a detected circle is a valid tree
 bool is_valid_circle(double radius, double angle_range, double pinlier, double pinside)
@@ -42,7 +33,7 @@ struct Cluster
   Cluster(int id) : cluster_id(id) {}
 };
 
-std::unique_ptr<CircleResult> fit_circle_to_cluster(const Cluster& cluster, const PointCloud& point_cloud, int num_iterations = 400,  double inlier_threshold = 0.02)
+std::unique_ptr<SeedDetectorGeometries::Circle> fit_circle_to_cluster(const Cluster& cluster, const PointCloud& point_cloud, int num_iterations = 400,  double inlier_threshold = 0.02)
 {
   int id = cluster.cluster_id;
 
@@ -68,16 +59,14 @@ std::unique_ptr<CircleResult> fit_circle_to_cluster(const Cluster& cluster, cons
   if (valid)
   {
     auto center = ransac.get_center();
-    return std::make_unique<CircleResult>(center[0], center[1],  center[2], radius, id);
+    return std::make_unique<SeedDetectorGeometries::Circle>(center[0], center[1],  center[2], radius, id);
   }
 
   return nullptr;
 }
 
-void assign_cluster_ids(std::vector<CircleResult>& circles)
+void assign_cluster_ids(std::vector<SeedDetectorGeometries::Circle>& circles)
 {
-
-  std::cout << "  Overlapping disc detection" << std::endl;
   int n = circles.size();
   if (n == 0) return;
 
@@ -127,11 +116,13 @@ void assign_cluster_ids(std::vector<CircleResult>& circles)
   }
 }
 
-// Main function to detect tree circles from wood points
-std::vector<CircleResult> detect_tree_circles(const PointCloud& wood, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, size_t min_cluster_size = 10)
-{
-  std::cout << "  Connected component" << std::endl;
+}
 
+// Find group of circles in the wood slices
+// -----------------------------------------------
+// Main function to detect tree circles from wood points
+std::vector<SeedDetectorGeometries::Circle> SeedDetector::detect_tree_circles(const PointCloud& wood, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, size_t min_cluster_size)
+{
   size_t n = wood.point_count();
 
   // Create Grid3D and compute connected components
@@ -161,18 +152,16 @@ std::vector<CircleResult> detect_tree_circles(const PointCloud& wood, double res
     }
   }
 
-  std::cout << "  Circle detection per component" << std::endl;
-
   // Process each cluster
   size_t total_clusters = clusters.size();
-  std::vector<CircleResult> circles;
+  std::vector<SeedDetectorGeometries::Circle> circles;
   for (size_t i = 0; i < total_clusters; ++i)
   {
     // Progress indicator
-    if ((i + 1) % 50 == 0)
+    /*if ((i + 1) % 50 == 0)
     {
       std::cout << "\r  Processed " << (i + 1) << " / " << total_clusters << std::flush;
-    }
+    }*/
 
     // Try to fit a circle to this cluster
     auto result = fit_circle_to_cluster(clusters[i], wood, num_ransac_iterations, inlier_threshold);
@@ -184,51 +173,7 @@ std::vector<CircleResult> detect_tree_circles(const PointCloud& wood, double res
     }
   }
 
-  std::cout << "\r  Processed " << total_clusters << " / " << total_clusters << std::flush;
-  std::cout << std::endl;
-
   assign_cluster_ids(circles);
 
   return circles;
-}
-
-
-// [[Rcpp::export]]
-Rcpp::DataFrame cpp_detect_tree_circles(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20)
-{
-  PointCloud wood(wood_df);
-
-  std::vector<CircleResult> circles = detect_tree_circles(
-    wood,
-    resolution,
-    connectivity,
-    num_ransac_iterations,
-    inlier_threshold,
-    min_cluster_size
-  );
-
-  size_t n_circles = circles.size();
-
-  Rcpp::NumericVector X(n_circles);
-  Rcpp::NumericVector Y(n_circles);
-  Rcpp::NumericVector Z(n_circles);
-  Rcpp::NumericVector R(n_circles);
-  Rcpp::IntegerVector id(n_circles);
-
-  for (size_t i = 0; i < n_circles; ++i)
-  {
-    X[i] = circles[i].X;
-    Y[i] = circles[i].Y;
-    Z[i] = circles[i].Z;
-    R[i] = circles[i].R;
-    id[i] = circles[i].id;
-  }
-
-  return Rcpp::DataFrame::create(
-    Rcpp::Named("X") = X,
-    Rcpp::Named("Y") = Y,
-    Rcpp::Named("Z") = Z,
-    Rcpp::Named("R") = R,
-    Rcpp::Named("id") = id
-  );
 }

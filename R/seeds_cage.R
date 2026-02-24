@@ -1,9 +1,9 @@
 generate_cage = function(circles, params, header)
 {
   ans = generate_cage_cpp(circles,  params$path_finder$decimation)
-  cage$passage = 1000
-  cage$hag = 0
-  cage = suppressWarnings(lidR::LAS(cage, header))
+  ans$passage = 1000
+  ans$hag = 0
+  cage = suppressWarnings(lidR::LAS(ans, header))
   return(cage)
 }
 

@@ -10,7 +10,7 @@
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
-Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params)
+Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphParameters& params)
 {
   if (core.size() == 0)     throw std::runtime_error("build_instance_graph: core point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("build_instance_graph: seeds point cloud is empty.");
@@ -30,7 +30,7 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   return builder.get_graph();
 }
 
-void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params, const Logger& logger)
+void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborParameters& params, const Logger& logger)
 {
   if (core.size() == 0)     throw std::runtime_error("segment_instance: core point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("segment_instance: seeds point cloud is empty.");
@@ -43,7 +43,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuil
   logger("Decimating the point cloud... (1/4)");
 
   // Decimation
-  std::vector<bool> keep = homogeneization(core, params.decimation, true);
+  std::vector<bool> keep = homogeneization(core, params.pathfinder.decimation, true);
   PointCloud dec = core.subset(keep);
 
   size_t num_raw_pts = core.size();
@@ -53,7 +53,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuil
   logger("Constructing the graph (2/4)");
 
   // Build graph
-  Graph* graph = build_instance_graph(dec, seeds, params);
+  Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
