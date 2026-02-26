@@ -83,7 +83,7 @@ filter_range <- function(las, distance = 15, hag_max = 4)
   range <- hag <- NULL
   if (!"hag" %in% names(las)) stop("The point cloud must have an 'hag' attribute")
   n_before <- lidR::npoints(las)
-  las <- lidR::filter_poi(las, range > distance, hag < hag_max)
+  las <- lidR::filter_poi(las, (hag >= hag_max) | (range <= distance))
   n_after <- lidR::npoints(las)
   cat("Removed", round(100 * (n_before - n_after) / n_before, 2), "% of points\n")
   las
