@@ -95,7 +95,7 @@ qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
   stats_global = data.frame(X_root = X_root,
                             Y_root = Y_root,
                             Z_root = Z_root,
-                            X_bh = Y_bh,
+                            X_bh = X_bh,
                             Y_bh = Y_bh,
                             Z_bh = Z_bh,
                             DBH = DBH,
