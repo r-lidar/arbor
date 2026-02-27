@@ -154,6 +154,23 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
 // FITTING
 // ========================
 
+class MatrixAdaptor
+{
+public:
+  Rcpp::NumericMatrix& coords;
+  MatrixAdaptor(Rcpp::NumericMatrix& m) : coords(m) { if (coords.ncol() < 3) Rcpp::stop("MatrixAdaptor expects at least 3 columns (x, y, z)."); }
+  inline size_t kdtree_get_point_count() const { return coords.nrow(); }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return coords(idx, dim); }
+  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
+  inline size_t point_count() const { return coords.nrow(); }
+  inline size_t size() const { return coords.nrow(); }
+  inline void get_point(const size_t idx, double* q) const { q[0] = coords(idx, 0); q[1] = coords(idx, 1); q[2] = coords(idx, 2); }
+  inline double get_x(const size_t idx) const { return coords(idx, 0); }
+  inline double get_y(const size_t idx) const { return coords(idx, 1); }
+  inline double get_z(const size_t idx) const { return coords(idx, 2); }
+};
+
+
 //[[Rcpp::export(rng = false)]]
 Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0)
 {

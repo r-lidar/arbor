@@ -9,168 +9,188 @@
 #include <Rcpp.h>
 #endif
 
-// ============================================================================
-// Virtual base class defining the required interface for all point clouds
-// ============================================================================
-
-class PointCloudAdaptorBase
-{
-public:
-  virtual ~PointCloudAdaptorBase() = default;
-
-  // --- Nanoflann KD-tree interface (pure virtual) ---
-  virtual size_t kdtree_get_point_count() const = 0;
-  virtual double kdtree_get_pt(const size_t idx, const size_t dim) const = 0;
-  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
-
-  // --- Common interface (pure virtual) ---
-  virtual size_t point_count() const = 0;
-  virtual size_t size() const = 0;
-
-  // --- Geometry access (pure virtual) ---
-  virtual void get_point(const size_t idx, double* q) const = 0;
-  virtual double get_x(const size_t idx) const = 0;
-  virtual double get_y(const size_t idx) const = 0;
-  virtual double get_z(const size_t idx) const = 0;
-  virtual void set_x(const size_t idx, double v) = 0;
-  virtual void set_y(const size_t idx, double v) = 0;
-  virtual void set_z(const size_t idx, double v) = 0;
-
-  // --- In-place transforms (pure virtual) ---
-  virtual void translate(double x, double y, double z) = 0;
-  virtual void scale(double x, double y, double z) = 0;
-
-  // --- Optional attribute access (virtual with default implementations) ---
-  // These can be missing
-  virtual bool has_hag()     const { return false; }
-  virtual bool has_treeid()  const { return false; }
-  virtual bool has_pwood()   const { return false; }
-  virtual bool has_foliage() const { return false; }
-  virtual bool has_passage() const { return false; }
-
-  virtual bool is_wood(const size_t idx)     const { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
-
-  virtual int get_foliage(const size_t idx)  const { throw std::runtime_error("Semantic classification not available in this point cloud"); }
-  virtual int get_treeid(const size_t idx)   const { throw std::runtime_error("Instance segmentatiom not available in this point cloud"); }
-  virtual int get_passage(const size_t idx)  const { throw std::runtime_error("Passage data not available in this point cloud"); }
-  virtual double get_pwood(const size_t idx) const { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
-  virtual double get_hag(const size_t idx)   const { throw std::runtime_error("HAG data not available in this point cloud"); }
-
-  virtual void set_foliage(const size_t idx, int v)    { throw std::runtime_error("Semantic segmentation not available in this point cloud"); }
-  virtual void set_treeid(const size_t idx, int v)     { throw std::runtime_error("Instance segmentation data not available in this point cloud"); }
-  virtual void set_passage(const size_t idx, int v)    { throw std::runtime_error("Passage data not available in this point cloud"); }
-  virtual void set_pwood(const size_t idx, double v)   { throw std::runtime_error("Wood likelihood data not available in this point cloud"); }
-  virtual void set_hag(const size_t idx, double v)     { throw std::runtime_error("HAG data not available in this point cloud"); }
-};
-
-// =======================================================================
-// PointCloud - Full-featured adaptor wrapping R's DataFrame memory layout
-// =======================================================================
-
-#ifdef USING_R
-class PointCloud : public PointCloudAdaptorBase
+/**
+ * @brief Blueprint for a custom PointCloud implementation.
+ * Users can copy-paste this and fill in their specific memory logic.
+ */
+class MinimalPointCloud
 {
 public:
   // Constructors / destructor
-  PointCloud() = default;
-  PointCloud(size_t n, bool init_attributes = false);
-  explicit PointCloud(const Rcpp::DataFrame& df);
-  PointCloud(const PointCloud& other);
-  PointCloud(PointCloud&& other) noexcept;
+  MinimalPointCloud() = default;
+  MinimalPointCloud(size_t n, bool init_attributes = false);
+  MinimalPointCloud(const MinimalPointCloud& other);
+  MinimalPointCloud(MinimalPointCloud&& other) noexcept;
 
-  PointCloud& operator=(const PointCloud& other);
-  PointCloud& operator=(PointCloud&& other) noexcept;
-  PointCloud& operator+=(const PointCloud& other);
-  PointCloud  operator+(const PointCloud& other) const;
+  // Asignment operators
+  MinimalPointCloud& operator=(const MinimalPointCloud& other);
+  MinimalPointCloud& operator=(MinimalPointCloud&& other) noexcept;
 
-  ~PointCloud() override;
+  // Merging operator
+  MinimalPointCloud& operator+=(const MinimalPointCloud& other);
+  MinimalPointCloud  operator+(const MinimalPointCloud& other) const;
+
+  // Destructor
+  ~MinimalPointCloud() ;
+
+  // Nanoflann KD-tree interface
+  inline size_t kdtree_get_point_count() const { return 0; }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return 0; }
+  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
+
+  // Num. points
+  inline size_t point_count() const { return 0; }
+  inline size_t size()        const { return 0; }
+
+  // Geometry access
+  inline void   get_point(const size_t idx, double* q) const { }
+  inline double get_x(const size_t idx) const { return 0; }
+  inline double get_y(const size_t idx) const { return 0; }
+  inline double get_z(const size_t idx) const { return 0; }
+  inline void   set_x(const size_t idx, double v) { }
+  inline void   set_y(const size_t idx, double v) { }
+  inline void   set_z(const size_t idx, double v) { }
+
+  // Attribute access. Each point must have an attribute hag/treeid/pwood/foliage/passage
+  inline bool has_hag()     const { return true; }
+  inline bool has_treeid()  const { return true; }
+  inline bool has_pwood()   const { return true; }
+  inline bool has_foliage() const { return true; }
+  inline bool has_passage() const { return true; }
+
+  inline int    get_treeid (const size_t idx) const { return 0; }
+  inline void   set_treeid (const size_t idx, int v) { }
+  inline double get_pwood  (const size_t idx) const { return 0; }
+  inline void   set_pwood  (const size_t idx, double v) { }
+  inline int    get_foliage(const size_t idx) const { return 0; }
+  inline void   set_foliage(const size_t idx, int v) { }
+  inline double get_hag    (const size_t idx) const { return 0; }
+  inline void   set_hag    (const size_t idx, double v) { }
+  inline int    get_passage(const size_t idx) const { return 0; }
+  inline void   set_passage(const size_t idx, int v) { }
+
+  // 0 wood 1 2 foliage
+  inline bool is_wood(const size_t idx) const { return get_foliage(idx) == 0; }
+
+  // In-place transforms. No need to be inlined
+  void translate(double x, double y, double z);
+  void scale(double x, double y, double z);
+
+  // Subset
+  MinimalPointCloud subset(const std::vector<bool>& keep, bool xyz_only = false) const;
+
+
+private:
+  // Custom memory layout
+};
+
+
+#ifdef USING_R
+class PointCloudDataFrame
+{
+public:
+  // Constructors / destructor
+  PointCloudDataFrame() = default;
+  PointCloudDataFrame(size_t n, bool init_attributes = false);
+  PointCloudDataFrame(const PointCloudDataFrame& other);
+  PointCloudDataFrame(PointCloudDataFrame&& other) noexcept;
+
+  PointCloudDataFrame& operator=(const PointCloudDataFrame& other);
+  PointCloudDataFrame& operator=(PointCloudDataFrame&& other) noexcept;
+  PointCloudDataFrame& operator+=(const PointCloudDataFrame& other);
+  PointCloudDataFrame  operator+(const PointCloudDataFrame& other) const;
+
+  ~PointCloudDataFrame() ;
 
   // --- Nanoflann KD-tree interface ---
-  inline size_t kdtree_get_point_count() const override { return n_points; }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override{ return coords[dim][idx]; }
+  inline size_t kdtree_get_point_count() const { return n_points; }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return coords[dim][idx]; }
+  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
 
   // --- Num. points ---
-  inline size_t point_count() const override { return n_points; }
-  inline size_t size() const override { return n_points; }
+  inline size_t point_count() const { return n_points; }
+  inline size_t size()        const { return n_points; }
 
   // --- Geometry access ---
-  inline void get_point(const size_t idx, double* q) const override { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
+  inline void get_point(const size_t idx, double* q) const { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
 
-  inline double get_x(const size_t idx) const override { return coords[0][idx]; }
-  inline double get_y(const size_t idx) const override { return coords[1][idx]; }
-  inline double get_z(const size_t idx) const override { return coords[2][idx]; }
-  inline void set_x(const size_t idx, double v) override { coords[0][idx] = v; }
-  inline void set_y(const size_t idx, double v) override { coords[1][idx] = v; }
-  inline void set_z(const size_t idx, double v) override { coords[2][idx] = v; }
+  inline double get_x(const size_t idx) const { return coords[0][idx]; }
+  inline double get_y(const size_t idx) const { return coords[1][idx]; }
+  inline double get_z(const size_t idx) const { return coords[2][idx]; }
+  inline void   set_x(const size_t idx, double v) { coords[0][idx] = v; }
+  inline void   set_y(const size_t idx, double v) { coords[1][idx] = v; }
+  inline void   set_z(const size_t idx, double v) { coords[2][idx] = v; }
 
   // --- Optional attribute access ---
-  inline bool has_hag() const override { return hag != nullptr; }
-  inline bool has_treeid() const override { return treeid != nullptr; }
-  inline bool has_pwood() const override { return pwood != nullptr; }
-  inline bool has_foliage() const override { return foliage != nullptr; }
-  inline bool has_passage() const override { return passage != nullptr; }
+  inline bool has_hag()     const { return hag != nullptr; }
+  inline bool has_treeid()  const { return treeid != nullptr; }
+  inline bool has_pwood()   const { return pwood != nullptr; }
+  inline bool has_foliage() const { return foliage != nullptr; }
+  inline bool has_passage() const { return passage != nullptr; }
 
-  inline int get_treeid(const size_t idx) const override {
+  inline int get_treeid(const size_t idx) const {
     if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
     return treeid[idx];
   }
 
-  inline void set_treeid(const size_t idx, int v) override {
+  inline void set_treeid(const size_t idx, int v) {
     if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
     treeid[idx] = v;
   }
 
-  inline double get_pwood(const size_t idx) const override {
+  inline double get_pwood(const size_t idx) const {
     if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
     return pwood[idx];
   }
 
-  inline void set_pwood(const size_t idx, double v) override {
+  inline void set_pwood(const size_t idx, double v) {
     if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
     pwood[idx] = v;
   }
 
-  inline int get_foliage(const size_t idx) const override {
+  inline int get_foliage(const size_t idx) const {
     if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
     return foliage[idx];
   }
 
-  inline void set_foliage(const size_t idx, int v) override {
+  inline void set_foliage(const size_t idx, int v) {
     if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
     foliage[idx] = v;
   }
 
-  inline double get_hag(const size_t idx) const override {
+  inline double get_hag(const size_t idx) const {
     if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
     return hag[idx];
   }
 
-  inline void set_hag(const size_t idx, double v) override {
+  inline void set_hag(const size_t idx, double v) {
     if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
     pwood[idx] = v;
   }
 
-  inline int get_passage(const size_t idx) const override {
+  inline int get_passage(const size_t idx) const {
     if (!passage) throw std::runtime_error("Passage not available in this point cloud");
     return passage[idx];
   }
 
-  inline void set_passage(const size_t idx, int v) override {
+  inline void set_passage(const size_t idx, int v) {
     if (!passage) throw std::runtime_error("Passage not available in this point cloud");
     passage[idx] = v;
   }
 
-  inline bool is_wood(const size_t idx) const override {
+  inline bool is_wood(const size_t idx) const {
     return get_foliage(idx) == 0;
   }
 
   // --- In-place transforms ---
-  void translate(double x, double y, double z) override;
-  void scale(double x, double y, double z) override;
+  void translate(double x, double y, double z) ;
+  void scale(double x, double y, double z) ;
 
   // --- Subset ---
-  PointCloud subset(const std::vector<bool>& keep, bool xyz_only = false) const;
+  PointCloudDataFrame subset(const std::vector<bool>& keep, bool xyz_only = false) const;
 
+  // --- Used only in R ----
+  explicit PointCloudDataFrame(const Rcpp::DataFrame& df);
   bool linked_to_dataframe() const { return !owns_memory; }
 
 private:
@@ -189,146 +209,12 @@ private:
   bool owns_memory = false;
   size_t n_points  = 0;
 };
-
 #endif
-
-// ============================================================================
-// MatrixAdaptor - Compact matrix-based adaptor
-// ============================================================================
 
 #ifdef USING_R
-class MatrixAdaptor : public PointCloudAdaptorBase
-{
-public:
-  Rcpp::NumericMatrix& coords;
-
-  MatrixAdaptor(Rcpp::NumericMatrix& m) : coords(m)
-  {
-    if (coords.ncol() < 3)
-      Rcpp::stop("MatrixAdaptor expects at least 3 columns (x, y, z).");
-  }
-
-  // --- Nanoflann KD-tree interface ---
-  inline size_t kdtree_get_point_count() const override { return coords.nrow(); }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override
-  {
-    return coords(idx, dim);
-  }
-
-  // --- Num. points ----
-  inline size_t point_count() const override { return coords.nrow(); }
-  inline size_t size() const override { return coords.nrow(); }
-
-  // --- Geometry access ---
-  inline void get_point(const size_t idx, double* q) const override
-  {
-    q[0] = coords(idx, 0);
-    q[1] = coords(idx, 1);
-    q[2] = coords(idx, 2);
-  }
-
-  inline double get_x(const size_t idx) const override { return coords(idx, 0); }
-  inline double get_y(const size_t idx) const override { return coords(idx, 1); }
-  inline double get_z(const size_t idx) const override { return coords(idx, 2); }
-  inline void set_x(const size_t idx, double v) override { coords(idx, 0) = v; }
-  inline void set_y(const size_t idx, double v) override { coords(idx, 1) = v; }
-  inline void set_z(const size_t idx, double v) override { coords(idx, 2) = v; }
-
-  // --- In-place transforms ---
-  void translate(double tx, double ty, double tz) override
-  {
-    if (tx == 0 && ty == 0 && tz == 0) return;
-    for (size_t i = 0; i < coords.nrow(); ++i)
-    {
-      coords(i, 0) -= tx;
-      coords(i, 1) -= ty;
-      coords(i, 2) -= tz;
-    }
-  }
-
-  void scale(double sx, double sy, double sz) override
-  {
-    if (sx == 1.0 && sy == 1.0 && sz == 1.0) return;
-    for (size_t i = 0; i < coords.nrow(); ++i)
-    {
-      coords(i, 0) *= sx;
-      coords(i, 1) *= sy;
-      coords(i, 2) *= sz;
-    }
-  }
-};
+using PointCloud = PointCloudDataFrame;
+#else
+using PointCloud = MyPointCloudWrapper;
 #endif
-
-// ============================================================================
-// SimpleAdaptor - Lightweight vector-based adaptor with ID support
-// ============================================================================
-
-class SimpleAdaptor : public PointCloudAdaptorBase
-{
-public:
-  struct Point { double x, y, z; int id; };
-  std::vector<Point> points;
-
-  // --- Nanoflann KD-tree interface ---
-  inline size_t kdtree_get_point_count() const override { return points.size(); }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const override
-  {
-    if (dim == 0) return points[idx].x;
-    if (dim == 1) return points[idx].y;
-    return points[idx].z;
-  }
-
-  // --- Num. points ----
-  inline size_t point_count() const override { return points.size(); }
-  inline size_t size() const override { return points.size(); }
-
-  // --- Geometry access ---
-  inline void get_point(const size_t idx, double* q) const override
-  {
-    q[0] = points[idx].x;
-    q[1] = points[idx].y;
-    q[2] = points[idx].z;
-  }
-
-  inline double get_x(const size_t idx) const override { return points[idx].x; }
-  inline double get_y(const size_t idx) const override { return points[idx].y; }
-  inline double get_z(const size_t idx) const override { return points[idx].z; }
-  inline void set_x(const size_t idx, double v) override { points[idx].x = v; }
-  inline void set_y(const size_t idx, double v) override { points[idx].y = v; }
-  inline void set_z(const size_t idx, double v) override { points[idx].z = v; }
-
-  // --- In-place transforms ---
-  void translate(double tx, double ty, double tz) override
-  {
-    if (tx == 0 && ty == 0 && tz == 0) return;
-    for (auto& pt : points)
-    {
-      pt.x -= tx;
-      pt.y -= ty;
-      pt.z -= tz;
-    }
-  }
-
-  void scale(double sx, double sy, double sz) override
-  {
-    if (sx == 1.0 && sy == 1.0 && sz == 1.0) return;
-    for (auto& pt : points)
-    {
-      pt.x *= sx;
-      pt.y *= sy;
-      pt.z *= sz;
-    }
-  }
-
-  // --- Optional: Access to point ID ---
-  inline bool has_treeid() const override { return true; }
-
-  inline int get_treeid(const size_t idx) const override
-  {
-    return points[idx].id;
-  }
-
-  // Optional attributes pwood and foliage use default implementations (not available)
-};
 
 #endif

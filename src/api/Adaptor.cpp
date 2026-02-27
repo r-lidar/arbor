@@ -6,9 +6,9 @@
 
 #ifdef USING_R
 
-PointCloud::PointCloud(size_t n, bool init_attributes)
+PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
 {
-  if (n < 0) throw std::invalid_argument("PointCloud: n must be >= 0");
+  if (n < 0) throw std::invalid_argument("PointCloudDataFrame: n must be >= 0");
 
   n_points = n;
   owns_memory = true;
@@ -28,7 +28,7 @@ PointCloud::PointCloud(size_t n, bool init_attributes)
     }
 }
 
-PointCloud::PointCloud(const Rcpp::DataFrame& df)
+PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
   owns_memory = false;
 
@@ -86,7 +86,7 @@ PointCloud::PointCloud(const Rcpp::DataFrame& df)
 // ------------------------------------------------------------
 // Copy constructor (deep copy)
 // ------------------------------------------------------------
-PointCloud::PointCloud(const PointCloud& other)
+PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
 {
   n_points = other.n_points;
   owns_memory = true;
@@ -133,7 +133,7 @@ PointCloud::PointCloud(const PointCloud& other)
 // ------------------------------------------------------------
 // Move constructor
 // ------------------------------------------------------------
-PointCloud::PointCloud(PointCloud&& other) noexcept
+PointCloudDataFrame::PointCloudDataFrame(PointCloudDataFrame&& other) noexcept
 {
   n_points    = other.n_points;
   owns_memory = other.owns_memory;
@@ -158,13 +158,13 @@ PointCloud::PointCloud(PointCloud&& other) noexcept
 // ------------------------------------------------------------
 // Copy assignment
 // ------------------------------------------------------------
-PointCloud& PointCloud::operator=(const PointCloud& other)
+PointCloudDataFrame& PointCloudDataFrame::operator=(const PointCloudDataFrame& other)
 {
   if (this != &other)
   {
     if (owns_memory) cleanup();
 
-    *this = PointCloud(other);
+    *this = PointCloudDataFrame(other);
   }
   return *this;
 }
@@ -172,7 +172,7 @@ PointCloud& PointCloud::operator=(const PointCloud& other)
 // ------------------------------------------------------------
 // Move assignment
 // ------------------------------------------------------------
-PointCloud& PointCloud::operator=(PointCloud&& other) noexcept
+PointCloudDataFrame& PointCloudDataFrame::operator=(PointCloudDataFrame&& other) noexcept
 {
   if (this != &other)
   {
@@ -203,7 +203,7 @@ PointCloud& PointCloud::operator=(PointCloud&& other) noexcept
 // ------------------------------------------------------------
 // Destructor
 // ------------------------------------------------------------
-PointCloud::~PointCloud()
+PointCloudDataFrame::~PointCloudDataFrame()
 {
   cleanup();
 }
@@ -211,7 +211,7 @@ PointCloud::~PointCloud()
 // ------------------------------------------------------------
 // Cleanup
 // ------------------------------------------------------------
-void PointCloud::cleanup()
+void PointCloudDataFrame::cleanup()
 {
   if (!owns_memory)
     return;
@@ -234,7 +234,7 @@ void PointCloud::cleanup()
 // ------------------------------------------------------------
 // Transforms
 // ------------------------------------------------------------
-void PointCloud::translate(double x, double y, double z)
+void PointCloudDataFrame::translate(double x, double y, double z)
 {
   for (size_t i = 0; i < n_points; ++i)
   {
@@ -244,7 +244,7 @@ void PointCloud::translate(double x, double y, double z)
   }
 }
 
-void PointCloud::scale(double x, double y, double z)
+void PointCloudDataFrame::scale(double x, double y, double z)
 {
   for (size_t i = 0; i < n_points; ++i)
   {
@@ -257,7 +257,7 @@ void PointCloud::scale(double x, double y, double z)
 // ------------------------------------------------------------
 // Subset
 // ------------------------------------------------------------
-PointCloud PointCloud::subset(const std::vector<bool>& keep, bool xyz_only) const
+PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<bool>& keep, bool xyz_only) const
 {
   if (keep.size() != n_points)
     throw std::runtime_error("subset mask size mismatch: expected " + std::to_string(n_points) + " but got " + std::to_string(keep.size()));
@@ -267,7 +267,7 @@ PointCloud PointCloud::subset(const std::vector<bool>& keep, bool xyz_only) cons
   if (new_count == n_points)
     return *this;
 
-  PointCloud result;
+  PointCloudDataFrame result;
   result.n_points = new_count;
   result.owns_memory = true;
 
@@ -318,15 +318,15 @@ PointCloud PointCloud::subset(const std::vector<bool>& keep, bool xyz_only) cons
 // ------------------------------------------------------------
 
 // Merge operator - creates a new point cloud by copying and using +=
-PointCloud PointCloud::operator+(const PointCloud& other) const
+PointCloudDataFrame PointCloudDataFrame::operator+(const PointCloudDataFrame& other) const
 {
-  PointCloud result = *this;
+  PointCloudDataFrame result = *this;
   result += other;
   return result;
 }
 
 // In-place merge operator
-PointCloud& PointCloud::operator+=(const PointCloud& other)
+PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& other)
 {
   if (!this->owns_memory) {
     throw std::runtime_error("This point cloud does not own its memory because it is owned by R. Cannot merge.");

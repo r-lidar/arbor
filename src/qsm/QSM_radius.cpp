@@ -9,6 +9,23 @@
 #include "nanoflann.h"
 #include "ransac.h"
 
+class SimpleAdaptor
+{
+public:
+  struct Point { double x, y, z; int id; };
+  std::vector<Point> points;
+  inline size_t kdtree_get_point_count() const { return points.size(); }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+  {
+    if (dim == 0) return points[idx].x;
+    if (dim == 1) return points[idx].y;
+    return points[idx].z;
+  }
+  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
+  inline size_t point_count() const { return points.size(); }
+  inline size_t size() const { return points.size(); }
+};
+
 typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, SimpleAdaptor>, SimpleAdaptor, 3> CentroidKDTree;
 
 inline double QSM::conic_allometry(double tip_radius, double wi, double w0, double r0) const
