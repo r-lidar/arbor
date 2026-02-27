@@ -104,6 +104,8 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
     }
   }
 
+  delete graph;
+
   return core_passage;
 }
 

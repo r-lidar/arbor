@@ -67,6 +67,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborPara
   std::vector<double> distances;
   Graph::NodeIDs closest_nodeids;
   graph->shortest_paths_from_node(seeds_ids, distances, closest_nodeids);
+  delete graph;
 
   if (closest_nodeids.size() != num_points+num_seeds+1) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
 
