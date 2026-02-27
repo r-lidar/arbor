@@ -25,6 +25,10 @@ segment_instance_cpp <- function(core, seeds, params) {
     invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
 }
 
+find_seeds_cpp <- function(core, params) {
+    .Call(`_arbor_find_seeds_cpp`, core, params)
+}
+
 accumulate_passages_cpp <- function(core, gnd, params) {
     .Call(`_arbor_accumulate_passages_cpp`, core, gnd, params)
 }
@@ -59,6 +63,14 @@ accumulate_passages_old <- function(graph_ptr, start_node, goal_nodes, num_point
 
 find_closest_node <- function(graph_ptr, ids) {
     .Call(`_arbor_find_closest_node`, graph_ptr, ids)
+}
+
+generate_cage_cpp <- function(circles, decimation) {
+    .Call(`_arbor_generate_cage_cpp`, circles, decimation)
+}
+
+detect_tree_circles_cpp <- function(wood_df, resolution = 0.05, connectivity = 26L, num_ransac_iterations = 400L, inlier_threshold = 0.02, min_cluster_size = 20L) {
+    .Call(`_arbor_detect_tree_circles_cpp`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }
 
 qsm_topology_cpp <- function(qsm) {

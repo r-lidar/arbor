@@ -68,11 +68,12 @@ file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_selec
 # UAV
 file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_above_ground = 0.25
 
+# Geotree
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/BCI_A0_decimated_50_clip_40x40.laz" ; filter = "" ; cut_above_ground = 0.5
+
 # ===== PROCESSING PARAMETERS =====
 
 params = default_arbor_parameters
-params$path_finder$max_gap = 1
-params$path_finder$k_neighborhood_connectivity = 10
 
 # ====== READ POINT CLOUD =======
 

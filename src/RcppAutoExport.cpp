@@ -59,6 +59,9 @@ void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::DataFrame ground, Rcpp::Li
 void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
@@ -84,6 +87,18 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
+
+// ========================
+// SEEDS
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
+
+
+  //[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20);
+
 
 // ========================
 // QSM

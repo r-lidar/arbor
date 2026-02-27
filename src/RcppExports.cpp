@@ -81,6 +81,17 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// find_seeds_cpp
+Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_find_seeds_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_seeds_cpp(core, params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // accumulate_passages_cpp
 Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
 RcppExport SEXP _arbor_accumulate_passages_cpp(SEXP coreSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
@@ -183,6 +194,32 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type ids(idsSEXP);
     rcpp_result_gen = Rcpp::wrap(find_closest_node(graph_ptr, ids));
+    return rcpp_result_gen;
+END_RCPP
+}
+// generate_cage_cpp
+Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
+RcppExport SEXP _arbor_generate_cage_cpp(SEXP circlesSEXP, SEXP decimationSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type circles(circlesSEXP);
+    Rcpp::traits::input_parameter< double >::type decimation(decimationSEXP);
+    rcpp_result_gen = Rcpp::wrap(generate_cage_cpp(circles, decimation));
+    return rcpp_result_gen;
+END_RCPP
+}
+// detect_tree_circles_cpp
+Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, int min_cluster_size);
+RcppExport SEXP _arbor_detect_tree_circles_cpp(SEXP wood_dfSEXP, SEXP resolutionSEXP, SEXP connectivitySEXP, SEXP num_ransac_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP min_cluster_sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type wood_df(wood_dfSEXP);
+    Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
+    Rcpp::traits::input_parameter< int >::type connectivity(connectivitySEXP);
+    Rcpp::traits::input_parameter< int >::type num_ransac_iterations(num_ransac_iterationsSEXP);
+    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
+    Rcpp::traits::input_parameter< int >::type min_cluster_size(min_cluster_sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(detect_tree_circles_cpp(wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -402,6 +439,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 3},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
+    {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
     {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
     {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},
     {"_arbor_assign_wood_from_high_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_high_likelihood_cpp, 2},
@@ -411,6 +449,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
     {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
+    {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
+    {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},

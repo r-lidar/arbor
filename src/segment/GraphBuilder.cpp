@@ -13,7 +13,7 @@ using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<
 // Constructor / Destructor
 // --------------------------------------------------------
 
-GraphBuilder::GraphBuilder(const GraphBuilderParams& p)
+GraphBuilder::GraphBuilder(const GraphParameters& p)
 {
   set_angle_penalty(p.angle_penalty);
   params = p;

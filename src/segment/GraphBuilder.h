@@ -8,7 +8,7 @@
 class GraphBuilder
 {
 public:
-  GraphBuilder(const GraphBuilderParams& p);
+  GraphBuilder(const GraphParameters& p);
   ~GraphBuilder();
   Graph* get_graph();
 
@@ -41,7 +41,7 @@ private:
   int total_nodes = 0;
   std::vector<bool> wood;
   bool graph_owner = true;
-  GraphBuilderParams params;
+  GraphParameters params;
 
   void set_angle_penalty(const std::vector<float>& x);
 };

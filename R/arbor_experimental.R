@@ -62,7 +62,11 @@ extract_tree_context = function(las, tree, exclude_tree = FALSE)
 qsf_segment_semantic = function(las, qsf)
 {
   warn_experimental()
-  if (inherits(qsf, "qsf")) qsf = data.table::rbindlist(qsf)
+  if (inherits(qsf, "qsf"))
+  {
+    qsf = data.table::rbindlist(qsf)
+    qsf$cyl_ID = 1:nrow(qsf)
+  }
   res <- qsm_distances_cpp(qsf, las@data)
   b <- res$dist < res$radius*1.3 + 0.02
   las@data$foliage <- 1

@@ -5,7 +5,12 @@
 
 #include <vector>
 
-struct GraphBuilderParams
+struct WoodlikelihoodParameters
+{
+  int k = 80;
+};
+
+struct GraphParameters
 {
   bool downward = false;
   int k = 10;
@@ -18,7 +23,7 @@ struct GraphBuilderParams
   double leaf2leaf = 20.0;
   double wood2leaf = 100.0;
   std::vector<float> angle_penalty;
-  GraphBuilderParams(): angle_penalty(181)
+  GraphParameters(): angle_penalty(181)
   {
     for (int x = 0; x <= 180; ++x)
     {
@@ -28,7 +33,7 @@ struct GraphBuilderParams
   }
 };
 
-struct SemanticParams
+struct SemanticParameters
 {
   int   min_passage = 3;
   double high_pwood_threshold   = 0.9;
@@ -44,10 +49,27 @@ struct SemanticParams
   double ground_res = 0.2;
 };
 
+struct SeedParameters
+{
+  std::vector<double> slice_at = {0.7, 0.9};
+  double slice_thickness = 0.05;
+  int min_passage = 15;
+  double safe_zone = 0.2;
+};
+
+struct ArborParameters
+{
+  WoodlikelihoodParameters woodlikelihood;
+  GraphParameters pathfinder;
+  SemanticParameters semantic;
+  SeedParameters seeds;
+};
+
 using Logger = std::function<void(const std::string&)>;
 
-void segment_instance(PointCloud& core, const PointCloud& seeds, const GraphBuilderParams& params, const Logger& logger = [](const std::string&) {});
-void segment_semantic(PointCloud& core, const PointCloud& ground, const GraphBuilderParams& gbpar, const SemanticParams& spar, const Logger& logger = [](const std::string&) {});
+void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
+void segment_semantic(PointCloud& core, const PointCloud& ground, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
+PointCloud find_seeds(const PointCloud&,  const ArborParameters& params, const Logger& logger = [](const std::string&) {});
 
 std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
 std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
