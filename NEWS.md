@@ -1,5 +1,6 @@
 # arbor 0.8.2
 
+- Enhancement: `find_seeds()` full C++
 - Fix: bug `filter_range()`
 
 # arbor 0.8.1

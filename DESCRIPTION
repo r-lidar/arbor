@@ -1,7 +1,7 @@
 Package: arbor
 Type: Package
 Title: Tree Segmentation in MLS Point Clouds
-Version: 0.8.1.9000
+Version: 0.8.2.9000
 Author: Jean-Romain Roussel
 Maintainer: Jean-Romain Roussel <info@r-lidar.com>
 Description: Semantic segmentation, instance segmentaion and Quantitative Structure Model in MLS point cloud.
