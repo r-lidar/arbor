@@ -3,28 +3,27 @@
 
 #include "api.h"
 
-namespace SeedDetectorGeometries
+namespace arbor::seeds {
+
+struct Circle
 {
-  struct Circle
-  {
-    double X;
-    double Y;
-    double Z;
-    double R;
-    int id;
+  double X;
+  double Y;
+  double Z;
+  double R;
+  int id;
 
-    Circle(double x, double y, double z, double r, int i) : X(x), Y(y), Z(z), R(r), id(i) {}
-  };
+  Circle(double x, double y, double z, double r, int i) : X(x), Y(y), Z(z), R(r), id(i) {}
+};
 
-  struct Point3D
-  {
-    double X;
-    double Y;
-    double Z;
+struct Point3D
+{
+  double X;
+  double Y;
+  double Z;
 
-    Point3D(double x, double y, double z) : X(x), Y(y), Z(z) {}
-  };
-}
+  Point3D(double x, double y, double z) : X(x), Y(y), Z(z) {}
+};
 
 class SeedDetector
 {
@@ -32,8 +31,8 @@ public:
   SeedDetector(const ArborParameters& par) : params(par) {};
   void set_logger(Logger new_logger) { logger = std::move(new_logger); }
   void run(const PointCloud& scene);
-  static std::vector<SeedDetectorGeometries::Circle> detect_tree_circles(const PointCloud& wood, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, size_t min_cluster_size = 10);
-  static std::vector<SeedDetectorGeometries::Point3D> generate_cage(const std::vector<SeedDetectorGeometries::Circle>& circles, double decimation);
+  static std::vector<Circle> detect_tree_circles(const PointCloud& wood, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, size_t min_cluster_size = 10);
+  static std::vector<Point3D> generate_cage(const std::vector<Circle>& circles, double decimation);
 
   const PointCloud& get_long_passages() const { return long_passages; }
   const PointCloud& get_short_passages() const { return short_passages; }
@@ -58,7 +57,7 @@ private:
 
 
 private:
-  std::vector<SeedDetectorGeometries::Circle> circles;
+  std::vector<Circle> circles;
 
   PointCloud long_passages;
   PointCloud short_passages;
@@ -74,5 +73,7 @@ private:
   ArborParameters params;
   Logger logger = [](const std::string&) {};
 };
+
+}
 
 #endif

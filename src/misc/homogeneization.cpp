@@ -5,6 +5,8 @@
 
 #include "Adaptor.h"
 
+namespace arbor::utils {
+
 std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
 {
   size_t n = pc.size();
@@ -143,4 +145,6 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
   }
 
   return keep;
+}
+
 }

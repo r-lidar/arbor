@@ -10,8 +10,7 @@
 #include "ransac.h"
 #include "Grid3D.h"
 
-namespace
-{
+namespace arbor::seeds {
 
 // Helper function to validate if a detected circle is a valid tree
 bool is_valid_circle(double radius, double angle_range, double pinlier, double pinside)
@@ -33,7 +32,7 @@ struct Cluster
   Cluster(int id) : cluster_id(id) {}
 };
 
-std::unique_ptr<SeedDetectorGeometries::Circle> fit_circle_to_cluster(const Cluster& cluster, const PointCloud& point_cloud, int num_iterations = 400,  double inlier_threshold = 0.02)
+std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const PointCloud& point_cloud, int num_iterations = 400,  double inlier_threshold = 0.02)
 {
   int id = cluster.cluster_id;
 
@@ -59,13 +58,13 @@ std::unique_ptr<SeedDetectorGeometries::Circle> fit_circle_to_cluster(const Clus
   if (valid)
   {
     auto center = ransac.get_center();
-    return std::make_unique<SeedDetectorGeometries::Circle>(center[0], center[1],  center[2], radius, id);
+    return std::make_unique<Circle>(center[0], center[1],  center[2], radius, id);
   }
 
   return nullptr;
 }
 
-void assign_cluster_ids(std::vector<SeedDetectorGeometries::Circle>& circles)
+void assign_cluster_ids(std::vector<Circle>& circles)
 {
   int n = circles.size();
   if (n == 0) return;
@@ -116,12 +115,10 @@ void assign_cluster_ids(std::vector<SeedDetectorGeometries::Circle>& circles)
   }
 }
 
-}
-
 // Find group of circles in the wood slices
 // -----------------------------------------------
 // Main function to detect tree circles from wood points
-std::vector<SeedDetectorGeometries::Circle> SeedDetector::detect_tree_circles(const PointCloud& wood, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, size_t min_cluster_size)
+std::vector<Circle> SeedDetector::detect_tree_circles(const PointCloud& wood, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, size_t min_cluster_size)
 {
   size_t n = wood.point_count();
 
@@ -154,7 +151,7 @@ std::vector<SeedDetectorGeometries::Circle> SeedDetector::detect_tree_circles(co
 
   // Process each cluster
   size_t total_clusters = clusters.size();
-  std::vector<SeedDetectorGeometries::Circle> circles;
+  std::vector<Circle> circles;
   for (size_t i = 0; i < total_clusters; ++i)
   {
     // Progress indicator
@@ -176,4 +173,6 @@ std::vector<SeedDetectorGeometries::Circle> SeedDetector::detect_tree_circles(co
   assign_cluster_ids(circles);
 
   return circles;
+}
+
 }

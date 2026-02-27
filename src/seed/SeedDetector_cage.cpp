@@ -5,12 +5,12 @@
 
 #include "SeedDetector.h"
 
-namespace
-{
+namespace arbor::seeds {
+
 // Generate points on a circle circumference
-std::vector<SeedDetectorGeometries::Point3D> generate_circle_points(double x, double y, double z, double r, double step)
+std::vector<Point3D> generate_circle_points(double x, double y, double z, double r, double step)
 {
-  std::vector<SeedDetectorGeometries::Point3D> points;
+  std::vector<Point3D> points;
 
   // Calculate circumference and number of points
   double circumference = 2.0 * M_PI * r;
@@ -30,32 +30,32 @@ std::vector<SeedDetectorGeometries::Point3D> generate_circle_points(double x, do
     double theta = (2.0 * M_PI * i) / n_points;
     double px = x + r * std::cos(theta);
     double py = y + r * std::sin(theta);
-    points.push_back(SeedDetectorGeometries::Point3D(px, py, z));
+    points.push_back(Point3D(px, py, z));
   }
 
   return points;
 }
 
 // Generate points on radii of a disk (8 points at equal angles)
-std::vector<SeedDetectorGeometries::Point3D> generate_disk_radii(double x, double y, double z, double r, int n = 8)
+std::vector<Point3D> generate_disk_radii(double x, double y, double z, double r, int n = 8)
 {
-  std::vector<SeedDetectorGeometries::Point3D> points;
+  std::vector<Point3D> points;
   points.reserve(n);
 
   for (int i = 0; i < n; ++i) {
     double angle = (2.0 * M_PI * i) / n;
     double px = x + r * std::cos(angle);
     double py = y + r * std::sin(angle);
-    points.push_back(SeedDetectorGeometries::Point3D(px, py, z));
+    points.push_back(Point3D(px, py, z));
   }
 
   return points;
 }
 
 // Generate connectors for a single group of circles
-std::vector<SeedDetectorGeometries::Point3D> generate_connectors(std::vector<SeedDetectorGeometries::Circle> group, double step_z)
+std::vector<Point3D> generate_connectors(std::vector<Circle> group, double step_z)
 {
-  std::vector<SeedDetectorGeometries::Point3D> connectors;
+  std::vector<Point3D> connectors;
 
   if (group.size() < 2)
   {
@@ -63,13 +63,13 @@ std::vector<SeedDetectorGeometries::Point3D> generate_connectors(std::vector<See
   }
 
   // Sort by Z coordinate
-  std::sort(group.begin(), group.end(), [](const SeedDetectorGeometries::Circle& a, const SeedDetectorGeometries::Circle& b) { return a.Z < b.Z; });
+  std::sort(group.begin(), group.end(), [](const Circle& a, const Circle& b) { return a.Z < b.Z; });
 
   // Iterate through pairs of consecutive circles
   for (size_t i = 0; i < group.size() - 1; ++i)
   {
-    const SeedDetectorGeometries::Circle& c1 = group[i];
-    const SeedDetectorGeometries::Circle& c2 = group[i + 1];
+    const Circle& c1 = group[i];
+    const Circle& c2 = group[i + 1];
 
     double dz = c2.Z - c1.Z;
 
@@ -106,7 +106,7 @@ std::vector<SeedDetectorGeometries::Point3D> generate_connectors(std::vector<See
       double r_interp = c1.R + t * (c2.R - c1.R);
 
       // Generate disk radii points
-      std::vector<SeedDetectorGeometries::Point3D> disk_points = generate_disk_radii(x_interp, y_interp, z, r_interp, 8);
+      std::vector<Point3D> disk_points = generate_disk_radii(x_interp, y_interp, z, r_interp, 8);
 
       // Reserve space before inserting
       connectors.reserve(connectors.size() + disk_points.size());
@@ -118,9 +118,9 @@ std::vector<SeedDetectorGeometries::Point3D> generate_connectors(std::vector<See
 }
 
 // Generate all connectors for all groups
-std::vector<SeedDetectorGeometries::Point3D> generate_all_connectors(const std::vector<SeedDetectorGeometries::Circle>& circles, double step_z)
+std::vector<Point3D> generate_all_connectors(const std::vector<Circle>& circles, double step_z)
 {
-  std::vector<SeedDetectorGeometries::Point3D> all_connectors;
+  std::vector<Point3D> all_connectors;
 
   if (circles.empty()) {
     return all_connectors;
@@ -138,7 +138,7 @@ std::vector<SeedDetectorGeometries::Point3D> generate_all_connectors(const std::
   for (int id : unique_ids)
   {
     // Extract circles for this group
-    std::vector<SeedDetectorGeometries::Circle> group;
+    std::vector<Circle> group;
     for (const auto& circle : circles)
     {
       if (circle.id == id) {
@@ -149,7 +149,7 @@ std::vector<SeedDetectorGeometries::Point3D> generate_all_connectors(const std::
     // Generate connectors for this group
     if (group.size() > 1)
     {
-      std::vector<SeedDetectorGeometries::Point3D> group_connectors = generate_connectors(group, step_z);
+      std::vector<Point3D> group_connectors = generate_connectors(group, step_z);
 
       // Reserve space before inserting
       all_connectors.reserve(all_connectors.size() + group_connectors.size());
@@ -159,19 +159,18 @@ std::vector<SeedDetectorGeometries::Point3D> generate_all_connectors(const std::
 
   return all_connectors;
 }
-}
 
-std::vector<SeedDetectorGeometries::Point3D> SeedDetector::generate_cage(const std::vector<SeedDetectorGeometries::Circle>& circles, double decimation)
+std::vector<Point3D> SeedDetector::generate_cage(const std::vector<Circle>& circles, double decimation)
 {
   double res = decimation * 0.75;
 
   if (res <= 0.0)
     throw std::runtime_error("Invalid decimation value, resulting in non-positive step size");
 
-  std::vector<SeedDetectorGeometries::Point3D> all_circle_points;
+  std::vector<Point3D> all_circle_points;
   for (const auto& circle : circles)
   {
-    std::vector<SeedDetectorGeometries::Point3D> pts = generate_circle_points(circle.X, circle.Y, circle.Z, circle.R, res);
+    std::vector<Point3D> pts = generate_circle_points(circle.X, circle.Y, circle.Z, circle.R, res);
     all_circle_points.insert(
       all_circle_points.end(),
       std::make_move_iterator(pts.begin()),
@@ -179,9 +178,9 @@ std::vector<SeedDetectorGeometries::Point3D> SeedDetector::generate_cage(const s
     );
   }
 
-  std::vector<SeedDetectorGeometries::Point3D> all_connectors = generate_all_connectors(circles, res);
+  std::vector<Point3D> all_connectors = generate_all_connectors(circles, res);
 
-  std::vector<SeedDetectorGeometries::Point3D> cage_points;
+  std::vector<Point3D> cage_points;
   cage_points.reserve(all_circle_points.size() + all_connectors.size());
   cage_points.insert(cage_points.end(), all_circle_points.begin(), all_circle_points.end());
   cage_points.insert(cage_points.end(), all_connectors.begin(), all_connectors.end());
@@ -191,7 +190,7 @@ std::vector<SeedDetectorGeometries::Point3D> SeedDetector::generate_cage(const s
 
 void SeedDetector::make_cages()
 {
-  std::vector<SeedDetectorGeometries::Point3D> pcage = generate_cage(circles, params.pathfinder.decimation); // static function exported to R
+  std::vector<Point3D> pcage = generate_cage(circles, params.pathfinder.decimation); // static function exported to R
 
   cages = PointCloud(pcage.size(), true);
   for (size_t i = 0 ; i < cages.size() ; i++)
@@ -200,4 +199,6 @@ void SeedDetector::make_cages()
     cages.set_y(i, pcage[i].Y);
     cages.set_z(i, pcage[i].Z);
   }
+}
+
 }

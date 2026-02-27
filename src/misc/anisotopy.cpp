@@ -8,6 +8,8 @@
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
+namespace arbor::utils {
+
 inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e, double f, double& lmin, double& lmid, double& lmax)
 {
   // Matrix:
@@ -51,7 +53,7 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
   lmid = 3.0*m - lmax - lmin;
 }
 
-std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1)
+std::vector<float> anisotropy(const PointCloud& adaptor, int k, int ncpu = 1)
 {
   const int n = adaptor.size();
 
@@ -136,4 +138,6 @@ std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1)
   if (abort.load()) Rcpp::stop("Computation aborted");
 
   return out;
+}
+
 }

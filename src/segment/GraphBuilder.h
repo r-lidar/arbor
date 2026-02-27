@@ -5,6 +5,8 @@
 #include "Graph.h"
 #include "api.h"
 
+namespace arbor::segment {
+
 class GraphBuilder
 {
 public:
@@ -45,5 +47,7 @@ private:
 
   void set_angle_penalty(const std::vector<float>& x);
 };
+
+}
 
 #endif

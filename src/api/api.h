@@ -67,11 +67,23 @@ struct ArborParameters
 
 using Logger = std::function<void(const std::string&)>;
 
-void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
-void segment_semantic(PointCloud& core, const PointCloud& ground, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
-PointCloud find_seeds(const PointCloud&,  const ArborParameters& params, const Logger& logger = [](const std::string&) {});
-
-std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
-std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
+namespace arbor
+{
+  namespace segment
+  {
+    void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    void segment_semantic(PointCloud& core, const PointCloud& ground, const ArborParameters& params, const Logger& logger = [](const std::string&) {});
+  }
+  namespace seeds
+  {
+    PointCloud find_seeds(const PointCloud&,  const ArborParameters& params, const Logger& logger = [](const std::string&) {});
+  }
+  namespace utils
+  {
+    std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
+    std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
+    std::vector<float> anisotropy(const PointCloud& pc, int k, int ncpu);
+  }
+}
 
 #endif

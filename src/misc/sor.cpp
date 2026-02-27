@@ -10,6 +10,8 @@
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
+namespace arbor::utils {
+
 std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
 {
   size_t n = pc.size();
@@ -88,4 +90,6 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
     out[i] = (dmean[i] > threshold);
 
   return out;
+}
+
 }

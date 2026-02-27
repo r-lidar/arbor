@@ -7,6 +7,8 @@
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
+namespace arbor::segment {
+
 Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const GraphParameters& params)
 {
   GraphBuilder builder(params);
@@ -27,12 +29,12 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   logger("Decimating the point cloud (1/9)");
 
   // Decimation
-  std::vector<bool> keep1 = homogeneization(core, params.decimation, true);
+  std::vector<bool> keep1 = arbor::utils::homogeneization(core, params.decimation, true);
   PointCloud dec = core.subset(keep1, true);
 
   logger("Discretizing scene space (2/9)");
 
-  std::vector<bool> keep2 = homogeneization(core, params.space_res, false);
+  std::vector<bool> keep2 = arbor::utils::homogeneization(core, params.space_res, false);
   PointCloud targets = core.subset(keep2, true);
 
   logger("Constructing the graph (3/9)");
@@ -244,7 +246,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   logger("  sor noise segmentation");
 
   // SOR. Detect noise
-  std::vector<bool> is_noise = sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m, 12);
+  std::vector<bool> is_noise = arbor::utils::sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m, 12);
 
   // Remove noise
   is_noise.flip();
@@ -382,5 +384,7 @@ void segment_semantic(PointCloud& scene, const PointCloud& ground, const ArborPa
     if (!scene.is_wood(i) && scene.get_pwood(i) > par.semantic.high_pwood_threshold)
       scene.set_foliage(i, 2);
   }
+}
+
 }
 

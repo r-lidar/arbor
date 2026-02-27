@@ -5,28 +5,25 @@
 #include "Adaptor.h"
 #include "Grid3D.h"
 #include "ransac.h"
+#include "api.h"
 
 // =======================
 // PRE-PROCESSING
 // =======================
 
-std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
-
 //[[Rcpp::export(rng = false)]]
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
 {
   PointCloud pc(df);
-  auto ans = homogeneization(pc, res, hybrid);
+  auto ans = arbor::utils::homogeneization(pc, res, hybrid);
   return(Rcpp::wrap(ans));
 }
-
-std::vector<float> anisotropy(PointCloud& adaptor, int k, int ncpu = 1);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1)
 {
   PointCloud pc(df);
-  auto ans = anisotropy(pc, k, ncpu);
+  auto ans = arbor::utils::anisotropy(pc, k, ncpu);
   return(Rcpp::wrap(ans));
 }
 
@@ -44,7 +41,7 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
 Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1)
 {
   PointCloud pc(df);
-  auto ans = sor(pc, k, m, ncpu);
+  auto ans = arbor::utils::sor(pc, k, m, ncpu);
   return(Rcpp::wrap(ans));
 }
 

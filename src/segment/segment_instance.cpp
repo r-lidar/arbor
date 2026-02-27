@@ -10,6 +10,8 @@
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
+namespace arbor::segment {
+
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphParameters& params)
 {
   if (core.size() == 0)     throw std::runtime_error("build_instance_graph: core point cloud is empty.");
@@ -43,7 +45,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborPara
   logger("Decimating the point cloud... (1/4)");
 
   // Decimation
-  std::vector<bool> keep = homogeneization(core, params.pathfinder.decimation, true);
+  std::vector<bool> keep = arbor::utils::homogeneization(core, params.pathfinder.decimation, true);
   PointCloud dec = core.subset(keep);
 
   size_t num_raw_pts = core.size();
@@ -116,4 +118,6 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborPara
   oss << std::fixed << std::setprecision(1) << elapsed.count();
 
   logger("Instance segmentation completed in " + oss.str() + " s");
+}
+
 }

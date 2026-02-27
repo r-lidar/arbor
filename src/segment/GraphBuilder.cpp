@@ -9,6 +9,8 @@
 
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 
+namespace arbor::segment {
+
 // --------------------------------------------------------
 // Constructor / Destructor
 // --------------------------------------------------------
@@ -266,3 +268,5 @@ std::pair<int, int> GraphBuilder::get_range_core() const { return {offset_points
 std::pair<int, int> GraphBuilder::get_range_targets() const { return {offset_targets, offset_targets + total_target_nodes - 1}; }
 std::pair<int, int> GraphBuilder::get_range_seed() const { return {offset_seeds, offset_seeds + total_seed_nodes - 1}; }
 std::pair<int, int> GraphBuilder::get_range_master() const { return {offset_master, offset_master + total_master_nodes - 1 }; }
+
+}

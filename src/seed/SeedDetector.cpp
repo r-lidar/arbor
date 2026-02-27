@@ -1,6 +1,8 @@
 #include "SeedDetector.h"
 #include "Grid3D.h"
 
+namespace arbor::seeds {
+
 void SeedDetector::run(const PointCloud& scene)
 {
   if (scene.size() == 0)     throw std::runtime_error("find_seed: point cloud is empty.");
@@ -211,7 +213,7 @@ void SeedDetector::merge_short_passages()
   p.pathfinder.angle_penalty = std::vector<float>(181);
   std::fill(p.pathfinder.angle_penalty.begin(), p.pathfinder.angle_penalty.end(), 1.0f);
 
-  segment_instance(short_passages, primary_seeds, p);
+  arbor::segment::segment_instance(short_passages, primary_seeds, p);
 
   std::vector<bool> has_id_mask(short_passages.size(), false);
   for (size_t i = 0; i < short_passages.size(); i++)
@@ -259,4 +261,6 @@ void SeedDetector::filter_seeds()
   std::vector<bool> mask(seeds.size(), false);
   for (size_t i = 0; i < seeds.size(); i++) mask[i] = (seeds.get_hag(i) < 1 && seeds.get_passage(i) > 0);
   seeds = seeds.subset(mask);
+}
+
 }

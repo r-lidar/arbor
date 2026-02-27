@@ -15,10 +15,12 @@
 
 
 // Type aliases for clarity
-using GraphPtr = Rcpp::XPtr<Graph>;
-using GraphCache = std::pair<Graph::DistanceVector, Graph::PredecessorMap>;
+using GraphPtr = Rcpp::XPtr<arbor::segment::Graph>;
+using GraphCache = std::pair<arbor::segment::Graph::DistanceVector, arbor::segment::Graph::PredecessorMap>;
 using DF = Rcpp::DataFrame;
 
+namespace arbor::segment
+{
 std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphParameters& params, const Logger& logger = [](const std::string&) {});
 std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParameters& params, const Logger& logger = [](const std::string&) {});
 std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParameters& params, const Logger& logger = [](const std::string&) {});
@@ -26,6 +28,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
 std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParameters& params, const Logger& logger = [](const std::string&) {});
 Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, const PointCloud& gnd, const GraphParameters& params);
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphParameters& params);
+}
 
 auto logger()
 {
@@ -180,7 +183,7 @@ void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
   ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   PointCloud s(ground);
-  segment_semantic(p, s, par, logger());
+  arbor::segment::segment_semantic(p, s, par, logger());
 }
 
 void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
@@ -188,7 +191,7 @@ void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
   ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   PointCloud s(seeds);
-  segment_instance(p, s, par, logger());
+  arbor::segment::segment_instance(p, s, par, logger());
   for (size_t i = 0 ; i < p.size() ; i++) {
     if (p.get_treeid(i) == -1) {
       p.set_treeid(i, NA_INTEGER);
@@ -200,7 +203,7 @@ DF find_seeds_cpp(DF core, Rcpp::List params)
 {
   ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud seeds = find_seeds(p, par, logger());
+  PointCloud seeds = arbor::seeds::find_seeds(p, par, logger());
   return as_dataframe(seeds);
 }
 
@@ -209,7 +212,7 @@ Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
   GraphParameters gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(gnd);
-  std::vector<int> ans = accumulate_passages(p, s, gparams, logger());
+  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams, logger());
   return Rcpp::IntegerVector(ans.begin(), ans.end());
 }
 
@@ -217,7 +220,7 @@ Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
 {
   SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = assign_wood_from_passage(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams, logger());
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -225,7 +228,7 @@ Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(DF core, Rcpp::List par
 {
   SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = assign_wood_from_high_likelihood(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams, logger());
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -233,7 +236,7 @@ Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(DF core, Rcpp::List p
 {
   SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = assign_wood_from_medium_likelihood(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams, logger());
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -241,7 +244,7 @@ Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List par
 {
   SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = assign_wood_from_wood_dilatation(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams, logger());
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -253,7 +256,7 @@ SEXP build_semantic_graph(DF dec, DF targets, DF gnd, Rcpp::List params)
   PointCloud trgt(targets);
   PointCloud ground(gnd);
 
-  Graph* graph = build_semantic_graph(core, trgt, ground, p);
+  arbor::segment::Graph* graph = arbor::segment::build_semantic_graph(core, trgt, ground, p);
   GraphPtr ptr(graph, true);
   return ptr;
 }
@@ -265,7 +268,7 @@ SEXP build_instance_graph(DF dec, DF seed, Rcpp::List params)
   PointCloud core(dec);
   PointCloud seeds(seed);
 
-  Graph* graph = build_instance_graph(core, seeds, p);
+  arbor::segment::Graph* graph = arbor::segment::build_instance_graph(core, seeds, p);
 
   GraphPtr ptr(graph, true);
   return ptr;
@@ -280,7 +283,7 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
   std::vector<int> passage(num_points, 0);
 
   // Precompute distances for fast access
-  Graph::GraphCache cache = graph->compute_distances(start_node);
+  arbor::segment::Graph::GraphCache cache = graph->compute_distances(start_node);
 
   // Parallel loop over goal nodes
   #pragma omp parallel
@@ -290,13 +293,13 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
     #pragma omp for schedule(dynamic, 100)
     for (int i = 0; i < n_goals; ++i)
     {
-      Graph::NodeId goal  = goal_nodes[i];
+      arbor::segment::Graph::NodeId goal  = goal_nodes[i];
 
       auto [path, cost] = graph->findPath(start_node, goal, cache);
 
       for (size_t j = 0; j < path.size(); ++j)
       {
-        Graph::NodeId id = path[j];
+        arbor::segment::Graph::NodeId id = path[j];
         if (id >= 0 && id < num_points)
           local_passage[id] += 1;
       }
@@ -323,10 +326,10 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids)
   GraphPtr graph(graph_ptr);
 
   // Convert R vector of ground nodes to std::vector<NodeId>
-  Graph::NodeIDs node_ids(ids.begin(), ids.end());
+  arbor::segment::Graph::NodeIDs node_ids(ids.begin(), ids.end());
 
   std::vector<double> distances;
-  Graph::NodeIDs closest_nodeids;
+  arbor::segment::Graph::NodeIDs closest_nodeids;
 
   // Run the optimized multi-source Dijkstra
   graph->shortest_paths_from_node(node_ids, distances, closest_nodeids);
@@ -355,15 +358,15 @@ Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation)
     );
   }
 
-  std::vector<SeedDetectorGeometries::Circle> circle_vec;
+  std::vector<arbor::seeds::Circle> circle_vec;
   circle_vec.reserve(n);
   for (int i = 0; i < n; ++i) {
 
-    circle_vec.push_back(SeedDetectorGeometries::Circle(X[i], Y[i], Z[i], R[i], id[i]));
+    circle_vec.push_back(arbor::seeds::Circle(X[i], Y[i], Z[i], R[i], id[i]));
   }
 
   // Call pure C++ function
-  std::vector<SeedDetectorGeometries::Point3D> cage_points = SeedDetector::generate_cage(circle_vec, decimation);
+  std::vector<arbor::seeds::Point3D> cage_points = arbor::seeds::SeedDetector::generate_cage(circle_vec, decimation);
 
   // Convert output: C++ vector of Points -> R DataFrame
   size_t total_points = cage_points.size();
@@ -388,7 +391,7 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
 {
   PointCloud wood(wood_df);
 
-  std::vector<SeedDetectorGeometries::Circle> circles = SeedDetector::detect_tree_circles(
+  std::vector<arbor::seeds::Circle> circles = arbor::seeds::SeedDetector::detect_tree_circles(
     wood,
     resolution,
     connectivity,

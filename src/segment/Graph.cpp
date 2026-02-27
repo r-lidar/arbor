@@ -5,6 +5,8 @@
 
 #include "Graph.h"
 
+namespace arbor::segment {
+
 void Graph::add_edge(NodeId source, NodeId destination, Cost cost)
 {
   adjacency_list[source].push_back({destination, cost});
@@ -125,5 +127,7 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
   }
 
   //std::cout << "\nDone. Processed " << processed << " nodes.\n";
+}
+
 }
 
