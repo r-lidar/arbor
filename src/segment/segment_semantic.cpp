@@ -1,4 +1,4 @@
-#include "api.h"
+#include "arbor.h"
 #include "myomp.h"
 #include "nanoflann.h"
 #include "GraphBuilder.h"
@@ -9,7 +9,7 @@ using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
-Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const GraphParameters& params)
+Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const settings::GraphParameters& params)
 {
   GraphBuilder builder(params);
 
@@ -21,7 +21,7 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
   return builder.get_graph();
 }
 
-std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& ground, const GraphParameters& params, const Logger& logger)
+std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params, const Logger& logger)
 {
   if (core.size() == 0)   throw std::runtime_error("segment_instance: core point cloud is empty.");
   if (ground.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
@@ -111,7 +111,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   return core_passage;
 }
 
-std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
+std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage: point cloud is empty.");
   if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage: point cloud is missing required 'passage' attribute.");
@@ -171,7 +171,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const SemanticP
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
+std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -227,7 +227,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const S
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
+std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -299,7 +299,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   return is_wood;
 }
 
-std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const SemanticParameters& params, const Logger& logger)
+std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
@@ -357,7 +357,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const S
   return is_wood;
 }
 
-void segment_semantic(PointCloud& scene, const PointCloud& ground, const ArborParameters& par, const Logger& logger)
+void segment_semantic(PointCloud& scene, const PointCloud& ground, const settings::ArborParameters& par, const Logger& logger)
 {
   size_t n = scene.size();
 

@@ -1,4 +1,4 @@
-#include "Adaptor.h"
+#include "PointCloud.h"
 
 #include <algorithm> // for std::copy
 #include <cstring>   // for std::memset

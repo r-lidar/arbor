@@ -1,4 +1,4 @@
-#include "api.h"
+#include "arbor.h"
 #include "myomp.h"
 #include "nanoflann.h"
 #include "GraphBuilder.h"
@@ -12,7 +12,7 @@ using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
-Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const GraphParameters& params)
+Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const settings::GraphParameters& params)
 {
   if (core.size() == 0)     throw std::runtime_error("build_instance_graph: core point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("build_instance_graph: seeds point cloud is empty.");
@@ -32,7 +32,7 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   return builder.get_graph();
 }
 
-void segment_instance(PointCloud& core, const PointCloud& seeds, const ArborParameters& params, const Logger& logger)
+void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params, const Logger& logger)
 {
   if (core.size() == 0)     throw std::runtime_error("segment_instance: core point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("segment_instance: seeds point cloud is empty.");

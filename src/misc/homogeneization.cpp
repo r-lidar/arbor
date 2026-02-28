@@ -3,7 +3,7 @@
 #include <random>
 #include <algorithm>
 
-#include "Adaptor.h"
+#include "PointCloud.h"
 
 namespace arbor::utils {
 

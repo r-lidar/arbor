@@ -1,6 +1,6 @@
 #include "GraphBuilder.h"
 #include "nanoflann.h"
-#include "Adaptor.h"
+#include "PointCloud.h"
 #include "myomp.h"
 
 #include <vector>
@@ -15,7 +15,7 @@ namespace arbor::segment {
 // Constructor / Destructor
 // --------------------------------------------------------
 
-GraphBuilder::GraphBuilder(const GraphParameters& p)
+GraphBuilder::GraphBuilder(const settings::GraphParameters& p)
 {
   set_angle_penalty(p.angle_penalty);
   params = p;

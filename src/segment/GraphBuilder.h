@@ -1,16 +1,16 @@
 #ifndef GRAPHBUILDER_H
 #define GRAPHBUILDER_H
 
-#include "Adaptor.h"
+#include "PointCloud.h"
 #include "Graph.h"
-#include "api.h"
+#include "arbor.h"
 
 namespace arbor::segment {
 
 class GraphBuilder
 {
 public:
-  GraphBuilder(const GraphParameters& p);
+  GraphBuilder(const settings::GraphParameters& p);
   ~GraphBuilder();
   Graph* get_graph();
 
@@ -43,7 +43,7 @@ private:
   int total_nodes = 0;
   std::vector<bool> wood;
   bool graph_owner = true;
-  GraphParameters params;
+  settings::GraphParameters params;
 
   void set_angle_penalty(const std::vector<float>& x);
 };

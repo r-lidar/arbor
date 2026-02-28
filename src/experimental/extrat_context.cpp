@@ -1,5 +1,5 @@
 #include "nanoflann.h"
-#include "Adaptor.h"
+#include "PointCloud.h"
 
 #include <unordered_set>
 #include <vector>

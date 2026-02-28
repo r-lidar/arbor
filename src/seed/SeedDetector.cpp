@@ -205,7 +205,7 @@ void SeedDetector::merge_short_passages()
   for (size_t i = 0; i < short_passages.size(); i++) short_passages.set_foliage(i, 0);
 
   // Setup parameters for pathfinder
-  ArborParameters p;
+  settings::ArborParameters p;
   p.pathfinder.max_gap = 0.1;
   p.pathfinder.k = 10;
   p.pathfinder.k_seed = 2;

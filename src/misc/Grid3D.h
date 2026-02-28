@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <cstdint>
 
-#include "Adaptor.h"
+#include "PointCloud.h"
 
 struct Offset
 {

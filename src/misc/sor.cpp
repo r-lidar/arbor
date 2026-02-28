@@ -4,7 +4,7 @@
 
 #include "myomp.h"
 #include "nanoflann.h"
-#include "Adaptor.h"
+#include "PointCloud.h"
 #include "progressbar.h"
 
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;

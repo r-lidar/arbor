@@ -1,7 +1,7 @@
 #ifndef SEEDDETECTOR_H
 #define SEEDDETECTOR_H
 
-#include "api.h"
+#include "arbor.h"
 
 namespace arbor::seeds {
 
@@ -28,7 +28,7 @@ struct Point3D
 class SeedDetector
 {
 public:
-  SeedDetector(const ArborParameters& par) : params(par) {};
+  SeedDetector(const settings::ArborParameters& par) : params(par) {};
   void set_logger(Logger new_logger) { logger = std::move(new_logger); }
   void run(const PointCloud& scene);
   static std::vector<Circle> detect_tree_circles(const PointCloud& wood, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, size_t min_cluster_size = 10);
@@ -70,7 +70,7 @@ private:
 
   double min_hag;
 
-  ArborParameters params;
+  settings::ArborParameters params;
   Logger logger = [](const std::string&) {};
 };
 

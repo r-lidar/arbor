@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "QSM.h"
-#include "Adaptor.h"
+#include "PointCloud.h"
 #include "nanoflann.h"
 #include "ransac.h"
 

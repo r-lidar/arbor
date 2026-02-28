@@ -7,7 +7,7 @@
 #include <cmath>
 #include <string>
 
-#include "Adaptor.h"
+#include "PointCloud.h"
 
 static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;

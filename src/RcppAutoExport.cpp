@@ -2,10 +2,10 @@
 // Otherwise most is defined in R/Rapi.cpp
 
 
-#include "Adaptor.h"
+#include "PointCloud.h"
 #include "Grid3D.h"
 #include "ransac.h"
-#include "api.h"
+#include "arbor.h"
 
 // =======================
 // PRE-PROCESSING
