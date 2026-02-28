@@ -41,7 +41,7 @@ public:
   const PointCloud& get_primary_seeds() const { return primary_seeds; }
   const PointCloud& get_secondary_seeds() const { return secondary_seeds; }
   const PointCloud& get_seeds() const { return seeds; }
-  PointCloud&& move_seeds() { return std::move(seeds); }   // Bonus: allow to move the data out (transfer ownership)
+  PointCloud move_seeds() { return std::move(seeds); }   // allow to move the data out (transfer ownership)
 
 private:
   void compute_min_hag(const PointCloud& scene);
