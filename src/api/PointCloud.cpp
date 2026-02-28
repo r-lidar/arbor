@@ -6,30 +6,22 @@
 
 #ifdef USING_R
 
+PointCloudDataFrame::PointCloudDataFrame()
+{
+  init();
+}
+
 PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
 {
-  if (n < 0) throw std::invalid_argument("PointCloudDataFrame: n must be >= 0");
-
+  init();
   n_points = n;
-  owns_memory = true;
-
-  // Allocate coordinates
-  for (int d = 0; d < 3; ++d)
-    coords[d] = new double[n_points]();
-
-    // Optional attributes
-    if (init_attributes)
-    {
-      treeid  = new int[n_points]();
-      foliage = new int[n_points]();
-      passage = new int[n_points]();
-      hag     = new double[n_points]();
-      pwood   = new double[n_points]();
-    }
+  safe_alloc(n, init_attributes);
 }
 
 PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
+  init();
+  n_points = df.rows();
   owns_memory = false;
 
   std::vector<std::string> coord_names = {"X", "Y", "Z"};
@@ -38,8 +30,6 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   std::string foliage_name = "foliage";
   std::string hag_name     = "hag";
   std::string passage_name = "passage";
-
-  n_points = df.rows();
 
   // --- Mandatory coordinates ---
   for (size_t i = 0; i < 3; ++i)
@@ -84,129 +74,89 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 }
 
 // ------------------------------------------------------------
-// Copy constructor (deep copy)
-// ------------------------------------------------------------
-PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
-{
-  n_points = other.n_points;
-  owns_memory = true;
-
-  coords[0] = new double[n_points];
-  coords[1] = new double[n_points];
-  coords[2] = new double[n_points];
-
-  std::copy(other.coords[0], other.coords[0] + n_points, coords[0]);
-  std::copy(other.coords[1], other.coords[1] + n_points, coords[1]);
-  std::copy(other.coords[2], other.coords[2] + n_points, coords[2]);
-
-  if (other.treeid)
-  {
-    treeid = new int[n_points];
-    std::copy(other.treeid, other.treeid + n_points, treeid);
-  }
-
-  if (other.foliage)
-  {
-    foliage = new int[n_points];
-    std::copy(other.foliage, other.foliage + n_points, foliage);
-  }
-
-  if (other.pwood)
-  {
-    pwood = new double[n_points];
-    std::copy(other.pwood, other.pwood + n_points, pwood);
-  }
-
-  if (other.hag)
-  {
-    hag = new double[n_points];
-    std::copy(other.hag, other.hag + n_points, hag);
-  }
-
-  if (other.hag)
-  {
-    passage = new int[n_points];
-    std::copy(other.passage, other.passage + n_points, passage);
-  }
-}
-
-// ------------------------------------------------------------
-// Move constructor
-// ------------------------------------------------------------
-PointCloudDataFrame::PointCloudDataFrame(PointCloudDataFrame&& other) noexcept
-{
-  n_points    = other.n_points;
-  owns_memory = other.owns_memory;
-
-  coords[0] = other.coords[0];
-  coords[1] = other.coords[1];
-  coords[2] = other.coords[2];
-  treeid    = other.treeid;
-  foliage   = other.foliage;
-  pwood     = other.pwood;
-  hag       = other.hag;
-  passage   = other.passage;
-
-  other.coords[0] = other.coords[1] = other.coords[2] = nullptr;
-  other.treeid = other.foliage = nullptr;
-  other.pwood = nullptr;
-  other.hag = nullptr;
-  other.passage = nullptr;
-  other.owns_memory = false;
-}
-
-// ------------------------------------------------------------
-// Copy assignment
-// ------------------------------------------------------------
-PointCloudDataFrame& PointCloudDataFrame::operator=(const PointCloudDataFrame& other)
-{
-  if (this != &other)
-  {
-    if (owns_memory) cleanup();
-
-    *this = PointCloudDataFrame(other);
-  }
-  return *this;
-}
-
-// ------------------------------------------------------------
-// Move assignment
-// ------------------------------------------------------------
-PointCloudDataFrame& PointCloudDataFrame::operator=(PointCloudDataFrame&& other) noexcept
-{
-  if (this != &other)
-  {
-    if (owns_memory) cleanup();
-
-    n_points    = other.n_points;
-    owns_memory = other.owns_memory;
-
-    coords[0] = other.coords[0];
-    coords[1] = other.coords[1];
-    coords[2] = other.coords[2];
-    treeid    = other.treeid;
-    foliage   = other.foliage;
-    pwood     = other.pwood;
-    hag       = other.hag;
-    passage   = other.passage;
-
-    other.coords[0] = other.coords[1] = other.coords[2] = nullptr;
-    other.treeid = other.foliage = nullptr;
-    other.pwood = nullptr;
-    other.hag = nullptr;
-    other.passage = nullptr;
-    other.owns_memory = false;
-  }
-  return *this;
-}
-
-// ------------------------------------------------------------
-// Destructor
+// Destructor (Rule of Five: 1/5)
 // ------------------------------------------------------------
 PointCloudDataFrame::~PointCloudDataFrame()
 {
   cleanup();
 }
+
+// ------------------------------------------------------------
+// Copy Constructor (Rule of Five: 2/5)
+// ------------------------------------------------------------
+PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
+{
+  init();
+  n_points = other.n_points;
+  owns_memory = true; // A copy ALWAYS owns its new memory
+
+  try
+  {
+    for (int i = 0; i < 3; ++i)
+    {
+      if (other.coords[i]) {
+        coords[i] = new double[n_points];
+        std::copy(other.coords[i], other.coords[i] + n_points, coords[i]);
+      }
+    }
+
+    if (other.treeid) {
+      treeid = new int[n_points];
+      std::copy(other.treeid, other.treeid + n_points, treeid);
+    }
+    if (other.foliage) {
+      foliage = new int[n_points];
+      std::copy(other.foliage, other.foliage + n_points, foliage);
+    }
+    if (other.pwood) {
+      pwood = new double[n_points];
+      std::copy(other.pwood, other.pwood + n_points, pwood);
+    }
+    if (other.hag) {
+      hag = new double[n_points];
+      std::copy(other.hag, other.hag + n_points, hag);
+    }
+    if (other.passage) {
+      passage = new int[n_points];
+      std::copy(other.passage, other.passage + n_points, passage);
+    }
+  }
+  catch (...)
+  {
+    cleanup();
+    throw;
+  }
+}
+
+// ------------------------------------------------------------
+// Move Constructor (Rule of Five: 3/5)
+// ------------------------------------------------------------
+PointCloudDataFrame::PointCloudDataFrame(PointCloudDataFrame&& other) noexcept
+{
+  init();
+  swap(*this, other);
+}
+
+// ------------------------------------------------------------
+// Copy Assignment Operator (Rule of Five: 4/5)
+// ------------------------------------------------------------
+// Using Copy-and-Swap.
+// Note: The argument is passed by VALUE.
+// If passed an l-value, Copy Constructor is called.
+// If passed an r-value (temporary), Move Constructor is called.
+PointCloudDataFrame& PointCloudDataFrame::operator=(PointCloudDataFrame other) noexcept
+{
+  swap(*this, other);
+  return *this;
+}
+
+// ------------------------------------------------------------
+// Move Assignment Operator (Rule of Five: 5/5) - OPTIONAL here
+// ------------------------------------------------------------
+// Because we use the "pass-by-value" idiom in operator= above,
+// a specific Move Assignment (operator=(T&&)) is technically redundant
+// but can be added for explicit clarity.
+// The code above covers both cases.
 
 // ------------------------------------------------------------
 // Cleanup
@@ -457,5 +407,61 @@ PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& 
   this->owns_memory = true;
 
   return *this;
+}
+
+void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept
+{
+  std::swap(first.n_points, second.n_points);
+  std::swap(first.owns_memory, second.owns_memory);
+
+  std::swap(first.coords[0], second.coords[0]);
+  std::swap(first.coords[1], second.coords[1]);
+  std::swap(first.coords[2], second.coords[2]);
+
+  std::swap(first.treeid, second.treeid);
+  std::swap(first.foliage, second.foliage);
+  std::swap(first.passage, second.passage);
+  std::swap(first.hag, second.hag);
+  std::swap(first.pwood, second.pwood);
+}
+
+void PointCloudDataFrame::init()
+{
+  n_points = 0;
+  owns_memory = true;
+  coords[0] = nullptr;
+  coords[1] = nullptr;
+  coords[2] = nullptr;
+  treeid  = nullptr;
+  foliage = nullptr;
+  passage = nullptr;
+  hag     = nullptr;
+  pwood   = nullptr;
+}
+
+void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
+{
+  try
+  {
+    coords[0] = new double[n]();
+    coords[1] = new double[n]();
+    coords[2] = new double[n]();
+
+    if (alloc_attrs)
+    {
+      treeid  = new int[n]();
+      foliage = new int[n]();
+      passage = new int[n]();
+      hag     = new double[n]();
+      pwood   = new double[n]();
+    }
+  }
+  catch (...)
+  {
+    // If ANY allocation fails, we must manually free what was already
+    // allocated because the destructor won't run for a failed constructor.
+    cleanup();
+    throw;
+  }
 }
 #endif

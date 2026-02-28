@@ -19,19 +19,17 @@ public:
   // Constructors / destructor
   MinimalPointCloud() = default;
   MinimalPointCloud(size_t n, bool init_attributes = false);
-  MinimalPointCloud(const MinimalPointCloud& other);
-  MinimalPointCloud(MinimalPointCloud&& other) noexcept;
 
-  // Asignment operators
-  MinimalPointCloud& operator=(const MinimalPointCloud& other);
-  MinimalPointCloud& operator=(MinimalPointCloud&& other) noexcept;
+  // Rule of five
+  MinimalPointCloud(const MinimalPointCloud& other);               // Copy constructor
+  MinimalPointCloud(MinimalPointCloud&& other) noexcept;           // Move constructor
+  MinimalPointCloud& operator=(MinimalPointCloud other) noexcept;  // Assignment Operator (using Copy-and-Swap idiom)
+  ~MinimalPointCloud() ;                                           // destructor
 
   // Merging operator
   MinimalPointCloud& operator+=(const MinimalPointCloud& other);
   MinimalPointCloud  operator+(const MinimalPointCloud& other) const;
 
-  // Destructor
-  ~MinimalPointCloud() ;
 
   // Nanoflann KD-tree interface
   inline size_t kdtree_get_point_count() const { return 0; }
@@ -90,17 +88,18 @@ class PointCloudDataFrame
 {
 public:
   // Constructors / destructor
-  PointCloudDataFrame() = default;
+  PointCloudDataFrame();
   PointCloudDataFrame(size_t n, bool init_attributes = false);
+
+  // Rule of five
   PointCloudDataFrame(const PointCloudDataFrame& other);
   PointCloudDataFrame(PointCloudDataFrame&& other) noexcept;
+  PointCloudDataFrame& operator=(const PointCloudDataFrame other) noexcept;
+  ~PointCloudDataFrame() ;
 
-  PointCloudDataFrame& operator=(const PointCloudDataFrame& other);
-  PointCloudDataFrame& operator=(PointCloudDataFrame&& other) noexcept;
+  // Merge
   PointCloudDataFrame& operator+=(const PointCloudDataFrame& other);
   PointCloudDataFrame  operator+(const PointCloudDataFrame& other) const;
-
-  ~PointCloudDataFrame() ;
 
   // --- Nanoflann KD-tree interface ---
   inline size_t kdtree_get_point_count() const { return n_points; }
@@ -195,6 +194,9 @@ public:
 
 private:
   void cleanup();
+  void swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept;
+  void init();
+  void safe_alloc(size_t n, bool alloc_attrs);
 
 private:
   double* coords[3] = {nullptr, nullptr, nullptr};
