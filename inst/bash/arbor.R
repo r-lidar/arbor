@@ -69,19 +69,20 @@ Mandatory:
 
 Options:
   -cut <m>                Height threshold above ground [default: 0.25]
-  -height <m>             Remove trees smaller than this [default: 4]
+  -height <m>             Remove trees smaller than this [default: 2]
   -buffer <m>             Buffer removed from borders [default: 5]
-  -fraction <0-1>         Keep random fraction [default: 0.2]
+  -fraction <0-1>         Keep random fraction [default: 0.25]
 
 Export options (enabled by default):
-  --no-segmented           Do not write segmented point cloud
-  --no-trees               Do not write all trees
-  --no-valid-trees         Do not write valid trees
-  --no-dtm                 Do not write DTM raster
-  --no-individual          Do not export individual trees (its/)
+  -no-segmented           Do not write segmented point cloud
+  -no-trees               Do not write all trees
+  -no-valid-trees         Do not write valid trees
+  -no-dtm                 Do not write DTM raster
+  -no-individual          Do not export individual trees (its/)
 
 Other:
   -h, --help               Show this help
+  -center                 Center the scene on (0,0,0)
 ")
     quit(save = "no", status = 0)
   }
@@ -100,18 +101,20 @@ Other:
   }
 
   cut_above_ground <- as.numeric(get_arg(args, "-cut", 0.25))
-  min_tree_height  <- as.numeric(get_arg(args, "-height", 4))
+  min_tree_height  <- as.numeric(get_arg(args, "-height", 2))
   buffer           <- as.numeric(get_arg(args, "-buffer", 5))
-  fraction         <- as.numeric(get_arg(args, "-fraction", 0.2))
+  fraction         <- as.numeric(get_arg(args, "-fraction", 0.25))
 
   # Helper for export flags (local to this function)
-  export_enabled <- function(name) { !paste0("--no-", name) %in% args }
+  export_enabled <- function(name) { !paste0("-no-", name) %in% args }
 
   export_segmented   <- export_enabled("segmented")
   export_trees       <- export_enabled("trees")
   export_valid_trees <- export_enabled("valid-trees")
   export_dtm         <- export_enabled("dtm")
   export_individual  <- export_enabled("individual")
+  center             <- has_flag(args, "-center")
+  export_dtm_mesh    <- has_flag(args, "-mesh")
 
   filter_str = paste("-keep_random_fraction", fraction)
 
@@ -127,6 +130,7 @@ Other:
   out_trees       <- paste0(base, "_trees.laz")
   out_validtrees  <- paste0(base, "_validtrees.laz")
   out_dtm         <- paste0(base, "_dtm.tif")
+  out_dtm_mesh    <- paste0(base, "_dtm.obj")
   its_dir         <- file.path(dirname(base), "its")
 
   # --- Configuration Log ---
@@ -156,6 +160,22 @@ Exports
   las <- hybrid_homogeneization(las)
   gc()
 
+  if (center)
+  {
+    cat("Centering on (0,0,0)\n")
+    xoffset = round(mean(las$X), 1)
+    yoffset = round(mean(las$Y), 1)
+    zoffset = round(min(las$Z), 1)
+    las@header$`X offset` = 0
+    las@header$`Y offset` = 0
+    las@header$`Z offset` = 0
+    las$X = las$X - xoffset
+    las$Y = las$Y - yoffset
+    las$Z = las$Z - zoffset
+    las = las_update(las)
+    las_quantize(las)
+  }
+
   cat("Ground classification\n")
   classifier = csf(rigidness = 1, class_threshold = 0.05, cloth_resolution = 0.1)
   las <- classify_ground(las, classifier, last_returns = FALSE)
@@ -167,14 +187,13 @@ Exports
   gc()
 
   cat("DTM & height above ground\n")
-  dtm <- rasterize_terrain(ground, 0.5, tin())
-  las <- height_above_ground(las, algorithm = tin(), dtm = dtm)
+  dtm <- rasterize_terrain(ground, 0.1, tin())
+  las <- height_above_ground(las, algorithm = dtm)
   las <- filter_poi(las, hag > cut_above_ground)
   gc()
 
-  cat("Anisotropy\n")
-  las    <- barycentric_predecimation(las, params)
-  las    <- wood_likeliwood(las, params)
+  cat("Wood likelihood\n")
+  las    <- wood_likelihood(las, params)
 
   cat("Semantic segmentation\n")
   las    <- segment_semantic(las, dtm, params)
@@ -202,8 +221,9 @@ Exports
   if (export_trees)       writeLAS(trees, out_trees)
   if (export_valid_trees) writeLAS(valid_trees, out_validtrees)
   if (export_dtm)         writeRaster(dtm, out_dtm, overwrite = TRUE)
+  if (export_dtm_mesh)    arbor:::write_raster_to_obj(dtm, out_dtm_mesh)
 
-  name = tools::file_path_sans_ext(basename(ifile))
+  name = tools::file_path_sans_ext(basename(input))
 
   if (export_individual) {
     dir.create(its_dir, showWarnings = FALSE, recursive = TRUE)
@@ -301,24 +321,24 @@ Settings
 =====================================================
 ")
 
-  res <- qsm_batch(
-    ifiles    = ifiles,
+  res <- qsf(
+    input     = ifiles,
     odir      = odir,
     formats   = formats,
     overwrite = overwrite,
     ncores    = ncores
   )
 
-  has_msg <- !is.na(res$message)
+  log <- qsf_log(res)
 
-  for (i in which(has_msg))
-  {
-    if (isTRUE(res$success[i])) {
-      cat("\033[33m", "WARNING | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
-    } else {
-      cat("\033[31m", "ERROR   | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
-    }
-  }
+  #for (i in which(has_msg))
+  #{
+  #  if (isTRUE(res$success[i])) {
+  #    cat("\033[33m", "WARNING | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
+  #  } else {
+  #    cat("\033[31m", "ERROR   | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
+  #  }
+  #}
 }
 
 # ----------
