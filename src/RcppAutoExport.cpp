@@ -75,6 +75,13 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
 // QSM
 // ========================
 
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 
@@ -83,9 +90,6 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1, bool 
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);

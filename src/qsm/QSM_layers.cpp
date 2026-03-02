@@ -1,11 +1,10 @@
+#include "QSM.h"
+
 #include <vector>
 #include <cmath>
 #include <array>
 #include <unordered_map>
 #include <limits>
-#include <functional>
-
-#include "QSM.h"
 
 std::vector<std::pair<int, double>> QSM::layers(const PointCloud& points, double D)
 {

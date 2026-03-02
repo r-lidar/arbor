@@ -26,6 +26,40 @@ Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
   );
 }
 
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
+{
+  // Extract the iter and dist columns from the dataframe
+  Rcpp::IntegerVector iter = df["iter"];
+  Rcpp::NumericVector dist = df["dist"];
+
+  // Convert to std::vector<std::pair<int, double>>
+  size_t n = iter.size();
+  std::vector<std::pair<int, double>> iter_dist(n);
+  for(size_t i = 0; i < n; ++i) {
+    iter_dist[i] = {iter[i], dist[i]};
+  }
+
+  // Create PointCloud from dataframe
+  PointCloud pc(df);
+
+  // Call the clustering function
+  std::vector<std::pair<int, double>> res_pairs = QSM::clusters(pc, iter_dist, cl_dist);
+
+  // Unzip the vector of pairs into two separate vectors for Rcpp compatibility
+  Rcpp::IntegerVector cluster_out(n);
+  Rcpp::NumericVector radius_out(n);
+
+  for(size_t i = 0; i < n; ++i) {
+    cluster_out[i] = res_pairs[i].first;
+    radius_out[i] = res_pairs[i].second;
+  }
+
+  return Rcpp::DataFrame::create(
+    Rcpp::_["cluster"] = cluster_out,
+    Rcpp::_["radius"] = radius_out
+  );
+}
+
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
 {
   QSM qsm = as_qsm(df);

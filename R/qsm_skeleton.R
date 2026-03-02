@@ -1,7 +1,8 @@
 qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
 {
   data <- qsm_layers(tree, step)
-  data <- qsm_clusters(data, cl_dist)
+  #data <- qsm_clusters(data, cl_dist)
+  data <- qsm_clusters2(data, cl_dist)
   skel <- qsm_nodes(data, max_d)
   skel <- qsm_topology(skel)
   return(skel)
@@ -20,6 +21,14 @@ qsm_layers = function(tree, step)
   res[["dist"]] = data[["dist"]]
   data.table::setDT(res)
   return(res[])
+}
+
+qsm_clusters2 = function(data, cl_dist)
+{
+  res = qsm_cluster_cpp(data, cl_dist)
+  data[["cluster"]] = res[["cluster"]]
+  data[["radius"]] = res[["radius"]]
+  return(data)
 }
 
 #' @importFrom data.table :=
@@ -62,14 +71,9 @@ qsm_clusters = function(data, cl_dist)
       if (length(in_iter) >= 2)
       {
         # clustering
-        #temp = LAS(data[in_iter,1:3])
         cl = dbscan::dbscan(data[in_iter,1:3], eps = cl_dist, minPts = 1)
         #cl = lidR::connected_components(temp, res = cl_dist, min_pts = 1, connectivity = 26)
         cl_id = cl$cluster
-        #cl_id = cl@data$clusterID
-
-        #cl = fastcluster::hclust(stats::dist(data[in_iter,1:3]), method = "single")
-        #cl_id = stats::cutree(cl, h = cl_d)
         data[in_iter, cluster := cl_id]
         data[in_iter, radius := sqrt((X-mean(X))^2 + (Y-mean(Y))^2 + (Z-mean(Z))^2  ), by = cluster]  # compute the radius for each cluster
         cl_d = mean(data$radius[data$iter == i])/2           # the new clustering distance is the average radius of all clusters

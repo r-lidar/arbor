@@ -73,6 +73,14 @@ detect_tree_circles_cpp <- function(wood_df, resolution = 0.05, connectivity = 2
     .Call(`_arbor_detect_tree_circles_cpp`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }
 
+qsm_layers_cpp <- function(df, D) {
+    .Call(`_arbor_qsm_layers_cpp`, df, D)
+}
+
+qsm_cluster_cpp <- function(df, cl_dist) {
+    .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
+}
+
 qsm_topology_cpp <- function(qsm) {
     .Call(`_arbor_qsm_topology_cpp`, qsm)
 }
@@ -83,10 +91,6 @@ qsm_architecture_cpp <- function(qsm, root_id = 1L, use_volume = FALSE) {
 
 cpp_build_skeleton <- function(data, max_d) {
     .Call(`_arbor_cpp_build_skeleton`, data, max_d)
-}
-
-qsm_layers_cpp <- function(df, D) {
-    .Call(`_arbor_qsm_layers_cpp`, df, D)
 }
 
 qsm_simplify_cpp <- function(qsm, max_length = 0.3) {

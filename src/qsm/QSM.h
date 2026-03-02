@@ -142,6 +142,7 @@ public:
   void add_cylinder(const QSMcylinder& c);
 
   static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
+  static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
 
   void compute_topology();
   void smooth_skeleton(int niter, double th);

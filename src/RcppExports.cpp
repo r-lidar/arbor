@@ -223,6 +223,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_layers_cpp
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type D(DSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_cluster_cpp
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+RcppExport SEXP _arbor_qsm_cluster_cpp(SEXP dfSEXP, SEXP cl_distSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type cl_dist(cl_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_cluster_cpp(df, cl_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_topology_cpp
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
@@ -253,17 +275,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_layers_cpp
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
-RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type D(DSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -451,10 +462,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
+    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
+    {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
-    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
