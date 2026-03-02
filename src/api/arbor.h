@@ -86,7 +86,7 @@ namespace arbor
 
   namespace qsm
   {
-    QSM find_seeds(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    QSM qsm(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
   }
 
   namespace utils

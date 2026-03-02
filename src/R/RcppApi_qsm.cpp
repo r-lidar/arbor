@@ -1,9 +1,30 @@
-#include <vector>
-#include <string>
-#include <stdexcept>
-#include <algorithm>
+#include <Rcpp.h>
 
+#include "myomp.h"
+#include "arbor.h"
 #include "Rwrappers.h"
+
+
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
+{
+  PointCloud pc(df);
+  std::vector<std::pair<int, double>> res_pairs = QSM::layers(pc, D);
+
+  // Unzip the vector of pairs into two separate vectors for Rcpp compatibility
+  size_t n = res_pairs.size();
+  Rcpp::IntegerVector iter_out(n);
+  Rcpp::NumericVector dist_out(n);
+
+  for(size_t i = 0; i < n; ++i) {
+    iter_out[i] = res_pairs[i].first;
+    dist_out[i] = res_pairs[i].second;
+  }
+
+  return Rcpp::DataFrame::create(
+    Rcpp::_["iter"] = iter_out,
+    Rcpp::_["dist"] = dist_out
+  );
+}
 
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
 {
@@ -201,4 +222,3 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
   QSF qsf = as_qsf(x);
   qsf.write(dir, format, binary);
 }
-

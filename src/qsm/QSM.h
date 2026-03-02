@@ -141,6 +141,8 @@ public:
 
   void add_cylinder(const QSMcylinder& c);
 
+  static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
+
   void compute_topology();
   void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1, bool use_volume = true);

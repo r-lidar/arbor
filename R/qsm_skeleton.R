@@ -10,19 +10,16 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
 qsm_layers = function(tree, step)
 {
   logger("Computing layers")
+  data = qsm_layers_cpp(tree@data, step)
 
-  if (step == "auto") {
-    dz = diff(range(tree$Z))
-    D  = dz / 100
-    D  = max(0.05, D)
-  } else {
-    D = step
-  }
-
-  #data = cpp_compute_layers(as.matrix(tree@data), D)
-  data = qsm_layers_cpp(tree@data, D)
-  data.table::setDT(data)
-  return(data[])
+  res = list()
+  res[["X"]] = tree@data[["X"]]
+  res[["Y"]] = tree@data[["Y"]]
+  res[["Z"]] = tree@data[["Z"]]
+  res[["iter"]] = data[["iter"]]
+  res[["dist"]] = data[["dist"]]
+  data.table::setDT(res)
+  return(res[])
 }
 
 #' @importFrom data.table :=

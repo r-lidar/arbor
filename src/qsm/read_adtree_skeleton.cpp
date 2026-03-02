@@ -95,7 +95,7 @@ DataFrame read_adtree_skeleton(std::string filename)
 
   return DataFrame::create(
     _["startX"] = x1, _["startY"] = y1, _["startZ"] = z1, _["radius1"] = r1,
-      _["endX"] = x2, _["endY"] = y2, _["endZ"] = z2, _["radius2"] = r2,
-        _["cyl_ID"] = id, _["parent_ID"] = parentID
+    _["endX"] = x2, _["endY"] = y2, _["endZ"] = z2, _["radius2"] = r2,
+    _["cyl_ID"] = id, _["parent_ID"] = parentID
   );
 }
