@@ -144,9 +144,10 @@ public:
   static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
   static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
 
+  void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
-  void smooth_skeleton(int niter, double th);
   void compute_architecture(int root_id = 1, bool use_volume = true);
+  void smooth_skeleton(int niter, double th);
   void prolongate(double d, double L = 0.1);
   void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
   void polynomial_fitting(double tip_radius);

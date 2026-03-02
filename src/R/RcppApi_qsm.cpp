@@ -60,6 +60,26 @@ Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
   );
 }
 
+Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
+{
+  Rcpp::IntegerVector iter = data["iter"];
+  Rcpp::IntegerVector cluster = data["cluster"];
+
+  std::vector<std::pair<int, int>> iter_cluster;
+  iter_cluster.reserve(iter.size());
+  for (size_t i = 0; i < iter.size(); i++)
+  {
+    iter_cluster.push_back({iter[i], cluster[i]});
+  }
+
+  PointCloud pc(data);
+
+  QSM qsm;
+  qsm.build_skeleton(pc, iter_cluster, max_d);
+
+  return as_dataframe(qsm);
+}
+
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
 {
   QSM qsm = as_qsm(df);

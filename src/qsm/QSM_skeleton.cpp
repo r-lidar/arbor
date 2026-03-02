@@ -1,4 +1,3 @@
-#include <Rcpp.h>
 #include <unordered_map>
 #include <vector>
 #include <tuple>
@@ -7,35 +6,26 @@
 #include <algorithm>
 #include <sstream>
 
+#include "arbor.h"
+#include "QSM.h"
 #include "ransac.h"
 
-using namespace Rcpp;
-
-struct ClusterCenter
+void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, int>>& iter_cluster, double max_d)
 {
-  double x, y, z;
-  int iter;
-  int id;
-  bool done = false;
-};
+  struct ClusterCenter {
+    double x, y, z;
+    int iter;
+    int id;
+    bool done = false;
+  };
 
-struct pair_hash
-{
-  std::size_t operator()(const std::pair<int, int>& p) const
-  {
-    return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
-  }
-};
+  struct pair_hash {
+    std::size_t operator()(const std::pair<int, int>& p) const {
+      return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
+    }
+  };
 
-DataFrame cpp_build_skeleton(DataFrame data, double max_d)
-{
-  // Extract numeric columns from the input R DataFrame.
-  // Each vector corresponds to a point in 3D space, associated with an iteration and a cluster ID.
-  NumericVector X = data["X"];
-  NumericVector Y = data["Y"];
-  NumericVector Z = data["Z"];
-  IntegerVector iter = data["iter"];
-  IntegerVector cluster = data["cluster"];
+  size_t n = pc.size();
 
   // Step 1: compute mean for each (iter, cluster)
   // The code groups all points sharing the same combination of (iter, cluster)
@@ -45,9 +35,8 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
   std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
 
   // group indices by (iter, cluster)
-  for (int i = 0; i < X.size(); ++i)
-  {
-    cluster_indices[std::make_pair(iter[i], cluster[i])].push_back(i);
+  for (size_t i = 0; i < n; ++i) {
+    cluster_indices[iter_cluster[i]].push_back(i);
   }
 
   // build centers using RANSAC and our new class
@@ -67,7 +56,13 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
     {
       RansacCircle rc(100, 0.02); // iterations, inlier threshold, early exit ratio
 
-      for (int idx : indices) rc.add_point(X[idx], Y[idx], Z[idx]);
+      for (int idx : indices)
+      {
+        double x = pc.get_x(idx);
+        double y = pc.get_y(idx);
+        double z = pc.get_z(idx);
+        rc.add_point(x, y, z);
+      }
 
       rc.find_circle();
 
@@ -84,9 +79,9 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
         double sumx = 0, sumy = 0, sumz = 0;
         for (int idx : indices)
         {
-          sumx += X[idx];
-          sumy += Y[idx];
-          sumz += Z[idx];
+          sumx += pc.get_x(idx);
+          sumy += pc.get_y(idx);
+          sumz += pc.get_z(idx);
         }
         c.x = sumx / indices.size();
         c.y = sumy / indices.size();
@@ -99,9 +94,9 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
       double sumx = 0, sumy = 0, sumz = 0;
       for (int idx : indices)
       {
-        sumx += X[idx];
-        sumy += Y[idx];
-        sumz += Z[idx];
+        sumx += pc.get_x(idx);
+        sumy += pc.get_y(idx);
+        sumz += pc.get_z(idx);
       }
       c.x = sumx / indices.size();
       c.y = sumy / indices.size();
@@ -135,6 +130,8 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
 
   // Precompute max distance squared for faster comparison.
   const double max_d2 = max_d * max_d;
+
+  int cyl_ID = 0;
 
   // Main loop: keep connecting cluster centers until all are processed.
   while (!searchSpace.empty())
@@ -171,12 +168,16 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
       searchSpace.erase(std::remove(searchSpace.begin(), searchSpace.end(), newRoot), searchSpace.end());
 
       // Record the edge from root to newRoot
-      startX.push_back(start->x);
-      startY.push_back(start->y);
-      startZ.push_back(start->z);
-      endX.push_back(newRoot->x);
-      endY.push_back(newRoot->y);
-      endZ.push_back(newRoot->z);
+      QSMcylinder cyl;
+      cyl.startX = start->x;
+      cyl.startY = start->y;
+      cyl.startZ = start->z;
+      cyl.endX = newRoot->x;
+      cyl.endY = newRoot->y;
+      cyl.endZ = newRoot->z;
+      cyl.cyl_ID = cyl_ID;
+      cyl_ID++;
+      add_cylinder(cyl);
 
       // Move to the next root (traverse forward)
       root = newRoot;
@@ -219,23 +220,16 @@ DataFrame cpp_build_skeleton(DataFrame data, double max_d)
       root->done = true;
       searchSpace.erase(minIt);
 
-      startX.push_back(nearestDone->x);
-      startY.push_back(nearestDone->y);
-      startZ.push_back(nearestDone->z);
-      endX.push_back(root->x);
-      endY.push_back(root->y);
-      endZ.push_back(root->z);
+      QSMcylinder cyl;
+      cyl.startX = nearestDone->x;
+      cyl.startY = nearestDone->y;
+      cyl.startZ = nearestDone->z;
+      cyl.endX = root->x;
+      cyl.endY = root->y;
+      cyl.endZ = root->z;
+      cyl.cyl_ID = cyl_ID;
+      cyl_ID++;
+      add_cylinder(cyl);
     }
   }
-
-  // Finally, build an R DataFrame of all the edges forming the skeleton.
-  // Each row represents a connection between two cluster centers.
-  return DataFrame::create(
-    _["startX"] = startX,
-    _["startY"] = startY,
-    _["startZ"] = startZ,
-    _["endX"] = endX,
-    _["endY"] = endY,
-    _["endZ"] = endZ
-  );
 }
