@@ -3,7 +3,6 @@
 #include <set>
 #include <cmath>
 #include <algorithm>
-#include <span>
 #include <numeric>
 
 #include "arbor.h"
@@ -84,7 +83,7 @@ std::vector<std::pair<int, double>> QSM::clusters(const PointCloud& data, const 
           points.push_back({data.get_x(idx), data.get_y(idx), data.get_z(idx)});
 
         // Perform clustering
-        auto clusters = dbscan(std::span<const point3>(points), cl_d, 1);
+        auto clusters = dbscan(points, cl_d, 1);
 
         // Assign cluster IDs
         for (size_t cluster_id = 0; cluster_id < clusters.size(); ++cluster_id)
