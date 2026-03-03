@@ -223,6 +223,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_cpp
+Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
+RcppExport SEXP _arbor_qsm_cpp(SEXP treeSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_cpp(tree, params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_layers_cpp
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
@@ -242,6 +253,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< double >::type cl_dist(cl_distSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_cluster_cpp(df, cl_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_clean_tree_butt_cpp
+Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
+RcppExport SEXP _arbor_qsm_clean_tree_butt_cpp(SEXP treeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_clean_tree_butt_cpp(tree));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -309,6 +330,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< double >::type th(thSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_smooth_cpp(df, niter, th));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_conic_allometry_cpp
+Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius);
+RcppExport SEXP _arbor_qsm_conic_allometry_cpp(SEXP dfSEXP, SEXP R0SEXP, SEXP tip_radiusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type R0(R0SEXP);
+    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_conic_allometry_cpp(df, R0, tip_radius));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_estimate_prolongation_cpp
+double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
+RcppExport SEXP _arbor_qsm_estimate_prolongation_cpp(SEXP treeSEXP, SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_estimate_prolongation_cpp(tree, df));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -462,14 +506,18 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
+    {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
     {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
+    {"_arbor_qsm_clean_tree_butt_cpp", (DL_FUNC) &_arbor_qsm_clean_tree_butt_cpp, 1},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
+    {"_arbor_qsm_conic_allometry_cpp", (DL_FUNC) &_arbor_qsm_conic_allometry_cpp, 3},
+    {"_arbor_qsm_estimate_prolongation_cpp", (DL_FUNC) &_arbor_qsm_estimate_prolongation_cpp, 2},
     {"_arbor_qsm_prolongation_cpp", (DL_FUNC) &_arbor_qsm_prolongation_cpp, 3},
     {"_arbor_qsm_measure_cpp", (DL_FUNC) &_arbor_qsm_measure_cpp, 6},
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},

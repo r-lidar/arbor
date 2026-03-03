@@ -73,12 +73,20 @@ detect_tree_circles_cpp <- function(wood_df, resolution = 0.05, connectivity = 2
     .Call(`_arbor_detect_tree_circles_cpp`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }
 
+qsm_cpp <- function(tree, params) {
+    .Call(`_arbor_qsm_cpp`, tree, params)
+}
+
 qsm_layers_cpp <- function(df, D) {
     .Call(`_arbor_qsm_layers_cpp`, df, D)
 }
 
 qsm_cluster_cpp <- function(df, cl_dist) {
     .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
+}
+
+qsm_clean_tree_butt_cpp <- function(tree) {
+    .Call(`_arbor_qsm_clean_tree_butt_cpp`, tree)
 }
 
 qsm_topology_cpp <- function(qsm) {
@@ -103,6 +111,14 @@ qsm_write_cpp <- function(df, filename, binary) {
 
 qsm_smooth_cpp <- function(df, niter = 1L, th = 0) {
     .Call(`_arbor_qsm_smooth_cpp`, df, niter, th)
+}
+
+qsm_conic_allometry_cpp <- function(df, R0, tip_radius = 0.0025) {
+    .Call(`_arbor_qsm_conic_allometry_cpp`, df, R0, tip_radius)
+}
+
+qsm_estimate_prolongation_cpp <- function(tree, df) {
+    .Call(`_arbor_qsm_estimate_prolongation_cpp`, tree, df)
 }
 
 qsm_prolongation_cpp <- function(df, d, L = 0.1) {

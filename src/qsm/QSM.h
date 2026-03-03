@@ -8,85 +8,7 @@
 #include <string>
 
 #include "PointCloud.h"
-
-static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
-static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
-static constexpr double SUBTREE_VOLUME_UNSET    = -1;
-static constexpr double RADIUS_UNSET            = -1.0;
-static constexpr double Z_EPS = 1e-9;
-
-struct QSMcylinder
-{
-  double startX = 0;
-  double startY = 0;
-  double startZ = 0;
-  double endX = 0;
-  double endY = 0;
-  double endZ = 0;
-  double radius = RADIUS_UNSET;
-  double conic_allometry = RADIUS_UNSET;
-  double subtree_length = SUBTREE_LENGTH_UNSET;
-  double subtree_max_endZ = SUBTREE_MAXZ_UNSET;
-  double subtree_volume = SUBTREE_VOLUME_UNSET;
-  int cyl_ID = 0;
-  int parent_ID = 0;
-  int axis_ID = 0;
-  int branch_order = 0;
-
-  inline double length() const noexcept
-  {
-    double dx = endX - startX;
-    double dy = endY - startY;
-    double dz = endZ - startZ;
-    return std::sqrt(dx*dx + dy*dy + dz*dz);
-  }
-
-  inline double volume() const noexcept
-  {
-    double r2 = radius * radius;
-    return M_PI * r2 * length();
-  }
-
-  // Compute distance on the fly
-  inline double distance(double px, double py, double pz) const
-  {
-    // 1. Compute Vector AB (Cylinder Axis)
-    double ab_x = endX - startX;
-    double ab_y = endY - startY;
-    double ab_z = endZ - startZ;
-
-    // 2. Compute Squared Length of AB
-    double ab_sq = ab_x*ab_x + ab_y*ab_y + ab_z*ab_z;
-    if(ab_sq < 1e-12) ab_sq = 1e-12; // Avoid division by zero
-
-    // 3. Compute Vector AP (Start to Point)
-    double ap_x = px - startX;
-    double ap_y = py - startY;
-    double ap_z = pz - startZ;
-
-    // 4. Project AP onto AB (Dot Product)
-    double t = (ap_x*ab_x + ap_y*ab_y + ap_z*ab_z) / ab_sq;
-
-    // 5. Clamp t to [0, 1] to stay within the segment
-    if (t < 0.0) t = 0.0;
-    else if (t > 1.0) t = 1.0;
-
-    // 6. Find Closest Point on Axis
-    double c_x = startX + t * ab_x;
-    double c_y = startY + t * ab_y;
-    double c_z = startZ + t * ab_z;
-
-    // 7. Distance from Point to Axis
-    double dx = px - c_x;
-    double dy = py - c_y;
-    double dz = pz - c_z;
-
-    double dist_axis = std::sqrt(dx*dx + dy*dy + dz*dz);
-
-    // 8. Subtract radius for surface distance (clamped to 0)
-    return (dist_axis > radius) ? (dist_axis - radius) : 0.0;
-  }
-};
+#include "QSMcylinder.h"
 
 struct Axe
 {
@@ -133,7 +55,6 @@ struct Axe
   const_iterator cend()   const noexcept { return cylinders_.cend(); }
 };
 
-
 class QSM
 {
 public:
@@ -143,18 +64,36 @@ public:
 
   static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
   static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
+  static PointCloud clean_tree_butt(const PointCloud&);
 
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(int root_id = 1, bool use_volume = true);
   void smooth_skeleton(int niter, double th);
+  void detect_weird_butt(double thresh = 50.0, int window = 4);
+  void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);
+  void construct_radii(const PointCloud& tree, double tip_radius = 0.0025);
   void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
-  void polynomial_fitting(double tip_radius);
+  void polynomial_fitting(double tip_radius = 0.0025);
   void reconstruct_missing_radii(double tip_radius);
   void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int resolution = 16) const;
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int resolution = 16) const;
   void write(const std::string& filename, bool binary = true) const;
+  void conic_allometry(double R0, double tip_radius = 0.0025);
+  void fix_multiple_root();
+  void shift(double tx, double ty, double tz)
+  {
+    for (auto& kv : cylinders_)
+    {
+      kv.second.startX += tx;
+      kv.second.endX += tx;
+      kv.second.startY += ty;
+      kv.second.endY += ty;
+      kv.second.startZ += tz;
+      kv.second.endZ += tz;
+    }
+  }
 
   const auto& cylinders() const { return cylinders_; }
   const auto& children_map() const { return children_map_; }
@@ -168,6 +107,8 @@ public:
   auto end() const { return cylinders_.end(); }
 
   QSMcylinder& get_cylinder_by_id(int cyl_id);
+
+  double prolongation_distance = 0;
 
 private:
   std::unordered_map<int, QSMcylinder> cylinders_;                 // cyl_ID -> cylinder
@@ -189,6 +130,7 @@ private:
   void write_csv(const std::string& filename) const;
 
   // misc
+  void remove_disconnected_branches();
   double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
 };
 

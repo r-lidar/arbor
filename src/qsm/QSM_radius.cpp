@@ -28,10 +28,81 @@ public:
 
 typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, SimpleAdaptor>, SimpleAdaptor, 3> CentroidKDTree;
 
-inline double QSM::conic_allometry(double tip_radius, double wi, double w0, double r0) const
+class Allometry
 {
-  const double s = std::pow(wi / w0, 1.1);
-  return tip_radius + s * (r0 - tip_radius);
+public:
+  static double H_vs_DBH(double dbh) {
+    return 36.03 * std::pow(1.0 - std::exp(-0.05 * dbh), 1.1);
+  }
+
+  // DBH (m) from Height (m)
+  static double DBH_vs_H(double H) {
+    double DBH_cm;
+    if (H < 25.0) {
+      double ratio = std::clamp(H / 36.03, 0.0, 1.0 - 1e-12); // Clamp to avoid log(<=0) due to floating-point noise
+      DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
+    }
+    else {
+      DBH_cm = 4.0 * H - 75.0;
+    }
+    return DBH_cm / 100.0;
+  }
+};
+
+void QSM::construct_radii(const PointCloud& tree, double tip_radius)
+{
+  //logger("Measuring diameters");
+
+  // Calculate maximum height above ground (hag)
+  double H = 0.0;
+  for (int i = 0; i < tree.size(); ++i) {
+    double z = tree.get_z(i);
+    if (z > H) {
+      H = z;
+    }
+  }
+
+  double R0 = Allometry::DBH_vs_H(H) / 2.0;
+
+  // Check if tree is too small to me measured
+  if (R0 < 0.04)
+  {
+    std::cerr << "WARNING: This tree is too small to be measured, The QSM is a pure reconstruction based on allometry" << std::endl;
+    conic_allometry( R0, tip_radius);
+    return;
+  }
+
+  conic_allometry(2.0 * R0, tip_radius);
+
+  //logger("Measuring diameters");
+  measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
+
+  //logger("Polynomial fitting");
+  polynomial_fitting(tip_radius);
+
+  // Check if main axis has valid measurements
+  bool has_na = false;
+  for (auto& [_, cyl] : cylinders_)
+  {
+    if (cyl.axis_ID == 1 && cyl.radius == RADIUS_UNSET)
+    {
+      has_na = true;
+      break;
+    }
+  }
+
+  if (has_na)
+  {
+    std::cerr << "WARNING: Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry" << std::endl;
+    conic_allometry(R0, tip_radius);
+    return;
+  }
+
+  // Reconstruction
+  //logger("Reconstruction");
+  reconstruct_missing_radii(tip_radius);
+
+  return;
 }
 
 /********************************/
@@ -42,8 +113,7 @@ inline double QSM::conic_allometry(double tip_radius, double wi, double w0, doub
 // @param srmeas sensitivity r measured
 void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
-  if (cylinders_.empty())
-    throw std::runtime_error("Internal error: no cylinder in this QSM");
+  if (cylinders_.empty()) throw std::runtime_error("Internal error: no cylinder in this QSM");
 
   // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
@@ -56,6 +126,7 @@ void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float si
   for (auto& pair : cylinders_)
   {
     QSMcylinder& cyl = pair.second;
+    cyl.radius = RADIUS_UNSET;
     double cx = (cyl.startX + cyl.endX) / 2.0;
     double cy = (cyl.startY + cyl.endY) / 2.0;
     double cz = (cyl.startZ + cyl.endZ) / 2.0;
@@ -319,6 +390,34 @@ void QSM::reconstruct_missing_radii(double tip_radius)
         if (ratio < 1)  axe.scale(ratio);
       }
     }
+  }
+}
+
+double QSM::conic_allometry(double tip_radius, double wi, double w0, double r0) const
+{
+  const double s = std::pow(wi / w0, 1.1);
+  return tip_radius + s * (r0 - tip_radius);
+}
+
+void QSM::conic_allometry(double R0, double tip_radius)
+{
+  double w0;
+  for (auto& kv : cylinders_)
+  {
+    QSMcylinder& cyl = kv.second;
+    if (cyl.parent_ID == 0)
+    {
+      w0 = cyl.subtree_length;
+      break;
+    }
+  }
+
+  for (auto& kv : cylinders_)
+  {
+    QSMcylinder& cyl = kv.second;
+    double wi = cyl.subtree_length;
+    cyl.radius = conic_allometry(tip_radius, wi, w0, R0);
+    cyl.conic_allometry = cyl.radius;
   }
 }
 

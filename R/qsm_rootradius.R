@@ -117,8 +117,7 @@ measure_cylinder_radius = function(pc, qsm, id)
 H_vs_DBH_allometry = function(dbh) { 36.03*(1-exp(-0.05*dbh))^1.1 }
 DBH_vs_H_allometry = function(H)
 {
-  DBH = ifelse(H < 25, 0.993*H, 4*H - 75)
-  #DBH = -1/0.05*log(1-(H/36.03)^(1/1.1))
+  DBH = ifelse(H < 25, -1/0.05*log(1-(H/36.03)^(1/1.1)), 4*H - 75)
   return(DBH/100)
 }
 

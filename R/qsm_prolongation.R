@@ -5,3 +5,9 @@ qsm_prolongation <- function(qsm, d, L = 0.1)
   data.table::setDT(qsm)
   return(qsm[])
 }
+
+estimate_prolongation = function(tree, qsm)
+{
+  qsm_estimate_prolongation_cpp(tree@data, qsm)
+}
+

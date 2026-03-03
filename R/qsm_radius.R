@@ -3,17 +3,14 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   logger("Measuring diameters")
 
   H <- max(tree$hag)
-  R0_first_guess <- DBH_vs_H_allometry(H)/2
-  R0_second_guess <- find_root_radius(tree, qsm)
-  R0 = max(R0_first_guess, R0_second_guess)
+  R0 <- DBH_vs_H_allometry(H)/2
 
   qsm <- qsm_conic_allometry(qsm, 2*R0, tip_radius)
-  conic <- qsm$radius
 
   if (R0 < 0.04)
   {
     warning("This tree is too small to be mesured. The QSM is a pure reconstruction based on allometry", call. = FALSE)
-    qsm <- qsm_conic_allometry(qsm, R0_first_guess, tip_radius)
+    qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
     return(qsm)
   }
 
@@ -30,7 +27,7 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
   if (anyNA(main_axis$radius))
   {
     warning("Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry", call. = FALSE)
-    qsm <- qsm_conic_allometry(qsm, R0_first_guess, tip_radius)
+    qsm <- qsm_conic_allometry(qsm, R0, tip_radius)
     return(qsm)
   }
 
@@ -85,20 +82,22 @@ qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 # }
 
 
-qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025, power = 1)
+qsm_conic_allometry = function(qsm, R0, tip_radius = 0.0025)
 {
-  root = which(qsm$parent_ID == 0)
-  w0 = qsm[["subtree_length"]][root]
-  wi = qsm[["subtree_length"]]
+  return(qsm_conic_allometry_cpp(qsm, R0, tip_radius))
 
-  # AdTree allometric model
-  s = (wi / w0)^power
-  s_min = min(s)
-  s_max = max(s)
-  r1 = tip_radius + (s - s_min) / (s_max - s_min) * (R0 - tip_radius)
-
-  qsm[["radius"]] = r1
-  return(qsm)
+  #  old R code
+  #root = which(qsm$parent_ID == 0)
+  #w0 = qsm[["subtree_length"]][root]
+  #wi = qsm[["subtree_length"]]
+  #
+  # s = (wi / w0)
+  # s_min = min(s)
+  # s_max = max(s)
+  # r1 = tip_radius + (s - s_min) / (s_max - s_min) * (R0 - tip_radius)
+  #
+  # qsm[["radius"]] = r1
+  # return(qsm)
 }
 
 qsm_measure = function(tree, qsm, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.03)

@@ -4,6 +4,12 @@
 #include "arbor.h"
 #include "Rwrappers.h"
 
+Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
+{
+  PointCloud pc(tree);
+  QSM qsm = arbor::qsm::qsm(pc, arbor::settings::ArborParameters());
+  return as_dataframe(qsm);
+}
 
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
 {
@@ -58,6 +64,13 @@ Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
     Rcpp::_["cluster"] = cluster_out,
     Rcpp::_["radius"] = radius_out
   );
+}
+
+Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree)
+{
+  PointCloud pc(tree);
+  PointCloud res = QSM::clean_tree_butt(pc);
+  return(as_dataframe(res));
 }
 
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
@@ -160,6 +173,14 @@ Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
   return out;
 }
 
+double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df)
+{
+  QSM qsm = as_qsm(df);
+  PointCloud pc (tree);
+  qsm.estimate_prolongation(pc);
+  return qsm.prolongation_distance;
+}
+
 Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1)
 {
   QSM qsm = as_qsm(df);
@@ -194,6 +215,7 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.
   return out;
 }
 
+
 Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05)
 {
   PointCloud tree(pc);
@@ -207,6 +229,14 @@ Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius
 {
   QSM qsm = as_qsm(df);
   qsm.polynomial_fitting(tip_radius);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
+  return ans;
+}
+
+Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius)
+{
+  QSM qsm = as_qsm(df);
+  qsm.conic_allometry(R0, tip_radius);
   Rcpp::DataFrame ans = as_dataframe(qsm);
   return ans;
 }

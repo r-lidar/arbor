@@ -1,3 +1,30 @@
+clean_tree_butt = function(tree)
+{
+  logger("Cleaning tree butt")
+  data = qsm_clean_tree_butt_cpp(tree@data);
+  data.table::setDT(data)
+  tree@data = data
+  tree = lidR::las_update(tree);
+  return(tree)
+
+  # Old R code
+  # tree@data$pointID <- 1:lidR::npoints(tree)
+  # bottom <- tree[tree$Z < min(tree$Z) + 0.25]
+  # bottom <- connected_components(bottom, 0.05, 10, connectivity = 26)
+  #
+  # if (length(unique(bottom$clusterID)) > 1)
+  # {
+  #   logger("Multiple clusters at the bottom of the tree detected. Automatic cleaning triggered.", level = "WARN")
+  #
+  #   t <- table(bottom$clusterID)
+  #   i <- as.numeric(names(which.max(t)))
+  #   r <- bottom$pointID[bottom$clusterID != i]
+  #   tree <- tree[-r]
+  # }
+  #
+  # return(tree)
+}
+
 qsm_detect_weird_butt = function(qsm)
 {
   axis_ID <- cyl_ID <- parent_ID <- NULL

@@ -131,7 +131,7 @@ void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, 
   // Precompute max distance squared for faster comparison.
   const double max_d2 = max_d * max_d;
 
-  int cyl_ID = 0;
+  int cyl_ID = 1;
 
   // Main loop: keep connecting cluster centers until all are processed.
   while (!searchSpace.empty())
@@ -232,4 +232,51 @@ void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, 
       add_cylinder(cyl);
     }
   }
+}
+
+
+void QSM::fix_multiple_root()
+{
+  // Find and prepare the new root cylinder
+  QSMcylinder new_cyl;
+  bool root_found = false;
+
+  for (const auto& kv : cylinders_)
+  {
+    if (kv.second.parent_ID == 0)
+    {
+      new_cyl = kv.second;
+      new_cyl.endX = new_cyl.startX;
+      new_cyl.endY = new_cyl.startY;
+      new_cyl.endZ = new_cyl.startZ;
+      new_cyl.startZ -= 0.001;
+      new_cyl.cyl_ID = 1; // This will be our new ID 1
+      root_found = true;
+      break;
+    }
+  }
+
+  if (!root_found) return;
+
+  // Create a new map to hold the shifted cylinders
+  std::unordered_map<int, QSMcylinder> shifted_cylinders;
+  shifted_cylinders.reserve(cylinders_.size() + 1);
+
+  // Move old cylinders to the new map with incremented IDs
+  for (auto& kv : cylinders_)
+  {
+    QSMcylinder& c = kv.second;
+    c.cyl_ID++;
+    c.parent_ID = 1;
+    shifted_cylinders[c.cyl_ID] = std::move(c);
+  }
+
+  // Add the new root to the new map
+  shifted_cylinders[1] = new_cyl;
+
+  // Swap the old map with the new one
+  cylinders_ = std::move(shifted_cylinders);
+
+  // Update topology
+  compute_topology();
 }

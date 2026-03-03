@@ -75,12 +75,17 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
 // QSM
 // ========================
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
@@ -99,6 +104,12 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius = 0.0025);
+
+//[[Rcpp::export(rng = false)]]
+double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
