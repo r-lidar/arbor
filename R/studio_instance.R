@@ -19,7 +19,7 @@ arbor_studio_instance <- function(las, ...)
 
   # Initialize state
   env$las_orig <- las
-  env$las_orig$pointID <- seq_len(lidR::npoints(las))
+  env$las_orig@data$pointID <- seq_len(lidR::npoints(las))
   env$current_las <- las
   env$mouse_active <- FALSE
   env$current_state <- "Ready"
