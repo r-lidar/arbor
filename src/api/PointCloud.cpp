@@ -207,62 +207,75 @@ void PointCloudDataFrame::scale(double x, double y, double z)
 // ------------------------------------------------------------
 // Subset
 // ------------------------------------------------------------
-PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<bool>& keep, bool xyz_only) const
+// 1. New version using indices
+PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<int>& indices, bool xyz_only) const
 {
-  if (keep.size() != n_points)
-    throw std::runtime_error("subset mask size mismatch: expected " + std::to_string(n_points) + " but got " + std::to_string(keep.size()));
-
-  size_t new_count = std::count(keep.begin(), keep.end(), true);
-
-  if (new_count == n_points)
-    return *this;
+  size_t new_count = indices.size();
 
   PointCloudDataFrame result;
   result.n_points = new_count;
   result.owns_memory = true;
 
+  // Allocate Coords
   result.coords[0] = new double[new_count];
   result.coords[1] = new double[new_count];
   result.coords[2] = new double[new_count];
 
-  size_t j = 0;
-  for (size_t i = 0; i < n_points; ++i)
+  // Allocate Optional Attributes
+  if (!xyz_only)
   {
-    if (keep[i])
-    {
-      result.coords[0][j] = coords[0][i];
-      result.coords[1][j] = coords[1][i];
-      result.coords[2][j] = coords[2][i];
-      ++j;
-    }
+    if (treeid)  result.treeid  = new int[new_count];
+    if (foliage) result.foliage = new int[new_count];
+    if (passage) result.passage = new int[new_count];
+    if (pwood)   result.pwood   = new double[new_count];
+    if (hag)     result.hag     = new double[new_count];
   }
 
-  if (xyz_only)  return result;
-
-  if (treeid)  result.treeid  = new int[new_count];
-  if (foliage) result.foliage = new int[new_count];
-  if (passage) result.passage = new int[new_count];
-  if (pwood)   result.pwood   = new double[new_count];
-  if (hag)     result.hag     = new double[new_count];
-
-
-  j = 0;
-  for (size_t i = 0; i < n_points; ++i)
+  for (size_t j = 0; j < new_count; ++j)
   {
-    if (keep[i])
+    int i = indices[j];
+
+    // XYZ
+    result.coords[0][j] = coords[0][i];
+    result.coords[1][j] = coords[1][i];
+    result.coords[2][j] = coords[2][i];
+
+    // Attributes
+    if (!xyz_only)
     {
       if (treeid)  result.treeid[j]  = treeid[i];
       if (foliage) result.foliage[j] = foliage[i];
       if (passage) result.passage[j] = passage[i];
       if (pwood)   result.pwood[j]   = pwood[i];
       if (hag)     result.hag[j]     = hag[i];
-      ++j;
     }
   }
 
   return result;
 }
 
+PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<bool>& keep, bool xyz_only) const
+{
+  if (keep.size() != n_points)
+    throw std::runtime_error("subset mask size mismatch: expected " + std::to_string(n_points) + " but got " + std::to_string(keep.size()));
+
+  // Convert bool mask to indices
+  std::vector<int> indices;
+  indices.reserve(n_points/10);
+
+  for (int i = 0; i < (int)n_points; ++i) {
+    if (keep[i]) {
+      indices.push_back(i);
+    }
+  }
+
+  // Handle the "all points" case early to avoid unnecessary copy/allocation
+  if (indices.size() == n_points) {
+    return *this;
+  }
+
+  return subset(indices, xyz_only);
+}
 // ------------------------------------------------------------
 // Merge
 // ------------------------------------------------------------

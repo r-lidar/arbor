@@ -4,12 +4,14 @@ namespace arbor::qsm {
 
 QSM qsm(const PointCloud& tree, const settings::ArborParameters& params, const Logger& logger)
 {
-  size_t n = tree.size();
+  size_t n;
 
   // Filter wood only
+  n = tree.size();
   std::vector<bool> wood_mask(n, false);
   for (std::size_t i = 0; i < n; ++i) wood_mask[i] = tree.is_wood(i);
   PointCloud wood = tree.subset(wood_mask);
+  n = wood.size();
 
   // Determine the geographic coordinates minimum
   // and center on 0,0,0 for numerical stability

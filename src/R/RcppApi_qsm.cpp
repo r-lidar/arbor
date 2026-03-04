@@ -11,6 +11,21 @@ Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
   return as_dataframe(qsm);
 }
 
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params)
+{
+
+  PointCloud pc(scene);
+  QSF qsf = arbor::qsm::qsf(pc, arbor::settings::ArborParameters());
+
+  Rcpp::List output;
+  for (const auto& item : qsf.get_qsm_map())
+  {
+    output[item.first] = as_dataframe(item.second);
+  }
+
+  return output;
+}
+
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
 {
   PointCloud pc(df);

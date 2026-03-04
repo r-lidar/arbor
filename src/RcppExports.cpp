@@ -234,6 +234,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsf_cpp
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params);
+RcppExport SEXP _arbor_qsf_cpp(SEXP sceneSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type scene(sceneSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsf_cpp(scene, params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_layers_cpp
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
@@ -507,6 +518,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
+    {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 2},
     {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
     {"_arbor_qsm_clean_tree_butt_cpp", (DL_FUNC) &_arbor_qsm_clean_tree_butt_cpp, 1},
