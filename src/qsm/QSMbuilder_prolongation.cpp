@@ -1,16 +1,16 @@
-#include "QSM.h"
+#include "QSMbuilder.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
-void QSM::prolongate(double d, double L)
+void QSMbuilder::prolongate(double d, double L)
 {
   if (d <= 0.0) return;
 
-  // 1. Get ordered main axis
-  std::vector<const QSMcylinder*> axis = main_axis();
+  // Get ordered main axis (trunk)
+  std::vector<const QSMcylinder*> axis = qsm.main_axis();
   const size_t n = axis.size();
 
   if (n < 2) return;
@@ -109,30 +109,31 @@ void QSM::prolongate(double d, double L)
     c.branch_order = 1;
     c.subtree_length = root_subtree + d_adj - actual_L * (nseg - i + 1);
 
-    add_cylinder(c);
+    qsm.add_cylinder(c);
 
     prev_id = next_id;
     next_id--;
   }
 }
 
-void QSM::estimate_prolongation(const PointCloud& tree)
+void QSMbuilder::estimate_prolongation(const PointCloud& tree)
 {
   prolongation_distance = 0.0;
 
   // Check if the attribute exists and QSM is not empty
-  if (!tree.has_hag() || size() == 0) { return; }
+  if (!tree.has_hag() || qsm.size() == 0) { return; }
 
-  // 1. Compute the minimum startZ in the QSM
+  // Compute the minimum startZ in the QSM
   double min_start_z = std::numeric_limits<double>::max();
-  for (const auto& pair : cylinders_) {
+  for (const auto& pair : qsm)
+  {
     const QSMcylinder& cyl = pair.second;
     if (cyl.startZ < min_start_z) {
       min_start_z = cyl.startZ;
     }
   }
 
-  // 2. Find max(hag) for points where tree.Z <= min_start_z
+  // Find max(hag) for points where tree.Z <= min_start_z
   double max_hag = -std::numeric_limits<double>::max();
   bool point_found = false;
 
@@ -149,7 +150,8 @@ void QSM::estimate_prolongation(const PointCloud& tree)
     }
   }
 
-  if (point_found) {
+  if (point_found)
+  {
     prolongation_distance = max_hag;
   }
 }

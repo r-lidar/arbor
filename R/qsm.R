@@ -48,6 +48,8 @@ qsm = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
   qsm  <- qsm_volume(qsm)
   qsm  <- shift(qsm, -tx, -ty, -tz)
 
+  data.table::setDT(qsm)
+
   order = c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
   data.table::setcolorder(qsm, order)
 

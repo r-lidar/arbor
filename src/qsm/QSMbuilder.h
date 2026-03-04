@@ -1,5 +1,5 @@
-#ifndef QSM_H
-#define QSM_H
+#ifndef QSMBUILDER_H
+#define QSMBUILDER_H
 
 #include "arbor.h"
 #include "QSM.h"
@@ -7,10 +7,14 @@
 class QSMbuilder
 {
 public:
-  QSMbuilder(const arbor::settings::ArborParameter& p) : params(p)
-  build(const PointCloud& pc);
+  QSMbuilder(QSM& qsm, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), qsm(qsm) {};
+  void build(const PointCloud& pc);
 
-private:
+  // Static and public to be exported in R
+  static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
+  static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
+  static PointCloud clean_tree_butt(const PointCloud&);
+
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(int root_id = 1, bool use_volume = true);
@@ -24,18 +28,7 @@ private:
   void reconstruct_missing_radii(double tip_radius);
   void conic_allometry(double R0, double tip_radius = 0.0025);
   void fix_multiple_root();
-  void shift(double tx, double ty, double tz)
-  {
-    for (auto& kv : cylinders_)
-    {
-      kv.second.startX += tx;
-      kv.second.endX += tx;
-      kv.second.startY += ty;
-      kv.second.endY += ty;
-      kv.second.startZ += tz;
-      kv.second.endZ += tz;
-    }
-  }
+  void shift(double tx, double ty, double tz);
 
   // recursive helpers
   double compute_subtree_length(int node_id);
@@ -43,9 +36,15 @@ private:
   double compute_subtree_volume(int node_id);
   void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume);
 
-private:
-  arbor::settings::ArborParameter params;
-  QSM qsm;
+  // misc
+  int count_root();
+  void remove_disconnected_branches();
+  double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
+
+  double prolongation_distance = 0;
+
+  arbor::settings::ArborParameters params;
+  QSM& qsm;
 };
 
 #endif

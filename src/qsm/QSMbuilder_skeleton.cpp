@@ -7,10 +7,10 @@
 #include <sstream>
 
 #include "arbor.h"
-#include "QSM.h"
+#include "QSMbuilder.h"
 #include "ransac.h"
 
-void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, int>>& iter_cluster, double max_d)
+void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, int>>& iter_cluster, double max_d)
 {
   struct ClusterCenter {
     double x, y, z;
@@ -177,7 +177,7 @@ void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, 
       cyl.endZ = newRoot->z;
       cyl.cyl_ID = cyl_ID;
       cyl_ID++;
-      add_cylinder(cyl);
+      qsm.add_cylinder(cyl);
 
       // Move to the next root (traverse forward)
       root = newRoot;
@@ -229,19 +229,19 @@ void QSM::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, 
       cyl.endZ = root->z;
       cyl.cyl_ID = cyl_ID;
       cyl_ID++;
-      add_cylinder(cyl);
+      qsm.add_cylinder(cyl);
     }
   }
 }
 
 
-void QSM::fix_multiple_root()
+void QSMbuilder::fix_multiple_root()
 {
   // Find and prepare the new root cylinder
   QSMcylinder new_cyl;
   bool root_found = false;
 
-  for (const auto& kv : cylinders_)
+  for (const auto& kv : qsm)
   {
     if (kv.second.parent_ID == 0)
     {
@@ -260,10 +260,10 @@ void QSM::fix_multiple_root()
 
   // Create a new map to hold the shifted cylinders
   std::unordered_map<int, QSMcylinder> shifted_cylinders;
-  shifted_cylinders.reserve(cylinders_.size() + 1);
+  shifted_cylinders.reserve(qsm.cylinders_.size() + 1);
 
   // Move old cylinders to the new map with incremented IDs
-  for (auto& kv : cylinders_)
+  for (auto& kv : qsm)
   {
     QSMcylinder& c = kv.second;
     c.cyl_ID++;
@@ -275,7 +275,7 @@ void QSM::fix_multiple_root()
   shifted_cylinders[1] = new_cyl;
 
   // Swap the old map with the new one
-  cylinders_ = std::move(shifted_cylinders);
+  qsm.cylinders_ = std::move(shifted_cylinders);
 
   // Update topology
   compute_topology();

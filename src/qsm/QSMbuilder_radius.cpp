@@ -1,10 +1,8 @@
-#include "QSM.h"
-
 #include <map>
 #include <cmath>
 #include <algorithm>
 
-#include "QSM.h"
+#include "QSMbuilder.h"
 #include "PointCloud.h"
 #include "nanoflann.h"
 #include "ransac.h"
@@ -49,7 +47,7 @@ public:
   }
 };
 
-void QSM::construct_radii(const PointCloud& tree, double tip_radius)
+void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
   //logger("Measuring diameters");
 
@@ -67,7 +65,7 @@ void QSM::construct_radii(const PointCloud& tree, double tip_radius)
   // Check if tree is too small to me measured
   if (R0 < 0.04)
   {
-    std::cerr << "WARNING: This tree is too small to be measured, The QSM is a pure reconstruction based on allometry" << std::endl;
+    //std::cerr << "WARNING: This tree is too small to be measured, The QSM is a pure reconstruction based on allometry" << std::endl;
     conic_allometry( R0, tip_radius);
     return;
   }
@@ -82,7 +80,7 @@ void QSM::construct_radii(const PointCloud& tree, double tip_radius)
 
   // Check if main axis has valid measurements
   bool has_na = false;
-  for (auto& [_, cyl] : cylinders_)
+  for (auto& [_, cyl] : qsm)
   {
     if (cyl.axis_ID == 1 && cyl.radius == RADIUS_UNSET)
     {
@@ -93,7 +91,7 @@ void QSM::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    std::cerr << "WARNING: Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry" << std::endl;
+    //std::cerr << "WARNING: Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry" << std::endl;
     conic_allometry(R0, tip_radius);
     return;
   }
@@ -111,19 +109,19 @@ void QSM::construct_radii(const PointCloud& tree, double tip_radius)
 // @param sins sensitiviy inside
 // @param sinl sensitiviy inliner
 // @param srmeas sensitivity r measured
-void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
+void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
-  if (cylinders_.empty()) throw std::runtime_error("Internal error: no cylinder in this QSM");
+  if (qsm.cylinders_.empty()) throw std::runtime_error("Internal error: no cylinder in this QSM");
 
   // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
-  centroids_cloud.points.reserve(cylinders_.size());
+  centroids_cloud.points.reserve(qsm.cylinders_.size());
 
   // We also need a way to map the KD-tree index back to the cylinder pointer efficiently
   std::vector<QSMcylinder*> index_to_cyl_ptr;
-  index_to_cyl_ptr.reserve(cylinders_.size());
+  index_to_cyl_ptr.reserve(qsm.cylinders_.size());
 
-  for (auto& pair : cylinders_)
+  for (auto& pair : qsm)
   {
     QSMcylinder& cyl = pair.second;
     cyl.radius = RADIUS_UNSET;
@@ -201,11 +199,11 @@ void QSM::measure_radii(const PointCloud& tree, float sarc, float sins, float si
   }
 }
 
-void QSM::polynomial_fitting(double tip_radius)
+void QSMbuilder::polynomial_fitting(double tip_radius)
 {
   // Group cylindera by axis
   std::map<int, Axe> axes;
-  for (auto& kv : cylinders_)
+  for (auto& kv : qsm)
   {
     QSMcylinder& cyl = kv.second;
     axes[cyl.axis_ID].add_cylinder(&cyl);
@@ -343,11 +341,11 @@ void QSM::polynomial_fitting(double tip_radius)
   }
 }
 
-void QSM::reconstruct_missing_radii(double tip_radius)
+void QSMbuilder::reconstruct_missing_radii(double tip_radius)
 {
   // Group cylinders by "branch_order"
   std::map<int, std::vector<QSMcylinder*>> cylinders_by_branch_order;
-  for (auto& [_, cyl] : cylinders_)  cylinders_by_branch_order[cyl.branch_order].push_back(&cyl);
+  for (auto& [_, cyl] : qsm)  cylinders_by_branch_order[cyl.branch_order].push_back(&cyl);
 
   // Loop by branch order. Start at 2, main trunk (order 1) should already have been computed
   for (auto& [branch_order, cyls] : cylinders_by_branch_order)
@@ -368,7 +366,7 @@ void QSM::reconstruct_missing_radii(double tip_radius)
 
       // The first cylinder is the root of the branch. We search for its parent
       const int parent_id = axe[0]->parent_ID;
-      QSMcylinder& parent = get_cylinder_by_id(parent_id);
+      QSMcylinder& parent = qsm.get_cylinder_by_id(parent_id);
       const double r0 = parent.radius*0.9;
       const double w0 = parent.subtree_length;
 
@@ -393,16 +391,16 @@ void QSM::reconstruct_missing_radii(double tip_radius)
   }
 }
 
-double QSM::conic_allometry(double tip_radius, double wi, double w0, double r0) const
+double QSMbuilder::conic_allometry(double tip_radius, double wi, double w0, double r0) const
 {
   const double s = std::pow(wi / w0, 1.1);
   return tip_radius + s * (r0 - tip_radius);
 }
 
-void QSM::conic_allometry(double R0, double tip_radius)
+void QSMbuilder::conic_allometry(double R0, double tip_radius)
 {
   double w0;
-  for (auto& kv : cylinders_)
+  for (auto& kv : qsm)
   {
     QSMcylinder& cyl = kv.second;
     if (cyl.parent_ID == 0)
@@ -412,7 +410,7 @@ void QSM::conic_allometry(double R0, double tip_radius)
     }
   }
 
-  for (auto& kv : cylinders_)
+  for (auto& kv : qsm)
   {
     QSMcylinder& cyl = kv.second;
     double wi = cyl.subtree_length;

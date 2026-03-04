@@ -1,4 +1,4 @@
-#include "QSM.h"
+#include "QSMbuilder.h"
 
 #include <algorithm>
 
@@ -36,13 +36,13 @@ static double dist2line(const std::array<double, 3>& b, const std::array<double,
   return std::sqrt(d2);
 }
 
-void QSM::smooth_skeleton(int niter, double th)
+void QSMbuilder::smooth_skeleton(int niter, double th)
 {
-  if (cylinders_.empty()) return;
+  if (qsm.cylinders_.empty()) return;
 
   // Build axis map: axis_ID -> ordered list of cyl_IDs
   std::unordered_map<int, std::vector<int>> axis_map;
-  for (const auto& [id, c] : cylinders_)
+  for (const auto& [id, c] : qsm)
     axis_map[c.axis_ID].push_back(id);
 
   // IMPORTANT: sort each axis by cyl_ID
@@ -60,8 +60,8 @@ void QSM::smooth_skeleton(int niter, double th)
         int prev_id = indices[j - 1];
         int curr_id = indices[j];
 
-        auto& prev = cylinders_[prev_id];
-        auto& curr = cylinders_[curr_id];
+        auto& prev = qsm.cylinders_[prev_id];
+        auto& curr = qsm.cylinders_[curr_id];
 
         std::array<double,3> a = { curr.endX,  curr.endY,  curr.endZ  };
         std::array<double,3> b = { prev.startX, prev.startY, prev.startZ };
@@ -87,12 +87,12 @@ void QSM::smooth_skeleton(int niter, double th)
         curr.startZ = mid[2];
 
         // Move all children who begin at prev.end
-        auto it = children_map_.find(prev_id);
-        if (it != children_map_.end())
+        auto it = qsm.children_map_.find(prev_id);
+        if (it != qsm.children_map_.end())
         {
           for (int child_id : it->second)
           {
-            auto& child = cylinders_[child_id];
+            auto& child = qsm.cylinders_[child_id];
             child.startX = mid[0];
             child.startY = mid[1];
             child.startZ = mid[2];

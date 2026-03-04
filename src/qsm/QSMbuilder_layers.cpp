@@ -1,4 +1,4 @@
-#include "QSM.h"
+#include "QSMbuilder.h"
 
 #include <vector>
 #include <cmath>
@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <limits>
 
-std::vector<std::pair<int, double>> QSM::layers(const PointCloud& points, double D)
+std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D)
 {
   struct GridKey {
     long x, y, z;

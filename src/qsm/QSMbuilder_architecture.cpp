@@ -1,53 +1,52 @@
-#include "QSM.h"
+#include "QSMbuilder.h"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
 
-struct CoordKey
+void QSMbuilder::compute_topology()
 {
-  int x, y, z;
-  bool operator==(const CoordKey& other) const noexcept { return x == other.x && y == other.y && z == other.z; }
-};
-
-struct CoordKeyHash
-{
-  std::size_t operator()(const CoordKey& k) const noexcept
-  {
-    std::size_t h1 = std::hash<int>{}(k.x);
-    std::size_t h2 = std::hash<int>{}(k.y);
-    std::size_t h3 = std::hash<int>{}(k.z);
-    return h1 ^ (h2 << 1) ^ (h3 << 2);
-  }
-};
-
-inline CoordKey make_coord_key(double x, double y, double z, int digits = 6)
-{
-  double factor = std::pow(10.0, digits);
-  return CoordKey{
-    static_cast<int>(std::llround(x * factor)),
-    static_cast<int>(std::llround(y * factor)),
-    static_cast<int>(std::llround(z * factor))
+  struct CoordKey {
+    int x, y, z;
+    bool operator==(const CoordKey& other) const noexcept {
+      return x == other.x && y == other.y && z == other.z;
+    }
   };
-}
 
-void QSM::compute_topology()
-{
-  children_map_.clear();
+  // 2. Define local hasher
+  struct CoordKeyHash {
+    std::size_t operator()(const CoordKey& k) const noexcept {
+      std::size_t h1 = std::hash<int>{}(k.x);
+      std::size_t h2 = std::hash<int>{}(k.y);
+      std::size_t h3 = std::hash<int>{}(k.z);
+      return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+  };
+
+  auto make_coord_key = [](double x, double y, double z, int digits = 6) {
+    double factor = std::pow(10.0, digits);
+    return CoordKey{
+      static_cast<int>(std::llround(x * factor)),
+      static_cast<int>(std::llround(y * factor)),
+      static_cast<int>(std::llround(z * factor))
+    };
+  };
+
+  qsm.children_map_.clear();
 
   // Build lookup: end_key -> cyl_ID
   std::unordered_map<CoordKey, int, CoordKeyHash> end_lookup;
-  end_lookup.reserve(cylinders_.size());
+  end_lookup.reserve(qsm.cylinders_.size());
 
-  for (auto& [cid, cyl] : cylinders_)
+  for (auto& [cid, cyl] : qsm)
   {
     CoordKey key = make_coord_key(cyl.endX, cyl.endY, cyl.endZ);
     end_lookup.emplace(key, cid);
   }
 
   // Now assign parent_ID by matching start_key to end_key
-  for (auto& [cid, cyl] : cylinders_)
+  for (auto& [cid, cyl] : qsm)
   {
     CoordKey start_key = make_coord_key(cyl.startX, cyl.startY, cyl.startZ);
 
@@ -55,20 +54,19 @@ void QSM::compute_topology()
     if (it != end_lookup.end())
     {
       cyl.parent_ID = it->second;
-      children_map_[it->second].push_back(cid);
+      qsm.children_map_[it->second].push_back(cid);
     }
     else
     {
-      cyl.parent_ID = 0;  // no parent → root
+      cyl.parent_ID = 0;  // no parent -> root
     }
   }
 }
 
-// 1. Update the entry point to accept the option
-void QSM::compute_architecture(int root_id, bool use_volume)
+void QSMbuilder::compute_architecture(int root_id, bool use_volume)
 {
   // Initialize caches inside cylinders
-  for (auto& kv : cylinders_)
+  for (auto& kv : qsm)
   {
     kv.second.subtree_length    = SUBTREE_LENGTH_UNSET;
     kv.second.subtree_max_endZ  = SUBTREE_MAXZ_UNSET;
@@ -88,15 +86,15 @@ void QSM::compute_architecture(int root_id, bool use_volume)
   assign_subtree_ids(root_id, 1, 1, next_axis_id, use_volume);
 }
 
-double QSM::compute_subtree_length(int node_id)
+double QSMbuilder::compute_subtree_length(int node_id)
 {
-  auto& node = cylinders_[node_id];
+  auto& node = qsm.cylinders_[node_id];
 
   // Cache hit?
   if (node.subtree_length >= 0)
     return node.subtree_length;
 
-  const auto& kids = children_map_[node_id];
+  const auto& kids = qsm.children_map_[node_id];
   if (kids.empty())
   {
     node.subtree_length = 0.0;
@@ -106,7 +104,7 @@ double QSM::compute_subtree_length(int node_id)
   double max_len = 0.0;
   for (int child_id : kids)
   {
-    auto& child = cylinders_[child_id];
+    auto& child = qsm.cylinders_[child_id];
     double candidate = compute_subtree_length(child_id) + child.length();
     max_len = std::max(max_len, candidate);
   }
@@ -115,9 +113,9 @@ double QSM::compute_subtree_length(int node_id)
   return max_len;
 }
 
-double QSM::compute_subtree_max_z(int node_id)
+double QSMbuilder::compute_subtree_max_z(int node_id)
 {
-  auto& node = cylinders_[node_id];
+  auto& node = qsm.cylinders_[node_id];
 
   // Cache hit?
   if (node.subtree_max_endZ > SUBTREE_MAXZ_UNSET)
@@ -125,7 +123,7 @@ double QSM::compute_subtree_max_z(int node_id)
 
   double maxz = node.endZ;
 
-  for (int child_id : children_map_[node_id])
+  for (int child_id : qsm.children_map_[node_id])
   {
     double child_maxz = compute_subtree_max_z(child_id);
     maxz = std::max(maxz, child_maxz);
@@ -135,15 +133,15 @@ double QSM::compute_subtree_max_z(int node_id)
   return maxz;
 }
 
-double QSM::compute_subtree_volume(int node_id)
+double QSMbuilder::compute_subtree_volume(int node_id)
 {
-  auto& node = cylinders_[node_id];
+  auto& node = qsm.cylinders_[node_id];
 
   // Cache hit?
   if (node.subtree_volume >= 0)
     return node.subtree_volume;
 
-  const auto& kids = children_map_[node_id];
+  const auto& kids = qsm.children_map_[node_id];
   if (kids.empty())
   {
     node.subtree_volume = 0.0;
@@ -153,7 +151,7 @@ double QSM::compute_subtree_volume(int node_id)
   double max_v = 0.0;
   for (int child_id : kids)
   {
-    auto& child = cylinders_[child_id];
+    auto& child = qsm.cylinders_[child_id];
     double candidate = compute_subtree_volume(child_id) + child.volume();
     max_v = std::max(max_v, candidate);
   }
@@ -162,13 +160,13 @@ double QSM::compute_subtree_volume(int node_id)
   return max_v;
 }
 
-void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume)
+void QSMbuilder::assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume)
 {
-  auto& node = cylinders_[node_id];
+  auto& node = qsm.cylinders_[node_id];
   node.axis_ID = current_axis_id;
   node.branch_order = current_branch_order;
 
-  const auto& kids = children_map_[node_id];
+  const auto& kids = qsm.children_map_[node_id];
   if (kids.empty()) return;
 
   int main_child = -1;
@@ -177,7 +175,7 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
 
   for (int child_id : kids)
   {
-    auto& child = cylinders_[child_id];
+    auto& child = qsm.cylinders_[child_id];
     bool is_better = false;
 
     if (use_volume)
@@ -225,28 +223,4 @@ void QSM::assign_subtree_ids(int node_id, int current_axis_id, int current_branc
       assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id, use_volume);
     }
   }
-}
-
-// Returns the ordered main axis as pointers (root -> tip)
-// axis_ID == 1
-std::vector<const QSMcylinder*> QSM::main_axis() const
-{
-  std::vector<const QSMcylinder*> axis;
-  axis.reserve(cylinders_.size());
-
-  for (const auto &kv : cylinders_)
-  {
-    const QSMcylinder* c = &kv.second;
-    if (c->axis_ID == 1)
-    {
-      axis.push_back(c);
-    }
-  }
-
-  std::sort(axis.begin(), axis.end(),  [](const QSMcylinder* a, const QSMcylinder* b)
-  {
-    return a->cyl_ID < b->cyl_ID;
-  });
-
-  return axis;
 }

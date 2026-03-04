@@ -52,7 +52,6 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
     if (error_occurred) continue;
 
     int current_id = valid_tree_ids[i];
-    printf("id = %d\n", current_id);
     const std::vector<int>& indices = tree_indices[current_id];
 
     try
