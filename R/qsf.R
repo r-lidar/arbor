@@ -43,6 +43,7 @@ qsf <- function(
     dir = tempdir()
     input = sapply(unique(input$treeID), function(i)
     {
+      if (is.na(i)) return(NULL)
       tree <- lidR::filter_poi(input, treeID == i)
       olas <- paste0(dir, "/tree_", i, ".las")
       lidR::writeLAS(tree, olas)
