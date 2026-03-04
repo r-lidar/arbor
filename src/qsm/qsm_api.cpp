@@ -7,6 +7,7 @@ QSM qsm(const PointCloud& tree, const settings::ArborParameters& params, const L
 {
   QSM qsm;
   QSMbuilder builder(qsm, params);
+  builder.set_logger(logger);
   builder.build(tree);
   return qsm;
 }

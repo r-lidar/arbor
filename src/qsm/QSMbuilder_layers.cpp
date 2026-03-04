@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <limits>
 
-std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D)
+std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D, const Logger& logger)
 {
   struct GridKey {
     long x, y, z;
@@ -18,6 +18,8 @@ std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points,
       return ((std::hash<long>()(k.x) ^ (std::hash<long>()(k.y) << 1)) >> 1) ^ (std::hash<long>()(k.z) << 1);
     }
   };
+
+  logger("Computing layers");
 
   size_t n = points.size();
   double D2 = D * D;

@@ -9,6 +9,8 @@ void QSMbuilder::prolongate(double d, double L)
 {
   if (d <= 0.0) return;
 
+  logger("Prolongation to the ground");
+
   // Get ordered main axis (trunk)
   std::vector<const QSMcylinder*> axis = qsm.main_axis();
   const size_t n = axis.size();

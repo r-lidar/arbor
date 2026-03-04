@@ -25,6 +25,8 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     }
   };
 
+  logger("Constructing skeleton");
+
   size_t n = pc.size();
 
   // Step 1: compute mean for each (iter, cluster)

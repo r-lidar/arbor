@@ -65,12 +65,23 @@ namespace arbor
       double safe_zone = 0.2;
     };
 
+    struct QsmParameters
+    {
+      double step = 0.2;
+      double cl_dist = 0.1;
+      double max_d = 0.1;
+      double apex = 0.0025;
+      int smooth_iter = 1;
+      double smooth_th = 0;
+    };
+
     struct ArborParameters
     {
       WoodlikelihoodParameters woodlikelihood;
       GraphParameters pathfinder;
       SemanticParameters semantic;
       SeedParameters seeds;
+      QsmParameters qsm;
     };
   }
 

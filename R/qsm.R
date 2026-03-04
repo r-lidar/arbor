@@ -19,11 +19,17 @@
 qsm =  function(tree, params = default_arbor_parameters)
 {
   qsm <- qsm_cpp(tree@data, params)
+  qsm_finalize(qsm)
+}
+
+qsm_finalize = function(qsm)
+{
   qsm <- qsm_volume(qsm)
   data.table::setDT(qsm)
   order <- c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
   data.table::setcolorder(qsm, order)
   qsm <- set_qsm_class(qsm)
+  qsm
 }
 
 set_qsm_class <- function(x)

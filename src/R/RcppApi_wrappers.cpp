@@ -1,4 +1,4 @@
-#include <Rwrappers.h>
+#include <RcppApi_wrappers.h>
 
 QSM as_qsm(Rcpp::DataFrame df)
 {

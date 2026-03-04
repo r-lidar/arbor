@@ -9,8 +9,10 @@
 #include "QSMbuilder.h"
 #include "dbscan.hpp"
 
-std::vector<std::pair<int, double>> QSMbuilder::clusters(const PointCloud& data, const std::vector<std::pair<int, double>>& iter_dist,  double cl_dist)
+std::vector<std::pair<int, double>> QSMbuilder::clusters(const PointCloud& data, const std::vector<std::pair<int, double>>& iter_dist,  double cl_dist, const Logger& logger)
 {
+  logger("Computing clusters");
+
   // Result vectors for cluster ID and radius for each point
   std::vector<std::pair<int, double>> result(data.size(), {0, 0.0});
 

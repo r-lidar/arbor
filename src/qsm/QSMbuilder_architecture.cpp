@@ -7,6 +7,8 @@
 
 void QSMbuilder::compute_topology()
 {
+  logger("Connecting nodes");
+
   struct CoordKey {
     int x, y, z;
     bool operator==(const CoordKey& other) const noexcept {
@@ -65,6 +67,8 @@ void QSMbuilder::compute_topology()
 
 void QSMbuilder::compute_architecture(int root_id, bool use_volume)
 {
+  logger("Computing architecture");
+
   // Initialize caches inside cylinders
   for (auto& kv : qsm)
   {

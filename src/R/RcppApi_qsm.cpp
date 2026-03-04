@@ -3,12 +3,13 @@
 #include "myomp.h"
 #include "arbor.h"
 #include "QSMbuilder.h"
-#include "Rwrappers.h"
+#include "RcppApi_wrappers.h"
+#include "RcppApi_params.h"
 
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
 {
   PointCloud pc(tree);
-  QSM qsm = arbor::qsm::qsm(pc, arbor::settings::ArborParameters());
+  QSM qsm = arbor::qsm::qsm(pc, arbor::settings::ArborParameters(), Rlogger);
   return as_dataframe(qsm);
 }
 

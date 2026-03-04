@@ -11,7 +11,7 @@
 qsf <- function(las, params = default_arbor_parameters)
 {
   res = qsf_cpp(las@data, params)
-  for(i in seq_along(res)) res[[i]] = set_qsm_class(res[[i]])
+  for(i in seq_along(res)) res[[i]] <- qsm_finalize(res[[i]])
   res = set_qsf_class(res)
   res
 }

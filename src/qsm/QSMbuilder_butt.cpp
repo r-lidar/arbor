@@ -10,8 +10,10 @@
 #include "QSMbuilder.h"
 #include "Grid3D.h"
 
-PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree)
+PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree, const Logger& logger)
 {
+  logger("Checking multiple entry points");
+
   size_t n = tree.size();
   if (n == 0) return tree;
 
@@ -77,6 +79,8 @@ PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree)
 
 void QSMbuilder::detect_weird_butt(double thresh, int window)
 {
+  logger("Checking weird butt");
+
   // Get the main axis (trunk)
   // Store IDs instead of pointers to be safe from map reallocations
   std::vector<int> main_axis_ids;

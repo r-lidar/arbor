@@ -40,6 +40,8 @@ void QSMbuilder::smooth_skeleton(int niter, double th)
 {
   if (qsm.cylinders_.empty()) return;
 
+  logger("Smoothing skeleton");
+
   // Build axis map: axis_ID -> ordered list of cyl_IDs
   std::unordered_map<int, std::vector<int>> axis_map;
   for (const auto& [id, c] : qsm)

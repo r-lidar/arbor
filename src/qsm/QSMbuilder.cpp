@@ -32,11 +32,11 @@ void QSMbuilder::build(const PointCloud& tree)
   // Sometime the very bottom have two clusters of wood
   // this creates trouble. One of the two is removed to ensure
   // a single entry point for the QSM
-  wood = clean_tree_butt(wood);
+  wood = clean_tree_butt(wood, logger);
 
   // Inspired by aRchi and needed to build the skeleton
-  auto layers = this->layers(wood, 0.2); //step = 0.2
-  auto clusters = this->clusters(wood, layers, 0.1); // cl_dist = 0.1
+  auto layers = this->layers(wood, params.qsm.step, logger);
+  auto clusters = this->clusters(wood, layers, params.qsm.cl_dist, logger);
 
   // Convert std::vector<pair>
   std::vector<std::pair<int, int>> iter_cluster;
@@ -44,7 +44,7 @@ void QSMbuilder::build(const PointCloud& tree)
   for (std::size_t i = 0; i < n; ++i) { iter_cluster.emplace_back(layers[i].first, clusters[i].first); }
 
   // Build the QSM nodes
-  build_skeleton(wood, iter_cluster, 0.1); //max_d = 0.1
+  build_skeleton(wood, iter_cluster,params.qsm.max_d); //max_d = 0.1
 
   // Connect the QSM nodes
   compute_topology();
@@ -55,11 +55,11 @@ void QSMbuilder::build(const PointCloud& tree)
   if (n_root > 1) fix_multiple_root();
 
   compute_architecture(1, false);
-  smooth_skeleton(1, 0);
+  smooth_skeleton(params.qsm.smooth_iter, params.qsm.smooth_th);
   detect_weird_butt();
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
-  construct_radii(wood);
+  construct_radii(wood, params.qsm.apex);
   shift(tx, ty, tz);
 }
 
