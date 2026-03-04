@@ -23,14 +23,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_anisotropy
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu);
-RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP, SEXP ncpuSEXP) {
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k);
+RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k, ncpu));
+    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -47,15 +46,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_sor
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu);
-RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP, SEXP ncpuSEXP) {
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
+RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type k(kSEXP);
     Rcpp::traits::input_parameter< double >::type m(mSEXP);
-    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m, ncpu));
+    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -500,9 +498,9 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
-    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
+    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
-    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
+    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 3},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 3},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},

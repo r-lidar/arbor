@@ -5,16 +5,16 @@ C_homogeneization <- function(df, res, hybrid = TRUE) {
     .Call(`_arbor_C_homogeneization`, df, res, hybrid)
 }
 
-C_anisotropy <- function(df, k, ncpu = 1L) {
-    .Call(`_arbor_C_anisotropy`, df, k, ncpu)
+C_anisotropy <- function(df, k) {
+    .Call(`_arbor_C_anisotropy`, df, k)
 }
 
 C_connected_component <- function(df, res, connectivity) {
     .Call(`_arbor_C_connected_component`, df, res, connectivity)
 }
 
-C_sor <- function(df, k, m, ncpu = 1L) {
-    .Call(`_arbor_C_sor`, df, k, m, ncpu)
+C_sor <- function(df, k, m) {
+    .Call(`_arbor_C_sor`, df, k, m)
 }
 
 segment_semantic_cpp <- function(core, ground, params) {

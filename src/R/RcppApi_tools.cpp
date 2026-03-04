@@ -12,10 +12,10 @@ Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybri
   return(Rcpp::wrap(ans));
 }
 
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1)
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k)
 {
   PointCloud pc(df);
-  auto ans = arbor::utils::anisotropy(pc, k, ncpu);
+  auto ans = arbor::utils::anisotropy(pc, k);
   return(Rcpp::wrap(ans));
 }
 
@@ -26,10 +26,10 @@ Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int co
   return Rcpp::wrap(grid.connected_components(connectivity));
 }
 
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1)
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m)
 {
   PointCloud pc(df);
-  auto ans = arbor::utils::sor(pc, k, m, ncpu);
+  auto ans = arbor::utils::sor(pc, k, m);
   return(Rcpp::wrap(ans));
 }
 

@@ -12,7 +12,7 @@ using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::utils {
 
-std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
+std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
 {
   size_t n = pc.size();
 
@@ -28,7 +28,7 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
   std::atomic<bool> abort(false);
   std::vector<double> dmean(n);
 
-  #pragma omp parallel num_threads(ncpu)
+  #pragma omp parallel
   {
     std::vector<index_t> idx(k);
     std::vector<double> dist(k);

@@ -53,7 +53,7 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
   lmid = 3.0*m - lmax - lmin;
 }
 
-std::vector<float> anisotropy(const PointCloud& adaptor, int k, int ncpu = 1)
+std::vector<float> anisotropy(const PointCloud& adaptor, int k)
 {
   const int n = adaptor.size();
 
@@ -68,7 +68,7 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k, int ncpu = 1)
   Progress pb(n, "Anisotropy");
   std::atomic<bool> abort(false);
 
-  #pragma omp parallel num_threads(ncpu)
+  #pragma omp parallel
   {
     std::vector<index_t> idx(k);
     std::vector<double> dist(k);

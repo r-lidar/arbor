@@ -246,7 +246,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   logger("  sor noise segmentation");
 
   // SOR. Detect noise
-  std::vector<bool> is_noise = arbor::utils::sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m, 12);
+  std::vector<bool> is_noise = arbor::utils::sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m);
 
   // Remove noise
   is_noise.flip();

@@ -105,8 +105,8 @@ namespace arbor
   namespace utils
   {
     std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
-    std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
-    std::vector<float> anisotropy(const PointCloud& pc, int k, int ncpu);
+    std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m);
+    std::vector<float> anisotropy(const PointCloud& pc, int k);
   }
 }
 

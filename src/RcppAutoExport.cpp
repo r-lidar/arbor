@@ -12,13 +12,13 @@
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k, int ncpu = 1);
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu = 1);
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
 
 // ========================
 // SEGMENTATION
