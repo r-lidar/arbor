@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+namespace arbor::qsm {
+
 QSMcylinder& QSM::get_cylinder_by_id(int cyl_id)
 {
   auto it = cylinders_.find(cyl_id);
@@ -45,5 +47,7 @@ void QSM::add_cylinder(const QSMcylinder& c)
   // Ensure the child also has a children entry even if empty
   if (!children_map_.count(c.cyl_ID))
     children_map_[c.cyl_ID] = {};
+}
+
 }
 

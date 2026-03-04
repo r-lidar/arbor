@@ -1,14 +1,16 @@
 #ifndef QSM_H
 #define QSM_H
 
-#include <unordered_map>
 #include <vector>
 #include <limits>
 #include <cmath>
 #include <string>
+#include <unordered_map>
 
 #include "PointCloud.h"
 #include "QSMcylinder.h"
+
+namespace arbor::qsm {
 
 struct Axe
 {
@@ -99,5 +101,6 @@ private:
   void write_csv(const std::string& filename) const;
 };
 
+}
 
 #endif // QSM_H

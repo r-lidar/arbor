@@ -4,6 +4,8 @@
 #include "arbor.h"
 #include "QSM.h"
 
+namespace arbor::qsm {
+
 class QSMbuilder
 {
 public:
@@ -49,5 +51,7 @@ public:
 
   Logger logger;
 };
+
+}
 
 #endif

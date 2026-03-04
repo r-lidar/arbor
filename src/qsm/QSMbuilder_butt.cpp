@@ -10,6 +10,8 @@
 #include "QSMbuilder.h"
 #include "Grid3D.h"
 
+namespace arbor::qsm {
+
 PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree, const Logger& logger)
 {
   logger("Checking multiple entry points");
@@ -180,4 +182,6 @@ void QSMbuilder::remove_disconnected_branches()
 
   // Refresh topology
   compute_topology();
+}
+
 }

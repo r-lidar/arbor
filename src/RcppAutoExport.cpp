@@ -1,5 +1,6 @@
 // ! This file exist because Rcpp does not export things that are not in root folder.
 // Everything is defined in R/RcppApi_*.cpp
+#ifdef USING_R
 
 #include <Rcpp.h>
 
@@ -159,3 +160,4 @@ Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id,  bool exclude_tree = false, int k = 10);
 
+#endif

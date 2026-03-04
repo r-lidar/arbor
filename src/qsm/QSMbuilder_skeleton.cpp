@@ -10,6 +10,8 @@
 #include "QSMbuilder.h"
 #include "ransac.h"
 
+namespace arbor::qsm {
+
 void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int, int>>& iter_cluster, double max_d)
 {
   struct ClusterCenter {
@@ -281,4 +283,6 @@ void QSMbuilder::fix_multiple_root()
 
   // Update topology
   compute_topology();
+}
+
 }

@@ -1,5 +1,7 @@
 #include "QSMbuilder.h"
 
+namespace arbor::qsm {
+
 void QSMbuilder::build(const PointCloud& tree)
 {
   size_t n;
@@ -85,4 +87,6 @@ int QSMbuilder::count_root()
       ++n_root;
   }
   return n_root;
+}
+
 }

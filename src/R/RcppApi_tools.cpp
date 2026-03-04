@@ -1,3 +1,5 @@
+#ifdef USING_R
+
 #include <Rcpp.h>
 #include "Grid3D.h"
 #include "ransac.h"
@@ -87,3 +89,5 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
     Rcpp::Named("CFQI") = cfqi
   );
 }
+
+#endif

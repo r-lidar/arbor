@@ -1,10 +1,13 @@
 #include "QSM.h"
+
 #include <fstream>
 #include <iomanip> // std::setprecision
 #include <algorithm>
 #include <cmath>
 #include <cstring> // std::memset
 #include <cstdint>
+
+namespace arbor::qsm {
 
 static std::array<double,3> compute_face_normal(const std::array<double,3>& v0, const std::array<double,3>& v1, const std::array<double,3>& v2)
 {
@@ -255,4 +258,6 @@ void QSM::write_csv(const std::string& filename) const
         << c->subtree_length
         << std::endl;
   }
+}
+
 }

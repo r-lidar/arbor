@@ -5,6 +5,8 @@
 #include <limits>
 #include <stdexcept>
 
+namespace arbor::qsm {
+
 void QSMbuilder::prolongate(double d, double L)
 {
   if (d <= 0.0) return;
@@ -156,4 +158,6 @@ void QSMbuilder::estimate_prolongation(const PointCloud& tree)
   {
     prolongation_distance = max_hag;
   }
+}
+
 }

@@ -5,6 +5,8 @@
 #include <limits>
 #include <stdexcept>
 
+namespace arbor::qsm {
+
 void QSMbuilder::compute_topology()
 {
   logger("Connecting nodes");
@@ -227,4 +229,6 @@ void QSMbuilder::assign_subtree_ids(int node_id, int current_axis_id, int curren
       assign_subtree_ids(child_id, new_id, current_branch_order + 1, next_axis_id, use_volume);
     }
   }
+}
+
 }

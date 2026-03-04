@@ -1,10 +1,10 @@
 #ifndef QSF_H
 #define QSF_H
 
+#include "QSM.h"
 #include <string>
 
-#include "QSM.h"
-
+namespace arbor::qsm {
 
 class QSF
 {
@@ -17,5 +17,7 @@ public:
 private:
   std::unordered_map<std::string, QSM> qsm_;
 };
+
+}
 
 #endif

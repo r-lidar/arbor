@@ -1,3 +1,5 @@
+#ifdef USING_R
+
 #include "RcppApi_params.h"
 
 #include <chrono>
@@ -158,3 +160,5 @@ arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
 
   return s;
 }
+
+#endif

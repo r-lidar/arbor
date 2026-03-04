@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+namespace arbor::qsm {
+
 // Compute distance from point b to line ac
 static double dist2line(const std::array<double, 3>& b, const std::array<double, 3>& a, const std::array<double, 3>& c)
 {
@@ -103,4 +105,6 @@ void QSMbuilder::smooth_skeleton(int niter, double th)
       }
     }
   }
+}
+
 }

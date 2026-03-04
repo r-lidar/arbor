@@ -57,7 +57,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
     try
     {
       PointCloud tree = scene.subset(indices);
-      QSM q = qsm(tree, settings::ArborParameters());
+      QSM q = qsm(tree, params);
 
       #pragma omp critical
       {

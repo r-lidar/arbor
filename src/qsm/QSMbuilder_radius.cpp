@@ -7,6 +7,8 @@
 #include "nanoflann.h"
 #include "ransac.h"
 
+namespace arbor::qsm {
+
 class SimpleAdaptor
 {
 public:
@@ -418,3 +420,4 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
   }
 }
 
+}

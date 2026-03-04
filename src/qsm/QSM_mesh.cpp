@@ -1,6 +1,8 @@
 #include "QSM.h"
 #include <algorithm>
 
+namespace arbor::qsm {
+
 static inline std::array<double,3> normalize(const std::array<double,3>& v)
 {
   double n = std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
@@ -129,4 +131,6 @@ void QSM::qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::ar
       faces.push_back({a, b, c, d});
     }
   }
+}
+
 }

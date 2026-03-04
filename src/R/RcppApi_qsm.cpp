@@ -1,3 +1,5 @@
+#ifdef USING_R
+
 #include <Rcpp.h>
 
 #include "myomp.h"
@@ -5,6 +7,10 @@
 #include "QSMbuilder.h"
 #include "RcppApi_wrappers.h"
 #include "RcppApi_params.h"
+
+using QSM = arbor::qsm::QSM;
+using QSF = arbor::qsm::QSF;
+using QSMbuilder = arbor::qsm::QSMbuilder;
 
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
 {
@@ -489,3 +495,5 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
     Rcpp::Named("original_row") = new_original_row  // <-- added column
   );
 }
+
+#endif

@@ -1,6 +1,8 @@
 #ifndef APIPARAM_H
 #define APIPARAM_H
 
+#ifdef USING_R
+
 #include "arbor.h"
 
 inline void assert_exists(const Rcpp::List& p, const char* name)
@@ -20,5 +22,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params);
 arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params);
 
 void Rlogger(const std::string& msg);
+
+#endif
 
 #endif

@@ -1,3 +1,5 @@
+#ifdef USING_R
+
 #include <Rcpp.h>
 
 #include <cmath>
@@ -279,3 +281,4 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
   );
 }
 
+#endif

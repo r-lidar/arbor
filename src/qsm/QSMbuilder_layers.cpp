@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <limits>
 
+namespace arbor::qsm {
+
 std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D, const Logger& logger)
 {
   struct GridKey {
@@ -172,4 +174,6 @@ std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points,
   }
 
   return result;
+}
+
 }
