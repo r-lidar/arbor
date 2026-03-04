@@ -79,6 +79,9 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
 //[[Rcpp::export(rng = false)]]

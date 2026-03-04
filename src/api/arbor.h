@@ -3,6 +3,7 @@
 
 #include "PointCloud.h"
 #include "QSM.h"
+#include "QSF.h"
 
 #include <vector>
 
@@ -87,6 +88,7 @@ namespace arbor
   namespace qsm
   {
     QSM qsm(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    QSF qsf(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
   }
 
   namespace utils

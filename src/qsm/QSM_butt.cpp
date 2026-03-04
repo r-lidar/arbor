@@ -76,68 +76,57 @@ PointCloud QSM::clean_tree_butt(const PointCloud& tree)
 
 void QSM::detect_weird_butt(double thresh, int window)
 {
-  std::cout << "Validating butt architecture..." << std::endl;
-
-  // Get the main axis cylinders
-  std::vector<QSMcylinder*> main_axis_cyls;
+  // Get the main axis (trunk)
+  // Store IDs instead of pointers to be safe from map reallocations
+  std::vector<int> main_axis_ids;
   for (auto& [id, cyl] : cylinders_)
   {
-    if (cyl.axis_ID == 1)
-    {
-      main_axis_cyls.push_back(&cyl);
+    if (cyl.axis_ID == 1) {
+      main_axis_ids.push_back(id);
     }
   }
 
-  if (main_axis_cyls.empty()) return;
+  if (main_axis_ids.empty()) return;
 
-  // Sort from root to tip (using subtree_length as a proxy for height/order).
-  std::sort(main_axis_cyls.begin(), main_axis_cyls.end(), [](QSMcylinder* a, QSMcylinder* b) { return a->subtree_length > b->subtree_length; });
+  // Sort IDs based on the subtree_length of the cylinders they represent
+  // to get the root at index 0 and then subsequent cylinders
+  std::sort(main_axis_ids.begin(), main_axis_ids.end(), [this](int a, int b) { return cylinders_[a].subtree_length > cylinders_[b].subtree_length; });
 
-  // Loop from root. Look a n consecutive cylinders. If they all have an angle < threshold
-  // then it is valid. Otherwise we removes cylinder with an angle too steep. They are likely
-  // to be artifacts of bad segmentation
   size_t i = 0;
-  bool fix_needed = false;
-
-  while (i < main_axis_cyls.size())
+  while (i < main_axis_ids.size())
   {
     bool sequence_valid = true;
-
     for (int w = 0; w < window; ++w)
     {
       size_t idx = i + w;
-      if (idx >= main_axis_cyls.size())
-      {
-        sequence_valid = false;
-        break;
-      }
-      if (main_axis_cyls[idx]->angle() >= thresh)
+      if (idx >= main_axis_ids.size() || cylinders_[main_axis_ids[idx]].angle() >= thresh)
       {
         sequence_valid = false;
         break;
       }
     }
-
     if (sequence_valid) break;
     i++;
   }
 
-  // 3. If i > 0, we found "weird" cylinders at the start
   if (i > 0)
   {
-    std::cerr << "[WARN] Detection of weird tree butt. Automatic fix triggered." << std::endl;
+    // Determine the ID of the new root BEFORE erasing anything
+    // The new root is the first valid cylinder in the sequence (index i)
+    int new_root_id = (i < main_axis_ids.size()) ? main_axis_ids[i] : -1;
 
-    // Remove the weird cylinders from the map
-    for (size_t j = 0; j <= i; ++j)
-    {
-      cylinders_.erase(main_axis_cyls[j]->cyl_ID);
+    // Remove the weird cylinders (0 to i-1)
+    for (size_t j = 0; j < i; ++j) {
+      cylinders_.erase(main_axis_ids[j]);
     }
 
-    // Remove branches that are now floating
     remove_disconnected_branches();
 
-    // Find the new root (the first cylinder of axis 1 remaining)
-    main_axis_cyls[0]->parent_ID = 0;
+    // Update the new root's parent in the NEW map
+    if (new_root_id != -1 && cylinders_.count(new_root_id))
+    {
+      cylinders_[new_root_id].parent_ID = 0;
+    }
   }
 }
 

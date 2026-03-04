@@ -77,6 +77,10 @@ qsm_cpp <- function(tree, params) {
     .Call(`_arbor_qsm_cpp`, tree, params)
 }
 
+qsf_cpp <- function(scene, params) {
+    .Call(`_arbor_qsf_cpp`, scene, params)
+}
+
 qsm_layers_cpp <- function(df, D) {
     .Call(`_arbor_qsm_layers_cpp`, df, D)
 }

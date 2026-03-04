@@ -68,7 +68,8 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu)
     pb.tick();
   }
 
-  if (abort.load()) Rcpp::stop("Computation aborted");
+  if (abort.load())
+    throw std::runtime_error("Computation aborted");
 
   double mean = 0.0;
   for (double v : dmean) mean += v;

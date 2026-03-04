@@ -186,7 +186,8 @@ public:
   void scale(double x, double y, double z) ;
 
   // --- Subset ---
-  PointCloudDataFrame subset(const std::vector<bool>& keep, bool xyz_only = false) const;
+  PointCloudDataFrame subset(const std::vector<int>&  indices, bool xyz_only = false) const;
+  PointCloudDataFrame subset(const std::vector<bool>& mask,    bool xyz_only = false) const;
 
   // --- Used only in R ----
   explicit PointCloudDataFrame(const Rcpp::DataFrame& df);
