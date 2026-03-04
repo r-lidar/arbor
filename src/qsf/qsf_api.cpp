@@ -17,7 +17,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
   std::unordered_map<int, std::vector<int>> tree_indices;
   std::unordered_map<int, double> tree_heights;
 
-  for (int i = 0; i < scene.size(); ++i)
+  for (size_t i = 0; i < scene.size(); ++i)
   {
     int id = scene.get_treeid(i);
     if (id < 0) continue; // NA from R or -1 from arbor
@@ -45,7 +45,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
   std::exception_ptr eptr = nullptr;
 
   #pragma omp parallel for schedule(dynamic)
-  for (int i = 0; i < valid_tree_ids.size(); ++i)
+  for (size_t i = 0; i < valid_tree_ids.size(); ++i)
   {
     // Check if another thread encountered an error
     #pragma omp flush(error_occurred)

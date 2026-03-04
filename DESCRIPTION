@@ -13,16 +13,11 @@ LinkingTo: Rcpp
 Depends: R (>= 4.1.0)
 Imports: 
   data.table,
-  dbscan,
-  FNN,
-  future,
-  future.apply,
   graphics,
   lidR (>= 4.2.2),
   methods,
-  parallel,
-  pracma,
   progressr,
+  pracma,
   Rcpp,
   rgl,
   rlas,

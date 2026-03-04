@@ -4,45 +4,18 @@
 \alias{qsf}
 \title{Quantitative Structural Forest}
 \usage{
-qsf(
-  input,
-  odir,
-  formats = c("csv", "obj"),
-  overwrite = FALSE,
-  ncores = parallel::detectCores()/2,
-  ...
-)
+qsf(las, params = default_arbor_parameters)
 }
 \arguments{
-\item{input}{Character vector of input file paths, or a single directory containing LAS/LAZ files
-or a LAS object with semantic and instance segmentation.}
+\item{las}{A point cloud with semantic and instance segmentation computed}
 
-\item{odir}{Output directory where `csv/`, `obj/`, and `ply/` folders will be created. odir can
-be missing but in this case nothing is exported. Only a table is returned.}
-
-\item{formats}{Character; write QSM results in which formats? See \link{qsm_write}.}
-
-\item{overwrite}{Logical; overwrite existing outputs. Default: FALSE. Avoid recomputing already
-existing QSMs}
-
-\item{ncores}{Number of CPU cores to use.}
-
-\item{...}{Additional arguments passed to \link{qsm}.}
+\item{params}{list See \link{parameters}.}
 }
 \value{
-A data.table of logs, one line per input file. Each log entry contains:
-  \itemize{
-    \item `file`: input file path
-    \item `name`: basename without extension
-    \item `success` TRUE/FALSE
-    \item `status`: "success", "skipped_existing", "failed_readLAS", "failed_qsm"
-    \item `message`: error message if any
-  }
+A qsf object
 }
 \description{
-Batch processing of QSM models with parallel execution. This function processes multiple LAS files
-using \link{qsm} in parallel. It supports exporting CSV/OBJ/PLY QSM outputs, optional overwriting
-of existing files, and returns detailed logs for each processed file.
+Batch processing of QSM models with parallel execution.
 }
 \seealso{
 \link{qsm}

@@ -4,21 +4,13 @@
 \alias{qsm}
 \title{Generate a QSM from a single tree point cloud}
 \usage{
-qsm(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
+qsm(tree, params = default_arbor_parameters)
 }
 \arguments{
 \item{tree}{A `LAS` object from lidR containing a single tree point cloud. Only
 the point labelled as wood will be used for QSM. Can alternatively be a string to a file}
 
-\item{step}{The slice thinkness during the slicing operation (keep as is)}
-
-\item{cl_dist}{Passed to eps in dbscan::dbscan (keep as is)}
-
-\item{max_d}{Maximum distance between cluster (keep as is)}
-
-\item{apex}{last radius of the branch tips}
-
-\item{...}{unused}
+\item{params}{list See \link{parameters}.}
 }
 \description{
 This function processes a tree point cloud to generate a Quantitative Structure Model (QSM) using

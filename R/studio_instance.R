@@ -2,6 +2,8 @@
 #' @rdname arbor-studio
 arbor_studio_instance <- function(las, ...)
 {
+  . <- R <- G <- B <- treeID <- NULL
+
   attribute = "treeID"
 
   las = colorize_trees(las, FALSE)
