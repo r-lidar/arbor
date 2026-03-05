@@ -2,7 +2,6 @@
 
 #include <limits>
 #include <vector>
-#include <unordered_set>
 
 namespace arbor::qsm {
 
@@ -82,15 +81,18 @@ void QSMbuilder::shift(double tx, double ty, double tz)
 
 int QSMbuilder::count_root()
 {
-  // Count nodes with no incoming edges that have at least one outgoing edge
-  // (each such node represents a disconnected root in the graph)
-  std::unordered_set<QSMGraph::NodeID> root_nodes;
+  // Count edges with parent_ID == 0 (root edges), matching original behaviour.
+  // When the fallback path in build_skeleton() connects multiple orphan centres
+  // to the same root node, all those edges have parent_ID == 0 even though they
+  // share the same source node.  Counting them (not just distinct root nodes)
+  // ensures fix_multiple_root() is triggered correctly.
+  int n_root = 0;
   for (const auto& [eid, einfo] : graph.edges())
   {
-    if (graph.incoming_edges(einfo.source).empty())
-      root_nodes.insert(einfo.source);
+    if (einfo.data.parent_ID == 0)
+      ++n_root;
   }
-  return (int)root_nodes.size();
+  return n_root;
 }
 
 int QSMbuilder::find_root_edge() const

@@ -214,38 +214,47 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
 void QSMbuilder::fix_multiple_root()
 {
-  // Collect all root nodes (source nodes with no incoming edges)
-  std::vector<QSMGraph::NodeID> root_nodes;
+  // Collect distinct source nodes that have parent_ID == 0 edges (root nodes).
+  // Note: multiple edges can share the same root source node when build_skeleton()
+  // connects several orphan centres to the original root via the fallback path.
+  // Both cases (one root node with many root edges, and truly disconnected trees
+  // with several distinct root nodes) are resolved by inserting a single connector
+  // node slightly below the first root node and adding ONE edge from it to that
+  // node.  After compute_topology() the connector edge becomes the sole root edge
+  // (parent_ID == 0) and all formerly-root edges acquire a proper parent.
+
+  // Find the source node of the first root edge
+  QSMGraph::NodeID first_root_node = -1;
   for (const auto& [eid, einfo] : graph.edges())
   {
-    if (graph.incoming_edges(einfo.source).empty())
+    if (einfo.data.parent_ID == 0)
     {
-      if (std::find(root_nodes.begin(), root_nodes.end(), einfo.source) == root_nodes.end())
-        root_nodes.push_back(einfo.source);
+      first_root_node = einfo.source;
+      break;
     }
   }
 
-  if (root_nodes.size() <= 1) return;
+  if (first_root_node < 0) return;
 
-  // Create a new root node slightly below the first root node
-  const QSMNode& first = graph.node(root_nodes[0]);
-  QSMNode new_root_node{first.x, first.y, first.z - 0.001};
-  QSMGraph::NodeID new_root_id = graph.add_node(new_root_node);
+  const QSMNode& root_node = graph.node(first_root_node);
 
-  // Determine next cyl_ID
+  // Create a connector node slightly below the root (1 mm).
+  // This matches the original flat-QSM fix_multiple_root() behaviour.
+  constexpr double connector_offset = 0.001;
+  QSMGraph::NodeID connector_id = graph.add_node({root_node.x, root_node.y, root_node.z - connector_offset});
+
+  // Determine next available cyl_ID
   int max_cyl_id = 0;
   for (const auto& [eid, einfo] : graph.edges())
     if (einfo.data.cyl_ID > max_cyl_id) max_cyl_id = einfo.data.cyl_ID;
-  int next_cyl_id = max_cyl_id + 1;
 
-  // Connect new root to each old root node
-  for (QSMGraph::NodeID nid : root_nodes)
-  {
-    QSMEdge ed;
-    ed.cyl_ID = next_cyl_id++;
-    graph.add_edge(new_root_id, nid, ed);
-  }
+  // Add a single edge from the connector to the root node
+  QSMEdge ed;
+  ed.cyl_ID = max_cyl_id + 1;
+  graph.add_edge(connector_id, first_root_node, ed);
 
+  // Re-establish parent_ID fields.  After this the only edge with parent_ID == 0
+  // is connector → first_root_node; all former root edges now have a parent.
   compute_topology();
 }
 
