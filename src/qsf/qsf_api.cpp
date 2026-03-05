@@ -6,11 +6,16 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <atomic>
 
 namespace arbor::qsm {
 
 QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
 {
+  if (!scene.has_hag())    throw std::runtime_error("Missing attribute 'hag' in the point cloud");
+  if (!scene.has_treeid()) throw std::runtime_error("Missing attribute 'treeID' in the point cloud");
+  if (scene.size() == 0)  throw std::runtime_error("Point cloud with 0 point: failure");
+
   QSF result;
 
   // Group indices and track max height per ID
@@ -25,7 +30,8 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
 
     tree_indices[id].push_back(i);
 
-    if (tree_heights.find(id) == tree_heights.end() || hag > tree_heights[id]) {
+    if (tree_heights.find(id) == tree_heights.end() || hag > tree_heights[id])
+    {
       tree_heights[id] = hag;
     }
   }
@@ -41,15 +47,14 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
   std::sort(valid_tree_ids.begin(), valid_tree_ids.end());
 
   Progress p(valid_tree_ids.size(), "QSF");
-  bool error_occurred = false;
+  std::atomic<bool> error_occurred{false};
   std::exception_ptr eptr = nullptr;
 
   #pragma omp parallel for schedule(dynamic)
   for (size_t i = 0; i < valid_tree_ids.size(); ++i)
   {
     // Check if another thread encountered an error
-    #pragma omp flush(error_occurred)
-    if (error_occurred) continue;
+    if (error_occurred.load(std::memory_order_relaxed)) continue;
 
     int current_id = valid_tree_ids[i];
     const std::vector<int>& indices = tree_indices[current_id];
