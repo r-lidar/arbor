@@ -17,7 +17,7 @@ qsm_ring = function(qsm)
   mid_y <- (target_row$startY + target_row$endY) / 2
   mid_z <- (target_row$startZ + target_row$endZ) / 2
 
-  new_len <- 0.02
+  new_len <- 0.03
   half_len <- new_len / 2
 
   target_row$startX <- mid_x - (half_len * unit_v_x)

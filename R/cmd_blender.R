@@ -131,7 +131,7 @@ Settings
   qsf_write(qsf, its_dir, formats = "obj")
 
   cat("Export rings\n")
-  qsm_write(rings, out_rings)
+  write_cylinders_to_obj(rings, out_rings)
 
   cat("Export las\n")
   high = remove_small_trees(las, 2)
@@ -149,4 +149,70 @@ Settings
   lidR::writeLAS(high_w, out_wood_high)
   lidR::writeLAS(low_w, out_wood_low)
   write_raster_to_obj(dtm, out_dtm_mesh)
+}
+
+write_cylinders_to_obj <- function(df, file_dest, sides = 12) {
+  # Internal helper for cross products
+  cross_prod <- function(a, b) {
+    c(a[2]*b[3] - a[3]*b[2], a[3]*b[1] - a[1]*b[3], a[1]*b[2] - a[2]*b[1])
+  }
+
+  all_output <- character(nrow(df) * 2 + 2)
+  all_output[1] <- "# Exported Tree Cylinders"
+
+  v_list <- list()
+  f_list <- list()
+  v_offset <- 1
+
+  for (i in seq_len(nrow(df))) {
+    # Extract points and radius
+    p1 <- as.numeric(df[i, c("startX", "startY", "startZ")])
+    p2 <- as.numeric(df[i, c("endX", "endY", "endZ")])
+    r  <- df$radius[i]
+
+    # 1. Calculate orientation
+    axis <- p2 - p1
+    len <- sqrt(sum(axis^2))
+    if(len == 0) next # Skip degenerate cylinders
+    axis <- axis / len
+
+    # 2. Create orthogonal basis for the cylinder circles
+    # Find a vector not parallel to the axis
+    tmp <- if (abs(axis[1]) < 0.9) c(1, 0, 0) else c(0, 1, 0)
+    u <- cross_prod(axis, tmp)
+    u <- u / sqrt(sum(u^2))
+    v <- cross_prod(axis, u)
+
+    # 3. Generate vertices for both ends
+    verts <- matrix(0, nrow = sides * 2, ncol = 3)
+    for (s in 0:(sides - 1)) {
+      ang <- 2 * pi * s / sides
+      cp <- (cos(ang) * u + sin(ang) * v) * r
+      verts[s + 1, ] <- p1 + cp
+      verts[s + 1 + sides, ] <- p2 + cp
+    }
+
+    # Format vertices as OBJ strings
+    v_list[[i]] <- apply(verts, 1, function(row) sprintf("v %.6f %.6f %.6f", row[1], row[2], row[3]))
+
+    # 4. Generate faces (connecting the two rings)
+    faces <- character(sides)
+    for (s in 1:sides) {
+      v1 <- s + v_offset - 1
+      v2 <- (s %% sides + 1) + v_offset - 1
+      v3 <- v1 + sides
+      v4 <- v2 + sides
+      # Define two triangles for each quad segment
+      faces[s] <- sprintf("f %d %d %d\nf %d %d %d", v1, v2, v3, v2, v4, v3)
+    }
+    f_list[[i]] <- faces
+
+    # Update global vertex offset
+    v_offset <- v_offset + (sides * 2)
+  }
+
+  # Combine and write to disk
+  final_content <- c("# Vertices", unlist(v_list), "# Faces", unlist(f_list))
+  writeLines(final_content, file_dest)
+  message(paste("Successfully wrote OBJ to:", file_dest))
 }
