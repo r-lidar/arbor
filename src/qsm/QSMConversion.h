@@ -109,6 +109,10 @@ inline QSM graph_to_qsm(const QSMGraph& graph)
     const QSMEdge& ed  = einfo.data;
 
     QSMcylinder cyl;
+    // Use the stored cyl_ID if it was explicitly set (non-zero).
+    // New edges created by the builder always have a non-zero cyl_ID; the
+    // fallback to the graph edge ID only occurs if an edge somehow has no
+    // cyl_ID assigned (should not happen in normal usage).
     cyl.cyl_ID          = ed.cyl_ID  != 0 ? ed.cyl_ID  : eid;
     cyl.parent_ID       = ed.parent_ID;
     cyl.startX          = src.x;

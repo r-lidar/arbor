@@ -109,6 +109,8 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   for (auto& c : centers)
     searchSpace.push_back(&c);
 
+  if (searchSpace.empty()) return;
+
   // Find initial root: cluster center with minimum Z value.
   ClusterCenter* root = *std::min_element(
     searchSpace.begin(),

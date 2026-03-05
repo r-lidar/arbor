@@ -373,6 +373,12 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
     }
   }
 
+  if (w0 <= 0)
+  {
+    // No root found or root has zero/negative subtree_length – skip allometry
+    return;
+  }
+
   for (auto& [eid, einfo] : graph.edges())
   {
     QSMEdge& ed = einfo.data;

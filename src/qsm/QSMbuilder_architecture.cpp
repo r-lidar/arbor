@@ -28,9 +28,12 @@ void QSMbuilder::compute_topology()
   }
 }
 
-void QSMbuilder::compute_architecture(int /*root_id*/, bool use_volume)
+void QSMbuilder::compute_architecture(int root_id, bool use_volume)
 {
   logger("Computing architecture");
+  // Note: root_id is kept in the signature for R API compatibility but is not
+  // used internally – the root edge is always found via find_root_edge().
+  (void)root_id;
 
   // Reset cached values on every edge
   for (auto& [eid, einfo] : graph.edges())
