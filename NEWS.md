@@ -1,3 +1,8 @@
+# arbor 0.9.0
+
+- Change: a lot of C++. 
+- Enhancement: drastic speed up of `qsf()`
+
 # arbor 0.8.2
 
 - Enhancement: `find_seeds()` full C++

@@ -243,6 +243,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_write_cpp
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
+RcppExport SEXP _arbor_qsm_write_cpp(SEXP dfSEXP, SEXP filenameSEXP, SEXP binarySEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
+    qsm_write_cpp(df, filename, binary);
+    return R_NilValue;
+END_RCPP
+}
 // read_adtree_skeleton
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
@@ -346,6 +357,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
     {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 2},
+    {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsm_tmesh_cpp", (DL_FUNC) &_arbor_qsm_tmesh_cpp, 2},
     {"_arbor_qsm_qmesh_cpp", (DL_FUNC) &_arbor_qsm_qmesh_cpp, 2},

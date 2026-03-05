@@ -1,4 +1,4 @@
-run_blender <- function(args) {
+cmd_blender <- function(args) {
 
   # --- Segment Usage ---
   usage_blender <- function() {
@@ -43,7 +43,7 @@ Other:
 
   # --- Output Paths ---
   odir <- tools::file_path_sans_ext(input)
-  odir <- paste0(odir, "_output")
+  odir <- paste0(odir, "_blender")
   if (!dir.exists(odir)) dir.create(odir)
 
   base <- tools::file_path_sans_ext(basename(input))
@@ -73,7 +73,7 @@ Settings
   params <- default_arbor_parameters
 
   cat("Reading point cloud\n")
-  las <- readTLS(input, select = "xyzic", filter = filter_str)
+  las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
   las <- hybrid_homogeneization(las)
   gc()
 
@@ -87,17 +87,17 @@ Settings
   las$X = las$X - xoffset
   las$Y = las$Y - yoffset
   las$Z = las$Z - zoffset
-  las = las_update(las)
-  las_quantize(las)
+  las = lidR::las_update(las)
+  lidR::las_quantize(las)
 
   cat("Ground classification\n")
   las <- arbor_ground(las)
   gc()
 
   cat("DTM & height above ground\n")
-  dtm <- rasterize_terrain(las, 0.1, tin())
-  las <- height_above_ground(las, algorithm = dtm)
-  las <- filter_poi(las, hag > cut_above_ground)
+  dtm <- lidR::rasterize_terrain(las, 0.1, lidR::tin())
+  las <- lidR::height_above_ground(las, algorithm = dtm)
+  las <- lidR::filter_poi(las, hag > cut_above_ground)
   gc()
 
   cat("Wood likelihood\n")
@@ -144,9 +144,9 @@ Settings
   low_w = lidR::filter_poi(low, foliage == 0)
   rm(low) ; gc()
 
-  writeLAS(high_f, out_foliage_high)
-  writeLAS(low_f, out_foliage_low)
-  writeLAS(high_w, out_wood_high)
-  writeLAS(low_w, out_wood_low)
-  arbor:::write_raster_to_obj(dtm, out_dtm_mesh)
+  lidR::writeLAS(high_f, out_foliage_high)
+  lidR::writeLAS(low_f, out_foliage_low)
+  lidR::writeLAS(high_w, out_wood_high)
+  lidR::writeLAS(low_w, out_wood_low)
+  write_raster_to_obj(dtm, out_dtm_mesh)
 }

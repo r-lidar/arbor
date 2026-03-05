@@ -105,9 +105,6 @@ Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
 
 //[[Rcpp::export(rng = false)]]
-void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
-
-//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
 
 //[[Rcpp::export(rng = false)]]
@@ -128,6 +125,9 @@ Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
  */
+
+//[[Rcpp::export(rng = false)]]
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

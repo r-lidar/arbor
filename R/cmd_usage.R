@@ -1,5 +1,5 @@
 # Main Usage Help
-usage_main <- function() {
+cmd_usage <- function() {
   cat("
 Usage:
   arbor <command> [arguments]

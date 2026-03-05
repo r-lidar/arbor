@@ -1,4 +1,4 @@
-run_segment <- function(args) {
+cmd_segment <- function(args) {
 
   # --- Segment Usage ---
   usage_segment <- function() {

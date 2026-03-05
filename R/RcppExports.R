@@ -81,6 +81,10 @@ qsf_cpp <- function(scene, params) {
     .Call(`_arbor_qsf_cpp`, scene, params)
 }
 
+qsm_write_cpp <- function(df, filename, binary) {
+    invisible(.Call(`_arbor_qsm_write_cpp`, df, filename, binary))
+}
+
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }

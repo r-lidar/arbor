@@ -1,4 +1,4 @@
-run_qsm <- function(args) {
+cmd_qsm <- function(args) {
 
   # --- QSM Usage ---
   usage_qsm <- function() {

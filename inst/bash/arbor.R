@@ -61,13 +61,13 @@ sub_args <- all_args[-1]
 t0 = arbor:::tic()
 
 if (command == "segment") {
-  arbor:::run_segment(sub_args)
+  arbor:::cmd_segment(sub_args)
 } else if (command == "qsm") {
-  arbor:::run_qsm(sub_args)
+  arbor:::cmd_qsm(sub_args)
 } else if (command == "report") {
   run_report(sub_args)
 } else if (command == "blender") {
-  arbor:::run_blender(sub_args)
+  arbor:::cmd_blender(sub_args)
 } else if (command %in% c("-h", "--help")) {
   arbor:::usage_main()
 } else {
