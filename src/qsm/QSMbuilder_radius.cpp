@@ -1,6 +1,9 @@
 #include <map>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
+#include <vector>
+#include <unordered_map>
 
 #include "QSMbuilder.h"
 #include "PointCloud.h"
@@ -35,11 +38,10 @@ public:
     return 36.03 * std::pow(1.0 - std::exp(-0.05 * dbh), 1.1);
   }
 
-  // DBH (m) from Height (m)
   static double DBH_vs_H(double H) {
     double DBH_cm;
     if (H < 25.0) {
-      double ratio = std::clamp(H / 36.03, 0.0, 1.0 - 1e-12); // Clamp to avoid log(<=0) due to floating-point noise
+      double ratio = std::clamp(H / 36.03, 0.0, 1.0 - 1e-12);
       DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
     }
     else {
@@ -51,22 +53,17 @@ public:
 
 void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
-  // Calculate maximum height above ground (hag)
   double H = 0.0;
   for (int i = 0; i < tree.size(); ++i) {
     double z = tree.get_z(i);
-    if (z > H) {
-      H = z;
-    }
+    if (z > H) H = z;
   }
 
   double R0 = Allometry::DBH_vs_H(H) / 2.0;
 
-  // Check if tree is too small to me measured
   if (R0 < 0.04)
   {
-    //std::cerr << "WARNING: This tree is too small to be measured, The QSM is a pure reconstruction based on allometry" << std::endl;
-    conic_allometry( R0, tip_radius);
+    conic_allometry(R0, tip_radius);
     return;
   }
 
@@ -81,9 +78,9 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   // Check if main axis has valid measurements
   bool has_na = false;
-  for (auto& [_, cyl] : qsm)
+  for (auto& [eid, einfo] : graph.edges())
   {
-    if (cyl.axis_ID == 1 && cyl.radius == RADIUS_UNSET)
+    if (einfo.data.axis_ID == 1 && einfo.data.radius == RADIUS_UNSET)
     {
       has_na = true;
       break;
@@ -97,49 +94,41 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     return;
   }
 
-  // Reconstruction
   logger("Reconstruction");
   reconstruct_missing_radii(tip_radius);
-
-  return;
 }
 
-/********************************/
-
-// @param sarc sensitivity arc
-// @param sins sensitiviy inside
-// @param sinl sensitiviy inliner
-// @param srmeas sensitivity r measured
 void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
-  if (qsm.cylinders_.empty()) throw std::runtime_error("Internal error: no cylinder in this QSM");
+  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM");
 
   // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
-  centroids_cloud.points.reserve(qsm.cylinders_.size());
+  centroids_cloud.points.reserve(graph.edge_count());
 
-  // We also need a way to map the KD-tree index back to the cylinder pointer efficiently
-  std::vector<QSMcylinder*> index_to_cyl_ptr;
-  index_to_cyl_ptr.reserve(qsm.cylinders_.size());
+  std::vector<int> index_to_eid;
+  index_to_eid.reserve(graph.edge_count());
 
-  for (auto& pair : qsm)
+  for (auto& [eid, einfo] : graph.edges())
   {
-    QSMcylinder& cyl = pair.second;
-    cyl.radius = RADIUS_UNSET;
-    double cx = (cyl.startX + cyl.endX) / 2.0;
-    double cy = (cyl.startY + cyl.endY) / 2.0;
-    double cz = (cyl.startZ + cyl.endZ) / 2.0;
-    centroids_cloud.points.push_back({cx, cy, cz, cyl.cyl_ID});
-    index_to_cyl_ptr.push_back(&cyl);
+    einfo.data.radius = RADIUS_UNSET;
+
+    const QSMNode& src = graph.node(einfo.source);
+    const QSMNode& tgt = graph.node(einfo.target);
+
+    double cx = (src.x + tgt.x) / 2.0;
+    double cy = (src.y + tgt.y) / 2.0;
+    double cz = (src.z + tgt.z) / 2.0;
+
+    centroids_cloud.points.push_back({cx, cy, cz, eid});
+    index_to_eid.push_back(eid);
   }
 
-  // Build KD-Tree on Centroids
   CentroidKDTree index(3, centroids_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
 
-  // Assign tree points to nearest cylinder (Edge of the QSM graph)
-  // Structure: Vector of vectors, where outer index matches 'index_to_cyl_ptr'
-  std::vector<std::vector<size_t>> points_per_cylinder(centroids_cloud.points.size());
+  // Assign tree points to nearest edge (cylinder)
+  std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
   size_t num_points = tree.point_count();
 
   for (size_t i = 0; i < num_points; ++i)
@@ -156,104 +145,81 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     resultSet.init(&ret_index, &out_dist_sqr);
     index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
 
-    points_per_cylinder[ret_index].push_back(i);
+    points_per_edge[ret_index].push_back(i);
   }
 
-  // Iterate over cylinders and run RANSAC
-  for (size_t i = 0; i < points_per_cylinder.size(); ++i)
+  for (size_t i = 0; i < points_per_edge.size(); ++i)
   {
-    const auto& point_indices = points_per_cylinder[i];
-    QSMcylinder* cyl = index_to_cyl_ptr[i];
+    const auto& point_indices = points_per_edge[i];
+    int eid = index_to_eid[i];
+    auto& einfo = graph.edge(eid);
+    QSMEdge& ed = einfo.data;
 
-    if (cyl->cyl_ID < 1) continue;              // cyl_ID < 1 means it is a prolongation.
-    if (point_indices.empty()) continue;        // No point for this cylinder
-    if (cyl->conic_allometry < 0.04) continue;  // Skip if the conic allometry predicts a too small radius
-    if (point_indices.size() < 50) continue;    // Skip ransac if we have very few points.
+    if (ed.cyl_ID < 1) continue;              // cyl_ID < 1 means it is a prolongation
+    if (point_indices.empty()) continue;
+    if (ed.conic_allometry < 0.04) continue;
+    if (point_indices.size() < 50) continue;
 
-    // Compute ransdac circle for this cylinder
-    // providing the orientation of the cylinder for alignment
+    const QSMNode& src = graph.node(einfo.source);
+    const QSMNode& tgt = graph.node(einfo.target);
+
     RansacCircle ransac(100, 0.02);
     for (size_t pt_idx : point_indices)
     {
       double x = tree.get_x(pt_idx);
       double y = tree.get_y(pt_idx);
       double z = tree.get_z(pt_idx);
-      ransac.add_point(x,y,z);
+      ransac.add_point(x, y, z);
     }
-    std::array<double, 3> axis_start = {cyl->startX, cyl->startY, cyl->startZ};
-    std::array<double, 3> axis_end   = {cyl->endX,   cyl->endY,   cyl->endZ};
+    std::array<double, 3> axis_start = {src.x, src.y, src.z};
+    std::array<double, 3> axis_end   = {tgt.x, tgt.y, tgt.z};
     ransac.find_circle(axis_start, axis_end);
 
-    // Validate we have good circle fitting
-    double r_meas = ransac.get_radius();
-    double p_inside = ransac.get_inside_percentage(); // 0.0 to 1.0
-    double arc = ransac.get_arc_coverage();           // degrees
-    double p_inlier = ransac.get_inlier_percentage(); // 0.0 to 1.0
+    double r_meas    = ransac.get_radius();
+    double p_inside  = ransac.get_inside_percentage();
+    double arc       = ransac.get_arc_coverage();
+    double p_inlier  = ransac.get_inlier_percentage();
     bool valid = true;
     if (r_meas < srmeas) valid = false;
     else if (p_inside > sins) valid = false;
     else if (!(arc > sarc && p_inlier > sinl)) valid = false;
 
-    // If the circle is valid then we have a measurement
-    // for this cylinder
-    if (valid) cyl->radius = r_meas;
+    if (valid) ed.radius = r_meas;
   }
 }
 
 void QSMbuilder::polynomial_fitting(double tip_radius)
 {
-  // Group cylindera by axis
-  std::map<int, Axe> axes;
-  for (auto& kv : qsm)
+  // Group edges by axis_ID
+  std::map<int, std::vector<int>> axes;   // axis_ID -> edge IDs
+  for (const auto& [eid, einfo] : graph.edges())
+    axes[einfo.data.axis_ID].push_back(eid);
+
+  for (auto& [axis_id, eids] : axes)
   {
-    QSMcylinder& cyl = kv.second;
-    axes[cyl.axis_ID].add_cylinder(&cyl);
-  }
+    // Sort edges root→tip by subtree_length (descending)
+    std::sort(eids.begin(), eids.end(), [this](int a, int b) {
+      return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+    });
 
-  // Iterate over each axis
-  for (auto& group : axes)
-  {
-    int axis_id = group.first;
-    Axe& axe = group.second;
-    axe.sort();
-
-    // Collect valid measurements for regression
-    // We need to solve: (radius - tip) = a * length + b * length^2
-    // Let y = radius - tip_radius
-    // Let x = subtree_length
-    // Equation: y = a*x + b*x^2
-
+    // Collect valid measurements
     std::vector<std::pair<double, double>> data_points;
-    data_points.reserve(axe.size());
+    data_points.reserve(eids.size());
 
-    for (QSMcylinder* cyl : axe)
+    for (int eid : eids)
     {
-      // Corresponds to R: sum(!is.na(axe$radius))
-      if (cyl->radius != RADIUS_UNSET && cyl->subtree_length != SUBTREE_LENGTH_UNSET)
+      const QSMEdge& ed = graph.edge_data(eid);
+      if (ed.radius != RADIUS_UNSET && ed.subtree_length != SUBTREE_LENGTH_UNSET)
       {
-        double y = cyl->radius - tip_radius;
-        double x = cyl->subtree_length;
+        double y = ed.radius - tip_radius;
+        double x = ed.subtree_length;
         data_points.push_back({x, y});
       }
     }
 
-    // No interpolation if less than 6 points
-    if (data_points.size() <= 6)
-    {
-      continue;
-    }
+    if (data_points.size() <= 6) continue;
 
-    // 3. Solve Linear Least Squares (OLS) for 2 variables (a, b)
-    // We want to minimize sum of squared errors.
-    // System of Normal Equations for y = c1*x + c2*x^2:
-    // | sum(x^2)  sum(x^3) |  | a |   | sum(x*y)   |
-    // | sum(x^3)  sum(x^4) |  | b | = | sum(x^2*y) |
-
-    double sum_x2 = 0.0;
-    double sum_x3 = 0.0;
-    double sum_x4 = 0.0;
-    double sum_xy = 0.0;
-    double sum_x2y = 0.0;
+    double sum_x2 = 0, sum_x3 = 0, sum_x4 = 0, sum_xy = 0, sum_x2y = 0;
 
     for (const auto& p : data_points)
     {
@@ -270,123 +236,120 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       sum_x2y += x2 * y;
     }
 
-    // Determinant of the 2x2 matrix
     double det = sum_x2 * sum_x4 - sum_x3 * sum_x3;
-
-    // Check for singular matrix (collinear points or not enough spread)
-    // Fallback or skip: Matrix is singular, cannot fit polynomial.
     if (std::abs(det) < 1e-12) continue;
 
-    // Solve using Cramer's rule
     double a = (sum_xy * sum_x4 - sum_x2y * sum_x3) / det;
     double b = (sum_x2 * sum_x2y - sum_xy * sum_x3) / det;
 
-    // Compute the whole prediction for this axis
     std::vector<double> predictions;
-    for (QSMcylinder* cyl : axe)
+    predictions.reserve(eids.size());
+    for (int eid : eids)
     {
-      double len = cyl->subtree_length;
-      double pred_radius = tip_radius + a * len + b * len * len;
-      if (pred_radius < 0) pred_radius = 0; // Safety clamp
-      predictions.push_back(pred_radius);
+      double len = graph.edge_data(eid).subtree_length;
+      double pred = tip_radius + a * len + b * len * len;
+      if (pred < 0) pred = 0;
+      predictions.push_back(pred);
     }
 
-    // Sometime the polynomial fitting can mess-up the branch with parent cylinder
-    // smaller than child. Usually this happens if the measure we have are centered
-    // on the branch with no data on the insertion point (or root). In this case the
-    // polynomial is not constrained and weird behavior can arise. So we check that
-    // we have no increasing diameters and repair otherwise.
+    // Ensure no increasing diameters root→tip
     double previous_radius = predictions.back();
     for (auto it = predictions.rbegin(); it != predictions.rend(); ++it)
     {
-      if (*it < previous_radius) { *it = previous_radius; }
+      if (*it < previous_radius) *it = previous_radius;
       previous_radius = *it;
     }
 
-    // Apply prediction to cylinders in this axis
     int i = 0;
-    for (QSMcylinder* cyl : axe)
+    for (int eid : eids)
     {
-      double pred_radius = predictions[i]; i++;
+      QSMEdge& ed = graph.edge_data(eid);
+      double pred_radius = predictions[i++];
 
-      if (cyl->subtree_length == SUBTREE_LENGTH_UNSET)
+      if (ed.subtree_length == SUBTREE_LENGTH_UNSET)
         throw std::logic_error("subtree_length unset during polynomial fitting");
 
       bool should_update = false;
 
-      // Condition 1: Value is missing
-      if (cyl->radius == RADIUS_UNSET)
+      if (ed.radius == RADIUS_UNSET)
       {
         should_update = true;
       }
-      // Condition 2: Measured radius is > X% different than prediction
       else
       {
-        // Calculate absolute difference
-        double diff = 99999; // Desactivate feature
-        //double diff = std::abs(cyl->radius - pred_radius);
-
-        // Check if difference > X% of the PREDICTED value
-        // (Using prediction as the baseline for the "ideal" curve)
+        double diff = 99999; // feature disabled
         if (diff > 0.20 * pred_radius)
-        {
           should_update = true;
-        }
       }
 
       if (should_update)
-      {
-        cyl->radius = pred_radius;
-      }
+        ed.radius = pred_radius;
     }
   }
 }
 
 void QSMbuilder::reconstruct_missing_radii(double tip_radius)
 {
-  // Group cylinders by "branch_order"
-  std::map<int, std::vector<QSMcylinder*>> cylinders_by_branch_order;
-  for (auto& [_, cyl] : qsm)  cylinders_by_branch_order[cyl.branch_order].push_back(&cyl);
+  // Group edges by branch_order
+  std::map<int, std::vector<int>> by_order;
+  for (const auto& [eid, einfo] : graph.edges())
+    by_order[einfo.data.branch_order].push_back(eid);
 
-  // Loop by branch order. Start at 2, main trunk (order 1) should already have been computed
-  for (auto& [branch_order, cyls] : cylinders_by_branch_order)
+  for (auto& [branch_order, eids] : by_order)
   {
     if (branch_order == 1) continue;
 
-    // Group cylinders of the current "branch_order" by "axis_ID". Order does not matter
-    std::unordered_map<int, Axe> axes;
-    for (QSMcylinder* c : cyls) axes[c->axis_ID].add_cylinder(c);
+    // Group by axis_ID
+    std::unordered_map<int, std::vector<int>> axes;
+    for (int eid : eids) axes[graph.edge_data(eid).axis_ID].push_back(eid);
 
-    // Loop on each axis
-    for (auto& [axis_id, axe] : axes)
+    for (auto& [axis_id, axe_eids] : axes)
     {
-      if (axe.empty()) continue;
+      if (axe_eids.empty()) continue;
 
-      // Sort the cylinder by subtree_length to get them from root to tip
-      axe.sort();
+      // Sort root→tip
+      std::sort(axe_eids.begin(), axe_eids.end(), [this](int a, int b) {
+        return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+      });
 
-      // The first cylinder is the root of the branch. We search for its parent
-      const int parent_id = axe[0]->parent_ID;
-      QSMcylinder& parent = qsm.get_cylinder_by_id(parent_id);
-      const double r0 = parent.radius*0.9;
-      const double w0 = parent.subtree_length;
+      // The first edge is the root of the branch; find its parent edge
+      int first_eid  = axe_eids[0];
+      int parent_cyl_id = graph.edge_data(first_eid).parent_ID;
 
-      // If the axes has missing radii it means no polynomial fitting was performed
-      // we need to reconstruct the radii
-      if (axe.need_reconstruction())
+      // Find parent edge by cyl_ID
+      int parent_eid = -1;
+      for (const auto& [eid, einfo] : graph.edges())
       {
-        // Compute theoretical radii by conic allometry. This is our fallback value
-        for (QSMcylinder* c : axe)
-          c->radius = conic_allometry(tip_radius, c->subtree_length, w0, r0);
+        if (einfo.data.cyl_ID == parent_cyl_id) { parent_eid = eid; break; }
       }
-      // If the axes has no missing radii it means polynomial fitting was performed
-      // However sometime the fitting may generate branch bigger than their parent. This
-      // fixes such ugly output.
+      if (parent_eid < 0) continue;
+
+      const QSMEdge& parent_ed = graph.edge_data(parent_eid);
+      const double r0 = parent_ed.radius * 0.9;
+      const double w0 = parent_ed.subtree_length;
+
+      // Check if reconstruction is needed (any RADIUS_UNSET in axis)
+      bool need_recon = false;
+      for (int eid : axe_eids)
+        if (graph.edge_data(eid).radius == RADIUS_UNSET) { need_recon = true; break; }
+
+      if (need_recon)
+      {
+        for (int eid : axe_eids)
+        {
+          QSMEdge& ed = graph.edge_data(eid);
+          ed.radius = conic_allometry(tip_radius, ed.subtree_length, w0, r0);
+        }
+      }
       else
       {
-        double r1 = axe[0]->radius;
-        double ratio = r0/r1;
-        if (ratio < 1)  axe.scale(ratio);
+        double r1    = graph.edge_data(axe_eids[0]).radius;
+        double ratio = r0 / r1;
+        if (ratio < 1)
+        {
+          for (int eid : axe_eids)
+            graph.edge_data(eid).radius *= ratio;
+        }
       }
     }
   }
@@ -400,23 +363,22 @@ double QSMbuilder::conic_allometry(double tip_radius, double wi, double w0, doub
 
 void QSMbuilder::conic_allometry(double R0, double tip_radius)
 {
-  double w0;
-  for (auto& kv : qsm)
+  double w0 = 0;
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    QSMcylinder& cyl = kv.second;
-    if (cyl.parent_ID == 0)
+    if (einfo.data.parent_ID == 0)
     {
-      w0 = cyl.subtree_length;
+      w0 = einfo.data.subtree_length;
       break;
     }
   }
 
-  for (auto& kv : qsm)
+  for (auto& [eid, einfo] : graph.edges())
   {
-    QSMcylinder& cyl = kv.second;
-    double wi = cyl.subtree_length;
-    cyl.radius = conic_allometry(tip_radius, wi, w0, R0);
-    cyl.conic_allometry = cyl.radius;
+    QSMEdge& ed = einfo.data;
+    double wi = ed.subtree_length;
+    ed.radius          = conic_allometry(tip_radius, wi, w0, R0);
+    ed.conic_allometry = ed.radius;
   }
 }
 

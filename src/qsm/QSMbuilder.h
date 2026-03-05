@@ -3,13 +3,14 @@
 
 #include "arbor.h"
 #include "QSM.h"
+#include "QSMGraph.h"
 
 namespace arbor::qsm {
 
 class QSMbuilder
 {
 public:
-  QSMbuilder(QSM& qsm, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), qsm(qsm) {};
+  QSMbuilder(QSMGraph& graph, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), graph(graph) {};
   void build(const PointCloud& pc);
   void set_logger(Logger new_logger) { logger = std::move(new_logger); }
 
@@ -33,21 +34,25 @@ public:
   void fix_multiple_root();
   void shift(double tx, double ty, double tz);
 
-  // recursive helpers
-  double compute_subtree_length(int node_id);
-  double compute_subtree_max_z(int node_id);
-  double compute_subtree_volume(int node_id);
-  void assign_subtree_ids(int node_id, int current_axis_id, int current_branch_order, int &next_axis_id, bool use_volume);
+  // recursive helpers (operate on graph edge IDs, analogous to cyl_IDs)
+  double compute_subtree_length(int edge_id);
+  double compute_subtree_max_z(int edge_id);
+  double compute_subtree_volume(int edge_id);
+  void assign_subtree_ids(int edge_id, int current_axis_id, int current_branch_order, int& next_axis_id, bool use_volume);
 
   // misc
   int count_root();
   void remove_disconnected_branches();
   double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
 
+  // Find the root edge (first edge whose source node has no incoming edges).
+  // Returns -1 if the graph is empty.
+  int find_root_edge() const;
+
   double prolongation_distance = 0;
 
   arbor::settings::ArborParameters params;
-  QSM& qsm;
+  QSMGraph& graph;
 
   Logger logger;
 };

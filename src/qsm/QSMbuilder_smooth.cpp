@@ -40,68 +40,60 @@ static double dist2line(const std::array<double, 3>& b, const std::array<double,
 
 void QSMbuilder::smooth_skeleton(int niter, double th)
 {
-  if (qsm.cylinders_.empty()) return;
+  if (graph.edge_count() == 0) return;
 
   logger("Smoothing skeleton");
 
-  // Build axis map: axis_ID -> ordered list of cyl_IDs
+  // Build axis map: axis_ID -> ordered list of edge IDs (sorted by cyl_ID for root→tip order)
   std::unordered_map<int, std::vector<int>> axis_map;
-  for (const auto& [id, c] : qsm)
-    axis_map[c.axis_ID].push_back(id);
+  for (const auto& [eid, einfo] : graph.edges())
+    axis_map[einfo.data.axis_ID].push_back(eid);
 
-  // IMPORTANT: sort each axis by cyl_ID
-  for (auto& [axis, vec] : axis_map) { std::sort(vec.begin(), vec.end()); }
+  for (auto& [axis, vec] : axis_map)
+    std::sort(vec.begin(), vec.end(), [this](int a, int b) {
+      return graph.edge_data(a).cyl_ID < graph.edge_data(b).cyl_ID;
+    });
 
   // Iterative smoothing
   for (int iter = 0; iter < niter; ++iter)
   {
-    for (const auto& [axis_id, indices] : axis_map)
+    for (const auto& [axis_id, edge_ids] : axis_map)
     {
-      if (indices.size() < 2) continue;
+      if (edge_ids.size() < 2) continue;
 
-      for (size_t j = 1; j < indices.size(); ++j)
+      for (size_t j = 1; j < edge_ids.size(); ++j)
       {
-        int prev_id = indices[j - 1];
-        int curr_id = indices[j];
+        int prev_eid = edge_ids[j - 1];
+        int curr_eid = edge_ids[j];
 
-        auto& prev = qsm.cylinders_[prev_id];
-        auto& curr = qsm.cylinders_[curr_id];
+        QSMGraph::NodeID prev_src = graph.edge(prev_eid).source;
+        QSMGraph::NodeID prev_tgt = graph.edge(prev_eid).target; // == curr_src
+        QSMGraph::NodeID curr_tgt = graph.edge(curr_eid).target;
 
-        std::array<double,3> a = { curr.endX,  curr.endY,  curr.endZ  };
-        std::array<double,3> b = { prev.startX, prev.startY, prev.startZ };
-        std::array<double,3> c = { prev.endX,   prev.endY,   prev.endZ   };
+        const QSMNode& prev_src_n = graph.node(prev_src);
+        const QSMNode& prev_tgt_n = graph.node(prev_tgt);
+        const QSMNode& curr_tgt_n = graph.node(curr_tgt);
+
+        std::array<double, 3> a = {curr_tgt_n.x,  curr_tgt_n.y,  curr_tgt_n.z};
+        std::array<double, 3> b = {prev_src_n.x,  prev_src_n.y,  prev_src_n.z};
+        std::array<double, 3> c = {prev_tgt_n.x,  prev_tgt_n.y,  prev_tgt_n.z};
 
         double d = dist2line(b, a, c);
         if (d <= th) continue;
 
-        // New midpoint coordinate
-        std::array<double,3> mid = {
-          0.5 * (prev.startX + curr.endX),
-          0.5 * (prev.startY + curr.endY),
-          0.5 * (prev.startZ + curr.endZ)
+        // Move the shared junction node to the midpoint
+        std::array<double, 3> mid = {
+          0.5 * (prev_src_n.x + curr_tgt_n.x),
+          0.5 * (prev_src_n.y + curr_tgt_n.y),
+          0.5 * (prev_src_n.z + curr_tgt_n.z)
         };
 
-        // Apply displacement
-        prev.endX = mid[0];
-        prev.endY = mid[1];
-        prev.endZ = mid[2];
-
-        curr.startX = mid[0];
-        curr.startY = mid[1];
-        curr.startZ = mid[2];
-
-        // Move all children who begin at prev.end
-        auto it = qsm.children_map_.find(prev_id);
-        if (it != qsm.children_map_.end())
-        {
-          for (int child_id : it->second)
-          {
-            auto& child = qsm.cylinders_[child_id];
-            child.startX = mid[0];
-            child.startY = mid[1];
-            child.startZ = mid[2];
-          }
-        }
+        // Updating the node automatically propagates to ALL edges that reference it
+        // (both prev_eid's target and curr_eid's source, and any sibling branches)
+        QSMNode& junction = graph.node(prev_tgt);
+        junction.x = mid[0];
+        junction.y = mid[1];
+        junction.z = mid[2];
       }
     }
   }

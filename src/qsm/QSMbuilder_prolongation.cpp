@@ -13,50 +13,58 @@ void QSMbuilder::prolongate(double d, double L)
 
   logger("Prolongation to the ground");
 
-  // Get ordered main axis (trunk)
-  std::vector<const QSMcylinder*> axis = qsm.main_axis();
-  const size_t n = axis.size();
+  // Collect main axis edges (axis_ID == 1), ordered root → tip (descending subtree_length)
+  std::vector<int> axis_eids;
+  for (const auto& [eid, einfo] : graph.edges())
+    if (einfo.data.axis_ID == 1) axis_eids.push_back(eid);
 
+  const size_t n = axis_eids.size();
   if (n < 2) return;
 
-  // 2. Compute cyl lengths and cumulative lengths
+  std::sort(axis_eids.begin(), axis_eids.end(), [this](int a, int b) {
+    return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+  });
+
+  // Find root edge: axis_ID==1 edge with the maximum subtree_length
+  // (the root of the main axis always has the highest subtree_length)
+  int root_eid = axis_eids[0];  // already sorted descending by subtree_length
+
+  // Compute cylinder lengths and cumulative lengths
   std::vector<double> lens(n);
   std::vector<double> cum(n);
-
   double total = 0.0;
   for (size_t i = 0; i < n; ++i)
   {
-    lens[i] = axis[i]->length();
+    const auto& einfo = graph.edge(axis_eids[i]);
+    lens[i] = graph.edge_data(axis_eids[i]).length(
+      graph.node(einfo.source), graph.node(einfo.target));
     total += lens[i];
     cum[i] = total;
   }
   if (total == 0.0) return;
 
-  // 3. take only few first cylinders
-  // first 10% of axis or 30 cm
+  // Take only the first ~10% of the axis or 30 cm
   double cutoff = 0.1 * total;
   size_t k = 0;
   while (k < n && cum[k] <= cutoff) k++;
-  if (k == 0) k = 1; // minimal 1 cyl
+  if (k == 0) k = 1;
   if (k < n)
   {
-    // Ensure sum < 0.3 : add next cylinder
     double s = 0.0;
     for (size_t i = 0; i < k; i++) s += lens[i];
     if (s < 0.3) k++;
   }
   if (k > n) k = n;
 
-  const QSMcylinder* root = axis[0];
-  const QSMcylinder* last  = axis[k-1];
+  // Root node position
+  QSMGraph::NodeID root_src_nid = graph.edge(root_eid).source;
+  const QSMNode& root_node    = graph.node(root_src_nid);
+  const QSMNode& last_node    = graph.node(graph.edge(axis_eids[k - 1]).target);
 
-  if (root->parent_ID != 0)
-    throw std::runtime_error("Invalid QSM, the selected root parent ID is not 0");
-
-  // Orientation estimated
-  double dx = last->endX - root->startX;
-  double dy = last->endY - root->startY;
-  double dz = last->endZ - root->startZ;
+  // Estimated orientation of the trunk
+  double dx = last_node.x - root_node.x;
+  double dy = last_node.y - root_node.y;
+  double dz = last_node.z - root_node.z;
   double N  = std::sqrt(dx*dx + dy*dy + dz*dz);
   if (N <= 0.0) return;
   double ox = dx / N;
@@ -70,52 +78,40 @@ void QSMbuilder::prolongate(double d, double L)
   else
     d_adj = d / oz;
 
-  // Start/end points of prolongation is the root
-  double endX = root->startX;
-  double endY = root->startY;
-  double endZ = root->startZ;
-
-  // Create new subdivided segments
+  // Create subdivided segments going from root.start downward
   int nseg = std::max(1, int(std::ceil(d_adj / L)));
-  double actual_L = d_adj / nseg;
 
-  double root_subtree = root->subtree_length;
+  double root_subtree = graph.edge_data(root_eid).subtree_length;
   if (root_subtree == SUBTREE_LENGTH_UNSET)
-    throw std::runtime_error("Invalid QSM, the root has not subtree length");
+    throw std::runtime_error("Invalid QSM, the root has no subtree length");
 
-  // Find safe negative cyl_ID
-  int next_id = -1;
-  int prev_id = 0;
+  int next_id  = -1;
+  int prev_cyl_id = graph.edge_data(root_eid).cyl_ID;  // root's cyl_ID
+
+  // Anchor point (root.start) — kept as a shared node
+  QSMGraph::NodeID prev_node_id = root_src_nid;
 
   for (int i = 1; i <= nseg; i++)
   {
-    double f1 = double(i - 1) / nseg;
-    double f2 = double(i)     / nseg;
+    double f2 = double(i) / nseg;
 
-    double x1 = endX - ox * d_adj * f1;
-    double y1 = endY - oy * d_adj * f1;
-    double z1 = endZ - oz * d_adj * f1;
+    double x2 = root_node.x - ox * d_adj * f2;
+    double y2 = root_node.y - oy * d_adj * f2;
+    double z2 = root_node.z - oz * d_adj * f2;
 
-    double x2 = endX - ox * d_adj * f2;
-    double y2 = endY - oy * d_adj * f2;
-    double z2 = endZ - oz * d_adj * f2;
+    QSMGraph::NodeID new_node_id = graph.add_node({x2, y2, z2});
 
-    QSMcylinder c;
-    c.startX = x1;
-    c.startY = y1;
-    c.startZ = z1;
-    c.endX   = x2;
-    c.endY   = y2;
-    c.endZ   = z2;
-    c.cyl_ID     = next_id;
-    c.parent_ID  = (i == 1 ? root->cyl_ID : prev_id);
-    c.axis_ID    = 1;
-    c.branch_order = 1;
-    c.subtree_length = root_subtree + d_adj - actual_L * (nseg - i + 1);
+    QSMEdge ed;
+    ed.cyl_ID        = next_id;
+    ed.parent_ID     = prev_cyl_id;
+    ed.axis_ID       = 1;
+    ed.branch_order  = 1;
+    ed.subtree_length = root_subtree + d_adj - (d_adj / nseg) * (nseg - i + 1);
 
-    qsm.add_cylinder(c);
+    graph.add_edge(prev_node_id, new_node_id, ed);
 
-    prev_id = next_id;
+    prev_cyl_id   = next_id;
+    prev_node_id  = new_node_id;
     next_id--;
   }
 }
@@ -124,40 +120,31 @@ void QSMbuilder::estimate_prolongation(const PointCloud& tree)
 {
   prolongation_distance = 0.0;
 
-  // Check if the attribute exists and QSM is not empty
-  if (!tree.has_hag() || qsm.size() == 0) { return; }
+  if (!tree.has_hag() || graph.edge_count() == 0) return;
 
-  // Compute the minimum startZ in the QSM
+  // Compute the minimum startZ across all edges (source node Z) –
+  // matches the original behaviour that used min(startZ) over all cylinders.
   double min_start_z = std::numeric_limits<double>::max();
-  for (const auto& pair : qsm)
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    const QSMcylinder& cyl = pair.second;
-    if (cyl.startZ < min_start_z) {
-      min_start_z = cyl.startZ;
-    }
+    double sz = graph.node(einfo.source).z;
+    if (sz < min_start_z) min_start_z = sz;
   }
 
-  // Find max(hag) for points where tree.Z <= min_start_z
+  // Find max(hag) for points where Z <= min_start_z
   double max_hag = -std::numeric_limits<double>::max();
-  bool point_found = false;
+  bool found = false;
 
   for (size_t i = 0; i < tree.size(); ++i)
   {
     if (tree.get_z(i) <= min_start_z)
     {
-      double current_hag = tree.get_hag(i);
-      if (current_hag > max_hag)
-      {
-        max_hag = current_hag;
-        point_found = true;
-      }
+      double hag = tree.get_hag(i);
+      if (hag > max_hag) { max_hag = hag; found = true; }
     }
   }
 
-  if (point_found)
-  {
-    prolongation_distance = max_hag;
-  }
+  if (found) prolongation_distance = max_hag;
 }
 
 }

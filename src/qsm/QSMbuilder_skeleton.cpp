@@ -32,18 +32,14 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   size_t n = pc.size();
 
   // Step 1: compute mean for each (iter, cluster)
-  // The code groups all points sharing the same combination of (iter, cluster)
-  // and computes their mean X, Y, Z coordinates — i.e., the cluster "centroid" for that iteration.
-
   typedef std::pair<int, int> ClusterKey;
   std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
 
-  // group indices by (iter, cluster)
   for (size_t i = 0; i < n; ++i) {
     cluster_indices[iter_cluster[i]].push_back(i);
   }
 
-  // build centers using RANSAC and our new class
+  // build centers using RANSAC
   std::vector<ClusterCenter> centers;
   int id = 1;
 
@@ -58,7 +54,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
     if (indices.size() >= 100)
     {
-      RansacCircle rc(100, 0.02); // iterations, inlier threshold, early exit ratio
+      RansacCircle rc(100, 0.02);
 
       for (int idx : indices)
       {
@@ -79,7 +75,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       }
       else
       {
-        // fallback to average if RANSAC fails validation
         double sumx = 0, sumy = 0, sumz = 0;
         for (int idx : indices)
         {
@@ -94,7 +89,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     }
     else
     {
-      // fallback to average for small clusters
       double sumx = 0, sumy = 0, sumz = 0;
       for (int idx : indices)
       {
@@ -111,85 +105,68 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   }
 
   // Prepare for neighbor searching.
-  // We create a vector of pointers to the actual centers (so we can modify them in place).
   std::vector<ClusterCenter*> searchSpace;
   for (auto& c : centers)
     searchSpace.push_back(&c);
 
-  // Find initial root: cluster center with minimum Z value (lowest in space).
-  // This acts as the starting point for building the skeleton structure.
+  // Find initial root: cluster center with minimum Z value.
   ClusterCenter* root = *std::min_element(
     searchSpace.begin(),
     searchSpace.end(),
     [](ClusterCenter* a, ClusterCenter* b) { return a->z < b->z; }
   );
 
-  root->done = true;  // Mark root as processed
-  // Remove the root from the search pool (it’s now part of the skeleton).
+  root->done = true;
   searchSpace.erase(std::remove(searchSpace.begin(), searchSpace.end(), root), searchSpace.end());
 
-  // Prepare vectors to store edges of the skeleton.
-  // Each edge connects one cluster center (start) to another (end).
-  std::vector<double> startX, startY, startZ, endX, endY, endZ;
+  // Map ClusterCenter id -> graph NodeID
+  std::unordered_map<int, QSMGraph::NodeID> center_to_node;
+  center_to_node[root->id] = graph.add_node({root->x, root->y, root->z});
 
-  // Precompute max distance squared for faster comparison.
   const double max_d2 = max_d * max_d;
 
   int cyl_ID = 1;
 
-  // Main loop: keep connecting cluster centers until all are processed.
   while (!searchSpace.empty())
   {
-    ClusterCenter* start = root;          // Current "root" center (start point)
-    ClusterCenter* newRoot = nullptr;     // Will hold the nearest valid neighbor
-    double bestD2 = std::numeric_limits<double>::max(); // Track the smallest distance squared found
+    ClusterCenter* start   = root;
+    ClusterCenter* newRoot = nullptr;
+    double bestD2 = std::numeric_limits<double>::max();
 
-    // Search among remaining centers for the next connection
     for (auto* c : searchSpace)
     {
-      // Only connect centers that belong to a later iteration (enforces directionality)
       if (c->iter <= root->iter) continue;
 
-      // Compute squared Euclidean distance between centers
       double dx = c->x - root->x;
       double dy = c->y - root->y;
       double dz = c->z - root->z;
       double d2 = dx*dx + dy*dy + dz*dz;
 
-      // Keep the closest candidate under the distance threshold
       if (d2 < bestD2 && d2 <= max_d2)
       {
         bestD2 = d2;
-        newRoot = c;  // Best candidate so far
+        newRoot = c;
       }
     }
 
     if (newRoot)
     {
-      // Found a valid neighbor close enough — connect root → newRoot
-      newRoot->done = true;  // Mark as processed
-      // Remove it from the search pool
+      newRoot->done = true;
       searchSpace.erase(std::remove(searchSpace.begin(), searchSpace.end(), newRoot), searchSpace.end());
 
-      // Record the edge from root to newRoot
-      QSMcylinder cyl;
-      cyl.startX = start->x;
-      cyl.startY = start->y;
-      cyl.startZ = start->z;
-      cyl.endX = newRoot->x;
-      cyl.endY = newRoot->y;
-      cyl.endZ = newRoot->z;
-      cyl.cyl_ID = cyl_ID;
-      cyl_ID++;
-      qsm.add_cylinder(cyl);
+      if (!center_to_node.count(start->id))
+        center_to_node[start->id] = graph.add_node({start->x, start->y, start->z});
+      if (!center_to_node.count(newRoot->id))
+        center_to_node[newRoot->id] = graph.add_node({newRoot->x, newRoot->y, newRoot->z});
 
-      // Move to the next root (traverse forward)
+      QSMEdge ed;
+      ed.cyl_ID = cyl_ID++;
+      graph.add_edge(center_to_node[start->id], center_to_node[newRoot->id], ed);
+
       root = newRoot;
     }
     else
     {
-      // No nearby candidate found within distance threshold.
-      // Fallback strategy: pick the point with the lowest iteration value among unprocessed ones.
       auto minIt = std::min_element(
         searchSpace.begin(),
         searchSpace.end(),
@@ -197,14 +174,12 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       );
       root = *minIt;
 
-      // Now find the nearest already-processed ("done") node in Euclidean space.
       ClusterCenter* nearestDone = nullptr;
       double bestDist = std::numeric_limits<double>::max();
       for (auto& c : centers)
       {
-        if (!c.done) continue;  // Skip unprocessed centers
+        if (!c.done) continue;
 
-        // Distance to this processed center
         double dx = c.x - root->x;
         double dy = c.y - root->y;
         double dz = c.z - root->z;
@@ -213,27 +188,23 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         if (d < bestDist)
         {
           bestDist = d;
-          nearestDone = &c;  // Best processed neighbor
+          nearestDone = &c;
         }
       }
 
-      // If no processed center exists, the skeleton cannot continue
       if (!nearestDone) break;
 
-      // Connect new root to its nearest processed neighbor
       root->done = true;
       searchSpace.erase(minIt);
 
-      QSMcylinder cyl;
-      cyl.startX = nearestDone->x;
-      cyl.startY = nearestDone->y;
-      cyl.startZ = nearestDone->z;
-      cyl.endX = root->x;
-      cyl.endY = root->y;
-      cyl.endZ = root->z;
-      cyl.cyl_ID = cyl_ID;
-      cyl_ID++;
-      qsm.add_cylinder(cyl);
+      if (!center_to_node.count(nearestDone->id))
+        center_to_node[nearestDone->id] = graph.add_node({nearestDone->x, nearestDone->y, nearestDone->z});
+      if (!center_to_node.count(root->id))
+        center_to_node[root->id] = graph.add_node({root->x, root->y, root->z});
+
+      QSMEdge ed;
+      ed.cyl_ID = cyl_ID++;
+      graph.add_edge(center_to_node[nearestDone->id], center_to_node[root->id], ed);
     }
   }
 }
@@ -241,47 +212,38 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
 void QSMbuilder::fix_multiple_root()
 {
-  // Find and prepare the new root cylinder
-  QSMcylinder new_cyl;
-  bool root_found = false;
-
-  for (const auto& kv : qsm)
+  // Collect all root nodes (source nodes with no incoming edges)
+  std::vector<QSMGraph::NodeID> root_nodes;
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    if (kv.second.parent_ID == 0)
+    if (graph.incoming_edges(einfo.source).empty())
     {
-      new_cyl = kv.second;
-      new_cyl.endX = new_cyl.startX;
-      new_cyl.endY = new_cyl.startY;
-      new_cyl.endZ = new_cyl.startZ;
-      new_cyl.startZ -= 0.001;
-      new_cyl.cyl_ID = 1; // This will be our new ID 1
-      root_found = true;
-      break;
+      if (std::find(root_nodes.begin(), root_nodes.end(), einfo.source) == root_nodes.end())
+        root_nodes.push_back(einfo.source);
     }
   }
 
-  if (!root_found) return;
+  if (root_nodes.size() <= 1) return;
 
-  // Create a new map to hold the shifted cylinders
-  std::unordered_map<int, QSMcylinder> shifted_cylinders;
-  shifted_cylinders.reserve(qsm.cylinders_.size() + 1);
+  // Create a new root node slightly below the first root node
+  const QSMNode& first = graph.node(root_nodes[0]);
+  QSMNode new_root_node{first.x, first.y, first.z - 0.001};
+  QSMGraph::NodeID new_root_id = graph.add_node(new_root_node);
 
-  // Move old cylinders to the new map with incremented IDs
-  for (auto& kv : qsm)
+  // Determine next cyl_ID
+  int max_cyl_id = 0;
+  for (const auto& [eid, einfo] : graph.edges())
+    if (einfo.data.cyl_ID > max_cyl_id) max_cyl_id = einfo.data.cyl_ID;
+  int next_cyl_id = max_cyl_id + 1;
+
+  // Connect new root to each old root node
+  for (QSMGraph::NodeID nid : root_nodes)
   {
-    QSMcylinder& c = kv.second;
-    c.cyl_ID++;
-    c.parent_ID = 1;
-    shifted_cylinders[c.cyl_ID] = std::move(c);
+    QSMEdge ed;
+    ed.cyl_ID = next_cyl_id++;
+    graph.add_edge(new_root_id, nid, ed);
   }
 
-  // Add the new root to the new map
-  shifted_cylinders[1] = new_cyl;
-
-  // Swap the old map with the new one
-  qsm.cylinders_ = std::move(shifted_cylinders);
-
-  // Update topology
   compute_topology();
 }
 

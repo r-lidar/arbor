@@ -19,13 +19,11 @@ PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree, const Logger& log
   size_t n = tree.size();
   if (n == 0) return tree;
 
-  // 1. Find Min Z
   double min_z = std::numeric_limits<double>::max();
   for (size_t i = 0; i < n; ++i) {
     if (tree.get_z(i) < min_z) min_z = tree.get_z(i);
   }
 
-  // 2. Identify "bottom" points and keep track of original indices
   std::vector<bool> is_bottom(n, false);
   std::vector<size_t> bottom_indices;
 
@@ -39,22 +37,15 @@ PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree, const Logger& log
 
   if (bottom.size() == 0) return tree;
 
-  // 3. Connected Components
-  // Parameters from R: resolution = 0.05, connectivity = 26
   Grid3D grid(bottom, 0.05);
   std::vector<int> cluster_ids = grid.connected_components(26);
 
-  // 4. Analyze clusters
   std::map<int, size_t> counts;
-  for (int id : cluster_ids) {
-    counts[id]++;
-  }
+  for (int id : cluster_ids) counts[id]++;
 
-  // If more than one cluster is detected
   if (counts.size() <= 1)
     return tree;
 
-  // Find the ID of the largest cluster (the main trunk)
   int main_cluster_id = -1;
   size_t max_points = 0;
   for (auto const& [id, count] : counts) {
@@ -64,15 +55,11 @@ PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree, const Logger& log
     }
   }
 
-  // 5. Prepare final subset (remove points from smaller clusters)
   std::vector<bool> to_keep(n, true);
   for (size_t i = 0; i < cluster_ids.size(); ++i)
   {
-    // If this point in 'bottom' is NOT part of the main cluster
     if (cluster_ids[i] != main_cluster_id) {
-      // Mark the corresponding original index for removal
-      size_t original_idx = bottom_indices[i];
-      to_keep[original_idx] = false;
+      to_keep[bottom_indices[i]] = false;
     }
   }
 
@@ -83,30 +70,36 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
 {
   logger("Checking weird butt");
 
-  // Get the main axis (trunk)
-  // Store IDs instead of pointers to be safe from map reallocations
-  std::vector<int> main_axis_ids;
-  for (auto& [id, cyl] : qsm)
-  {
-    if (cyl.axis_ID == 1) {
-      main_axis_ids.push_back(id);
-    }
-  }
+  // Collect main axis edge IDs
+  std::vector<int> main_axis_eids;
+  for (const auto& [eid, einfo] : graph.edges())
+    if (einfo.data.axis_ID == 1) main_axis_eids.push_back(eid);
 
-  if (main_axis_ids.empty()) return;
+  if (main_axis_eids.empty()) return;
 
-  // Sort IDs based on the subtree_length of the cylinders they represent
-  // to get the root at index 0 and then subsequent cylinders
-  std::sort(main_axis_ids.begin(), main_axis_ids.end(), [this](int a, int b) { return qsm.cylinders_[a].subtree_length > qsm.cylinders_[b].subtree_length; });
+  // Sort root→tip (descending subtree_length)
+  std::sort(main_axis_eids.begin(), main_axis_eids.end(), [this](int a, int b) {
+    return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+  });
 
   size_t i = 0;
-  while (i < main_axis_ids.size())
+  while (i < main_axis_eids.size())
   {
     bool sequence_valid = true;
     for (int w = 0; w < window; ++w)
     {
       size_t idx = i + w;
-      if (idx >= main_axis_ids.size() || qsm.cylinders_[main_axis_ids[idx]].angle() >= thresh)
+      if (idx >= main_axis_eids.size())
+      {
+        sequence_valid = false;
+        break;
+      }
+      int eid = main_axis_eids[idx];
+      const auto& einfo = graph.edge(eid);
+      double ang = graph.edge_data(eid).angle(
+        graph.node(einfo.source),
+        graph.node(einfo.target));
+      if (ang >= thresh)
       {
         sequence_valid = false;
         break;
@@ -118,69 +111,73 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
 
   if (i > 0)
   {
-    // Determine the ID of the new root BEFORE erasing anything
-    // The new root is the first valid cylinder in the sequence (index i)
-    int new_root_id = (i < main_axis_ids.size()) ? main_axis_ids[i] : -1;
+    int new_root_eid = (i < main_axis_eids.size()) ? main_axis_eids[i] : -1;
 
-    // Remove the weird cylinders (0 to i-1)
-    for (size_t j = 0; j < i; ++j) {
-      qsm.cylinders_.erase(main_axis_ids[j]);
-    }
+    // Remove weird edges
+    for (size_t j = 0; j < i; ++j)
+      graph.remove_edge(main_axis_eids[j]);
 
     remove_disconnected_branches();
 
-    // Update the new root's parent in the NEW map
-    if (new_root_id != -1 && qsm.cylinders_.count(new_root_id))
-    {
-      qsm.cylinders_[new_root_id].parent_ID = 0;
-    }
+    // Set new root's parent_ID to 0
+    if (new_root_eid >= 0 && graph.has_edge(new_root_eid))
+      graph.edge_data(new_root_eid).parent_ID = 0;
   }
 }
 
 void QSMbuilder::remove_disconnected_branches()
 {
-  std::unordered_set<int> keep_set;
-  std::queue<int> traversal_queue;
+  // BFS from all main-axis edges to find all reachable edges
+  std::unordered_set<int> keep_eids;
+  std::queue<int> bfs;
 
-  // Start with all cylinders currently on the main axis
-  for (auto const& [id, cyl] : qsm)
+  // Seed BFS with all main axis edges
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    if (cyl.axis_ID == 1)
+    if (einfo.data.axis_ID == 1)
     {
-      keep_set.insert(id);
-      traversal_queue.push(id);
+      keep_eids.insert(eid);
+      bfs.push(eid);
     }
   }
 
-  // BFS to find all descendants (connected cylinders)
-  while (!traversal_queue.empty())
+  while (!bfs.empty())
   {
-    int current_id = traversal_queue.front();
-    traversal_queue.pop();
+    int cur_eid = bfs.front();
+    bfs.pop();
 
-    if (qsm.children_map_.count(current_id))
+    QSMGraph::NodeID tgt = graph.edge(cur_eid).target;
+    for (int child_eid : graph.outgoing_edges(tgt))
     {
-      for (int child_id : qsm.children_map_.at(current_id))
+      if (!keep_eids.count(child_eid))
       {
-        if (keep_set.find(child_id) == keep_set.end())
-        {
-          keep_set.insert(child_id);
-          traversal_queue.push(child_id);
-        }
+        keep_eids.insert(child_eid);
+        bfs.push(child_eid);
       }
     }
   }
 
-  // Rebuild the cylinder map containing only connected components
-  std::unordered_map<int, QSMcylinder> new_cylinders;
-  for (int id : keep_set)
+  // Remove edges not in keep set
+  std::vector<int> to_remove;
+  for (const auto& [eid, einfo] : graph.edges())
+    if (!keep_eids.count(eid)) to_remove.push_back(eid);
+
+  for (int eid : to_remove) graph.remove_edge(eid);
+
+  // Remove orphaned nodes (no incident edges)
+  std::unordered_set<int> used_nodes;
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    new_cylinders[id] = qsm.cylinders_[id];
+    used_nodes.insert(einfo.source);
+    used_nodes.insert(einfo.target);
   }
 
-  qsm.cylinders_ = std::move(new_cylinders);
+  std::vector<int> orphan_nodes;
+  for (const auto& [nid, ndata] : graph.nodes())
+    if (!used_nodes.count(nid)) orphan_nodes.push_back(nid);
 
-  // Refresh topology
+  for (int nid : orphan_nodes) graph.remove_node(nid);
+
   compute_topology();
 }
 

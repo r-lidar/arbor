@@ -1,5 +1,9 @@
 #include "QSMbuilder.h"
 
+#include <limits>
+#include <vector>
+#include <unordered_set>
+
 namespace arbor::qsm {
 
 void QSMbuilder::build(const PointCloud& tree)
@@ -46,9 +50,9 @@ void QSMbuilder::build(const PointCloud& tree)
   for (std::size_t i = 0; i < n; ++i) { iter_cluster.emplace_back(layers[i].first, clusters[i].first); }
 
   // Build the QSM nodes
-  build_skeleton(wood, iter_cluster,params.qsm.max_d); //max_d = 0.1
+  build_skeleton(wood, iter_cluster, params.qsm.max_d); //max_d = 0.1
 
-  // Connect the QSM nodes
+  // Connect the QSM nodes (sets parent_ID in each edge)
   compute_topology();
 
   // Fix root issue (rare)
@@ -67,26 +71,37 @@ void QSMbuilder::build(const PointCloud& tree)
 
 void QSMbuilder::shift(double tx, double ty, double tz)
 {
-  for (auto& kv : qsm)
+  // Shift all node positions (a single update per node covers all incident edges)
+  for (auto& [nid, ndata] : graph.nodes())
   {
-    kv.second.startX += tx;
-    kv.second.endX += tx;
-    kv.second.startY += ty;
-    kv.second.endY += ty;
-    kv.second.startZ += tz;
-    kv.second.endZ += tz;
+    ndata.x += tx;
+    ndata.y += ty;
+    ndata.z += tz;
   }
 }
 
 int QSMbuilder::count_root()
 {
-  int n_root = 0;
-  for (const auto& kv : qsm)
+  // Count nodes with no incoming edges that have at least one outgoing edge
+  // (each such node represents a disconnected root in the graph)
+  std::unordered_set<QSMGraph::NodeID> root_nodes;
+  for (const auto& [eid, einfo] : graph.edges())
   {
-    if (kv.second.parent_ID == 0)
-      ++n_root;
+    if (graph.incoming_edges(einfo.source).empty())
+      root_nodes.insert(einfo.source);
   }
-  return n_root;
+  return (int)root_nodes.size();
+}
+
+int QSMbuilder::find_root_edge() const
+{
+  for (const auto& [eid, einfo] : graph.edges())
+  {
+    if (graph.incoming_edges(einfo.source).empty())
+      return eid;
+  }
+  return -1;
 }
 
 }
+
