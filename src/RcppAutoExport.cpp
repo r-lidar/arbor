@@ -82,6 +82,7 @@ Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params);
 
+/*
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
@@ -126,6 +127,7 @@ Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
+ */
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

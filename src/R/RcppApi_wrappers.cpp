@@ -4,62 +4,8 @@
 
 using QSM = arbor::qsm::QSM;
 using QSF = arbor::qsm::QSF;
-using QSMcylinder = arbor::qsm::QSMcylinder;
-
-QSM as_qsm(Rcpp::DataFrame df)
-{
-  // --- mandatory columns ---
-  const char* required[] = {"cyl_ID", "parent_ID", "startX", "startY", "startZ", "endX", "endY", "endZ"};
-  for (const auto& col : required) {
-    if (!df.containsElementNamed(col)) {
-      Rcpp::stop("DataFrame must contain: cyl_ID, parent_ID, startX, startY, startZ, endX, endY, endZ");
-    }
-  }
-
-  Rcpp::IntegerVector  cid = df["cyl_ID"];
-  Rcpp::IntegerVector  pid = df["parent_ID"];
-  Rcpp::NumericVector  sx  = df["startX"];
-  Rcpp::NumericVector  sy  = df["startY"];
-  Rcpp::NumericVector  sz  = df["startZ"];
-  Rcpp::NumericVector  ex  = df["endX"];
-  Rcpp::NumericVector  ey  = df["endY"];
-  Rcpp::NumericVector  ez  = df["endZ"];
-
-  // optional columns
-  Rcpp::NumericVector radius = df.containsElementNamed("radius") ? df["radius"] : Rcpp::NumericVector(cid.size(), arbor::qsm::RADIUS_UNSET);
-  Rcpp::NumericVector theoric_radius = df.containsElementNamed("theoric_radius") ? df["theoric_radius"] : Rcpp::NumericVector(cid.size(), arbor::qsm::RADIUS_UNSET);
-  Rcpp::IntegerVector axis_ID = df.containsElementNamed("axis_ID") ? df["axis_ID"] : Rcpp::IntegerVector(cid.size(), 0);
-  Rcpp::IntegerVector branch_order = df.containsElementNamed("branch_order") ? df["branch_order"] : Rcpp::IntegerVector(cid.size(), 0);
-  Rcpp::NumericVector subtree_length = df.containsElementNamed("subtree_length") ? df["subtree_length"] : Rcpp::NumericVector(cid.size(), arbor::qsm::SUBTREE_LENGTH_UNSET);
-
-  int n = cid.size();
-
-  QSM qsm;
-  QSMcylinder c;
-
-  for (int i = 0; i < n; ++i)
-  {
-    c.cyl_ID    = cid[i];
-    c.parent_ID = pid[i];
-    c.startX    = sx[i];
-    c.startY    = sy[i];
-    c.startZ    = sz[i];
-    c.endX      = ex[i];
-    c.endY      = ey[i];
-    c.endZ      = ez[i];
-
-    // Optional
-    c.radius         = Rcpp::NumericVector::is_na(radius[i])        ? arbor::qsm::RADIUS_UNSET         : radius[i];
-    c.conic_allometry= Rcpp::NumericVector::is_na(theoric_radius[i])? arbor::qsm::RADIUS_UNSET         : theoric_radius[i];
-    c.axis_ID        = Rcpp::IntegerVector::is_na(axis_ID[i])       ? 0                                : axis_ID[i];
-    c.branch_order   = Rcpp::IntegerVector::is_na(branch_order[i])  ? 0                                : branch_order[i];
-    c.subtree_length = Rcpp::NumericVector::is_na(subtree_length[i])? arbor::qsm::SUBTREE_LENGTH_UNSET : subtree_length[i];
-    c.subtree_max_endZ = arbor::qsm::SUBTREE_MAXZ_UNSET;
-    qsm.add_cylinder(c);
-  }
-
-  return qsm;
-}
+using QSMEdge = arbor::qsm::QSMEdge;
+using QSMNode = arbor::qsm::QSMNode;
 
 QSF as_qsf(Rcpp::List x)
 {
@@ -76,66 +22,6 @@ QSF as_qsf(Rcpp::List x)
   }
 
   return qsf;
-}
-
-Rcpp::DataFrame as_dataframe(const QSM& qsm)
-{
-  const auto& cyl_map = qsm.cylinders();
-  int n = cyl_map.size();
-
-  // Copy into a vector of pointers (or references), then sort by cyl_ID
-  std::vector<const QSMcylinder*> vec;
-  vec.reserve(n);
-  for (const auto& kv : cyl_map) vec.push_back(&kv.second);
-  std::sort(vec.begin(), vec.end(), [](const QSMcylinder* a, const QSMcylinder* b)
-  {
-    return a->cyl_ID < b->cyl_ID;
-  });
-
-  // Allocate R vectors
-  Rcpp::IntegerVector cid(n);
-  Rcpp::IntegerVector pid(n);
-  Rcpp::IntegerVector axis_id(n), branch_order(n);
-  Rcpp::NumericVector sx(n), sy(n), sz(n);
-  Rcpp::NumericVector ex(n), ey(n), ez(n);
-  Rcpp::NumericVector radius(n);
-  Rcpp::NumericVector subtree_length(n);
-
-  // Fill the vectors row by row
-  for (int i = 0; i < n; i++)
-  {
-    const QSMcylinder* c = vec[i];
-
-    cid[i]            = c->cyl_ID;
-    pid[i]            = c->parent_ID;
-    sx[i]             = c->startX;
-    sy[i]             = c->startY;
-    sz[i]             = c->startZ;
-    ex[i]             = c->endX;
-    ey[i]             = c->endY;
-    ez[i]             = c->endZ;
-    radius[i]         = (c->radius == arbor::qsm::RADIUS_UNSET)                 ? NA_REAL : c->radius;
-    subtree_length[i] = (c->subtree_length == arbor::qsm::SUBTREE_LENGTH_UNSET) ? NA_REAL : c->subtree_length;
-    axis_id[i]        = c->axis_ID;
-    branch_order[i]   = c->branch_order;
-  }
-
-  //Build DataFrame
-  return Rcpp::DataFrame::create(
-    Rcpp::Named("startX") = sx,
-    Rcpp::Named("startY") = sy,
-    Rcpp::Named("startZ") = sz,
-    Rcpp::Named("endX")   = ex,
-    Rcpp::Named("endY")   = ey,
-    Rcpp::Named("endZ")   = ez,
-    Rcpp::Named("cyl_ID") = cid,
-    Rcpp::Named("parent_ID") = pid,
-    Rcpp::Named("axis_ID") = axis_id,
-    Rcpp::Named("branch_order") = branch_order,
-    Rcpp::Named("radius") = radius,
-    Rcpp::Named("subtree_length") = subtree_length,
-    Rcpp::Named("stringsAsFactors") = false
-  );
 }
 
 Rcpp::DataFrame as_dataframe(const PointCloud& cloud)
@@ -196,6 +82,157 @@ Rcpp::DataFrame as_dataframe(const PointCloud& cloud)
 
   Rcpp::DataFrame df(df_list);
   return df;
+}
+
+
+
+QSM as_qsm(Rcpp::DataFrame df)
+{
+  // --- mandatory columns ---
+  const char* required[] = {
+    "cyl_ID", "parent_ID", "startX", "startY", "startZ", "endX", "endY", "endZ"
+  };
+  for (const auto& col : required) {
+    if (!df.containsElementNamed(col)) {
+      Rcpp::stop("DataFrame must contain: cyl_ID, parent_ID, startX, startY, startZ, endX, endY, endZ");
+    }
+  }
+
+  Rcpp::IntegerVector  cid = df["cyl_ID"];
+  Rcpp::IntegerVector  pid = df["parent_ID"];
+  Rcpp::NumericVector  sx  = df["startX"];
+  Rcpp::NumericVector  sy  = df["startY"];
+  Rcpp::NumericVector  sz  = df["startZ"];
+  Rcpp::NumericVector  ex  = df["endX"];
+  Rcpp::NumericVector  ey  = df["endY"];
+  Rcpp::NumericVector  ez  = df["endZ"];
+
+  // optional columns
+  Rcpp::NumericVector radius         = df.containsElementNamed("radius")          ? df["radius"]          : Rcpp::NumericVector(cid.size(), arbor::qsm::RADIUS_UNSET);
+  Rcpp::NumericVector theoric_radius = df.containsElementNamed("theoric_radius")  ? df["theoric_radius"]  : Rcpp::NumericVector(cid.size(), arbor::qsm::RADIUS_UNSET);
+  Rcpp::IntegerVector axis_ID        = df.containsElementNamed("axis_ID")         ? df["axis_ID"]         : Rcpp::IntegerVector(cid.size(), 0);
+  Rcpp::IntegerVector branch_order   = df.containsElementNamed("branch_order")    ? df["branch_order"]    : Rcpp::IntegerVector(cid.size(), 0);
+  Rcpp::NumericVector subtree_length = df.containsElementNamed("subtree_length")  ? df["subtree_length"]  : Rcpp::NumericVector(cid.size(), arbor::qsm::SUBTREE_LENGTH_UNSET);
+
+  int n = cid.size();
+
+  // Prepare the QSM
+  QSM graph;
+
+  // Map coordinates to node IDs
+  constexpr int digits = 6;
+  const double  factor = std::pow(10.0, digits);
+
+  struct CoordKey {
+    int x, y, z;
+    bool operator==(const CoordKey& o) const noexcept { return x == o.x && y == o.y && z == o.z; }
+  };
+  struct CoordKeyHash {
+    std::size_t operator()(const CoordKey& k) const noexcept {
+      std::size_t h1 = std::hash<int>{}(k.x);
+      std::size_t h2 = std::hash<int>{}(k.y);
+      std::size_t h3 = std::hash<int>{}(k.z);
+      return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
+  };
+  std::unordered_map<CoordKey, int, CoordKeyHash> coord_to_node;
+  auto get_key = [&](double x, double y, double z) -> CoordKey {
+    return CoordKey{
+      static_cast<int>(std::llround(x * factor)),
+      static_cast<int>(std::llround(y * factor)),
+      static_cast<int>(std::llround(z * factor))
+    };
+  };
+  auto get_or_create_node = [&](double x, double y, double z) -> int {
+    auto key = get_key(x, y, z);
+    auto it  = coord_to_node.find(key);
+    if (it != coord_to_node.end()) return it->second;
+    int nid = graph.add_node({x, y, z});
+    coord_to_node[key] = nid;
+    return nid;
+  };
+
+  for (int i = 0; i < n; ++i)
+  {
+    int src = get_or_create_node(sx[i], sy[i], sz[i]);
+    int tgt = get_or_create_node(ex[i], ey[i], ez[i]);
+
+    QSMEdge ed;
+    ed.cyl_ID            = cid[i];
+    ed.parent_ID         = pid[i];
+    ed.radius            = Rcpp::NumericVector::is_na(radius[i])         ? arbor::qsm::RADIUS_UNSET          : radius[i];
+    ed.conic_allometry   = Rcpp::NumericVector::is_na(theoric_radius[i]) ? arbor::qsm::RADIUS_UNSET          : theoric_radius[i];
+    ed.axis_ID           = Rcpp::IntegerVector::is_na(axis_ID[i])        ? 0                                 : axis_ID[i];
+    ed.branch_order      = Rcpp::IntegerVector::is_na(branch_order[i])   ? 0                                 : branch_order[i];
+    ed.subtree_length    = Rcpp::NumericVector::is_na(subtree_length[i]) ? arbor::qsm::SUBTREE_LENGTH_UNSET  : subtree_length[i];
+    ed.subtree_max_endZ  = arbor::qsm::SUBTREE_MAXZ_UNSET;
+    ed.subtree_volume    = arbor::qsm::SUBTREE_VOLUME_UNSET;
+
+    graph.add_edge(src, tgt, ed);
+  }
+
+  return graph;
+}
+
+Rcpp::DataFrame as_dataframe(const QSM& graph)
+{
+  const auto& edge_map = graph.edges();
+  int n = edge_map.size();
+
+  // Copy into a vector of pointers, then sort by cyl_ID for deterministic output
+  std::vector<const std::pair<const int, QSM::EdgeInfo>*> vec;
+  vec.reserve(n);
+  for (const auto& kv : edge_map) vec.push_back(&kv);
+  std::sort(vec.begin(), vec.end(), [](const auto* a, const auto* b)
+  {
+    return a->second.data.cyl_ID < b->second.data.cyl_ID;
+  });
+
+  // Allocate R vectors
+  Rcpp::IntegerVector cid(n), pid(n), axis_id(n), branch_order(n);
+  Rcpp::NumericVector sx(n), sy(n), sz(n), ex(n), ey(n), ez(n);
+  Rcpp::NumericVector radius(n), subtree_length(n);
+
+  // Fill the vectors row by row
+  for (int i = 0; i < n; i++)
+  {
+    const auto& einfo = vec[i]->second;
+
+    // Node indices
+    const QSMNode& src = graph.node(einfo.source);
+    const QSMNode& tgt = graph.node(einfo.target);
+    const QSMEdge& ed  = einfo.data;
+
+    cid[i]            = ed.cyl_ID;
+    pid[i]            = ed.parent_ID;
+    sx[i]             = src.x;
+    sy[i]             = src.y;
+    sz[i]             = src.z;
+    ex[i]             = tgt.x;
+    ey[i]             = tgt.y;
+    ez[i]             = tgt.z;
+    radius[i]         = (ed.radius == arbor::qsm::RADIUS_UNSET)                 ? NA_REAL : ed.radius;
+    subtree_length[i] = (ed.subtree_length == arbor::qsm::SUBTREE_LENGTH_UNSET) ? NA_REAL : ed.subtree_length;
+    axis_id[i]        = ed.axis_ID;
+    branch_order[i]   = ed.branch_order;
+  }
+
+  // Build DataFrame
+  return Rcpp::DataFrame::create(
+    Rcpp::Named("startX") = sx,
+    Rcpp::Named("startY") = sy,
+    Rcpp::Named("startZ") = sz,
+    Rcpp::Named("endX")   = ex,
+    Rcpp::Named("endY")   = ey,
+    Rcpp::Named("endZ")   = ez,
+    Rcpp::Named("cyl_ID") = cid,
+    Rcpp::Named("parent_ID") = pid,
+    Rcpp::Named("axis_ID") = axis_id,
+    Rcpp::Named("branch_order") = branch_order,
+    Rcpp::Named("radius") = radius,
+    Rcpp::Named("subtree_length") = subtree_length,
+    Rcpp::Named("stringsAsFactors") = false
+  );
 }
 
 #endif

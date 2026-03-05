@@ -146,7 +146,7 @@ void QSMbuilder::remove_disconnected_branches()
     int cur_eid = bfs.front();
     bfs.pop();
 
-    QSMGraph::NodeID tgt = graph.edge(cur_eid).target;
+    QSM::NodeID tgt = graph.edge(cur_eid).target;
     for (int child_eid : graph.outgoing_edges(tgt))
     {
       if (!keep_eids.count(child_eid))

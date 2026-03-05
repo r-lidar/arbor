@@ -57,7 +57,7 @@ void QSMbuilder::prolongate(double d, double L)
   if (k > n) k = n;
 
   // Root node position
-  QSMGraph::NodeID root_src_nid = graph.edge(root_eid).source;
+  QSM::NodeID root_src_nid = graph.edge(root_eid).source;
   const QSMNode& root_node    = graph.node(root_src_nid);
   const QSMNode& last_node    = graph.node(graph.edge(axis_eids[k - 1]).target);
 
@@ -89,7 +89,7 @@ void QSMbuilder::prolongate(double d, double L)
   int prev_cyl_id = graph.edge_data(root_eid).cyl_ID;  // root's cyl_ID
 
   // Anchor point (root.start) — kept as a shared node
-  QSMGraph::NodeID prev_node_id = root_src_nid;
+  QSM::NodeID prev_node_id = root_src_nid;
 
   for (int i = 1; i <= nseg; i++)
   {
@@ -99,7 +99,7 @@ void QSMbuilder::prolongate(double d, double L)
     double y2 = root_node.y - oy * d_adj * f2;
     double z2 = root_node.z - oz * d_adj * f2;
 
-    QSMGraph::NodeID new_node_id = graph.add_node({x2, y2, z2});
+    QSM::NodeID new_node_id = graph.add_node({x2, y2, z2});
 
     QSMEdge ed;
     ed.cyl_ID        = next_id;

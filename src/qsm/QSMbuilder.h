@@ -3,14 +3,13 @@
 
 #include "arbor.h"
 #include "QSM.h"
-#include "QSMGraph.h"
 
 namespace arbor::qsm {
 
 class QSMbuilder
 {
 public:
-  QSMbuilder(QSMGraph& graph, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), graph(graph) {};
+  QSMbuilder(QSM& graph, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), graph(graph) {};
   void build(const PointCloud& pc);
   void set_logger(Logger new_logger) { logger = std::move(new_logger); }
 
@@ -52,7 +51,7 @@ public:
   double prolongation_distance = 0;
 
   arbor::settings::ArborParameters params;
-  QSMGraph& graph;
+  QSM& graph;
 
   Logger logger;
 };

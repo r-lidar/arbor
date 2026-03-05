@@ -143,15 +143,19 @@ void QSM::write_stl(const std::string& filename, bool binary) const
   std::vector<std::array<int,3>> faces;
   tmesh(vertices, faces);
 
-  // Determine offset from cylinder with cyl_ID == 1
+  // Determine offset from the root node
   // because STL is float only and does not support geographic coordinates
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
-  auto it = std::find_if(cylinders_.begin(), cylinders_.end(), [](const std::pair<const int, QSMcylinder>& kv){ return kv.second.cyl_ID == 1; });
-  if (it != cylinders_.end())
+
+  for (const auto& [nid, n] : nodes())
   {
-    xoffset = it->second.startX;
-    yoffset = it->second.startY;
-    zoffset = it->second.startZ;
+    if (incoming_edges(nid).empty()) // root node
+    {
+      xoffset = n.x;
+      yoffset = n.y;
+      zoffset = n.z;
+      break;
+    }
   }
 
   if (binary)
@@ -218,7 +222,6 @@ void QSM::write_stl(const std::string& filename, bool binary) const
 }
 
 
-
 void QSM::write_csv(const std::string& filename) const
 {
   std::ofstream out(filename);
@@ -226,36 +229,47 @@ void QSM::write_csv(const std::string& filename) const
     throw std::runtime_error("Cannot open CSV file: " + filename);
 
   // Header
-  out <<   "startX,startY,startZ,endX,endY,endZ,cyl_ID,parent_ID,axis_ID,branch_order,radius,length,volume,subtree_length";
+  out << "startX,startY,startZ,endX,endY,endZ,cyl_ID,parent_ID,axis_ID,branch_order,radius,length,volume,subtree_length";
   out << std::endl;
 
   out << std::fixed << std::setprecision(3);
 
-  // ---- SORT CYLINDERS BY cyl_ID ----
-  std::vector<const QSMcylinder*> sorted;
-  sorted.reserve(cylinders_.size());
-  for (const auto& kv : cylinders_) sorted.push_back(&kv.second);
-  std::sort(sorted.begin(), sorted.end(), [](const QSMcylinder* a, const QSMcylinder* b) {return a->cyl_ID < b->cyl_ID; });
+  // ---- SORT EDGES BY cyl_ID ----
+  std::vector<const EdgeInfo*> sorted;
+  sorted.reserve(edges().size());
+
+  for (const auto& kv : edges())
+    sorted.push_back(&kv.second);
+
+  std::sort(sorted.begin(), sorted.end(),
+            [](const EdgeInfo* a, const EdgeInfo* b)
+            {
+              return a->data.cyl_ID < b->data.cyl_ID;
+            });
 
   // ---- WRITE DATA IN ORDER ----
-  for (auto* c : sorted)
+  for (const EdgeInfo* e : sorted)
   {
-    out << c->startX       << ","
-        << c->startY       << ","
-        << c->startZ       << ","
-        << c->endX         << ","
-        << c->endY         << ","
-        << c->endZ         << ","
-        << c->cyl_ID       << ","
-        << c->parent_ID    << ","
-        << c->axis_ID      << ","
-        << c->branch_order << ","
-        << c->radius       << ","
-        << c->length()     << ","
+    const QSMNode& src = node(e->source);
+    const QSMNode& tgt = node(e->target);
+    const QSMEdge& c   = e->data;
+
+    out << src.x           << ","
+        << src.y           << ","
+        << src.z           << ","
+        << tgt.x           << ","
+        << tgt.y           << ","
+        << tgt.z           << ","
+        << c.cyl_ID        << ","
+        << c.parent_ID     << ","
+        << c.axis_ID       << ","
+        << c.branch_order  << ","
+        << c.radius        << ","
+        << c.length(src,tgt) << ","
         << std::fixed << std::setprecision(5)
-        << c->volume() << ","
+        << c.volume(src,tgt) << ","
         << std::fixed << std::setprecision(3)
-        << c->subtree_length
+        << c.subtree_length
         << std::endl;
   }
 }

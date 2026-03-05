@@ -4,8 +4,8 @@
 #ifdef USING_R
 
 #include <Rcpp.h>
-#include "QSM.h"
-#include "QSF.h"
+
+#include "arbor.h"
 
 arbor::qsm::QSM as_qsm(Rcpp::DataFrame df);
 arbor::qsm::QSF as_qsf(Rcpp::List x);

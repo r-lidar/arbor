@@ -66,9 +66,9 @@ void QSMbuilder::smooth_skeleton(int niter, double th)
         int prev_eid = edge_ids[j - 1];
         int curr_eid = edge_ids[j];
 
-        QSMGraph::NodeID prev_src = graph.edge(prev_eid).source;
-        QSMGraph::NodeID prev_tgt = graph.edge(prev_eid).target; // == curr_src
-        QSMGraph::NodeID curr_tgt = graph.edge(curr_eid).target;
+        QSM::NodeID prev_src = graph.edge(prev_eid).source;
+        QSM::NodeID prev_tgt = graph.edge(prev_eid).target; // == curr_src
+        QSM::NodeID curr_tgt = graph.edge(curr_eid).target;
 
         const QSMNode& prev_src_n = graph.node(prev_src);
         const QSMNode& prev_tgt_n = graph.node(prev_tgt);

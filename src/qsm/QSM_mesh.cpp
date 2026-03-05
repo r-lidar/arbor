@@ -22,41 +22,48 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, int resolution) cons
 {
   vertices.clear();
 
-  // ---- sort cylinder IDs ----
-  std::vector<int> ids;
-  ids.reserve(cylinders_.size());
-  for (const auto& kv : cylinders_)  ids.push_back(kv.first);
+  // ---- sort edge IDs for deterministic output ----
+  std::vector<EdgeID> ids;
+  ids.reserve(edges().size());
+  for (const auto& kv : edges())
+    ids.push_back(kv.first);
+
   std::sort(ids.begin(), ids.end());
 
-  for (int cid : ids)
+  for (EdgeID eid : ids)
   {
-    const QSMcylinder& c = cylinders_.at(cid);
+    const auto& einfo = edges().at(eid);
+    const auto& edge  = einfo.data;
 
-    std::array<double,3> p0{c.startX, c.startY, c.startZ};
-    std::array<double,3> p1{c.endX,   c.endY,   c.endZ};
+    const QSMNode& src = node(einfo.source);
+    const QSMNode& tgt = node(einfo.target);
+
+    std::array<double,3> p0{src.x, src.y, src.z};
+    std::array<double,3> p1{tgt.x, tgt.y, tgt.z};
 
     std::array<double,3> axis{p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2]};
     double len = std::sqrt(axis[0]*axis[0] + axis[1]*axis[1] + axis[2]*axis[2]);
 
-    if (len < 1e-12)  continue;
+    if (len < 1e-12) continue;
 
     auto dir = normalize(axis);
 
     // robust orthonormal basis
     std::array<double,3> z_axis{0,0,1};
     std::array<double,3> ortho1, ortho2;
-    if (std::abs(dir[0]-0)<1e-6 && std::abs(dir[1]-0)<1e-6 && std::abs(dir[2]-1)<1e-6) {
+
+    if (std::abs(dir[0]) < 1e-6 && std::abs(dir[1]) < 1e-6 && std::abs(dir[2]-1) < 1e-6)
       ortho1 = {1,0,0};
-    } else {
+    else
       ortho1 = normalize(cross(z_axis, dir));
-    }
+
     ortho2 = normalize(cross(dir, ortho1));
 
     std::vector<std::array<double,3>> bottom, top;
     bottom.reserve(resolution);
     top.reserve(resolution);
 
-    for (int j=0; j<resolution; j++)
+    for (int j = 0; j < resolution; ++j)
     {
       double theta = 2.0 * M_PI * j / resolution;
       double ct = std::cos(theta);
@@ -69,15 +76,15 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, int resolution) cons
       };
 
       bottom.push_back({
-        p0[0] + c.radius * radial[0],
-        p0[1] + c.radius * radial[1],
-        p0[2] + c.radius * radial[2]
+        p0[0] + edge.radius * radial[0],
+        p0[1] + edge.radius * radial[1],
+        p0[2] + edge.radius * radial[2]
       });
 
       top.push_back({
-        p1[0] + c.radius * radial[0],
-        p1[1] + c.radius * radial[1],
-        p1[2] + c.radius * radial[2]
+        p1[0] + edge.radius * radial[0],
+        p1[1] + edge.radius * radial[1],
+        p1[2] + edge.radius * radial[2]
       });
     }
 

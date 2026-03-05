@@ -81,66 +81,6 @@ qsf_cpp <- function(scene, params) {
     .Call(`_arbor_qsf_cpp`, scene, params)
 }
 
-qsm_layers_cpp <- function(df, D) {
-    .Call(`_arbor_qsm_layers_cpp`, df, D)
-}
-
-qsm_cluster_cpp <- function(df, cl_dist) {
-    .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
-}
-
-qsm_clean_tree_butt_cpp <- function(tree) {
-    .Call(`_arbor_qsm_clean_tree_butt_cpp`, tree)
-}
-
-qsm_topology_cpp <- function(qsm) {
-    .Call(`_arbor_qsm_topology_cpp`, qsm)
-}
-
-qsm_architecture_cpp <- function(qsm, use_volume = FALSE) {
-    .Call(`_arbor_qsm_architecture_cpp`, qsm, use_volume)
-}
-
-cpp_build_skeleton <- function(data, max_d) {
-    .Call(`_arbor_cpp_build_skeleton`, data, max_d)
-}
-
-qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
-    .Call(`_arbor_qsm_simplify_cpp`, qsm, max_length)
-}
-
-qsm_write_cpp <- function(df, filename, binary) {
-    invisible(.Call(`_arbor_qsm_write_cpp`, df, filename, binary))
-}
-
-qsm_smooth_cpp <- function(df, niter = 1L, th = 0) {
-    .Call(`_arbor_qsm_smooth_cpp`, df, niter, th)
-}
-
-qsm_conic_allometry_cpp <- function(df, R0, tip_radius = 0.0025) {
-    .Call(`_arbor_qsm_conic_allometry_cpp`, df, R0, tip_radius)
-}
-
-qsm_estimate_prolongation_cpp <- function(tree, df) {
-    .Call(`_arbor_qsm_estimate_prolongation_cpp`, tree, df)
-}
-
-qsm_prolongation_cpp <- function(df, d, L = 0.1) {
-    .Call(`_arbor_qsm_prolongation_cpp`, df, d, L)
-}
-
-qsm_measure_cpp <- function(pc, df, sarc = 180, sins = 0.2, sinl = 0.3, srmeas = 0.05) {
-    .Call(`_arbor_qsm_measure_cpp`, pc, df, sarc, sins, sinl, srmeas)
-}
-
-qsm_polynomial_fitting_cpp <- function(df, tip_radius) {
-    .Call(`_arbor_qsm_polynomial_fitting_cpp`, df, tip_radius)
-}
-
-qsm_reconstruction_cpp <- function(df, tip_radius) {
-    .Call(`_arbor_qsm_reconstruction_cpp`, df, tip_radius)
-}
-
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }

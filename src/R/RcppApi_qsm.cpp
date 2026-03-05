@@ -5,13 +5,11 @@
 #include "myomp.h"
 #include "arbor.h"
 #include "QSMbuilder.h"
-#include "QSMConversion.h"
 #include "RcppApi_wrappers.h"
 #include "RcppApi_params.h"
 
 using QSM = arbor::qsm::QSM;
 using QSF = arbor::qsm::QSF;
-using QSMGraph = arbor::qsm::QSMGraph;
 using QSMbuilder = arbor::qsm::QSMbuilder;
 
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
@@ -36,7 +34,7 @@ Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params)
   return output;
 }
 
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
+/*Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
 {
   PointCloud pc(df);
   std::vector<std::pair<int, double>> res_pairs = QSMbuilder::layers(pc, D);
@@ -112,23 +110,20 @@ Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
 
   PointCloud pc(data);
 
-  QSMGraph graph;
-  QSMbuilder b(graph);
+  QSM qsm;
+  QSMbuilder b(qsm);
   b.build_skeleton(pc, iter_cluster, max_d);
-
-  QSM qsm = arbor::qsm::graph_to_qsm(graph);
   return as_dataframe(qsm);
 }
 
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  /*QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.compute_topology();
 
   // Extract parent_ID for each cylinder (ordered by cyl_ID)
-  int n = (int)qsm_in.size();
+  int n = (int)qsm.size();
   Rcpp::IntegerVector parent_ID(n);
   for (const auto& [eid, einfo] : graph.edges())
   {
@@ -143,12 +138,11 @@ Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
 
 Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.compute_architecture(use_volume);
 
-  int n = (int)qsm_in.size();
+  int n = (int)qsm.size();
   Rcpp::NumericVector subtree_length(n);
   Rcpp::IntegerVector axis_ID(n);
   Rcpp::IntegerVector branching_order(n);
@@ -170,24 +164,21 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false
   df["subtree_length"] = subtree_length;
 
   return df;
-}
+}*/
 
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
 {
   QSM qsm = as_qsm(df);
-  qsm.write(filename, binary);
+  //qsm.write(filename, binary);
 }
 
-
-Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
+/*Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.smooth_skeleton(niter, th);
 
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  Rcpp::DataFrame ans = as_dataframe(qsm_out);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
 
   // Keep only columns present in original df
   Rcpp::CharacterVector keep = df.names();
@@ -218,23 +209,20 @@ Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
 
 double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
+  QSM qsm = as_qsm(df);
   PointCloud pc(tree);
-  QSMbuilder b(graph);
+  QSMbuilder b(qsm);
   b.estimate_prolongation(pc);
   return b.prolongation_distance;
 }
 
 Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.prolongate(d, L);
 
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  Rcpp::DataFrame ans = as_dataframe(qsm_out);
+  Rcpp::DataFrame ans = as_dataframe(qsm);
 
   // Keep only columns present in original df
   Rcpp::CharacterVector keep = df.names();
@@ -267,43 +255,35 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.
 Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05)
 {
   PointCloud tree(pc);
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.measure_radii(tree, sarc, sins, sinl, srmeas);
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  return as_dataframe(qsm_out);
+  return as_dataframe(qsm);
 }
 
 Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.polynomial_fitting(tip_radius);
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  return as_dataframe(qsm_out);
+  return as_dataframe(qsm);
 }
 
 Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.conic_allometry(R0, tip_radius);
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  return as_dataframe(qsm_out);
+  return as_dataframe(qsm);
 }
 
 Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius)
 {
-  QSM qsm_in = as_qsm(df);
-  QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
-  QSMbuilder b(graph);
+  QSM qsm = as_qsm(df);
+  QSMbuilder b(qsm);
   b.reconstruct_missing_radii(tip_radius);
-  QSM qsm_out = arbor::qsm::graph_to_qsm(graph);
-  return as_dataframe(qsm_out);
-}
+  return as_dataframe(qsm);
+}*/
 
 Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution)
 {
