@@ -3,6 +3,7 @@
 
 #include "PointCloud.h"
 #include "QSM.h"
+#include "QSF.h"
 
 #include <vector>
 
@@ -64,12 +65,23 @@ namespace arbor
       double safe_zone = 0.2;
     };
 
+    struct QsmParameters
+    {
+      double step = 0.2;
+      double cl_dist = 0.1;
+      double max_d = 0.1;
+      double apex = 0.0025;
+      int smooth_iter = 1;
+      double smooth_th = 0;
+    };
+
     struct ArborParameters
     {
       WoodlikelihoodParameters woodlikelihood;
       GraphParameters pathfinder;
       SemanticParameters semantic;
       SeedParameters seeds;
+      QsmParameters qsm;
     };
   }
 
@@ -86,14 +98,15 @@ namespace arbor
 
   namespace qsm
   {
-    QSM find_seeds(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    QSM qsm(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    QSF qsf(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
   }
 
   namespace utils
   {
     std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
-    std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m, int ncpu);
-    std::vector<float> anisotropy(const PointCloud& pc, int k, int ncpu);
+    std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m);
+    std::vector<float> anisotropy(const PointCloud& pc, int k);
   }
 }
 

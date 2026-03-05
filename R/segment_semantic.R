@@ -48,44 +48,44 @@ seed_from_dtm = function(dtm, res)
   seeds
 }
 
-# Old R around C++
-segment_semantic_r_cpp = function(las, dtm, params = default_arbor_parameters)
-{
-  stopifnot("pwood" %in% names(las))
-
-  logger("Segmentic segmentation start")
-
-  # Accumulate passages
-  params   <- evaluate_penalty(params)
-  gnd      <- make_ground_points(dtm, params$semantic$ground_res, las@header)
-  passages <- accumulate_passages_cpp(las@data, gnd@data, params)
-  las      <- lidR::add_lasattribute_manual(las, passages, name = "passage", desc = "passage points", type = "int")
-
-  # Wood from pathfinder
-  path_finder_based_wood = assign_wood_from_passage_cpp(las@data, params)
-  las@data$foliage = as.integer(!path_finder_based_wood)
-
-  # Wood from likelihood
-  high_likelihood_based_wood = assign_wood_from_high_likelihood_cpp(las@data, params)
-  medium_likelihood_based_wood = assign_wood_from_medium_likelihood_cpp(las@data, params)
-
-  is_wood = path_finder_based_wood | high_likelihood_based_wood | medium_likelihood_based_wood
-  las@data$foliage = as.integer(!is_wood)
-
-  # Wood from dilatation
-  is_wood = assign_wood_from_wood_dilatation_cpp(las@data, params)
-  las@data$foliage = as.integer(!is_wood)
-
-  logger("Extra class 2 foliage re-assignation... (9/10)")
-  las@data[foliage == 1 & pwood > params$semantic$high_pwood_threshold, foliage := 2L]
-
-  las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
-
-  logger("Semantic segmentation completed")
-  gc()
-
-  return(las)
-}
+# # Old R around C++
+# segment_semantic_r_cpp = function(las, dtm, params = default_arbor_parameters)
+# {
+#   stopifnot("pwood" %in% names(las))
+#
+#   logger("Segmentic segmentation start")
+#
+#   # Accumulate passages
+#   params   <- evaluate_penalty(params)
+#   gnd      <- make_ground_points(dtm, params$semantic$ground_res, las@header)
+#   passages <- accumulate_passages_cpp(las@data, gnd@data, params)
+#   las      <- lidR::add_lasattribute_manual(las, passages, name = "passage", desc = "passage points", type = "int")
+#
+#   # Wood from pathfinder
+#   path_finder_based_wood = assign_wood_from_passage_cpp(las@data, params)
+#   las@data$foliage = as.integer(!path_finder_based_wood)
+#
+#   # Wood from likelihood
+#   high_likelihood_based_wood = assign_wood_from_high_likelihood_cpp(las@data, params)
+#   medium_likelihood_based_wood = assign_wood_from_medium_likelihood_cpp(las@data, params)
+#
+#   is_wood = path_finder_based_wood | high_likelihood_based_wood | medium_likelihood_based_wood
+#   las@data$foliage = as.integer(!is_wood)
+#
+#   # Wood from dilatation
+#   is_wood = assign_wood_from_wood_dilatation_cpp(las@data, params)
+#   las@data$foliage = as.integer(!is_wood)
+#
+#   logger("Extra class 2 foliage re-assignation... (9/10)")
+#   las@data[foliage == 1 & pwood > params$semantic$high_pwood_threshold, foliage := 2L]
+#
+#   las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
+#
+#   logger("Semantic segmentation completed")
+#   gc()
+#
+#   return(las)
+# }
 
 # Old R code for debugging and rendering
 # segment_semantic_r = function(las, dtm, params = default_arbor_parameters)

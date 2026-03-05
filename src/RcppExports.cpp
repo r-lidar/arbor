@@ -23,14 +23,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_anisotropy
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k, int ncpu);
-RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP, SEXP ncpuSEXP) {
+Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k);
+RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k, ncpu));
+    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -47,15 +46,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_sor
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m, int ncpu);
-RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP, SEXP ncpuSEXP) {
+Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
+RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< unsigned int >::type k(kSEXP);
     Rcpp::traits::input_parameter< double >::type m(mSEXP);
-    Rcpp::traits::input_parameter< int >::type ncpu(ncpuSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m, ncpu));
+    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -223,6 +221,60 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_cpp
+Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
+RcppExport SEXP _arbor_qsm_cpp(SEXP treeSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_cpp(tree, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsf_cpp
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params);
+RcppExport SEXP _arbor_qsf_cpp(SEXP sceneSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type scene(sceneSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsf_cpp(scene, params));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_layers_cpp
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type D(DSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_cluster_cpp
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+RcppExport SEXP _arbor_qsm_cluster_cpp(SEXP dfSEXP, SEXP cl_distSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type cl_dist(cl_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_cluster_cpp(df, cl_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_clean_tree_butt_cpp
+Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
+RcppExport SEXP _arbor_qsm_clean_tree_butt_cpp(SEXP treeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_clean_tree_butt_cpp(tree));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_topology_cpp
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
@@ -253,17 +305,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
     rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_layers_cpp
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
-RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type D(DSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -298,6 +339,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type niter(niterSEXP);
     Rcpp::traits::input_parameter< double >::type th(thSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_smooth_cpp(df, niter, th));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_conic_allometry_cpp
+Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius);
+RcppExport SEXP _arbor_qsm_conic_allometry_cpp(SEXP dfSEXP, SEXP R0SEXP, SEXP tip_radiusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type R0(R0SEXP);
+    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_conic_allometry_cpp(df, R0, tip_radius));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_estimate_prolongation_cpp
+double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
+RcppExport SEXP _arbor_qsm_estimate_prolongation_cpp(SEXP treeSEXP, SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_estimate_prolongation_cpp(tree, df));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -434,9 +498,9 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
-    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 3},
+    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
-    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 4},
+    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 3},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 3},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
@@ -451,13 +515,19 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
+    {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
+    {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 2},
+    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
+    {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
+    {"_arbor_qsm_clean_tree_butt_cpp", (DL_FUNC) &_arbor_qsm_clean_tree_butt_cpp, 1},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 3},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
-    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_simplify_cpp", (DL_FUNC) &_arbor_qsm_simplify_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_smooth_cpp", (DL_FUNC) &_arbor_qsm_smooth_cpp, 3},
+    {"_arbor_qsm_conic_allometry_cpp", (DL_FUNC) &_arbor_qsm_conic_allometry_cpp, 3},
+    {"_arbor_qsm_estimate_prolongation_cpp", (DL_FUNC) &_arbor_qsm_estimate_prolongation_cpp, 2},
     {"_arbor_qsm_prolongation_cpp", (DL_FUNC) &_arbor_qsm_prolongation_cpp, 3},
     {"_arbor_qsm_measure_cpp", (DL_FUNC) &_arbor_qsm_measure_cpp, 6},
     {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},

@@ -44,6 +44,12 @@ default_parameters_v1 = list(
       connected_components_res = 0.05,
       connected_components_min = 200
     )
+  ),
+  qsm = list(
+    step = 0.2,
+    cl_dist = 0.1,
+    max_d = 0.1,
+    apex = 0.0025
   )
 )
 

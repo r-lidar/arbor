@@ -27,6 +27,7 @@ file
 tree <- readLAS(file)
 
 qsm = qsm(tree, apex = 0.0025)
+qsm = arbor:::qsm_cpp(tree@data, list())
 stem = qsm_stem(qsm)
 sum(stem$volume)
 

@@ -5,16 +5,16 @@ C_homogeneization <- function(df, res, hybrid = TRUE) {
     .Call(`_arbor_C_homogeneization`, df, res, hybrid)
 }
 
-C_anisotropy <- function(df, k, ncpu = 1L) {
-    .Call(`_arbor_C_anisotropy`, df, k, ncpu)
+C_anisotropy <- function(df, k) {
+    .Call(`_arbor_C_anisotropy`, df, k)
 }
 
 C_connected_component <- function(df, res, connectivity) {
     .Call(`_arbor_C_connected_component`, df, res, connectivity)
 }
 
-C_sor <- function(df, k, m, ncpu = 1L) {
-    .Call(`_arbor_C_sor`, df, k, m, ncpu)
+C_sor <- function(df, k, m) {
+    .Call(`_arbor_C_sor`, df, k, m)
 }
 
 segment_semantic_cpp <- function(core, ground, params) {
@@ -73,6 +73,26 @@ detect_tree_circles_cpp <- function(wood_df, resolution = 0.05, connectivity = 2
     .Call(`_arbor_detect_tree_circles_cpp`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }
 
+qsm_cpp <- function(tree, params) {
+    .Call(`_arbor_qsm_cpp`, tree, params)
+}
+
+qsf_cpp <- function(scene, params) {
+    .Call(`_arbor_qsf_cpp`, scene, params)
+}
+
+qsm_layers_cpp <- function(df, D) {
+    .Call(`_arbor_qsm_layers_cpp`, df, D)
+}
+
+qsm_cluster_cpp <- function(df, cl_dist) {
+    .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
+}
+
+qsm_clean_tree_butt_cpp <- function(tree) {
+    .Call(`_arbor_qsm_clean_tree_butt_cpp`, tree)
+}
+
 qsm_topology_cpp <- function(qsm) {
     .Call(`_arbor_qsm_topology_cpp`, qsm)
 }
@@ -85,10 +105,6 @@ cpp_build_skeleton <- function(data, max_d) {
     .Call(`_arbor_cpp_build_skeleton`, data, max_d)
 }
 
-qsm_layers_cpp <- function(df, D) {
-    .Call(`_arbor_qsm_layers_cpp`, df, D)
-}
-
 qsm_simplify_cpp <- function(qsm, max_length = 0.3) {
     .Call(`_arbor_qsm_simplify_cpp`, qsm, max_length)
 }
@@ -99,6 +115,14 @@ qsm_write_cpp <- function(df, filename, binary) {
 
 qsm_smooth_cpp <- function(df, niter = 1L, th = 0) {
     .Call(`_arbor_qsm_smooth_cpp`, df, niter, th)
+}
+
+qsm_conic_allometry_cpp <- function(df, R0, tip_radius = 0.0025) {
+    .Call(`_arbor_qsm_conic_allometry_cpp`, df, R0, tip_radius)
+}
+
+qsm_estimate_prolongation_cpp <- function(tree, df) {
+    .Call(`_arbor_qsm_estimate_prolongation_cpp`, tree, df)
 }
 
 qsm_prolongation_cpp <- function(df, d, L = 0.1) {

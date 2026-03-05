@@ -24,7 +24,7 @@ connected_components = function(las, res, min_pts, name = "clusterID", connectiv
 
 sor = function(las, k, m)
 {
-  noise = C_sor(las@data, k, m, lidR::get_lidr_threads())
+  noise = C_sor(las@data, k, m)
 
   if ("Classification" %in% names(las))
   {

@@ -1,4 +1,6 @@
 # Test case 7: RANSAC on noisy circle points
+ransac_circle = arbor:::ransac_circle
+
 set.seed(123)
 n = 500
 theta <- seq(0, 2 * pi, length.out = n)

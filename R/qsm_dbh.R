@@ -266,6 +266,7 @@ qsm_dbh <- function(qsm, tree = NULL, slice_thickness = 0.1, bh = 1.30, display 
   )
 }
 
+#' @importFrom data.table :=
 .extract_slice <- function(points, P_bh, u, thickness)
 {
   X <- Y <- Z <- dist <- NULL

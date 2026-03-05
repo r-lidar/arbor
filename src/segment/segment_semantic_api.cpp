@@ -70,7 +70,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
     std::vector<int> local_passage(num_points, 0);  // thread-local counts
 
     #pragma omp for schedule(dynamic, 100)
-    for (int i = 0; i < num_target; ++i)
+    for (size_t i = 0; i < num_target; ++i)
     {
       Graph::NodeId goal  = target_ids[i];
 
@@ -79,7 +79,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
       for (size_t j = 0; j < path.size(); ++j)
       {
         Graph::NodeId id = path[j];
-        if (id >= 0 && id < num_points)
+        if (id >= 0 && id < (int) num_points)
           local_passage[id] += 1;
       }
     }
@@ -87,7 +87,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
     // Merge results into global passage safely
     #pragma omp critical
     {
-      for (int i = 0; i < num_points; ++i)
+      for (size_t i = 0; i < num_points; ++i)
         passage[i] += local_passage[i];
     }
   }
@@ -197,7 +197,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
 
   // Remove small clusters
   int max_id = *std::max_element(cluster_ids.begin(), cluster_ids.end());
-  std::vector<std::size_t> counts(max_id + 1, 0);
+  std::vector<int> counts(max_id + 1, 0);
   for (int id : cluster_ids) {
     if (id != 0)
       ++counts[id];
@@ -216,7 +216,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
       // In R, a point only survives if its cluster_id > 0
       // AND its count >= min.
       int cid = cluster_ids[j];
-      if (cid > 0 && counts[cid] >= (size_t)params.connected_components_min) {
+      if (cid > 0 && counts[cid] >= params.connected_components_min) {
         is_wood[i] = true;
       }
 
@@ -246,7 +246,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   logger("  sor noise segmentation");
 
   // SOR. Detect noise
-  std::vector<bool> is_noise = arbor::utils::sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m, 12);
+  std::vector<bool> is_noise = arbor::utils::sor(wood, params.medium_pwood_sor_k, params.medium_pwood_sor_m);
 
   // Remove noise
   is_noise.flip();
@@ -263,7 +263,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
 
   // Remove small clusters
   int max_id = *std::max_element(cluster_ids.begin(), cluster_ids.end());
-  std::vector<std::size_t> counts(max_id + 1, 0);
+  std::vector<int> counts(max_id + 1, 0);
   for (int id : cluster_ids) {
     if (id != 0)
       ++counts[id];
@@ -287,7 +287,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
       {
         // Point was in the second subset. Did it survive Cluster Filtering?
         int cid = cluster_ids[k];
-        if (cid > 0 && counts[cid] >= (size_t)params.connected_components_min) {
+        if (cid > 0 && counts[cid] >= params.connected_components_min) {
           is_wood[i] = true;
         }
         k++; // Increment k only if the point survived SOR

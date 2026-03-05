@@ -2,6 +2,7 @@
 #' @rdname arbor-studio
 arbor_studio_seeds <- function(las, seeds, ...)
 {
+  rgb <- ..keep_col <- NULL
 
   seeds <- colorize_trees(seeds, FALSE)
 

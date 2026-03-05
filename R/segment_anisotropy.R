@@ -20,7 +20,7 @@ wood_likelihood = function(las, params = default_arbor_parameters)
   logger("Wood likelihood start")
   t0 <- tic()
   k <- params$woodlikelihood$k
-  anisotropy <- C_anisotropy(las@data, k, lidR::get_lidr_threads())
+  anisotropy <- C_anisotropy(las@data, k)
   las <- lidR::add_lasattribute_manual(las, anisotropy, "pwood", "wood likelyhood", "float")
   free(anisotropy)
   logger("Wood likelihood completed")

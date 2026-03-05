@@ -1,3 +1,5 @@
+#ifdef USING_R
+
 #include <Rcpp.h>
 
 #include <cmath>
@@ -11,7 +13,8 @@
 #include "arbor.h"
 #include "GraphBuilder.h"
 #include "SeedDetector.h"
-#include "Rwrappers.h"
+#include "RcppApi_wrappers.h"
+#include "RcppApi_params.h"
 
 
 // Type aliases for clarity
@@ -30,160 +33,12 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, co
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const arbor::settings::GraphParameters& params);
 }
 
-auto logger()
-{
-  return [](const std::string& msg)
-  {
-    auto now = std::chrono::system_clock::now();
-    auto time_t_now = std::chrono::system_clock::to_time_t(now);
-    std::tm* tm_now = std::localtime(&time_t_now);
-
-    std::ostringstream oss;
-    oss << "["
-        << std::setfill('0') << std::setw(2) << tm_now->tm_hour << ":"
-        << std::setfill('0') << std::setw(2) << tm_now->tm_min << ":"
-        << std::setfill('0') << std::setw(2) << tm_now->tm_sec
-        << "] " << msg;
-
-    Rcpp::Rcout << oss.str() << std::endl;
-  };
-}
-
-
-// Inline helper to check required list elements
-inline void assert_exists(const Rcpp::List& p, const char* name)
-{
-  if (!p.containsElementNamed(name))
-  {
-    Rcpp::stop("Invalid parameters: missing '%s'", name);
-  }
-}
-
-// Helper function to extract parameters from R list
-arbor::settings::GraphParameters extract_pathfinder_params(Rcpp::List params)
-{
-  assert_exists(params, "path_finder");
-  Rcpp::List p = params["path_finder"];
-  assert_exists(p, "k_neighborhood_connectivity");
-  assert_exists(p, "k_seed_connectivity");
-  assert_exists(p, "decimation");
-  assert_exists(p, "space_res");
-  assert_exists(p, "max_gap");
-  assert_exists(p, "penalty");
-  assert_exists(p, "distance_power");
-
-  arbor::settings::GraphParameters g;
-  g.k = Rcpp::as<int>(p["k_neighborhood_connectivity"]);
-  g.k_seed = Rcpp::as<int>(p["k_seed_connectivity"]);
-  g.decimation = Rcpp::as<double>(p["decimation"]);
-  g.space_res = Rcpp::as<double>(p["space_res"]);
-  g.max_gap = Rcpp::as<double>(p["max_gap"]);
-  g.power = Rcpp::as<double>(p["distance_power"]);
-  g.angle_penalty = Rcpp::as<std::vector<float>>(p["penalty"]);
-
-
-  assert_exists(params, "instance");
-  p = params["instance"];
-  assert_exists(p, "wood2leaf_factor");
-  assert_exists(p, "leaf2leaf_factor");
-  assert_exists(p, "wood2wood_factor");
-
-  g.wood2leaf = Rcpp::as<double>(p["wood2leaf_factor"]);
-  g.leaf2leaf = Rcpp::as<double>(p["leaf2leaf_factor"]);
-  g.wood2wood = Rcpp::as<double>(p["wood2wood_factor"]);
-
-  return g;
-}
-
-arbor::settings::SemanticParameters extract_semantic_params(const Rcpp::List& params)
-{
-  assert_exists(params, "semantic");
-  Rcpp::List p = params["semantic"];
-
-  assert_exists(p, "min_passage");
-  assert_exists(p, "high_pwood_threshold");
-  assert_exists(p, "medium_pwood_thresold");
-  assert_exists(p, "connected_components_res");
-  assert_exists(p, "connected_components_min");
-  assert_exists(p, "wood_assignation_k");
-  assert_exists(p, "wood_assignation_dist");
-  assert_exists(p, "wood_extra_reasignation_k");
-  assert_exists(p, "wood_extra_reasignation_dist");
-  assert_exists(p, "medium_pwood_sor_k");
-  assert_exists(p, "medium_pwood_sor_m");
-  assert_exists(p, "ground_res");
-
-  arbor::settings::SemanticParameters s;
-  s.min_passage = Rcpp::as<int>(p["min_passage"]);
-  s.high_pwood_threshold   = Rcpp::as<double>(p["high_pwood_threshold"]);
-  s.medium_pwood_threshold = Rcpp::as<double>(p["medium_pwood_thresold"]);
-  s.connected_components_res = Rcpp::as<double>(p["connected_components_res"]);
-  s.connected_components_min = Rcpp::as<int>(p["connected_components_min"]);
-  s.wood_assignation_k = Rcpp::as<int>(p["wood_assignation_k"]);
-  s.wood_assignation_dist = Rcpp::as<double>(p["wood_assignation_dist"]);
-  s.wood_extra_reasignation_k = Rcpp::as<int>(p["wood_extra_reasignation_k"]);
-  s.wood_extra_reasignation_dist = Rcpp::as<double>(p["wood_extra_reasignation_dist"]);
-  s.medium_pwood_sor_k = Rcpp::as<int>(p["medium_pwood_sor_k"]);
-  s.medium_pwood_sor_m = Rcpp::as<double>(p["medium_pwood_sor_m"]);
-  s.ground_res = Rcpp::as<double>(p["ground_res"]);
-
-  return s;
-}
-
-arbor::settings::WoodlikelihoodParameters extract_likelihood_params(const Rcpp::List& params)
-{
-  assert_exists(params, "woodlikelihood");
-  Rcpp::List p = params["woodlikelihood"];
-
-  assert_exists(p, "k");
-
-  arbor::settings::WoodlikelihoodParameters s;
-  return s;
-}
-
-
-arbor::settings::SeedParameters extract_seeds_params(const Rcpp::List& params)
-{
-  assert_exists(params, "seed");
-  Rcpp::List p = params["seed"];
-
-  assert_exists(p, "slice_at");
-  assert_exists(p, "slice_thickness");
-  assert_exists(p, "min_passage");
-  assert_exists(p, "safe_zone");
-
-  arbor::settings::SeedParameters s;
-  s.min_passage = Rcpp::as<int>(p["min_passage"]);
-  s.slice_thickness   = Rcpp::as<double>(p["slice_thickness"]);
-  s.slice_at = Rcpp::as<std::vector<double>>(p["slice_at"]);
-  s.safe_zone = Rcpp::as<double>(p["safe_zone"]);
-
-  return s;
-}
-
-arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
-{
-  arbor::settings::GraphParameters gp = extract_pathfinder_params(params);
-  arbor::settings::SemanticParameters sp = extract_semantic_params(params);
-  arbor::settings::WoodlikelihoodParameters wp = extract_likelihood_params(params);
-  arbor::settings::SeedParameters ep = extract_seeds_params(params);
-
-  arbor::settings::ArborParameters s;
-  s.pathfinder = gp;
-  s.semantic = sp;
-  s.woodlikelihood = wp;
-  s.seeds = ep;
-  return s;
-}
-
-
-
 void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   PointCloud s(ground);
-  arbor::segment::segment_semantic(p, s, par, logger());
+  arbor::segment::segment_semantic(p, s, par, Rlogger);
 }
 
 void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
@@ -191,7 +46,7 @@ void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   PointCloud s(seeds);
-  arbor::segment::segment_instance(p, s, par, logger());
+  arbor::segment::segment_instance(p, s, par, Rlogger);
   for (size_t i = 0 ; i < p.size() ; i++) {
     if (p.get_treeid(i) == -1) {
       p.set_treeid(i, NA_INTEGER);
@@ -203,7 +58,7 @@ DF find_seeds_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud seeds = arbor::seeds::find_seeds(p, par, logger());
+  PointCloud seeds = arbor::seeds::find_seeds(p, par, Rlogger);
   return as_dataframe(seeds);
 }
 
@@ -212,7 +67,7 @@ Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
   arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(gnd);
-  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams, logger());
+  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams, Rlogger);
   return Rcpp::IntegerVector(ans.begin(), ans.end());
 }
 
@@ -220,7 +75,7 @@ Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams, Rlogger);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -228,7 +83,7 @@ Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(DF core, Rcpp::List par
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams, Rlogger);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -236,7 +91,7 @@ Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(DF core, Rcpp::List p
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams, Rlogger);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -244,7 +99,7 @@ Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List par
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams, logger());
+  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams, Rlogger);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -426,3 +281,4 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
   );
 }
 
+#endif

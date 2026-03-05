@@ -68,10 +68,10 @@ write_raster_to_obj <- function(r, filename, z_scale = 1)
   cat(sprintf("# Valid vertices: %d | Valid faces: %d\n", nrow(vertices), nrow(faces_final)), file = con)
 
   # Write vertices
-  write.table(cbind("v", vertices), file = con, sep = " ", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
+  utils::write.table(cbind("v", vertices), file = con, sep = " ", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
 
   # Write faces (OBJ uses 1-based indexing, which we already have)
-  write.table(cbind("f", faces_final), file = con, sep = " ", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
+  utils::write.table(cbind("f", faces_final), file = con, sep = " ", quote = FALSE, row.names = FALSE, col.names = FALSE, append = TRUE)
 
   message(sprintf("File saved: %s", filename))
   message(sprintf("Vertices: %d | Faces: %d | Coverage: %.1f%%", nrow(vertices), nrow(faces_final), 100 * length(valid_idx) / terra::ncell(r)))

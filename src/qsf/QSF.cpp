@@ -6,6 +6,8 @@
 
 namespace fs = std::filesystem;
 
+namespace arbor::qsm {
+
 void QSF::add_qsm(const std::string& name, const QSM& q)
 {
   qsm_[name] = q;
@@ -45,4 +47,6 @@ void QSF::write(const std::string& dir, const std::string& format, bool binary) 
     fs::path filename = out_dir / (key + "." + format);
     qsm.write(filename.string(), binary);
   }
+}
+
 }
