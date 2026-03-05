@@ -67,7 +67,7 @@ if (command == "segment") {
 } else if (command == "report") {
   run_report(sub_args)
 } else if (command == "blender") {
-  run_blender(sub_args)
+  arbor:::run_blender(sub_args)
 } else if (command %in% c("-h", "--help")) {
   arbor:::usage_main()
 } else {

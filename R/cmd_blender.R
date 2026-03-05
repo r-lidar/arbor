@@ -54,6 +54,7 @@ Other:
   out_foliage_low   <- paste0(base, "_foliage_low.laz")
   out_wood_low      <- paste0(base, "_wood_low.laz")
   out_dtm_mesh      <- paste0(base, "_dtm.obj")
+  out_rings         <- paste0(base, "_rings.obj")
   its_dir           <- file.path(dirname(base), "its")
 
   # --- Configuration Log ---
@@ -117,12 +118,20 @@ Settings
   cat("Colorization\n")
   las <- colorize_trees(las)
 
-  cat("qsf")
+  cat("Computing qsf\n")
   qsf = qsf(las)
+
+  rings = lapply(qsf, qsm_ring)
+  rings = do.call(rbind, rings)
+  rings$cyl_ID = 1:nrow(rings)
+  rings = set_qsm_class(rings)
 
   # --- Exports ---
   cat("Export qsf\n")
-  qsf_write(qsf, its_dir)
+  qsf_write(qsf, its_dir, formats = "obj")
+
+  cat("Export rings\n")
+  qsm_write(rings, out_rings)
 
   cat("Export las\n")
   high = remove_small_trees(las, 2)
