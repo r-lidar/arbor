@@ -141,12 +141,12 @@ Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
   return df;
 }
 
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, int root_id = 1, bool use_volume = false)
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false)
 {
   QSM qsm_in = as_qsm(df);
   QSMGraph graph = arbor::qsm::qsm_to_graph(qsm_in);
   QSMbuilder b(graph);
-  b.compute_architecture(root_id, use_volume);
+  b.compute_architecture(use_volume);
 
   int n = (int)qsm_in.size();
   Rcpp::NumericVector subtree_length(n);

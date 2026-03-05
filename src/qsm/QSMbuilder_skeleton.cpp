@@ -211,40 +211,36 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   }
 }
 
-
 void QSMbuilder::fix_multiple_root()
 {
-  // Collect all root nodes (source nodes with no incoming edges)
-  std::vector<QSMGraph::NodeID> root_nodes;
-  for (const auto& [eid, einfo] : graph.edges())
+  QSMGraph::NodeID old_root_id = -1;
+
+  // Find the single existing root
+  for (const auto& [nid, _] : graph.nodes())
   {
-    if (graph.incoming_edges(einfo.source).empty())
+    if (graph.incoming_edges(nid).empty())
     {
-      if (std::find(root_nodes.begin(), root_nodes.end(), einfo.source) == root_nodes.end())
-        root_nodes.push_back(einfo.source);
+      old_root_id = nid;
+      break;
     }
   }
 
-  if (root_nodes.size() <= 1) return;
+  printf("old_root_id %d\n", old_root_id);
 
-  // Create a new root node slightly below the first root node
-  const QSMNode& first = graph.node(root_nodes[0]);
-  QSMNode new_root_node{first.x, first.y, first.z - 0.001};
+  if (old_root_id == -1) return; // No nodes exist yet
+
+  // Create the new root 1mm below
+  const QSMNode& old_root = graph.node(old_root_id);
+  QSMNode new_root_node = old_root;
+  new_root_node.z -= 0.01;
+
   QSMGraph::NodeID new_root_id = graph.add_node(new_root_node);
 
-  // Determine next cyl_ID
-  int max_cyl_id = 0;
-  for (const auto& [eid, einfo] : graph.edges())
-    if (einfo.data.cyl_ID > max_cyl_id) max_cyl_id = einfo.data.cyl_ID;
-  int next_cyl_id = max_cyl_id + 1;
+  // Connect them
+  QSMEdge new_edge_data;
+  new_edge_data.cyl_ID = static_cast<int>(graph.edge_count()) + 1;
 
-  // Connect new root to each old root node
-  for (QSMGraph::NodeID nid : root_nodes)
-  {
-    QSMEdge ed;
-    ed.cyl_ID = next_cyl_id++;
-    graph.add_edge(new_root_id, nid, ed);
-  }
+  graph.add_edge(new_root_id, old_root_id, new_edge_data);
 
   compute_topology();
 }

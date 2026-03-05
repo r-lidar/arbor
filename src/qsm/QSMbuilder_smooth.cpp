@@ -44,14 +44,14 @@ void QSMbuilder::smooth_skeleton(int niter, double th)
 
   logger("Smoothing skeleton");
 
-  // Build axis map: axis_ID -> ordered list of edge IDs (sorted by cyl_ID for root→tip order)
+  // Build axis map: axis_ID -> ordered list of edge IDs (sorted by subtree_length for root->tip order)
   std::unordered_map<int, std::vector<int>> axis_map;
   for (const auto& [eid, einfo] : graph.edges())
     axis_map[einfo.data.axis_ID].push_back(eid);
 
   for (auto& [axis, vec] : axis_map)
     std::sort(vec.begin(), vec.end(), [this](int a, int b) {
-      return graph.edge_data(a).cyl_ID < graph.edge_data(b).cyl_ID;
+      return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
     });
 
   // Iterative smoothing

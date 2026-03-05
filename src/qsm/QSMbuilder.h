@@ -21,7 +21,7 @@ public:
 
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
-  void compute_architecture(int root_id = 1, bool use_volume = true);
+  void compute_architecture(bool use_volume = false);
   void smooth_skeleton(int niter, double th);
   void detect_weird_butt(double thresh = 50.0, int window = 4);
   void estimate_prolongation(const PointCloud& tree);
@@ -41,7 +41,7 @@ public:
   void assign_subtree_ids(int edge_id, int current_axis_id, int current_branch_order, int& next_axis_id, bool use_volume);
 
   // misc
-  int count_root();
+  int count_nodes_connected_to_root() const;
   void remove_disconnected_branches();
   double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
 

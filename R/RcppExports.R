@@ -97,8 +97,8 @@ qsm_topology_cpp <- function(qsm) {
     .Call(`_arbor_qsm_topology_cpp`, qsm)
 }
 
-qsm_architecture_cpp <- function(qsm, root_id = 1L, use_volume = FALSE) {
-    .Call(`_arbor_qsm_architecture_cpp`, qsm, root_id, use_volume)
+qsm_architecture_cpp <- function(qsm, use_volume = FALSE) {
+    .Call(`_arbor_qsm_architecture_cpp`, qsm, use_volume)
 }
 
 cpp_build_skeleton <- function(data, max_d) {

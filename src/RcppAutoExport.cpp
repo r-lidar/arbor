@@ -95,7 +95,7 @@ Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
 Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, int root_id = 1, bool use_volume = false);
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume = false);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);

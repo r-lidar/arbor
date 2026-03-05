@@ -50,17 +50,21 @@ void QSMbuilder::build(const PointCloud& tree)
   for (std::size_t i = 0; i < n; ++i) { iter_cluster.emplace_back(layers[i].first, clusters[i].first); }
 
   // Build the QSM nodes
-  build_skeleton(wood, iter_cluster, params.qsm.max_d); //max_d = 0.1
+  build_skeleton(wood, iter_cluster, params.qsm.max_d);
 
   // Connect the QSM nodes (sets parent_ID in each edge)
   compute_topology();
 
   // Fix root issue (rare)
-  int n_root = count_root();
+  int n_root = count_nodes_connected_to_root();
   if (n_root == 0) throw std::runtime_error("Internal error: 0 root for this QSM. Please report.");
-  if (n_root > 1) fix_multiple_root();
+  if (n_root > 1)
+  {
+    logger("Multiple nodes connected to root detected");
+    fix_multiple_root();
+  }
 
-  compute_architecture(1, false);
+  compute_architecture(false);
   smooth_skeleton(params.qsm.smooth_iter, params.qsm.smooth_th);
   detect_weird_butt();
   estimate_prolongation(wood);
@@ -80,17 +84,20 @@ void QSMbuilder::shift(double tx, double ty, double tz)
   }
 }
 
-int QSMbuilder::count_root()
+int QSMbuilder::count_nodes_connected_to_root() const
 {
-  // Count nodes with no incoming edges that have at least one outgoing edge
-  // (each such node represents a disconnected root in the graph)
-  std::unordered_set<QSMGraph::NodeID> root_nodes;
-  for (const auto& [eid, einfo] : graph.edges())
+  // Iterate through the public nodes map
+  for (const auto& [id, data] : graph.nodes())
   {
-    if (graph.incoming_edges(einfo.source).empty())
-      root_nodes.insert(einfo.source);
+    // The root is defined as a node with zero incoming edges
+    if (graph.incoming_edges(id).empty())
+    {
+      // Return the count of its outgoing edges
+      return graph.outgoing_edges(id).size();
+    }
   }
-  return (int)root_nodes.size();
+
+  return 0;
 }
 
 int QSMbuilder::find_root_edge() const
