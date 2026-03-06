@@ -264,25 +264,14 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// qsm_tmesh_cpp
-Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution);
-RcppExport SEXP _arbor_qsm_tmesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
+// qsm_mesh_cpp
+Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution);
+RcppExport SEXP _arbor_qsm_mesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type resolution(resolutionSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_tmesh_cpp(df, resolution));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_qmesh_cpp
-Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
-RcppExport SEXP _arbor_qsm_qmesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< int >::type resolution(resolutionSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_qmesh_cpp(df, resolution));
+    rcpp_result_gen = Rcpp::wrap(qsm_mesh_cpp(df, resolution));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -359,8 +348,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 2},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
-    {"_arbor_qsm_tmesh_cpp", (DL_FUNC) &_arbor_qsm_tmesh_cpp, 2},
-    {"_arbor_qsm_qmesh_cpp", (DL_FUNC) &_arbor_qsm_qmesh_cpp, 2},
+    {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},

@@ -113,7 +113,7 @@ plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TR
 
 cylinders_as_mesh <- function(qsm, sides = 16, color_vec = "black")
 {
-  mesh_data <- qsm_qmesh_cpp(qsm, sides)
+  mesh_data <- qsm_mesh_cpp(qsm, sides)
 
   n_cyl <- nrow(qsm)
   n_verts_total <- ncol(mesh_data$vertices)

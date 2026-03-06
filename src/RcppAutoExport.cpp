@@ -133,10 +133,12 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution);
+Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution);
 
+/*
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
+ */
 
 // ========================
 // QSF

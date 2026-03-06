@@ -89,12 +89,8 @@ read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }
 
-qsm_tmesh_cpp <- function(df, resolution) {
-    .Call(`_arbor_qsm_tmesh_cpp`, df, resolution)
-}
-
-qsm_qmesh_cpp <- function(df, resolution) {
-    .Call(`_arbor_qsm_qmesh_cpp`, df, resolution)
+qsm_mesh_cpp <- function(df, resolution) {
+    .Call(`_arbor_qsm_mesh_cpp`, df, resolution)
 }
 
 qsf_write_cpp <- function(x, dir, format, binary) {

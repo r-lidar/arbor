@@ -169,7 +169,7 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
 {
   QSM qsm = as_qsm(df);
-  //qsm.write(filename, binary);
+  qsm.write(filename, binary);
 }
 
 /*Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)
@@ -285,38 +285,13 @@ Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius)
   return as_dataframe(qsm);
 }*/
 
-Rcpp::List qsm_tmesh_cpp(Rcpp::DataFrame df, int resolution)
-{
-  QSM qsm = as_qsm(df);
-
-  std::vector<std::array<double, 3>> verts_vec;
-  std::vector<std::array<int, 3>> faces_vec;
-  qsm.tmesh(verts_vec, faces_vec, resolution);
-
-  Rcpp::NumericMatrix vertices(3, verts_vec.size());
-  for (size_t i = 0; i < verts_vec.size(); ++i) {
-    vertices(0, i) = verts_vec[i][0];
-    vertices(1, i) = verts_vec[i][1];
-    vertices(2, i) = verts_vec[i][2];
-  }
-
-  Rcpp::IntegerMatrix indices(3, faces_vec.size());
-  for (size_t i = 0; i < faces_vec.size(); ++i) {
-    indices(0, i) = faces_vec[i][0] + 1;
-    indices(1, i) = faces_vec[i][1] + 1;
-    indices(2, i) = faces_vec[i][2] + 1;
-  }
-
-  return Rcpp::List::create(Rcpp::Named("vertices") = vertices,  Rcpp::Named("indices")  = indices);
-}
-
-Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution)
+Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution)
 {
   QSM qsm = as_qsm(df);
 
   std::vector<std::array<double, 3>> verts_vec;
   std::vector<std::array<int, 4>> faces_vec;
-  qsm.qmesh(verts_vec, faces_vec, resolution);
+  qsm.qmesh(verts_vec, faces_vec, QSM::MeshMode::Cylinders, resolution);
 
   Rcpp::NumericMatrix vertices(3, verts_vec.size());
   for (size_t i = 0; i < verts_vec.size(); ++i) {
