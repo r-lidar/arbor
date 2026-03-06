@@ -45,7 +45,7 @@ void QSF::write(const std::string& dir, const std::string& format, bool binary) 
     if (key.empty()) continue;
 
     fs::path filename = out_dir / (key + "." + format);
-    //qsm.write(filename.string(), binary);
+    qsm.write(filename.string(), binary);
   }
 }
 
