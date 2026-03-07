@@ -1,10 +1,12 @@
 #' @method plot qsf
 #' @export
 #' @rdname plot
-plot.qsf = function(x, ...)
+plot.qsf = function(x, color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"))
 {
-  qsf <- data.table::rbindlist(x)
-  qsf$cyl_ID = 1:nrow(qsf)
-  plot_qsm(qsf, ...)
+  meshes = lapply(x, as_mesh, color, pal)
+  mesches = Filter(Negate(is.null), meshes)
+  rgl::open3d()
+  rgl::bg3d("black")
+  rgl::shapelist3d(mesches)
 }
 

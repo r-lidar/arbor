@@ -10,6 +10,7 @@ namespace arbor::qsm {
 
 void QSF::add_qsm(const std::string& name, const QSM& q)
 {
+  if (q.nodes().size() <= 1) return;
   qsm_[name] = q;
 }
 

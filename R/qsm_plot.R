@@ -21,14 +21,12 @@ plot.qsm = function(x, ...)
 
 #' @export
 #' @rdname plot
-plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
+plot_qsm = function(qsm, add = NULL, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
 {
   # --- Input Validation ---
   if (!is.data.frame(qsm)) {
     stop("Input must be a data.frame")
   }
-
-  color_palette <- grDevices::colorRampPalette(pal)
 
   # --- Global Translation Logic ---
   # translateXYZ is for compatibility with computree
@@ -46,6 +44,80 @@ plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TR
   local_cylinder <- cylinder
   if (!"radius" %in% names(qsm)) local_cylinder <- FALSE
 
+  # --- Apply Translation ---
+  qsm$startX <- qsm$startX - tx
+  qsm$startY <- qsm$startY - ty
+  qsm$startZ <- qsm$startZ - tz
+  qsm$endX   <- qsm$endX - tx
+  qsm$endY   <- qsm$endY - ty
+  qsm$endZ   <- qsm$endZ - tz
+
+  # Update bounds for axes
+  z_min_glob <- min(qsm$startZ, qsm$endZ)
+  z_max_glob <- max(qsm$startZ, qsm$endZ)
+
+  # --- Generate and Render Mesh ---
+  if (local_cylinder) {
+    mesh <- as_mesh(qsm, color, pal)
+    rgl::shade3d(mesh)
+  }
+
+  # --- Render Skeleton ---
+  if (skeleton) {
+
+    color_palette <- grDevices::colorRampPalette(pal)
+
+    if (nrow(qsm) == 0) return(NULL)
+    # --- Color Logic ---
+    colattr = qsm[[color]]
+    if (color %in% names(qsm)) {
+      if (color == "branch_order") {
+        colattr = colattr
+      } else if (is.logical(colattr)) {
+        colattr = colattr + 1
+      } else {
+        # Handle case where min == max to avoid seq error
+        mn <- min(colattr, na.rm = TRUE)
+        mx <- max(colattr, na.rm = TRUE)
+        if (mn == mx) {
+          colattr <- rep(1, length(colattr))
+        } else {
+          colattr = findInterval(colattr, seq(mn, mx, length.out = 20))
+        }
+      }
+      colattr[colattr < 1] <- 1
+      colors_mapped <- color_palette(max(colattr, na.rm=TRUE))[colattr]
+    } else {
+      colors_mapped = rep("black", nrow(qsm))
+    }
+
+    # Interleave Start and End for segments
+    pts <- matrix(NA, nrow=nrow(qsm)*2, ncol=3)
+    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm[, c("startX","startY","startZ")])
+    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm[, c("endX","endY","endZ")])
+
+    line_cols <- rep(colors_mapped, each=2)
+
+    rgl::segments3d(pts, col = line_cols)
+    rgl::points3d(as.matrix(qsm[, c("startX","startY","startZ")]), col = colors_mapped)
+  }
+
+  # --- Axes ---
+  z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
+  rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
+  rgl::axis3d("x", col = "black")
+  rgl::axis3d("y", col = "black")
+
+  lidR:::.pan3d(2)
+
+  return(invisible(c(tx, ty)))
+}
+
+as_mesh <- function(qsm, color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"))
+{
+  color_palette <- grDevices::colorRampPalette(pal)
+
+  if (nrow(qsm) == 0) return(NULL)
   # --- Color Logic ---
   colattr = qsm[[color]]
   if (color %in% names(qsm)) {
@@ -69,57 +141,13 @@ plot_qsm = function(qsm, add = NULL, sides = 12, color = "cyl_ID", skeleton = TR
     colors_mapped = rep("black", nrow(qsm))
   }
 
-  # --- Apply Translation ---
-  qsm$startX <- qsm$startX - tx
-  qsm$startY <- qsm$startY - ty
-  qsm$startZ <- qsm$startZ - tz
-  qsm$endX   <- qsm$endX - tx
-  qsm$endY   <- qsm$endY - ty
-  qsm$endZ   <- qsm$endZ - tz
-
-  # Update bounds for axes
-  z_min_glob <- min(qsm$startZ, qsm$endZ)
-  z_max_glob <- max(qsm$startZ, qsm$endZ)
-
-  # --- Generate and Render Mesh ---
-  if (local_cylinder) {
-    mesh <- cylinders_as_mesh(qsm, sides = sides, color_vec = colors_mapped)
-    rgl::shade3d(mesh)
-  }
-
-  # --- Render Skeleton ---
-  if (skeleton) {
-    # Interleave Start and End for segments
-    pts <- matrix(NA, nrow=nrow(qsm)*2, ncol=3)
-    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm[, c("startX","startY","startZ")])
-    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm[, c("endX","endY","endZ")])
-
-    line_cols <- rep(colors_mapped, each=2)
-
-    rgl::segments3d(pts, col = line_cols)
-    rgl::points3d(as.matrix(qsm[, c("startX","startY","startZ")]), col = colors_mapped)
-  }
-
-  # --- Axes ---
-  z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
-  rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
-  rgl::axis3d("x", col = "black")
-  rgl::axis3d("y", col = "black")
-
-  lidR:::.pan3d(2)
-
-  return(invisible(c(tx, ty)))
-}
-
-cylinders_as_mesh <- function(qsm, sides = 16, color_vec = "black")
-{
-  mesh_data <- qsm_mesh_cpp(qsm, sides)
+  mesh_data <- qsm_mesh_cpp(qsm, 16)
 
   n_cyl <- nrow(qsm)
   n_verts_total <- ncol(mesh_data$vertices)
 
   id = match(mesh_data$NodeID, qsm$cyl_ID)
-  Final_Colors = color_vec[id]
+  Final_Colors = colors_mapped[id]
 
   mesh <- rgl::qmesh3d(
     vertices = mesh_data$vertices,
@@ -128,6 +156,8 @@ cylinders_as_mesh <- function(qsm, sides = 16, color_vec = "black")
   )
 
   mesh$material$color <- Final_Colors
+  mesh$material$specular <- "black"
+  mesh$material$shininess <- 0
 
   return(mesh)
 }

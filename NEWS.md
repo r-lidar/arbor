@@ -1,6 +1,8 @@
 # arbor 0.9.0
 
 - Change: a lot of C++. 
+- New: better QSM meshing
+- New: better QSM smoothing
 - Enhancement: drastic speed up of `qsf()`
 
 # arbor 0.8.2

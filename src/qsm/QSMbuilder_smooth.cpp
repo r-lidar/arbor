@@ -6,7 +6,6 @@ namespace arbor::qsm {
 
 void QSMbuilder::smooth_skeleton(int steps, double lambda, double mu)
 {
-  printf("step = %d, lambda = %.2lf, mu = %.2lf\n", steps, lambda, mu);
   if (graph.edge_count() == 0) return;
 
   logger("Smoothing skeleton");
