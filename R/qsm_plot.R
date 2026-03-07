@@ -118,11 +118,8 @@ cylinders_as_mesh <- function(qsm, sides = 16, color_vec = "black")
   n_cyl <- nrow(qsm)
   n_verts_total <- ncol(mesh_data$vertices)
 
-  if (length(color_vec) == n_cyl) {
-    Final_Colors <- rep(color_vec, each = 2 * sides)
-  } else {
-    Final_Colors <- rep(color_vec[1], n_verts_total)
-  }
+  id = match(mesh_data$NodeID, qsm$cyl_ID)
+  Final_Colors = color_vec[id]
 
   mesh <- rgl::qmesh3d(
     vertices = mesh_data$vertices,

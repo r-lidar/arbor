@@ -55,8 +55,9 @@ void QSM::write_ply(const std::string& filename, bool binary) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
+  std::vector<int> node_ids;
 
-  tmesh(vertices, faces);
+  tmesh(vertices, faces, node_ids);
 
   if (binary)
   {
@@ -122,8 +123,9 @@ void QSM::write_obj(const std::string& filename) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
+  std::vector<int> node_ids;
 
-  tmesh(vertices, faces);
+  tmesh(vertices, faces, node_ids);
 
   std::ofstream out(filename);
   if (!out.is_open()) throw std::runtime_error("Cannot open OBJ file.");
@@ -141,7 +143,9 @@ void QSM::write_stl(const std::string& filename, bool binary) const
 {
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
-  tmesh(vertices, faces);
+  std::vector<int> node_ids;
+
+  tmesh(vertices, faces, node_ids);
 
   // Determine offset from the root node
   // because STL is float only and does not support geographic coordinates

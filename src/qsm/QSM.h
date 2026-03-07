@@ -96,16 +96,11 @@ class QSM : public DirectedGraph<QSMNode, QSMEdge>
 {
 public:
   enum class MeshMode { Cylinders, Continuous };
-  void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, MeshMode = MeshMode::Continuous, int sides = 16) const;
-  void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, MeshMode = MeshMode::Continuous, int sides = 16) const;
+  void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
+  void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void write(const std::string& filename, bool binary = true) const;
 private:
-  void mesh_cylinder(std::vector<std::array<double,3>>& vertices, int resolution) const;
-  void tmesh_cylinder(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int sides = 16) const;
-  void qmesh_cylinder(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int sides = 16) const;
-  void mesh_continuous(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int resolution) const;
-  void tmesh_continuous(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, int resolution) const;
-  void qmesh_continuous(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, int resolution) const;
+  void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;
   void write_ply(const std::string& filename, bool binary) const;
   void write_stl(const std::string& filename, bool binary) const;
   void write_obj(const std::string& filename) const;

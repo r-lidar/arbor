@@ -293,7 +293,8 @@ Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution)
 
   std::vector<std::array<double, 3>> verts_vec;
   std::vector<std::array<int, 4>> faces_vec;
-  qsm.qmesh(verts_vec, faces_vec, QSM::MeshMode::Cylinders, resolution);
+  std::vector<int> node_ids;
+  qsm.qmesh(verts_vec, faces_vec, node_ids, resolution);
 
   Rcpp::NumericMatrix vertices(3, verts_vec.size());
   for (size_t i = 0; i < verts_vec.size(); ++i) {
@@ -310,7 +311,9 @@ Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution)
     indices(3, i) = faces_vec[i][3] + 1;
   }
 
-  return Rcpp::List::create(Rcpp::Named("vertices") = vertices,  Rcpp::Named("indices")  = indices);
+  Rcpp::IntegerVector nodes = Rcpp::wrap(node_ids);
+
+  return Rcpp::List::create(Rcpp::Named("vertices") = vertices,  Rcpp::Named("indices")  = indices, Rcpp::Named("NodeID") = nodes);
 }
 
 
