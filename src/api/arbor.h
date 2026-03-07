@@ -71,8 +71,9 @@ namespace arbor
       double cl_dist = 0.1;
       double max_d = 0.1;
       double apex = 0.0025;
-      int smooth_iter = 1;
-      double smooth_th = 0;
+      int smooth_steps = 15;
+      double smooth_lambda = 0.5;
+      double smooth_mu = -0.55;
     };
 
     struct ArborParameters

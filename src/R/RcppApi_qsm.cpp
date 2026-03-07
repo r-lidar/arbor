@@ -15,7 +15,8 @@ using QSMbuilder = arbor::qsm::QSMbuilder;
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
 {
   PointCloud pc(tree);
-  QSM qsm = arbor::qsm::qsm(pc, arbor::settings::ArborParameters(), Rlogger);
+  arbor::settings::ArborParameters p = extract_arbor_params(params);
+  QSM qsm = arbor::qsm::qsm(pc, p, Rlogger);
   return as_dataframe(qsm);
 }
 
@@ -23,7 +24,8 @@ Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params)
 {
 
   PointCloud pc(scene);
-  QSF qsf = arbor::qsm::qsf(pc, arbor::settings::ArborParameters());
+  arbor::settings::ArborParameters p = extract_arbor_params(params);
+  QSF qsf = arbor::qsm::qsf(pc, p);
 
   Rcpp::List output;
   for (const auto& item : qsf.get_qsm_map())

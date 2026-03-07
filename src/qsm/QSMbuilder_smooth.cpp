@@ -4,99 +4,107 @@
 
 namespace arbor::qsm {
 
-// Compute distance from point b to line ac
-static double dist2line(const std::array<double, 3>& b, const std::array<double, 3>& a, const std::array<double, 3>& c)
+void QSMbuilder::smooth_skeleton(int steps, double lambda, double mu)
 {
-  std::array<double, 3> ab, ac;
-  for (int i = 0; i < 3; ++i)
-  {
-    ab[i] = b[i] - a[i];
-    ac[i] = c[i] - a[i];
-  }
-
-  double t_num = 0.0, t_den = 0.0;
-  for (int i = 0; i < 3; ++i)
-  {
-    t_num += ab[i] * ac[i];
-    t_den += ac[i] * ac[i];
-  }
-
-  double t = t_num / t_den;
-  std::array<double, 3> proj;
-  for (int i = 0; i < 3; ++i)
-  {
-    proj[i] = a[i] + t * ac[i];
-  }
-
-  double d2 = 0.0;
-  for (int i = 0; i < 3; ++i)
-  {
-    double diff = b[i] - proj[i];
-    d2 += diff * diff;
-  }
-
-  return std::sqrt(d2);
-}
-
-void QSMbuilder::smooth_skeleton(int niter, double th)
-{
+  printf("step = %d, lambda = %.2lf, mu = %.2lf\n", steps, lambda, mu);
   if (graph.edge_count() == 0) return;
 
   logger("Smoothing skeleton");
 
   // Build axis map: axis_ID -> ordered list of edge IDs (sorted by subtree_length for root->tip order)
-  std::unordered_map<int, std::vector<int>> axis_map;
+  std::map<int, std::vector<int>> axis_map;
   for (const auto& [eid, einfo] : graph.edges())
+  {
     axis_map[einfo.data.axis_ID].push_back(eid);
+  }
 
+  // Sort each axis by subtree_length (descending = root to tip)
   for (auto& [axis, vec] : axis_map)
+  {
     std::sort(vec.begin(), vec.end(), [this](int a, int b) {
       return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
     });
+  }
 
-  // Iterative smoothing
-  for (int iter = 0; iter < niter; ++iter)
+  // Smooth each axis
+  for (const auto& [axis_id, edge_ids] : axis_map)
   {
-    for (const auto& [axis_id, edge_ids] : axis_map)
+    if (edge_ids.size() < 3) continue;  // Need at least 3 edges to smooth
+
+    int n = edge_ids.size();
+
+    // Extract coordinates from source nodes of each edge in the axis
+    // (plus the target node of the last edge to complete the chain)
+    std::vector<double> x(n + 1), y(n + 1), z(n + 1);
+
+    for (int i = 0; i < n; ++i)
     {
-      if (edge_ids.size() < 2) continue;
+      int eid = edge_ids[i];
+      int source_node = graph.edge(eid).source;
+      const QSMNode& node = graph.node(source_node);
 
-      for (size_t j = 1; j < edge_ids.size(); ++j)
+      x[i] = node.x;
+      y[i] = node.y;
+      z[i] = node.z;
+    }
+
+    // Add the target node of the last edge
+    int last_eid = edge_ids[n - 1];
+    int target_node = graph.edge(last_eid).target;
+    const QSMNode& last_node = graph.node(target_node);
+    x[n] = last_node.x;
+    y[n] = last_node.y;
+    z[n] = last_node.z;
+
+    // Apply Taubin smoothing
+    for (int s = 0; s < steps; ++s)
+    {
+      // Pass 1: Shrink (Lambda)
+      // Keep first point (root) fixed: start at i=1
+      // Keep last point (tip) fixed: end at i < n
+      for (int i = 1; i < n; ++i)
       {
-        int prev_eid = edge_ids[j - 1];
-        int curr_eid = edge_ids[j];
+        double dx = 0.5 * (x[i-1] + x[i+1]) - x[i];
+        double dy = 0.5 * (y[i-1] + y[i+1]) - y[i];
+        double dz = 0.5 * (z[i-1] + z[i+1]) - z[i];
 
-        QSM::NodeID prev_src = graph.edge(prev_eid).source;
-        QSM::NodeID prev_tgt = graph.edge(prev_eid).target; // == curr_src
-        QSM::NodeID curr_tgt = graph.edge(curr_eid).target;
+        x[i] += lambda * dx;
+        y[i] += lambda * dy;
+        z[i] += lambda * dz;
+      }
 
-        const QSMNode& prev_src_n = graph.node(prev_src);
-        const QSMNode& prev_tgt_n = graph.node(prev_tgt);
-        const QSMNode& curr_tgt_n = graph.node(curr_tgt);
+      // Pass 2: Inflate (Mu)
+      for (int i = 1; i < n; ++i)
+      {
+        double dx = 0.5 * (x[i-1] + x[i+1]) - x[i];
+        double dy = 0.5 * (y[i-1] + y[i+1]) - y[i];
+        double dz = 0.5 * (z[i-1] + z[i+1]) - z[i];
 
-        std::array<double, 3> a = {curr_tgt_n.x,  curr_tgt_n.y,  curr_tgt_n.z};
-        std::array<double, 3> b = {prev_src_n.x,  prev_src_n.y,  prev_src_n.z};
-        std::array<double, 3> c = {prev_tgt_n.x,  prev_tgt_n.y,  prev_tgt_n.z};
-
-        double d = dist2line(b, a, c);
-        if (d <= th) continue;
-
-        // Move the shared junction node to the midpoint
-        std::array<double, 3> mid = {
-          0.5 * (prev_src_n.x + curr_tgt_n.x),
-          0.5 * (prev_src_n.y + curr_tgt_n.y),
-          0.5 * (prev_src_n.z + curr_tgt_n.z)
-        };
-
-        // Updating the node automatically propagates to ALL edges that reference it
-        // (both prev_eid's target and curr_eid's source, and any sibling branches)
-        QSMNode& junction = graph.node(prev_tgt);
-        junction.x = mid[0];
-        junction.y = mid[1];
-        junction.z = mid[2];
+        x[i] += mu * dx;
+        y[i] += mu * dy;
+        z[i] += mu * dz;
       }
     }
+
+    // Write smoothed coordinates back to the graph nodes
+    for (int i = 0; i < n; ++i)
+    {
+      int eid = edge_ids[i];
+      int source_node = graph.edge(eid).source;
+      QSMNode& node = graph.node(source_node);
+
+      node.x = x[i];
+      node.y = y[i];
+      node.z = z[i];
+    }
+
+    // Update the target node of the last edge
+    last_eid = edge_ids[n - 1];
+    target_node = graph.edge(last_eid).target;
+    QSMNode& last_node_ = graph.node(target_node);
+    last_node_.x = x[n];
+    last_node_.y = y[n];
+    last_node_.z = z[n];
   }
 }
-
 }

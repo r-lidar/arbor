@@ -49,7 +49,10 @@ default_parameters_v1 = list(
     step = 0.2,
     cl_dist = 0.1,
     max_d = 0.1,
-    apex = 0.0025
+    apex = 0.0025,
+    smooth_step = 15,
+    smooth_lambda = 0.5,
+    smooth_mu = -0.53
   )
 )
 

@@ -65,7 +65,7 @@ void QSMbuilder::build(const PointCloud& tree)
   }
 
   compute_architecture(false);
-  smooth_skeleton(params.qsm.smooth_iter, params.qsm.smooth_th);
+  smooth_skeleton(params.qsm.smooth_steps, params.qsm.smooth_lambda, params.qsm.smooth_mu);
   detect_weird_butt();
   estimate_prolongation(wood);
   prolongate(prolongation_distance);

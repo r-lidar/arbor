@@ -21,7 +21,7 @@ public:
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(bool use_volume = false);
-  void smooth_skeleton(int niter, double th);
+  void smooth_skeleton(int steps = 10, double lambda = 0.5, double mu = -0.53);
   void detect_weird_butt(double thresh = 50.0, int window = 4);
   void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);

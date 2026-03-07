@@ -18,6 +18,7 @@
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm =  function(tree, params = default_arbor_parameters)
 {
+  params <- evaluate_penalty(params)
   qsm <- qsm_cpp(tree@data, params)
   qsm_finalize(qsm)
 }

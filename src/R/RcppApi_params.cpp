@@ -133,12 +133,19 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
   assert_exists(p, "cl_dist");
   assert_exists(p, "max_d");
   assert_exists(p, "apex");
+  assert_exists(p, "smooth_steps");
+  assert_exists(p, "smooth_lambda");
+  assert_exists(p, "smooth_mu");
+
 
   arbor::settings::QsmParameters s;
   s.step   = Rcpp::as<double>(p["step"]);
   s.cl_dist = Rcpp::as<double>(p["cl_dist"]);
   s.max_d = Rcpp::as<double>(p["max_d"]);
   s.apex = Rcpp::as<double>(p["apex"]);
+  s.smooth_steps = Rcpp::as<int>(p["smooth_steps"]);
+  s.smooth_lambda = Rcpp::as<double>(p["smooth_lambda"]);
+  s.smooth_mu = Rcpp::as<double>(p["smooth_mu"]);
 
   return s;
 }
