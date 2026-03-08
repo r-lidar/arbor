@@ -101,6 +101,10 @@ ransac_circle_cpp <- function(x, num_iterations = 100L, inlier_threshold = 0.01,
     .Call(`_arbor_ransac_circle_cpp`, x, num_iterations, inlier_threshold, early_exit)
 }
 
+fit_circloid_cpp <- function(x, from, to, tolerance = 0.02) {
+    .Call(`_arbor_fit_circloid_cpp`, x, from, to, tolerance)
+}
+
 qsm_distances_cpp <- function(qsm_df, pts_df) {
     .Call(`_arbor_qsm_distances_cpp`, qsm_df, pts_df)
 }

@@ -154,6 +154,9 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
 //[[Rcpp::export(rng = false)]]
 Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0);
 
+// [[Rcpp::export]]
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance = 0.02);
+
 // ========================
 // EXPERIMENTAL
 // ========================

@@ -90,4 +90,68 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
   );
 }
 
+#include "fitting.h"
+
+ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from = {0,0,0}, Rcpp::NumericVector to = {0,0,1}, double tolerance = 0.02)
+ {
+   if (x.ncol() != 3) {
+     Rcpp::stop("Input matrix must have 3 columns (X, Y, Z)");
+   }
+
+   arbor::utils::fitting::Vec3 f = {from[0], from[1], from[2]};
+   arbor::utils::fitting::Vec3 t = {to[0], to[1], to[2]};
+
+   arbor::utils::fitting::FittingCircloid fitter;
+   fitter.set_axe(f, t);
+
+   // Add all points
+   int n = x.nrow();
+   for (int i = 0; i < n; i++) {
+     fitter.add_point(x(i, 0), x(i, 1), x(i, 2));
+   }
+
+   // Perform fitting
+   arbor::utils::fitting::FittingResult result = fitter.fit(tolerance);
+
+   if (!result.success)
+    {
+     return Rcpp::List::create(
+       Rcpp::Named("success") = false,
+       Rcpp::Named("shape_type") = result.shape_type,
+       Rcpp::Named("message") = "Fitting failed"
+     );
+   }
+
+   // Convert inliers to R (1-indexed)
+   Rcpp::IntegerVector r_inliers = Rcpp::wrap(result.inlier_indices);
+   for (int i = 0; i < r_inliers.size(); i++) { r_inliers[i] += 1; }  // Convert to 1-based indexing
+
+   size_t nnodes = result.nodes.size();
+   Rcpp::NumericMatrix nodes(nnodes, 3);
+
+   for (size_t i = 0; i < nnodes; ++i)
+   {
+     nodes(i,0) = result.nodes[i].x;
+     nodes(i,1) = result.nodes[i].y;
+     nodes(i,2) = result.nodes[i].z;
+   }
+
+   // Build result list based on shape type
+   Rcpp::List output = Rcpp::List::create(
+     Rcpp::Named("success") = result.success,
+     Rcpp::Named("radius") = result.radius,
+     Rcpp::Named("shape_type") = result.shape_type,
+     Rcpp::Named("center_x") = result.center.x,
+     Rcpp::Named("center_y") = result.center.y,
+     Rcpp::Named("center_z") = result.center.z,
+     Rcpp::Named("covered_arc_degree") = result.arc_coverage_deg,
+     Rcpp::Named("percentage_inlier") = result.inlier_percentage,
+     //Rcpp::Named("percentage_inside") = result.inside_percentge,
+     Rcpp::Named("nodes") = nodes,
+     Rcpp::Named("inliers") = r_inliers
+   );
+
+   return output;
+ }
+
 #endif

@@ -258,7 +258,7 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
 
       // 2. Exact Distance Check
       double min_d = std::numeric_limits<double>::max();
-      int best_id_val = -1;
+      int best_id_val = NA_INTEGER;
       double best_r_val = 0.0;
 
       for(size_t j = 0; j < k; ++j)

@@ -300,6 +300,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fit_circloid_cpp
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance);
+RcppExport SEXP _arbor_fit_circloid_cpp(SEXP xSEXP, SEXP fromSEXP, SEXP toSEXP, SEXP toleranceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type from(fromSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type to(toSEXP);
+    Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
+    rcpp_result_gen = Rcpp::wrap(fit_circloid_cpp(x, from, to, tolerance));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_distances_cpp
 Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
 RcppExport SEXP _arbor_qsm_distances_cpp(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
@@ -351,6 +365,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
+    {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
     {NULL, NULL, 0}
