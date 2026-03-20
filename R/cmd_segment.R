@@ -14,6 +14,8 @@ Options:
   -height <m>             Remove trees smaller than this [default: 2]
   -buffer <m>             Buffer removed from borders [default: 5]
   -fraction <0-1>         Keep random fraction [default: 0.25]
+  -tls                    Set parameters for tls
+  -mls                    Set parameters for mls (default)
 
 Export options (enabled by default):
   -no-segmented           Do not write segmented point cloud
@@ -23,7 +25,7 @@ Export options (enabled by default):
   -no-individual          Do not export individual trees (its/)
 
 Other:
-  -h, --help               Show this help
+  -h, --help              Show this help
   -center                 Center the scene on (0,0,0)
 ")
     quit(save = "no", status = 0)
@@ -57,6 +59,7 @@ Other:
   export_individual  <- export_enabled("individual")
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
+  tls                <- has_flag(args, "-tls")
 
   filter_str = paste("-keep_random_fraction", fraction)
 
@@ -96,6 +99,10 @@ Exports
   # --- Processing ---
   set_lidr_threads(0)
   params <- default_arbor_parameters
+  params$path_finder$max_gap = 1
+  params$path_finder$k_neighborhood_connectivity = 20
+
+  if (tls)
 
   cat("Reading point cloud\n")
   las <- readTLS(input, select = "xyzic", filter = filter_str)
@@ -123,7 +130,7 @@ Exports
   gc()
 
   cat("DTM & height above ground\n")
-  dtm <- rasterize_terrain(ground, 0.1, tin())
+  dtm <- rasterize_terrain(las, 0.1, tin())
   las <- height_above_ground(las, algorithm = dtm)
   las <- filter_poi(las, hag > cut_above_ground)
   gc()
@@ -141,20 +148,18 @@ Exports
   las <- segment_instance(las, seeds, params)
 
   cat("Cleaning segmentation\n")
-  las <- remove_small_trees(las, max_height = min_tree_height)
-  las <- fix_small_isolated_low_clusters(trees)
-  las <- clip_buffer(las, -buffer)
+  trees <- remove_small_trees(las, max_height = min_tree_height)
+  trees <- fix_small_isolated_low_clusters(trees)
+  trees <- clip_buffer(trees, -buffer)
 
   cat("Colorization\n")
   las         <- colorize_trees(las)
   trees       <- colorize_trees(trees)
-  valid_trees <- colorize_trees(valid_trees)
 
   # --- Exports ---
   cat("Exports\n")
   if (export_segmented)   writeLAS(las, out_segmented)
   if (export_trees)       writeLAS(trees, out_trees)
-  if (export_valid_trees) writeLAS(valid_trees, out_validtrees)
   if (export_dtm)         writeRaster(dtm, out_dtm, overwrite = TRUE)
   if (export_dtm_mesh)    arbor:::write_raster_to_obj(dtm, out_dtm_mesh)
 
@@ -162,8 +167,8 @@ Exports
 
   if (export_individual) {
     dir.create(its_dir, showWarnings = FALSE, recursive = TRUE)
-    for (i in unique(valid_trees$treeID)) {
-      tree <- filter_poi(valid_trees, treeID == i)
+    for (i in unique(trees$treeID)) {
+      tree <- filter_poi(trees, treeID == i)
       writeLAS(tree, file.path(its_dir, paste0(name, "_tree_", i, ".las")))
     }
   }
