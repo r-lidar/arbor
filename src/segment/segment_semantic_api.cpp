@@ -4,6 +4,8 @@
 #include "GraphBuilder.h"
 #include "Grid3D.h"
 
+#include <numeric>
+
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
 

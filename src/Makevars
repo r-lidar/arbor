@@ -2,6 +2,6 @@ PKG_CPPFLAGS = -DUSING_R -I./ -I./utils/ -I./qsm/ -I./qsf/ -I./api/ -I./segment/
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
 CXX_STD = CXX17
-SOURCES = $(wildcard utils/*.cpp qsm/*.cpp qsf/*.cpp  api/*.cpp segment/*.cpp experimental/*.cpp seed/*.cpp R/*.cpp ./vendor/dbscan/*.cpp ./*.cpp)
+SOURCES = $(wildcard utils/*.cpp qsm/*.cpp qsf/*.cpp  api/*.cpp segment/*.cpp experimental/*.cpp seed/*.cpp misc/*.cpp  R/*.cpp ./vendor/dbscan/*.cpp ./*.cpp)
 TEMP1   = $(SOURCES:.cpp=.o)
 OBJECTS = $(TEMP1:.c=.o)

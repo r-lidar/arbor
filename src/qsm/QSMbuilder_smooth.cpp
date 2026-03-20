@@ -1,6 +1,7 @@
 #include "QSMbuilder.h"
 
 #include <algorithm>
+#include <map>
 
 namespace arbor::qsm {
 

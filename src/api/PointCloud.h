@@ -7,6 +7,8 @@
 
 #ifdef USING_R
 #include <Rcpp.h>
+#else
+#include <span>
 #endif
 
 /**
@@ -212,12 +214,158 @@ private:
   bool owns_memory = false;
   size_t n_points  = 0;
 };
+#else
+class PointCloudDefault
+{
+public:
+  // Constructors / destructor
+  PointCloudDefault();
+  PointCloudDefault(size_t n, bool init_attributes = false);
+  ~PointCloudDefault() ;
+
+  // Insertion
+  void add_point(float x, float y, float z) { coords.push_back({x,y,z}); }
+
+  // Merge
+  PointCloudDefault& operator+=(const PointCloudDefault& other);
+  PointCloudDefault  operator+(const PointCloudDefault& other) const;
+
+  // --- Nanoflann KD-tree interface ---
+  inline size_t kdtree_get_point_count() const { return n_points; }
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+  {
+    switch (dim)
+    {
+      case 0: return static_cast<double>(coords[idx].x);
+      case 1: return static_cast<double>(coords[idx].y);
+      case 2: return static_cast<double>(coords[idx].z);
+      default: throw std::runtime_error("Invalid dimension");
+    }
+  }
+  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
+
+  // --- Num. points ---
+  inline size_t point_count() const { return n_points; }
+  inline size_t size()        const { return n_points; }
+
+  // --- Geometry access ---
+  inline void get_point(const size_t idx, double* q) const
+  {
+    q[0] = coords[idx].x;
+    q[1] = coords[idx].y;
+    q[2] = coords[idx].z;
+  }
+
+  inline double get_x(const size_t idx) const { return static_cast<double>(coords[idx].x); }
+  inline double get_y(const size_t idx) const { return static_cast<double>(coords[idx].y); }
+  inline double get_z(const size_t idx) const { return static_cast<double>(coords[idx].z); }
+  inline void   set_x(const size_t idx, double v) { coords[idx].x = v; }
+  inline void   set_y(const size_t idx, double v) { coords[idx].y = v; }
+  inline void   set_z(const size_t idx, double v) { coords[idx].z = v; }
+
+  // --- Optional attribute access ---
+  inline bool has_hag()     const { return !hag.empty(); }
+  inline bool has_treeid()  const { return !treeid.empty(); }
+  inline bool has_pwood()   const { return !pwood.empty(); }
+  inline bool has_foliage() const { return !foliage.empty(); }
+  inline bool has_passage() const { return !passage.empty(); }
+
+  inline int get_treeid(const size_t idx) const {
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
+    return treeid[idx];
+  }
+
+  inline void set_treeid(const size_t idx, int v) {
+    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
+    treeid[idx] = v;
+  }
+
+  inline double get_pwood(const size_t idx) const {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    return pwood[idx];
+  }
+
+  inline void set_pwood(const size_t idx, double v) {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
+  }
+
+  inline int get_foliage(const size_t idx) const {
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
+    return foliage[idx];
+  }
+
+  inline void set_foliage(const size_t idx, int v) {
+    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
+    foliage[idx] = v;
+  }
+
+  inline double get_hag(const size_t idx) const {
+    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
+    return hag[idx];
+  }
+
+  inline void set_hag(const size_t idx, double v) {
+    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
+    pwood[idx] = v;
+  }
+
+  inline int get_passage(const size_t idx) const {
+    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
+    return passage[idx];
+  }
+
+  inline void set_passage(const size_t idx, int v) {
+    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
+    passage[idx] = v;
+  }
+
+  inline bool is_wood(const size_t idx) const {
+    return get_foliage(idx) == 0;
+  }
+
+  // --- In-place transforms ---
+  void translate(double x, double y, double z) ;
+  void scale(double x, double y, double z) ;
+
+  // --- Subset ---
+  PointCloudDefault subset(const std::vector<int>& indices, bool xyz_only = false) const;
+  PointCloudDefault subset(const std::vector<bool>& mask, bool xyz_only = false) const;
+
+  std::span<float> coord_view()
+  {
+    static_assert(std::is_standard_layout_v<Vec3>, "Vec3 must be standard layout");
+    static_assert(std::is_trivially_copyable_v<Vec3>, "Vec3 must be trivially copyable");
+    static_assert(sizeof(Vec3) == 3 * sizeof(float), "Vec3 must not contain padding");
+    static_assert(alignof(Vec3) == alignof(float), "Vec3 alignment must match float");
+    if (coords.empty()) return {};
+    return { reinterpret_cast<float*>(coords.data()), coords.size() * 3};
+  }
+
+private:
+  void cleanup();
+  void swap(PointCloudDefault& first, PointCloudDefault& second) noexcept;
+  void init();
+  void safe_alloc(size_t n, bool alloc_attrs);
+
+private:
+  struct Vec3 { float x,y,z; };
+  std::vector<Vec3> coords;
+  std::vector<Vec3> rgb;
+  std::vector<int> treeid;
+  std::vector<int> foliage;
+  std::vector<int> passage;
+  std::vector<float> hag;
+  std::vector<float> pwood;
+
+  size_t n_points  = 0;
+};
 #endif
 
 #ifdef USING_R
 using PointCloud = PointCloudDataFrame;
 #else
-using PointCloud = MyPointCloudWrapper;
+using PointCloud = PointCloudDefault;
 #endif
 
 #endif

@@ -135,7 +135,7 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
     pb.tick();
   }
 
-  if (abort.load()) Rcpp::stop("Computation aborted");
+  if (abort.load()) throw std::runtime_error("Computation aborted");
 
   return out;
 }

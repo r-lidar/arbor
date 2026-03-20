@@ -4,6 +4,7 @@
 #include "GraphBuilder.h"
 
 #include <chrono>
+#include <numeric>
 #include <sstream>
 #include <iomanip>
 

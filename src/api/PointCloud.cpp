@@ -477,4 +477,297 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
     throw;
   }
 }
+
+#else
+
+PointCloudDefault::PointCloudDefault()
+{
+  init();
+}
+
+PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
+{
+  init();
+  n_points = n;
+  safe_alloc(n, init_attributes);
+}
+
+PointCloudDefault::~PointCloudDefault()
+{
+  cleanup();
+}
+
+// ------------------------------------------------------------
+// Cleanup
+// ------------------------------------------------------------
+void PointCloudDefault::cleanup()
+{
+  coords.clear();
+  rgb.clear();
+  treeid.clear();
+  foliage.clear();
+  passage.clear();
+  hag.clear();
+  pwood.clear();
+  n_points = 0;
+}
+
+// ------------------------------------------------------------
+// Transforms
+// ------------------------------------------------------------
+void PointCloudDefault::translate(double x, double y, double z)
+{
+  for (size_t i = 0; i < n_points; ++i)
+  {
+    if (x != 0) coords[i].x -= static_cast<float>(x);
+    if (y != 0) coords[i].y -= static_cast<float>(y);
+    if (z != 0) coords[i].z -= static_cast<float>(z);
+  }
+}
+
+void PointCloudDefault::scale(double x, double y, double z)
+{
+  for (size_t i = 0; i < n_points; ++i)
+  {
+    if (x != 1.0) coords[i].x *= static_cast<float>(x);
+    if (y != 1.0) coords[i].y *= static_cast<float>(y);
+    if (z != 1.0) coords[i].z *= static_cast<float>(z);
+  }
+}
+
+// ------------------------------------------------------------
+// Subset (by indices)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::subset(const std::vector<int>& indices, bool xyz_only) const
+{
+  size_t new_count = indices.size();
+
+  PointCloudDefault result;
+  result.n_points = new_count;
+  result.coords.resize(new_count);
+
+  for (size_t j = 0; j < new_count; ++j)
+  {
+    int i = indices[j];
+    result.coords[j] = coords[i];
+  }
+
+  if (!xyz_only)
+  {
+    if (!treeid.empty())
+    {
+      result.treeid.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.treeid[j] = treeid[indices[j]];
+    }
+
+    if (!foliage.empty())
+    {
+      result.foliage.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.foliage[j] = foliage[indices[j]];
+    }
+
+    if (!passage.empty())
+    {
+      result.passage.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.passage[j] = passage[indices[j]];
+    }
+
+    if (!hag.empty())
+    {
+      result.hag.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.hag[j] = hag[indices[j]];
+    }
+
+    if (!pwood.empty())
+    {
+      result.pwood.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.pwood[j] = pwood[indices[j]];
+    }
+
+    if (!rgb.empty())
+    {
+      result.rgb.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.rgb[j] = rgb[indices[j]];
+    }
+  }
+
+  return result;
+}
+
+// ------------------------------------------------------------
+// Subset (by bool mask)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::subset(const std::vector<bool>& keep, bool xyz_only) const
+{
+  if (keep.size() != n_points)
+    throw std::runtime_error("subset mask size mismatch: expected " +
+      std::to_string(n_points) + " but got " + std::to_string(keep.size()));
+
+  // Convert bool mask to indices
+  std::vector<int> indices;
+  indices.reserve(n_points / 10);
+
+  for (int i = 0; i < (int)n_points; ++i)
+  {
+    if (keep[i])
+      indices.push_back(i);
+  }
+
+  // Handle the "all points" case early to avoid unnecessary copy/allocation
+  if (indices.size() == n_points)
+    return *this;
+
+  return subset(indices, xyz_only);
+}
+
+// ------------------------------------------------------------
+// Merge operator (creates a new point cloud)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::operator+(const PointCloudDefault& other) const
+{
+  PointCloudDefault result = *this;
+  result += other;
+  return result;
+}
+
+// ------------------------------------------------------------
+// In-place merge operator
+// ------------------------------------------------------------
+PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
+{
+  if (other.n_points == 0)
+    return *this;
+
+  size_t old_size = this->n_points;
+  size_t new_size = old_size + other.n_points;
+
+  // Merge coordinates
+  coords.insert(coords.end(), other.coords.begin(), other.coords.end());
+
+  // Merge rgb if both have it
+  if (!rgb.empty() && !other.rgb.empty())
+  {
+    rgb.insert(rgb.end(), other.rgb.begin(), other.rgb.end());
+  }
+  else if (!rgb.empty())
+  {
+    rgb.clear();
+  }
+
+  // Merge treeid if both have it
+  if (has_treeid() && other.has_treeid())
+  {
+    treeid.insert(treeid.end(), other.treeid.begin(), other.treeid.end());
+  }
+  else if (has_treeid())
+  {
+    treeid.clear();
+  }
+
+  // Merge foliage if both have it
+  if (has_foliage() && other.has_foliage())
+  {
+    foliage.insert(foliage.end(), other.foliage.begin(), other.foliage.end());
+  }
+  else if (has_foliage())
+  {
+    foliage.clear();
+  }
+
+  // Merge passage if both have it
+  if (has_passage() && other.has_passage())
+  {
+    passage.insert(passage.end(), other.passage.begin(), other.passage.end());
+  }
+  else if (has_passage())
+  {
+    passage.clear();
+  }
+
+  // Merge hag if both have it
+  if (has_hag() && other.has_hag())
+  {
+    hag.insert(hag.end(), other.hag.begin(), other.hag.end());
+  }
+  else if (has_hag())
+  {
+    hag.clear();
+  }
+
+  // Merge pwood if both have it
+  if (has_pwood() && other.has_pwood())
+  {
+    pwood.insert(pwood.end(), other.pwood.begin(), other.pwood.end());
+  }
+  else if (has_pwood())
+  {
+    pwood.clear();
+  }
+
+  this->n_points = new_size;
+
+  return *this;
+}
+
+// ------------------------------------------------------------
+// Swap
+// ------------------------------------------------------------
+void PointCloudDefault::swap(PointCloudDefault& first, PointCloudDefault& second) noexcept
+{
+  std::swap(first.n_points, second.n_points);
+  std::swap(first.coords, second.coords);
+  std::swap(first.rgb, second.rgb);
+  std::swap(first.treeid, second.treeid);
+  std::swap(first.foliage, second.foliage);
+  std::swap(first.passage, second.passage);
+  std::swap(first.hag, second.hag);
+  std::swap(first.pwood, second.pwood);
+}
+
+// ------------------------------------------------------------
+// Init
+// ------------------------------------------------------------
+void PointCloudDefault::init()
+{
+  n_points = 0;
+  coords.clear();
+  rgb.clear();
+  treeid.clear();
+  foliage.clear();
+  passage.clear();
+  hag.clear();
+  pwood.clear();
+}
+
+// ------------------------------------------------------------
+// Safe Alloc
+// ------------------------------------------------------------
+void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
+{
+  try
+  {
+    coords.resize(n, {0.0f, 0.0f, 0.0f});
+
+    if (alloc_attrs)
+    {
+      treeid.resize(n, 0);
+      foliage.resize(n, 0);
+      passage.resize(n, 0);
+      hag.resize(n, 0.0f);
+      pwood.resize(n, 0.0f);
+    }
+  }
+  catch (...)
+  {
+    cleanup();
+    throw;
+  }
+}
+
 #endif

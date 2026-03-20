@@ -98,7 +98,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
     mz /= group_size;
 
     // Find closest point to mean
-    double bestDist = R_PosInf;
+    double bestDist = std::numeric_limits<double>::infinity();
     int bestIdx = indices[group_start];
     for (size_t j = group_start; j < i; ++j)
     {
