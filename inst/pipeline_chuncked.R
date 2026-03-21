@@ -5,6 +5,7 @@ file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark.l
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/robsoncreek/robsoncreek_benchmark.las"
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/ofental/ofental_benchmark.las"
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/litchfield/litchfield_benchmark.las"
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/bicuar/bicuar.P02.las"
 
 filter =  ""
 cut_above_ground = 0.15
@@ -31,6 +32,7 @@ display = FALSE
 maxID = 0
 for (i in seq_along(chunks))
 {
+  if (i < 7) next
   cat("==============\n")
   cat("Chunk", i, "of", length(chunks), "\n")
   cat("==============\n")
@@ -180,6 +182,11 @@ for (i in seq_along(chunks))
   writeLAS(las, s)
   writeLAS(trees, t)
   terra::writeRaster(dtm, r)
+
+  rm(las)
+  rm(trees)
+  rm(seeds)
+  gc()
 }
 
 gc()
