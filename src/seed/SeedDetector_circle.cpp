@@ -120,7 +120,7 @@ void assign_cluster_ids(std::vector<Circle>& circles)
 // Main function to detect tree circles from wood points
 std::vector<Circle> SeedDetector::detect_tree_circles(const PointCloud& wood, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, size_t min_cluster_size)
 {
-  size_t n = wood.point_count();
+  size_t n = wood.size();
 
   // Create Grid3D and compute connected components
   Grid3D grid(wood, resolution);

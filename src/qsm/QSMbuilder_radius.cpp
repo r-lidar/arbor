@@ -129,7 +129,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
 
   // Assign tree points to nearest edge (cylinder)
   std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
-  size_t num_points = tree.point_count();
+  size_t num_points = tree.size();
 
   for (size_t i = 0; i < num_points; ++i)
   {

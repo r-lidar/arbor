@@ -58,7 +58,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   // Because self point is included in knn
   params.k++;
 
-  int n_points = core.point_count();
+  int n_points = core.size();
   bool use_wood = wood.size() > 0;
 
   offset_points = 0;
@@ -157,8 +157,8 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
   if (total_seed_nodes > 0)   throw std::runtime_error("Target layer must be populated before seed layer");
   if (total_master_nodes > 0) throw std::runtime_error("Target layer must be populated before master layer");
 
-  int n_points = core.point_count();
-  int n_target = target.point_count();
+  int n_points = core.size();
+  int n_target = target.size();
 
   offset_targets = total_nodes;
   total_target_nodes = n_points;
@@ -202,7 +202,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seed
   if (total_master_nodes > 0)  throw std::runtime_error("Seed layer must be populated before master layer");
 
   int k = params.k_seed;
-  int n_points = seeds.point_count();
+  int n_points = seeds.size();
 
   offset_seeds = total_nodes;
   total_seed_nodes = n_points;
