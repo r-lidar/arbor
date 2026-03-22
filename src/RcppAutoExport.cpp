@@ -28,7 +28,7 @@ Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
 void segment_ground_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::DataFrame ground, Rcpp::List params);
+void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);

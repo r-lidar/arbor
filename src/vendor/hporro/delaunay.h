@@ -23,6 +23,7 @@ public:
   void set_frozen(int t, bool frozen);
   bool is_frozen(int t) const;
   const std::vector<bool>& get_dirty_cells() const;
+  double get_z(double x, double y);
   //void write(const std::string& filename) const;
 
   Vertex *vertices;

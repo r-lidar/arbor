@@ -21,8 +21,8 @@ segment_ground_cpp <- function(core, params) {
     invisible(.Call(`_arbor_segment_ground_cpp`, core, params))
 }
 
-segment_semantic_cpp <- function(core, ground, params) {
-    invisible(.Call(`_arbor_segment_semantic_cpp`, core, ground, params))
+segment_semantic_cpp <- function(core, params) {
+    invisible(.Call(`_arbor_segment_semantic_cpp`, core, params))
 }
 
 segment_instance_cpp <- function(core, seeds, params) {

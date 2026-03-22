@@ -94,9 +94,9 @@ namespace arbor
 
   namespace segment
   {
-    void segment_ground(PointCloud& core, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    void segment_ground  (PointCloud& core, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
     void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
-    void segment_semantic(PointCloud& core, const PointCloud& ground, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
   }
 
   namespace seeds

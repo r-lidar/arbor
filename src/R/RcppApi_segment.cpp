@@ -11,6 +11,7 @@
 
 #include "myomp.h"
 #include "arbor.h"
+#include "dtm.h"
 #include "GraphBuilder.h"
 #include "SeedDetector.h"
 #include "RcppApi_wrappers.h"
@@ -40,11 +41,11 @@ void segment_ground_cpp(DF core, Rcpp::List params)
   arbor::segment::segment_ground(p, par, Rlogger);
 }
 
-void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
+void segment_semantic_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud s(ground);
+  PointCloud s = arbor::dtm::dtm(p, Rlogger);
   arbor::segment::segment_semantic(p, s, par, Rlogger);
 }
 

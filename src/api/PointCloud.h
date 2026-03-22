@@ -130,6 +130,7 @@ public:
   inline bool has_pwood()   const { return pwood != nullptr; }
   inline bool has_foliage() const { return foliage != nullptr; }
   inline bool has_passage() const { return passage != nullptr; }
+  inline bool has_class()   const { return classif != nullptr; }
 
   inline int get_treeid(const size_t idx) const {
     if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
@@ -172,12 +173,12 @@ public:
   }
 
   inline int get_passage(const size_t idx) const {
-    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
     return passage[idx];
   }
 
   inline void set_passage(const size_t idx, int v) {
-    if (!passage) throw std::runtime_error("Passage not available in this point cloud");
+    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
     passage[idx] = v;
   }
 
@@ -186,16 +187,16 @@ public:
   }
 
   inline void set_classification(const size_t idx, int v) {
-    if (!classif) throw std::runtime_error("Classification data not available in this point cloud");
+    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
     classif[idx] = v;
   }
 
-  inline int get_classification(const size_t idx) {
-    if (!classif) throw std::runtime_error("Classification data not available in this point cloud");
+  inline int get_classification(const size_t idx) const {
+    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
     return classif[idx];
   }
 
-  inline bool is_ground(const size_t idx) {
+  inline bool is_ground(const size_t idx) const {
     return get_classification(idx) == 2;
   }
 

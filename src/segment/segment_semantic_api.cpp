@@ -11,22 +11,22 @@ using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
-Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& ground, const settings::GraphParameters& params)
+Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& dtm, const settings::GraphParameters& params)
 {
   GraphBuilder builder(params);
 
   builder.add_core_layer(core);
   builder.add_target_layer(core, targets);
-  builder.add_seed_layer(core, ground);
+  builder.add_seed_layer(core, dtm);
   builder.add_master_seed_layer();
 
   return builder.get_graph();
 }
 
-std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params, const Logger& logger)
+std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params, const Logger& logger)
 {
   if (core.size() == 0)   throw std::runtime_error("segment_instance: core point cloud is empty.");
-  if (ground.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
+  if (dtm.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
 
   logger("Decimating the point cloud (1/9)");
 
@@ -42,7 +42,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   logger("Constructing the graph (3/9)");
 
   // Build graph
-  Graph* graph = build_semantic_graph(dec, targets, ground, params);
+  Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
@@ -51,7 +51,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& g
   size_t num_raw_points = core.size();
   size_t num_points = dec.size();
   size_t num_target = targets.size();
-  size_t num_gnd    = ground.size();
+  size_t num_gnd    = dtm.size();
 
   std::vector<int> target_ids(num_target);
   std::vector<int> ground_ids(num_gnd);
@@ -359,14 +359,18 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
   return is_wood;
 }
 
-void segment_semantic(PointCloud& scene, const PointCloud& ground, const settings::ArborParameters& par, const Logger& logger)
+void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::ArborParameters& par, const Logger& logger)
 {
+  if (scene.size() == 0)     throw std::runtime_error("segment_semantic: point cloud is empty.");
+  if (!scene.has_foliage())  throw std::runtime_error("segment_semantic: point cloud is missing required 'foliage' attribute.");
+  if (!scene.has_pwood())    throw std::runtime_error("segment_semantic: point cloud is missing required 'pwood' attribute.");
+
   logger("Partitioning...");
   scene.partition([&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
 
   size_t n = scene.size();
 
-  std::vector<int> passages = accumulate_passages(scene, ground, par.pathfinder, logger);
+  std::vector<int> passages = accumulate_passages(scene, dtm, par.pathfinder, logger);
   for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);
 
   std::vector<bool> path_finder_based_wood = assign_wood_from_passage(scene, par.semantic, logger);

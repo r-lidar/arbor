@@ -615,30 +615,7 @@ std::vector<unsigned int> PTD::get_spikes_fid() const
 
 double PTD::get_z(double x, double y)
 {
-  IncrementalDelaunay::Vec2 p(x-x_offset, y-y_offset);
-
-  int t = d->findContainerTriangleFast(p);
-
-  if (t != -1)
-  {
-    IncrementalDelaunay::Triangle& tri = d->triangles[t];
-
-    if (tri.v[0] <= 3 || tri.v[1] <= 3 || tri.v[2] <= 3) return std::numeric_limits<double>::quiet_NaN();
-
-    Vec3 A(d->vertices[tri.v[0]].pos);
-    Vec3 B(d->vertices[tri.v[1]].pos);
-    Vec3 C(d->vertices[tri.v[2]].pos);
-
-    // Linear Interpolation using Barycentric Coordinates ---
-    double det = (B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y);
-    if (std::abs(det) < 1e-9) { return std::max({A.z, B.z, C.z}); }
-    double w_A = ((B.y - C.y) * (p.x - C.x) + (C.x - B.x) * (p.y - C.y)) / det;
-    double w_B = ((C.y - A.y) * (p.x - C.x) + (A.x - C.x) * (p.y - C.y)) / det;
-    double w_C = 1.0 - w_A - w_B;
-    return (w_A * A.z) + (w_B * B.z) + (w_C * C.z);
-  }
-
-  return std::numeric_limits<double>::quiet_NaN();
+  return d->get_z(x-x_offset, y-y_offset);
 }
 
 bool axelsson_metrics(const Vec3& P, const Vec3& A, const Vec3& B, const Vec3& C, double& dist_d, double& angle)

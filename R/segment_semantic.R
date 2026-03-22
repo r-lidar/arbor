@@ -15,38 +15,37 @@
 #' @rdname segment_semantic
 #' @name segment_semantic
 #' @export
-segment_semantic = function(las, dtm, params = default_arbor_parameters)
+segment_semantic = function(las, params = default_arbor_parameters)
 {
   params <- evaluate_penalty(params)
   las@data$passage <- NA_integer_
   las@data$foliage <- NA_integer_
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
   las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
-  gnd <- make_ground_points(dtm, params$semantic$ground_res, las@header)
-  segment_semantic_cpp(las@data, gnd@data, params)
+  segment_semantic_cpp(las@data, params)
   return(las)
 }
 
-make_ground_points = function(dtm, res, header)
-{
-  gnd   <- seed_from_dtm(dtm, res = res)
-  lidR::quantize(gnd[["X"]], 0.01, header[["X offset"]])
-  lidR::quantize(gnd[["Y"]], 0.01, header[["Y offset"]])
-  lidR::quantize(gnd[["Z"]], 0.01, header[["Z offset"]])
-  header  <- rlas::header_create(gnd)
-  gnd     <- suppressWarnings(lidR::LAS(gnd, header))
-  gnd
-}
-
-seed_from_dtm = function(dtm, res)
-{
-  seeds = terra::rast(terra::ext(dtm), res = res)
-  seeds = terra::resample(dtm, seeds)
-  seeds = as.data.frame(seeds, xy = T)
-  seeds = data.table::as.data.table(seeds)
-  names(seeds) = c("X", "Y", "Z")
-  seeds
-}
+# make_ground_points = function(dtm, res, header)
+# {
+#   gnd   <- seed_from_dtm(dtm, res = res)
+#   lidR::quantize(gnd[["X"]], 0.01, header[["X offset"]])
+#   lidR::quantize(gnd[["Y"]], 0.01, header[["Y offset"]])
+#   lidR::quantize(gnd[["Z"]], 0.01, header[["Z offset"]])
+#   header  <- rlas::header_create(gnd)
+#   gnd     <- suppressWarnings(lidR::LAS(gnd, header))
+#   gnd
+# }
+#
+# seed_from_dtm = function(dtm, res)
+# {
+#   seeds = terra::rast(terra::ext(dtm), res = res)
+#   seeds = terra::resample(dtm, seeds)
+#   seeds = as.data.frame(seeds, xy = T)
+#   seeds = data.table::as.data.table(seeds)
+#   names(seeds) = c("X", "Y", "Z")
+#   seeds
+# }
 
 # # Old R around C++
 # segment_semantic_r_cpp = function(las, dtm, params = default_arbor_parameters)

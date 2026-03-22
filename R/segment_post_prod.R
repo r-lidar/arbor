@@ -80,9 +80,8 @@ remove_small_trees = function(las, max_height = 2)
   ans   <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
   ans   <- ans[hag_max > max_height & hag_min < max_height]
 
-  trees <- lidR::filter_poi(las, treeID %in% ans$treeID & !is.na(treeID))
-
-  trees
+  las$treeID[!las$treeID %in% ans$treeID] = NA_integer_
+  las
 }
 
 keep_small_trees = function(las, max_height = 2)

@@ -918,6 +918,34 @@ bool Triangulation::is_frozen(int t) const
   return false;
 }
 
+double Triangulation::get_z(double x, double y)
+{
+  Vec2 p(x, y);
+
+  int t = findContainerTriangleFast(p);
+
+  if (t != -1)
+  {
+    Triangle& tri = triangles[t];
+
+    if (tri.v[0] <= 3 || tri.v[1] <= 3 || tri.v[2] <= 3) return std::numeric_limits<double>::quiet_NaN();
+
+    Vec2 A(vertices[tri.v[0]].pos);
+    Vec2 B(vertices[tri.v[1]].pos);
+    Vec2 C(vertices[tri.v[2]].pos);
+
+    // Linear Interpolation using Barycentric Coordinates ---
+    double det = (B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y);
+    if (std::abs(det) < 1e-9) { return std::max({A.z, B.z, C.z}); }
+    double w_A = ((B.y - C.y) * (p.x - C.x) + (C.x - B.x) * (p.y - C.y)) / det;
+    double w_B = ((C.y - A.y) * (p.x - C.x) + (A.x - C.x) * (p.y - C.y)) / det;
+    double w_C = 1.0 - w_A - w_B;
+    return (w_A * A.z) + (w_B * B.z) + (w_C * C.z);
+  }
+
+  return std::numeric_limits<double>::quiet_NaN();
+}
+
 /*
 #include <iostream>
 #include <fstream>
