@@ -13,6 +13,11 @@ namespace arbor
 {
   namespace settings
   {
+    struct GlobalParameters
+    {
+      double cut_above_ground = 0.25;
+    };
+
     struct WoodlikelihoodParameters
     {
       int k = 80;
@@ -78,6 +83,7 @@ namespace arbor
 
     struct ArborParameters
     {
+      GlobalParameters global;
       WoodlikelihoodParameters woodlikelihood;
       GraphParameters pathfinder;
       SemanticParameters semantic;

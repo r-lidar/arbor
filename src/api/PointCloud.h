@@ -39,8 +39,8 @@ public:
   template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
 
   // Num. points
-  inline size_t point_count() const { return 0; }
   inline size_t size()        const { return 0; }
+  inline size_t true_size()   const { return 0; }
 
   // Geometry access
   inline void   get_point(const size_t idx, double* q) const { }
@@ -106,13 +106,13 @@ public:
   PointCloudDataFrame  operator+(const PointCloudDataFrame& other) const;
 
   // --- Nanoflann KD-tree interface ---
-  inline size_t kdtree_get_point_count() const { return n_points; }
+  inline size_t kdtree_get_point_count() const { return size(); }
   inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return coords[dim][idx]; }
   template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
 
   // --- Num. points ---
-  inline size_t point_count() const { return n_points; }
   inline size_t size()        const { return n_points; }
+  inline size_t true_size()   const { return true_n_points; }
 
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
@@ -199,6 +199,42 @@ public:
     return get_classification(idx) == 2;
   }
 
+  // -- Partitioning ---
+  template <typename Predicate>
+  size_t partition(Predicate pred)
+  {
+    if (n_points == 0) return 0;
+
+    int64_t left = 0;
+    int64_t right = static_cast<int64_t>(n_points) - 1;
+
+    while (left <= right)
+    {
+      // Move left pointer until we find a point that should be at the back
+      while (left <= right && pred(left))
+      {
+        left++;
+      }
+      // Move right pointer until we find a point that should be at the front
+      while (left <= right && !pred(right))
+      {
+        right--;
+      }
+
+      if (left < right)
+      {
+        swap_points(left, right);
+        left++;
+        right--;
+      }
+    }
+
+    // Update n_points so nanoflann only sees the front section
+    // Or keep n_points same and return 'left' as the new logical size
+    size_t new_size = static_cast<size_t>(left);
+    n_points = new_size;
+    return new_size;
+  }
 
   // --- In-place transforms ---
   void translate(double x, double y, double z) ;
@@ -217,6 +253,16 @@ private:
   void swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept;
   void init();
   void safe_alloc(size_t n, bool alloc_attrs);
+  void swap_points(size_t i, size_t j)
+  {
+    for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
+    if (treeid)  std::swap(treeid[i], treeid[j]);
+    if (foliage) std::swap(foliage[i], foliage[j]);
+    if (passage) std::swap(passage[i], passage[j]);
+    if (classif) std::swap(classif[i], classif[j]);
+    if (hag)     std::swap(hag[i], hag[j]);
+    if (pwood)   std::swap(pwood[i], pwood[j]);
+  }
 
 private:
   double* coords[3] = {nullptr, nullptr, nullptr};
@@ -231,6 +277,7 @@ private:
 
   bool owns_memory = false;
   size_t n_points  = 0;
+  size_t true_n_points = 0;
 };
 #else
 class PointCloudDefault

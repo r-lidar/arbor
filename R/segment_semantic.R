@@ -18,8 +18,8 @@
 segment_semantic = function(las, dtm, params = default_arbor_parameters)
 {
   params <- evaluate_penalty(params)
-  las@data$passage <- integer(lidR::npoints(las))
-  las@data$foliage <- integer(lidR::npoints(las))
+  las@data$passage <- NA_integer_
+  las@data$foliage <- NA_integer_
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
   las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
   gnd <- make_ground_points(dtm, params$semantic$ground_res, las@header)

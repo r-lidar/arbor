@@ -1,4 +1,7 @@
 default_parameters_v1 = list(
+  global = list(
+    cut_above_ground = 0.25
+  ),
   woodlikelihood = list(
     k = 80
   ),

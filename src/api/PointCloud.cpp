@@ -15,6 +15,7 @@ PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
 {
   init();
   n_points = n;
+  true_n_points = n;
   safe_alloc(n, init_attributes);
 }
 
@@ -22,6 +23,7 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
   init();
   n_points = df.rows();
+  true_n_points = n_points;
   owns_memory = false;
 
   std::vector<std::string> coord_names = {"X", "Y", "Z"};
@@ -275,7 +277,7 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<bool>& keep, b
   std::vector<int> indices;
   indices.reserve(n_points/10);
 
-  for (int i = 0; i < (int)n_points; ++i) {
+  for (size_t i = 0; i < n_points; ++i) {
     if (keep[i]) {
       indices.push_back(i);
     }
@@ -525,6 +527,7 @@ void PointCloudDefault::cleanup()
   hag.clear();
   pwood.clear();
   n_points = 0;
+  true_n_points = 0;
 }
 
 // ------------------------------------------------------------

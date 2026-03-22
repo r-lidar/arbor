@@ -361,6 +361,9 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
 
 void segment_semantic(PointCloud& scene, const PointCloud& ground, const settings::ArborParameters& par, const Logger& logger)
 {
+  logger("Partitioning...");
+  scene.partition([&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
+
   size_t n = scene.size();
 
   std::vector<int> passages = accumulate_passages(scene, ground, par.pathfinder, logger);

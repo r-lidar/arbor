@@ -40,6 +40,9 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   if (!core.has_foliage())  throw std::runtime_error("segment_instance: core point cloud is missing required 'foliage' attribute.");
   if (!seeds.has_treeid())  throw std::runtime_error("segment_instance: seed point cloud is missing required 'treeid' attribute.");
 
+  logger("Partitioning...");
+  core.partition([&](size_t i) { return core.get_hag(i) > params.global.cut_above_ground; });
+
   const auto t0 = std::chrono::steady_clock::now();
 
   logger("Instance segmentation start");

@@ -93,6 +93,18 @@ arbor::settings::SemanticParameters extract_semantic_params(const Rcpp::List& pa
   return s;
 }
 
+arbor::settings::GlobalParameters extract_global_params(const Rcpp::List& params)
+{
+  assert_exists(params, "global");
+  Rcpp::List p = params["global"];
+
+  assert_exists(p, "cut_above_ground");
+
+  arbor::settings::GlobalParameters s;
+  s.cut_above_ground = Rcpp::as<double>(p["cut_above_ground"]);
+  return s;
+}
+
 arbor::settings::WoodlikelihoodParameters extract_likelihood_params(const Rcpp::List& params)
 {
   assert_exists(params, "woodlikelihood");
@@ -101,6 +113,7 @@ arbor::settings::WoodlikelihoodParameters extract_likelihood_params(const Rcpp::
   assert_exists(p, "k");
 
   arbor::settings::WoodlikelihoodParameters s;
+  s.k = Rcpp::as<int>(p["k"]);
   return s;
 }
 
@@ -152,6 +165,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
 
 arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
 {
+  arbor::settings::GlobalParameters gg = extract_global_params(params);
   arbor::settings::GraphParameters gp = extract_pathfinder_params(params);
   arbor::settings::SemanticParameters sp = extract_semantic_params(params);
   arbor::settings::WoodlikelihoodParameters wp = extract_likelihood_params(params);
@@ -159,6 +173,7 @@ arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
   arbor::settings::QsmParameters qp = extract_qsm_params(params);
 
   arbor::settings::ArborParameters s;
+  s.global = gg;
   s.pathfinder = gp;
   s.semantic = sp;
   s.woodlikelihood = wp;
