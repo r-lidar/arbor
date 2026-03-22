@@ -12,7 +12,7 @@ segment_ground(las, params = default_arbor_parameters)
 \item{params}{list See \link{parameters}.}
 }
 \description{
-Uses the progressive TIN densification internally
+Classifies ground points and computes height above ground.
 }
 \seealso{
 \link{find_seeds}, \link{segment_semantic}, \link{segment_instance}

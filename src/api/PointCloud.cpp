@@ -30,6 +30,7 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   std::string foliage_name = "foliage";
   std::string hag_name     = "hag";
   std::string passage_name = "passage";
+  std::string classif_name = "Classification";
 
   // --- Mandatory coordinates ---
   for (size_t i = 0; i < 3; ++i)
@@ -70,6 +71,12 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   {
     Rcpp::IntegerVector col = df[passage_name];
     passage = col.begin();
+  }
+
+  if (df.containsElementNamed(classif_name.c_str()))
+  {
+    Rcpp::IntegerVector col = df[classif_name];
+    classif = col.begin();
   }
 }
 
@@ -119,6 +126,10 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
     if (other.passage) {
       passage = new int[n_points];
       std::copy(other.passage, other.passage + n_points, passage);
+    }
+    if (other.classif) {
+      classif = new int[n_points];
+      std::copy(other.classif, other.classif + n_points, classif);
     }
   }
   catch (...)
@@ -175,9 +186,10 @@ void PointCloudDataFrame::cleanup()
   delete[] pwood;
   delete[] hag;
   delete[] passage;
+  delete[] classif;
 
   coords[0] = coords[1] = coords[2] = nullptr;
-  treeid = foliage = nullptr;
+  treeid = foliage = classif = nullptr;
   pwood = hag = nullptr;
 }
 
@@ -436,6 +448,7 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
   std::swap(first.passage, second.passage);
   std::swap(first.hag, second.hag);
   std::swap(first.pwood, second.pwood);
+  std::swap(first.classif, second.classif);
 }
 
 void PointCloudDataFrame::init()
@@ -450,6 +463,7 @@ void PointCloudDataFrame::init()
   passage = nullptr;
   hag     = nullptr;
   pwood   = nullptr;
+  classif = nullptr;
 }
 
 void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
@@ -465,6 +479,7 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
       treeid  = new int[n]();
       foliage = new int[n]();
       passage = new int[n]();
+      classif = new int[n]();
       hag     = new double[n]();
       pwood   = new double[n]();
     }

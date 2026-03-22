@@ -68,6 +68,8 @@ public:
   inline void   set_hag    (const size_t idx, double v) { }
   inline int    get_passage(const size_t idx) const { return 0; }
   inline void   set_passage(const size_t idx, int v) { }
+  inline void   set_ground(const size_t idx, bool v) { };
+  inline bool   is_ground(const size_t idx) { return false; }
 
   // 0 wood 1 2 foliage
   inline bool is_wood(const size_t idx) const { return get_foliage(idx) == 0; }
@@ -165,8 +167,8 @@ public:
   }
 
   inline void set_hag(const size_t idx, double v) {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    pwood[idx] = v;
+    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
+    hag[idx] = v;
   }
 
   inline int get_passage(const size_t idx) const {
@@ -182,6 +184,21 @@ public:
   inline bool is_wood(const size_t idx) const {
     return get_foliage(idx) == 0;
   }
+
+  inline void set_classification(const size_t idx, int v) {
+    if (!classif) throw std::runtime_error("Classification data not available in this point cloud");
+    classif[idx] = v;
+  }
+
+  inline int get_classification(const size_t idx) {
+    if (!classif) throw std::runtime_error("Classification data not available in this point cloud");
+    return classif[idx];
+  }
+
+  inline bool is_ground(const size_t idx) {
+    return get_classification(idx) == 2;
+  }
+
 
   // --- In-place transforms ---
   void translate(double x, double y, double z) ;
@@ -208,6 +225,7 @@ private:
   int*    treeid  = nullptr;
   int*    foliage = nullptr;
   int*    passage = nullptr;
+  int*    classif = nullptr;
   double* hag     = nullptr;
   double* pwood   = nullptr;
 

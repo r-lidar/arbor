@@ -33,6 +33,13 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, co
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const arbor::settings::GraphParameters& params);
 }
 
+void segment_ground_cpp(DF core, Rcpp::List params)
+{
+  arbor::settings::ArborParameters par = extract_arbor_params(params);
+  PointCloud p(core);
+  arbor::segment::segment_ground(p, par, Rlogger);
+}
+
 void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
