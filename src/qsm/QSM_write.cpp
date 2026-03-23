@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring> // std::memset
 #include <cstdint>
+#include <array>
 
 namespace arbor::qsm {
 
