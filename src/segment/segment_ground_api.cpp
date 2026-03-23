@@ -24,6 +24,8 @@ struct GroundCloud
 
 void segment_ground(PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
 {
+  if (scene.size() == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
+
   logger("Ground point segmentation");
 
   // Initialize bounds
@@ -36,9 +38,12 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
     double y = scene.get_y(i);
     double z = scene.get_z(i);
 
-    if (x < xmin) xmin = x; if (x > xmax) xmax = x;
-    if (y < ymin) ymin = y; if (y > ymax) ymax = y;
-    if (z < zmin) zmin = z; if (z > zmax) zmax = z;
+    if (x < xmin) xmin = x;
+    if (x > xmax) xmax = x;
+    if (y < ymin) ymin = y;
+    if (y > ymax) ymax = y;
+    if (z < zmin) zmin = z;
+    if (z > zmax) zmax = z;
   }
 
   // Register the bounding box of the points

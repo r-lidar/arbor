@@ -1,4 +1,5 @@
-#include "dtm.h"
+#include "arbor.h"
+#include "hporro/delaunay.h"
 
 namespace arbor::dtm {
 
@@ -18,9 +19,12 @@ PointCloud dtm(const PointCloud& scene, const Logger& logger)
     double y = scene.get_y(i);
     double z = scene.get_z(i);
 
-    if (x < xmin) xmin = x; if (x > xmax) xmax = x;
-    if (y < ymin) ymin = y; if (y > ymax) ymax = y;
-    if (z < zmin) zmin = z; if (z > zmax) zmax = z;
+    if (x < xmin) xmin = x;
+    if (x > xmax) xmax = x;
+    if (y < ymin) ymin = y;
+    if (y > ymax) ymax = y;
+    if (z < zmin) zmin = z;
+    if (z > zmax) zmax = z;
   }
 
   double x_offset = (xmin + xmax) * 0.5;

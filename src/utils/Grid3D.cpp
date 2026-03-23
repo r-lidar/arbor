@@ -62,7 +62,9 @@ std::vector<Offset> Grid3D::get_neighbor_offsets(int connectivity) const
   std::vector<Offset> offsets;
 
   for (int dz = -1; dz <= 1; ++dz)
+  {
     for (int dy = -1; dy <= 1; ++dy)
+    {
       for (int dx = -1; dx <= 1; ++dx)
       {
         if (dx == 0 && dy == 0 && dz == 0)
@@ -78,8 +80,10 @@ std::vector<Offset> Grid3D::get_neighbor_offsets(int connectivity) const
         if (ok)
           offsets.push_back({dx, dy, dz});
       }
+    }
+ }
 
-      return offsets;
+ return offsets;
 }
 
 std::vector<int> Grid3D::connected_components(int connectivity)

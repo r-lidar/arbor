@@ -110,6 +110,12 @@ namespace arbor
     QSF qsf(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
   }
 
+  namespace dtm
+  {
+    PointCloud dtm(const PointCloud&, const Logger& logger = [](const std::string&) {});
+  }
+
+
   namespace utils
   {
     std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);

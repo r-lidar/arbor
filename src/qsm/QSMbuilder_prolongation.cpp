@@ -16,7 +16,10 @@ void QSMbuilder::prolongate(double d, double L)
   // Collect main axis edges (axis_ID == 1), ordered root → tip (descending subtree_length)
   std::vector<int> axis_eids;
   for (const auto& [eid, einfo] : graph.edges())
-    if (einfo.data.axis_ID == 1) axis_eids.push_back(eid);
+  {
+    if (einfo.data.axis_ID == 1)
+        axis_eids.push_back(eid);
+  }
 
     const size_t n = axis_eids.size();
     if (n < 2) return;

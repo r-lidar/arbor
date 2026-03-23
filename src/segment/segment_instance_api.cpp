@@ -35,9 +35,9 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
 
 void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params, const Logger& logger)
 {
-  if (core.size() == 0)     throw std::runtime_error("segment_instance: core point cloud is empty.");
-  if (seeds.size() == 0)    throw std::runtime_error("segment_instance: seeds point cloud is empty.");
-  if (!core.has_foliage())  throw std::runtime_error("segment_instance: core point cloud is missing required 'foliage' attribute.");
+  if (core.size() == 0)     throw std::runtime_error("segment_instance: point cloud is empty.");
+  if (seeds.size() == 0)    throw std::runtime_error("segment_instance: seeds point cloud contains 0 seed.");
+  if (!core.has_foliage())  throw std::runtime_error("segment_instance: point cloud is missing required 'foliage' attribute.");
   if (!seeds.has_treeid())  throw std::runtime_error("segment_instance: seed point cloud is missing required 'treeid' attribute.");
 
   logger("Partitioning...");

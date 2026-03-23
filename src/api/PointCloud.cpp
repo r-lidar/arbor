@@ -190,6 +190,9 @@ void PointCloudDataFrame::cleanup()
   delete[] passage;
   delete[] classif;
 
+  n_points = 0;
+  true_n_points = 0;
+
   coords[0] = coords[1] = coords[2] = nullptr;
   treeid = foliage = classif = nullptr;
   pwood = hag = nullptr;

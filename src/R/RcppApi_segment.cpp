@@ -11,7 +11,6 @@
 
 #include "myomp.h"
 #include "arbor.h"
-#include "dtm.h"
 #include "GraphBuilder.h"
 #include "SeedDetector.h"
 #include "RcppApi_wrappers.h"

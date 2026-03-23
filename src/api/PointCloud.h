@@ -290,7 +290,18 @@ public:
   ~PointCloudDefault() ;
 
   // Insertion
-  void add_point(float x, float y, float z) { coords.push_back({x,y,z}); }
+  void add_point(float x, float y, float z)
+  {
+      n_points++;
+      true_n_points++;
+      coords.push_back({x,y,z});
+      treeid.push_back(-1);
+      foliage.push_back(-1);
+      classif.push_back(0);
+      passage.push_back(0);
+      hag.push_back(0);
+      pwood.push_back(0);
+  }
 
   // Merge
   PointCloudDefault& operator+=(const PointCloudDefault& other);
@@ -335,6 +346,8 @@ public:
   inline bool has_pwood()   const { return !pwood.empty(); }
   inline bool has_foliage() const { return !foliage.empty(); }
   inline bool has_passage() const { return !passage.empty(); }
+  inline bool has_class()   const { return !classif.empty(); }
+
 
   inline int get_treeid(const size_t idx) const {
     if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
@@ -390,6 +403,58 @@ public:
     return get_foliage(idx) == 0;
   }
 
+  inline void set_classification(const size_t idx, int v) {
+    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
+    classif[idx] = v;
+  }
+
+  inline int get_classification(const size_t idx) const {
+    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
+    return classif[idx];
+  }
+
+  inline bool is_ground(const size_t idx) const {
+    return get_classification(idx) == 2;
+  }
+
+  // -- Partitioning ---
+  template <typename Predicate>
+  size_t partition(Predicate pred)
+  {
+    if (n_points == 0) return 0;
+
+    int64_t left = 0;
+    int64_t right = static_cast<int64_t>(n_points) - 1;
+
+    while (left <= right)
+    {
+      // Move left pointer until we find a point that should be at the back
+      while (left <= right && pred(left))
+      {
+        left++;
+      }
+      // Move right pointer until we find a point that should be at the front
+      while (left <= right && !pred(right))
+      {
+        right--;
+      }
+
+      if (left < right)
+      {
+        swap_points(left, right);
+        left++;
+        right--;
+      }
+    }
+
+    // Update n_points so nanoflann only sees the front section
+    // Or keep n_points same and return 'left' as the new logical size
+    size_t new_size = static_cast<size_t>(left);
+    n_points = new_size;
+    return new_size;
+  }
+
+
   // --- In-place transforms ---
   void translate(double x, double y, double z) ;
   void scale(double x, double y, double z) ;
@@ -413,18 +478,30 @@ private:
   void swap(PointCloudDefault& first, PointCloudDefault& second) noexcept;
   void init();
   void safe_alloc(size_t n, bool alloc_attrs);
+  void swap_points(size_t i, size_t j)
+  {
+    std::swap(coords[i], coords[j]);
+    if (has_treeid())  std::swap(treeid[i], treeid[j]);
+    if (has_foliage()) std::swap(foliage[i], foliage[j]);
+    if (has_passage()) std::swap(passage[i], passage[j]);
+    if (has_class())   std::swap(classif[i], classif[j]);
+    if (has_hag())     std::swap(hag[i], hag[j]);
+    if (has_pwood())   std::swap(pwood[i], pwood[j]);
+  }
 
 private:
   struct Vec3 { float x,y,z; };
   std::vector<Vec3> coords;
   std::vector<Vec3> rgb;
   std::vector<int> treeid;
-  std::vector<int> foliage;
+  std::vector<short> foliage;
+  std::vector<short> classif;
   std::vector<int> passage;
   std::vector<float> hag;
   std::vector<float> pwood;
 
   size_t n_points  = 0;
+  size_t true_n_points = 0;
 };
 #endif
 

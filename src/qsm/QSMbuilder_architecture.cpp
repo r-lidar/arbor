@@ -64,9 +64,6 @@ double QSMbuilder::compute_subtree_length(int edge_id)
   if (ed.subtree_length >= 0)
     return ed.subtree_length;
 
-  const QSMNode& src = graph.node(graph.edge(edge_id).source);
-  const QSMNode& tgt = graph.node(graph.edge(edge_id).target);
-
   const auto& child_eids = graph.outgoing_edges(graph.edge(edge_id).target);
   if (child_eids.empty())
   {
