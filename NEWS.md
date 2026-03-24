@@ -4,10 +4,10 @@
 - New: better QSM meshing
 - New: better QSM smoothing
 - Enhancement: drastic speed up of `qsf()`
-- Change no need to compute a DTM
-- `segment_semantic()` no longer requires a DTM
-- `cut_above_ground` is a parameters no longer a variable
-- not longer need
+- Change: no need to compute a DTM
+- Change: `segment_semantic()` no longer requires a DTM
+- Change: `cut_above_ground` is a parameters no longer a variable
+- Change: `remove_small_trees()` no longer clips. It assigns NAs. Up to the user to clip.
 
 # arbor 0.8.2
 
