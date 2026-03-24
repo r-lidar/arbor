@@ -27,7 +27,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     }
   };
 
-  logger("Constructing skeleton");
+  ServiceLocator::logger()("Constructing skeleton");
 
   size_t n = pc.size();
 

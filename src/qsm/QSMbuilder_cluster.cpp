@@ -11,9 +11,9 @@
 
 namespace arbor::qsm {
 
-std::vector<std::pair<int, double>> QSMbuilder::clusters(const PointCloud& data, const std::vector<std::pair<int, double>>& iter_dist,  double cl_dist, const Logger& logger)
+std::vector<std::pair<int, double>> QSMbuilder::clusters(const PointCloud& data, const std::vector<std::pair<int, double>>& iter_dist,  double cl_dist)
 {
-  logger("Computing clusters");
+  ServiceLocator::logger()("Computing clusters");
 
   // Result vectors for cluster ID and radius for each point
   std::vector<std::pair<int, double>> result(data.size(), {0, 0.0});

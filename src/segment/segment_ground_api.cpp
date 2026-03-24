@@ -22,12 +22,12 @@ struct GroundCloud
 };
 
 
-void segment_ground(PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
+void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
 {
   size_t n = scene.true_size();
   if (n == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
 
-  logger("Ground point segmentation");
+  ServiceLocator::logger()("Ground point segmentation");
 
   // Initialize bounds
   double xmin = std::numeric_limits<double>::max(), xmax = -std::numeric_limits<double>::max();
@@ -88,7 +88,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
     ground_pts.pts.push_back({scene.get_x(fid), scene.get_y(fid), scene.get_z(fid)});
   }
 
-  logger("Height above ground");
+  ServiceLocator::logger()("Height above ground");
 
   typedef nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<double, GroundCloud>,
@@ -131,7 +131,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
   }
 
   if (nan_count > 0)
-    logger("  " + std::to_string(nan_count) + " points outside TIN interpolated with 1-nn");
+    ServiceLocator::logger()("  " + std::to_string(nan_count) + " points outside TIN interpolated with 1-nn");
 }
 
 }

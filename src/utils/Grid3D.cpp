@@ -1,5 +1,5 @@
 #include "Grid3D.h"
-#include "progressbar.h"
+#include "services.h"
 
 #include <cmath>
 #include <algorithm>
@@ -116,7 +116,7 @@ std::vector<int> Grid3D::connected_components(int connectivity)
   std::vector<int64_t> stack;
   stack.reserve(1024);
 
-  Progress prog(voxel_labels.size(), "Connected components", 0.25);
+  auto prog = ServiceLocator::make_progress(voxel_labels.size(), "Connected components", 0.25);
 
   for (auto& kv : voxel_labels)
   {
@@ -126,7 +126,7 @@ std::vector<int> Grid3D::connected_components(int connectivity)
     ++current_label;
     kv.second = current_label;
     stack.push_back(kv.first);
-    prog.tick();
+    prog->tick();
 
     while (!stack.empty())
     {
@@ -154,16 +154,16 @@ std::vector<int> Grid3D::connected_components(int connectivity)
         {
           it->second = current_label;
           stack.push_back(nidx);
-          prog.tick();
+          prog->tick();
         }
       }
     }
 
-    prog.update();
-    if (prog.check_interrupt()) return {};
+    prog->update();
+    if (prog->check_interrupt()) return {};
   }
 
-  prog.finalize();
+  prog->finalize();
 
   std::vector<int> result(npoints);
   for (int i = 0; i < npoints; ++i)

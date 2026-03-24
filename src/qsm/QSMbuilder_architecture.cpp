@@ -9,7 +9,7 @@ namespace arbor::qsm {
 
 void QSMbuilder::compute_topology()
 {
-  logger("Connecting nodes");
+  ServiceLocator::logger()("Connecting nodes");
 
   // For each edge, set parent_ID based on graph structure:
   //   - If the edge's source node has no incoming edges -> parent_ID = 0 (root)
@@ -30,7 +30,7 @@ void QSMbuilder::compute_topology()
 
 void QSMbuilder::compute_architecture(bool use_volume)
 {
-  logger("Computing architecture");
+  ServiceLocator::logger()("Computing architecture");
 
   // Reset cached values on every edge
   for (auto& [eid, einfo] : graph.edges())

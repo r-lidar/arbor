@@ -1,7 +1,6 @@
 #include "arbor.h"
 #include "QSF.h"
 #include "myomp.h"
-#include "progressbar.h"
 
 #include <map>
 #include <vector>
@@ -10,7 +9,7 @@
 
 namespace arbor::qsm {
 
-QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
+QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
 {
   if (!scene.has_hag())    throw std::runtime_error("Missing attribute 'hag' in the point cloud");
   if (!scene.has_treeid()) throw std::runtime_error("Missing attribute 'treeID' in the point cloud");
@@ -46,7 +45,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
   }
   std::sort(valid_tree_ids.begin(), valid_tree_ids.end());
 
-  Progress p(valid_tree_ids.size(), "QSF");
+  auto p = ServiceLocator::make_progress(valid_tree_ids.size(), "QSF");
   std::atomic<bool> error_occurred{false};
   std::exception_ptr eptr = nullptr;
 
@@ -81,13 +80,13 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params, const 
       }
     }
 
-    p.tick();
+    p->tick();
   }
 
   // If something went wrong, rethrow the exception outside the parallel region
   if (eptr) { std::rethrow_exception(eptr); }
 
-  p.finalize();
+  p->finalize();
   return result;
 }
 

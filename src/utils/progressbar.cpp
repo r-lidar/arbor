@@ -101,6 +101,8 @@ void Progress::update()
 void Progress::finalize()
 {
   if (omp_get_thread_num() != 0) return;
+  if (finalized_) return;
+  finalized_ = true;
 
   #ifdef USING_R
     Rcpp::Rcout << '\r' << std::string(last_width_, ' ') << '\r';

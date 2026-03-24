@@ -68,13 +68,13 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     return;
   }
 
-  logger("Pre-allometry");
+  ServiceLocator::logger()("Pre-allometry");
   conic_allometry(2.0 * R0, tip_radius);
 
-  logger("Measuring diameters");
+  ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
 
-  logger("Polynomial fitting");
+  ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
 
   // Check if main axis has valid measurements
@@ -90,12 +90,12 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    logger("[]WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry");
+    ServiceLocator::logger()("[WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry");
     conic_allometry(R0, tip_radius);
     return;
   }
 
-  logger("Reconstruction");
+  ServiceLocator::logger()("Reconstruction");
   reconstruct_missing_radii(tip_radius);
 }
 

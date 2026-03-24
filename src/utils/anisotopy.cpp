@@ -3,7 +3,7 @@
 #include "myomp.h"
 #include "nanoflann.h"
 #include "PointCloud.h"
-#include "progressbar.h"
+#include "services.h"
 
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
@@ -65,7 +65,7 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
   params.eps = 0.02;
   params.sorted = false;
 
-  Progress pb(n, "Anisotropy");
+  auto pb = ServiceLocator::make_progress(n, "Anisotropy");
   std::atomic<bool> abort(false);
 
   #pragma omp parallel
@@ -79,8 +79,8 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
     for (int i = 0; i < n; ++i)
     {
       if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb.check_interrupt()) abort = true;
-      pb.tick();
+      if(pb->check_interrupt()) abort = true;
+      pb->tick();
 
       q[0] = adaptor.get_x(i);
       q[1] = adaptor.get_y(i);
@@ -132,7 +132,7 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
       out[i] = static_cast<float>((lmax > 1e-14) ? (lmax - lmin) / lmax : 0.0);
     }
 
-    pb.tick();
+    pb->tick();
   }
 
   if (abort.load()) throw std::runtime_error("Computation aborted");

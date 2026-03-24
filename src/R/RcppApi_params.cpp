@@ -1,8 +1,10 @@
 #ifdef USING_R
 
 #include "RcppApi_params.h"
+#include "services.h"
 
 #include <chrono>
+#include <iomanip>
 #include <string>
 #include <sstream>
 
@@ -20,6 +22,13 @@ void Rlogger(const std::string& msg)
       << "] " << msg;
 
   Rcpp::Rcout << oss.str() << std::endl;
+}
+
+namespace {
+  struct RServicesInit {
+    RServicesInit() { ServiceLocator::register_logger(Rlogger); }
+  };
+  static RServicesInit r_services_init;
 }
 
 // Helper function to extract parameters from R list

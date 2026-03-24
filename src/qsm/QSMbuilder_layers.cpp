@@ -8,7 +8,7 @@
 
 namespace arbor::qsm {
 
-std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D, const Logger& logger)
+std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points, double D)
 {
   struct GridKey {
     long x, y, z;
@@ -21,7 +21,7 @@ std::vector<std::pair<int, double>> QSMbuilder::layers(const PointCloud& points,
     }
   };
 
-  logger("Computing layers");
+  ServiceLocator::logger()("Computing layers");
 
   size_t n = points.size();
   double D2 = D * D;

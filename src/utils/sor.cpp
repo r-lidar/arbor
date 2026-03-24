@@ -5,7 +5,7 @@
 #include "myomp.h"
 #include "nanoflann.h"
 #include "PointCloud.h"
-#include "progressbar.h"
+#include "services.h"
 
 using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
@@ -24,7 +24,7 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
   nanoflann::SearchParameters params;
   params.sorted = false;
 
-  Progress pb(n, "SOR");
+  auto pb = ServiceLocator::make_progress(n, "SOR");
   std::atomic<bool> abort(false);
   std::vector<double> dmean(n);
 
@@ -39,8 +39,8 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
     for (size_t i = 0; i < n; ++i)
     {
       if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb.check_interrupt()) abort = true;
-      pb.tick();
+      if(pb->check_interrupt()) abort = true;
+      pb->tick();
 
       q[0] = pc.get_x(i);
       q[1] = pc.get_y(i);
@@ -65,7 +65,7 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
       dmean[i] = (cnt > 0) ? dsum / cnt : 0.0;
     }
 
-    pb.tick();
+    pb->tick();
   }
 
   if (abort.load())

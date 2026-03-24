@@ -5,7 +5,7 @@
 #include <limits>
 
 #include "myomp.h"
-#include "progressbar.h"
+#include "services.h"
 #include "nanoflann/nanoflann.h"
 
 using namespace Rcpp;
@@ -232,7 +232,7 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
   size_t k = std::min((size_t)10, (size_t)std::ceil(n_cyl * 0.01));
   if (k < 1) k = 1;
 
-  Progress pb(n_pts, "Point2Cylinders");
+  auto pb = ServiceLocator::make_progress(n_pts, "Point2Cylinders");
   std::atomic<bool> abort(false);
 
   #pragma omp parallel
@@ -245,8 +245,8 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
     for(int i = 0; i < n_pts; ++i)
     {
       if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb.check_interrupt()) abort = true;
-      pb.tick();
+      if(pb->check_interrupt()) abort = true;
+      pb->tick();
 
       double px = ptr_pX[i];
       double py = ptr_pY[i];

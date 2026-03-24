@@ -2,10 +2,9 @@
 
 namespace arbor::seeds {
 
-PointCloud find_seeds(const PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
+PointCloud find_seeds(const PointCloud& scene, const settings::ArborParameters& params)
 {
   arbor::seeds::SeedDetector sd(params);
-  sd.set_logger(logger);
   sd.run(scene);
   return sd.move_seeds();
 }

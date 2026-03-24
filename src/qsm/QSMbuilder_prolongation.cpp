@@ -11,7 +11,7 @@ void QSMbuilder::prolongate(double d, double L)
 {
   if (d <= 0.0) return;
 
-  logger("Prolongation to the ground");
+  ServiceLocator::logger()("Prolongation to the ground");
 
   // Collect main axis edges (axis_ID == 1), ordered root → tip (descending subtree_length)
   std::vector<int> axis_eids;

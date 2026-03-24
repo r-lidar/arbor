@@ -29,7 +29,6 @@ class SeedDetector
 {
 public:
   SeedDetector(const settings::ArborParameters& par) : params(par) {};
-  void set_logger(Logger new_logger) { logger = std::move(new_logger); }
   void run(const PointCloud& scene);
   static std::vector<Circle> detect_tree_circles(const PointCloud& wood, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, size_t min_cluster_size = 10);
   static std::vector<Point3D> generate_cage(const std::vector<Circle>& circles, double decimation);
@@ -71,7 +70,6 @@ private:
   double min_hag;
 
   settings::ArborParameters params;
-  Logger logger = [](const std::string&) {};
 };
 
 }

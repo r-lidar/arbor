@@ -3,9 +3,9 @@
 
 namespace arbor::dtm {
 
-PointCloud dtm(const PointCloud& scene, const Logger& logger)
+PointCloud dtm(const PointCloud& scene)
 {
-  logger("Computing DTM");
+  ServiceLocator::logger()("Computing DTM");
 
   size_t n = scene.size();
 

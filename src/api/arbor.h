@@ -4,10 +4,9 @@
 #include "PointCloud.h"
 #include "QSM.h"
 #include "QSF.h"
+#include "services.h"
 
 #include <vector>
-
-using Logger = std::function<void(const std::string&)>;
 
 namespace arbor
 {
@@ -94,25 +93,25 @@ namespace arbor
 
   namespace segment
   {
-    void segment_ground  (PointCloud& core, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
-    void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
-    void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    void segment_ground  (PointCloud& core, const settings::ArborParameters& params);
+    void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params);
+    void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params);
   }
 
   namespace seeds
   {
-    PointCloud find_seeds(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    PointCloud find_seeds(const PointCloud&,  const settings::ArborParameters& params);
   }
 
   namespace qsm
   {
-    QSM qsm(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
-    QSF qsf(const PointCloud&,  const settings::ArborParameters& params, const Logger& logger = [](const std::string&) {});
+    QSM qsm(const PointCloud&,  const settings::ArborParameters& params);
+    QSF qsf(const PointCloud&,  const settings::ArborParameters& params);
   }
 
   namespace dtm
   {
-    PointCloud dtm(const PointCloud&, const Logger& logger = [](const std::string&) {});
+    PointCloud dtm(const PointCloud&);
   }
 
 

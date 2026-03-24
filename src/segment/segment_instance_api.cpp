@@ -33,20 +33,20 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   return builder.get_graph();
 }
 
-void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params, const Logger& logger)
+void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params)
 {
   if (core.size() == 0)     throw std::runtime_error("segment_instance: point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("segment_instance: seeds point cloud contains 0 seed.");
   if (!core.has_foliage())  throw std::runtime_error("segment_instance: point cloud is missing required 'foliage' attribute.");
   if (!seeds.has_treeid())  throw std::runtime_error("segment_instance: seed point cloud is missing required 'treeid' attribute.");
 
-  logger("Partitioning...");
+  ServiceLocator::logger()("Partitioning...");
   core.partition([&](size_t i) { return core.get_hag(i) > params.global.cut_above_ground; });
 
   const auto t0 = std::chrono::steady_clock::now();
 
-  logger("Instance segmentation start");
-  logger("Decimating the point cloud... (1/4)");
+  ServiceLocator::logger()("Instance segmentation start");
+  ServiceLocator::logger()("Decimating the point cloud... (1/4)");
 
   // Decimation
   std::vector<bool> keep = arbor::utils::homogeneization(core, params.pathfinder.decimation, true);
@@ -56,7 +56,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   size_t num_points  = dec.size();
   size_t num_seeds   = seeds.size();
 
-  logger("Constructing the graph (2/4)");
+  ServiceLocator::logger()("Constructing the graph (2/4)");
 
   // Build graph
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
@@ -67,7 +67,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   Graph::NodeIDs seeds_ids(num_seeds);
   std::iota(seeds_ids.begin(), seeds_ids.end(), num_points);
 
-  logger("Pathfinder (3/4)");
+  ServiceLocator::logger()("Pathfinder (3/4)");
 
   // Retrieve the closest seed for each point
   std::vector<double> distances;
@@ -85,7 +85,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
     if (id != -1) treeID[i] = static_cast<Graph::NodeId>(seeds.get_treeid(id-num_points));
   }
 
-  logger("Assigning tree IDs to the dense point cloud (4/4)");
+  ServiceLocator::logger()("Assigning tree IDs to the dense point cloud (4/4)");
 
   // Expand seed id from dec point cloud to core point cloud
   KDTree tree(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
@@ -121,7 +121,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(1) << elapsed.count();
 
-  logger("Instance segmentation completed in " + oss.str() + " s");
+  ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }
 
 }

@@ -11,12 +11,11 @@ class QSMbuilder
 public:
   QSMbuilder(QSM& graph, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), graph(graph) {};
   void build(const PointCloud& pc);
-  void set_logger(Logger new_logger) { logger = std::move(new_logger); }
 
   // Static and public to be exported in R
-  static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D, const Logger& logger = [](const std::string&) {});
-  static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist, const Logger& logger = [](const std::string&) {});
-  static PointCloud clean_tree_butt(const PointCloud&, const Logger& logger = [](const std::string&) {});
+  static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
+  static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
+  static PointCloud clean_tree_butt(const PointCloud&);
 
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
@@ -52,8 +51,6 @@ public:
 
   arbor::settings::ArborParameters params;
   QSM& graph;
-
-  Logger logger;
 };
 
 }
