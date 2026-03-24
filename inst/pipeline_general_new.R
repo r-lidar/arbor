@@ -88,10 +88,6 @@ plot(ctg, chunk = T)
 chunks = lidR:::engine_chunks(ctg)
 
 maxID = 0
-for (i in seq_along(chunks))
-{
-f = chunks[[i]]
-las <- readLAS(f, select = "xyz0", filter = filter)
 las <- hybrid_homogeneization(las)
 
 plot(header(las))
@@ -199,7 +195,7 @@ seeds <- find_seeds(las, params)
 
 if (display)
 {
-  x <- plot(lidR::filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors, size =2) |> add_dtm3d(dtm)
+  x <- plot(lidR::filter_poi(las,  hag < 2, hag > 0.25), color = "foliage", pal = foliage.colors, size =2)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
 
