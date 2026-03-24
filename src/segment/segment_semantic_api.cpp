@@ -25,8 +25,8 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
 
 std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params, const Logger& logger)
 {
-  if (core.size() == 0)   throw std::runtime_error("segment_instance: core point cloud is empty.");
-  if (dtm.size() == 0) throw std::runtime_error("segment_instance: seeds point cloud is empty.");
+  if (core.size() == 0) throw std::runtime_error("accumulate_passages(): point cloud is empty.");
+  if (dtm.size() == 0)  throw std::runtime_error("accumulate_passages(): seeds point cloud is empty.");
 
   logger("Decimating the point cloud (1/9)");
 
@@ -115,8 +115,8 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
 
 std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
-  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage: point cloud is empty.");
-  if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage: point cloud is missing required 'passage' attribute.");
+  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage(): point cloud is empty.");
+  if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage(): point cloud is missing required 'passage' attribute.");
 
   logger("Pathfinder-based wood segmentation (5/9)");
 
@@ -175,9 +175,9 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
 
 std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
-  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is empty.");
-  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'foliage' attribute.");
-  if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_high_likelihood: point cloud is missing required 'pwood' attribute.");
+  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_high_likelihood(): point cloud is empty.");
+  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood(): point cloud is missing required 'foliage' attribute.");
+  if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_high_likelihood(): point cloud is missing required 'pwood' attribute.");
 
   logger("High likelihood based wood segmentation (6/9)");
 
@@ -231,9 +231,9 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
 
 std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const settings::SemanticParameters& params, const Logger& logger)
 {
-  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
-  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
-  if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'pwood' attribute.");
+  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood(): point cloud is empty.");
+  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood(): point cloud is missing required 'foliage' attribute.");
+  if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_medium_likelihood(): point cloud is missing required 'pwood' attribute.");
 
   logger("Medium likelihood based wood segmentation (7/9)");
 
@@ -369,6 +369,7 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   scene.partition([&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
 
   size_t n = scene.size();
+  if (scene.size() == 0)     throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
 
   std::vector<int> passages = accumulate_passages(scene, dtm, par.pathfinder, logger);
   for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);

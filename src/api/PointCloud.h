@@ -222,7 +222,7 @@ public:
         right--;
       }
 
-      if (left < right)
+      if (left <= right)
       {
         swap_points(left, right);
         left++;
@@ -287,7 +287,11 @@ public:
   // Constructors / destructor
   PointCloudDefault();
   PointCloudDefault(size_t n, bool init_attributes = false);
-  ~PointCloudDefault() ;
+  PointCloudDefault(const PointCloudDefault&) = default;
+  PointCloudDefault(PointCloudDefault&&) = default;
+  PointCloudDefault& operator=(const PointCloudDefault&) = default;
+  PointCloudDefault& operator=(PointCloudDefault&&) = default;
+  ~PointCloudDefault() = default;
 
   // Insertion
   void add_point(float x, float y, float z)
@@ -301,6 +305,7 @@ public:
       passage.push_back(0);
       hag.push_back(0);
       pwood.push_back(0);
+      rgb.push_back({0.75f, 0.75f, 0.75f});
   }
 
   // Merge
@@ -324,6 +329,7 @@ public:
   // --- Num. points ---
   inline size_t point_count() const { return n_points; }
   inline size_t size()        const { return n_points; }
+  inline size_t true_size()   const { return true_n_points; }
 
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const
@@ -341,6 +347,7 @@ public:
   inline void   set_z(const size_t idx, double v) { coords[idx].z = v; }
 
   // --- Optional attribute access ---
+  inline bool has_rgb()     const { return !rgb.empty(); }
   inline bool has_hag()     const { return !hag.empty(); }
   inline bool has_treeid()  const { return !treeid.empty(); }
   inline bool has_pwood()   const { return !pwood.empty(); }
@@ -385,8 +392,8 @@ public:
   }
 
   inline void set_hag(const size_t idx, double v) {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    pwood[idx] = v;
+    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
+    hag[idx] = v;
   }
 
   inline int get_passage(const size_t idx) const {
@@ -439,7 +446,7 @@ public:
         right--;
       }
 
-      if (left < right)
+      if (left <= right)
       {
         swap_points(left, right);
         left++;
@@ -463,24 +470,31 @@ public:
   PointCloudDefault subset(const std::vector<int>& indices, bool xyz_only = false) const;
   PointCloudDefault subset(const std::vector<bool>& mask, bool xyz_only = false) const;
 
+  // --- Color ---
+  void colorize_trees(bool darken_foliage = false);
+
+  // --- View ----
   std::span<float> coord_view()
   {
-    static_assert(std::is_standard_layout_v<Vec3>, "Vec3 must be standard layout");
-    static_assert(std::is_trivially_copyable_v<Vec3>, "Vec3 must be trivially copyable");
-    static_assert(sizeof(Vec3) == 3 * sizeof(float), "Vec3 must not contain padding");
-    static_assert(alignof(Vec3) == alignof(float), "Vec3 alignment must match float");
     if (coords.empty()) return {};
     return { reinterpret_cast<float*>(coords.data()), coords.size() * 3};
   }
 
+
+  std::span<float> rgb_view()
+  {
+    if (rgb.empty()) return {};
+    return { reinterpret_cast<float*>(rgb.data()), rgb.size() * 3};
+  }
+
 private:
   void cleanup();
-  void swap(PointCloudDefault& first, PointCloudDefault& second) noexcept;
   void init();
   void safe_alloc(size_t n, bool alloc_attrs);
   void swap_points(size_t i, size_t j)
   {
     std::swap(coords[i], coords[j]);
+    if (has_rgb())     std::swap(rgb[i], rgb[j]);
     if (has_treeid())  std::swap(treeid[i], treeid[j]);
     if (has_foliage()) std::swap(foliage[i], foliage[j]);
     if (has_passage()) std::swap(passage[i], passage[j]);

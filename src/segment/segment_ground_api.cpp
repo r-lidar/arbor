@@ -24,7 +24,8 @@ struct GroundCloud
 
 void segment_ground(PointCloud& scene, const settings::ArborParameters& params, const Logger& logger)
 {
-  if (scene.size() == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
+  size_t n = scene.true_size();
+  if (n == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
 
   logger("Ground point segmentation");
 
@@ -64,7 +65,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
 
   PTD::PTD ptd(p, bb);
 
-  for (unsigned int i = 0 ; i < scene.size() ; i++)
+  for (unsigned int i = 0 ; i < n ; i++)
   {
     ptd.insert_point(scene.get_x(i), scene.get_y(i), scene.get_z(i), i);
   }
@@ -75,7 +76,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
   GroundCloud ground_pts;
   ground_pts.pts.reserve(gnd_fids.size());
 
-  for (size_t i = 0; i < scene.size() ; i++)
+  for (size_t i = 0; i < n ; i++)
   {
     scene.is_ground(i);
     scene.set_classification(i, 1);
@@ -99,7 +100,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
   int nan_count = 0;
 
   #pragma omp parallel for reduction(+:nan_count)
-  for (int i = 0; i < (int)scene.size(); ++i)
+  for (size_t i = 0; i < n; ++i)
   {
     double cx = scene.get_x(i);
     double cy = scene.get_y(i);
@@ -125,7 +126,8 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params, 
         cz = 0.0; // fallback
       }
     }
-    scene.set_hag(i, scene.get_z(i) - cz);
+    double z = scene.get_z(i);
+    scene.set_hag(i, z - cz);
   }
 
   if (nan_count > 0)
