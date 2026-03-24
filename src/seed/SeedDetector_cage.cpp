@@ -198,6 +198,7 @@ void SeedDetector::make_cages()
     cages.set_x(i, pcage[i].X);
     cages.set_y(i, pcage[i].Y);
     cages.set_z(i, pcage[i].Z);
+    cages.set_passage(i, 9999); // Need to be assigned any value > 0 to be retained in find_primary_seeds()
   }
 }
 

@@ -185,7 +185,10 @@ void SeedDetector::safe_zone()
 // -------------------------------------------------
 void SeedDetector::find_primary_seeds()
 {
+  // Merge wood slices + long passage of the path finder + cages
   PointCloud temp = wood + long_passages + cages;
+
+  // Compute connected components of that point cloud to assign an ID to each point
   temp.scale(1, 1, 0.5);
   double res = std::round(params.pathfinder.decimation * 0.8 * 100.0) / 100.0;
   Grid3D grid(temp, res);
@@ -193,6 +196,9 @@ void SeedDetector::find_primary_seeds()
   for (size_t i = 0 ; i < temp.size() ; i++) temp.set_treeid(i, cluster_ids[i]);
   temp.scale(1, 1, 2);
 
+  // We retain only the point with a passage number > 0
+  // This effectively removes wood points that are subset upstream without passages (assigned 0)
+  // It retains cages are assigned passage = 9999
   std::vector<bool> long_seed_mask(temp.size(), false);
   for (size_t i = 0; i < temp.size(); i++) long_seed_mask[i] = (temp.get_passage(i) > 0);
 
