@@ -790,7 +790,7 @@ void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
       passage.resize(n, 0);
       hag.resize(n, 0.0f);
       pwood.resize(n, 0.0f);
-      rgb.resize(n, {0.5, 0.5, 0.5});
+      rgb.resize(n, {128, 128, 128});
     }
   }
   catch (...)
@@ -800,63 +800,78 @@ void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
   }
 }
 
+// Helper to convert HCL (Polar CIELAB) to RGB
+// Based on standard conversion formulas (D65 illuminant)
+void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
+{
+    // 1. Convert HCL to CIELAB
+    float h_rad = h * M_PI / 180.0f;
+    float L = l;
+    float a = std::cos(h_rad) * c;
+    float b = std::sin(h_rad) * c;
+
+    // 2. Convert CIELAB to XYZ
+    auto f_inv = [](float t) {
+        return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
+    };
+
+    float y = (L + 16.0f) / 116.0f;
+    float x = y + a / 500.0f;
+    float z = y - b / 200.0f;
+
+    // Scale by D65 white point
+    x = 0.95047f * f_inv(x);
+    y = 1.00000f * f_inv(y);
+    z = 1.08883f * f_inv(z);
+
+    // 3. Convert XYZ to Linear RGB
+    float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
+    float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
+    float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
+
+    // 4. Gamma correction (sRGB) and Clamping
+    auto gamma = [](float val) {
+        val = std::max(0.0f, std::min(1.0f, val));
+        return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
+    };
+
+    *R = gamma(r_lin)*255;
+    *G = gamma(g_lin)*255;
+    *B = gamma(b_lin)*255;
+}
+
 void PointCloudDefault::colorize_trees(bool darken_foliage)
 {
     if (true_size() == 0) return;
-    rgb.assign(true_size(), {0.75, 0.75, 0.75});
+    rgb.assign(true_size(), {170, 170, 170});
 
-    // Identify unique tree IDs to build a palette
-    std::unordered_map<int, size_t> id_to_palette_idx;
-    for (size_t i = 0; i < true_n_points; ++i)
-    {
-        int id = treeid[i];
-        if (id != -1 && id_to_palette_idx.find(id) == id_to_palette_idx.end())
-        {
-            size_t next_idx = id_to_palette_idx.size();
-            id_to_palette_idx[id] = next_idx;
-        }
-    }
-
-    size_t num_trees = id_to_palette_idx.size();
-    if (num_trees == 0) return; // All points remain gray
-
-    // Generate a simple "Pastel" palette
-    std::vector<Vec3> palette(num_trees);
-    std::mt19937 gen(42);
-    std::uniform_int_distribution<int> dist(100, 255);
-
-    for (size_t i = 0; i < num_trees; ++i)
-    {
-        palette[i] = {
-            static_cast<float>(dist(gen)/255.0f),
-            static_cast<float>(dist(gen)/255.0f),
-            static_cast<float>(dist(gen)/255.0f)
-        };
-    }
-
-    // Assign colors and apply darkening
+    std::unordered_map<int, RGB> color_cache;
     const float darken_factor = 0.7f;
 
-    for (size_t i = 0; i < true_size(); ++i)
+    for (size_t i = 0; i < size(); ++i)
     {
-        int id = treeid[i];
-
-        // Skip points with no tree ID (remain default gray)
+        int id = get_treeid(i);
         if (id == -1) continue;
 
-        // Get base color from palette
-        Vec3 color = palette[id_to_palette_idx[id]];
-
-        // Darken foliage (foliage >= 1)
-        if (darken_foliage && foliage[i] >= 1)
+        auto [it, inserted] = color_cache.try_emplace(id, RGB{});
+        if (inserted)
         {
-            color.x *= darken_factor;
-            color.y *= darken_factor;
-            color.z *= darken_factor;
+            std::mt19937 gen(static_cast<uint32_t>(id));
+            std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
+            std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
+            std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
+            hcl_to_rgb(dist_h(gen), dist_c(gen), dist_l(gen), &it->second.r, &it->second.g, &it->second.b);
         }
 
+        RGB color = it->second;
+
+        if (darken_foliage && foliage[i] >= 1)
+        {
+            color.r *= darken_factor;
+            color.g *= darken_factor;
+            color.b *= darken_factor;
+        }
         rgb[i] = color;
     }
 }
-
 #endif

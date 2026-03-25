@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <cstdint>
 
 #ifdef USING_R
 #include <Rcpp.h>
@@ -305,7 +306,7 @@ public:
       passage.push_back(0);
       hag.push_back(0);
       pwood.push_back(0);
-      rgb.push_back({0.75f, 0.75f, 0.75f});
+      rgb.push_back({200, 200, 200});
   }
 
   // Merge
@@ -481,10 +482,10 @@ public:
   }
 
 
-  std::span<float> rgb_view()
+  std::span<uint8_t> rgb_view()
   {
     if (rgb.empty()) return {};
-    return { reinterpret_cast<float*>(rgb.data()), rgb.size() * 3};
+    return { reinterpret_cast<uint8_t*>(rgb.data()), rgb.size() * 3};
   }
 
 private:
@@ -505,8 +506,9 @@ private:
 
 private:
   struct Vec3 { float x,y,z; };
+  struct RGB { uint8_t r,g,b; };
   std::vector<Vec3> coords;
-  std::vector<Vec3> rgb;
+  std::vector<RGB> rgb;
   std::vector<int> treeid;
   std::vector<short> foliage;
   std::vector<short> classif;
