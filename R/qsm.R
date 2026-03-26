@@ -13,7 +13,9 @@
 #' tree <- lidR::readLAS(f)
 #' qsm = qsm(tree)
 #' x = plot_semantic(tree)
+#' \dontrun{
 #' plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
+#' }
 #' @export
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm =  function(tree, params = default_arbor_parameters)
