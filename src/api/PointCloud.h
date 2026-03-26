@@ -510,7 +510,7 @@ private:
   std::vector<Vec3> coords;
   std::vector<RGB> rgb;
   std::vector<int> treeid;
-  std::vector<short> foliage;
+  std::vector<uint8_t> foliage;
   std::vector<short> classif;
   std::vector<int> passage;
   std::vector<float> hag;
