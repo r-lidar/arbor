@@ -379,22 +379,22 @@ public:
 
   inline int get_foliage(const size_t idx) const {
     if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    return foliage[idx];
+    return static_cast<int>(foliage[idx]);
   }
 
   inline void set_foliage(const size_t idx, int v) {
     if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    foliage[idx] = v;
+    foliage[idx] = static_cast<uint8_t>(v);
   }
 
   inline double get_hag(const size_t idx) const {
     if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    return hag[idx];
+    return static_cast<double>(hag[idx]);
   }
 
   inline void set_hag(const size_t idx, double v) {
     if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    hag[idx] = v;
+    hag[idx] = static_cast<float>(v);
   }
 
   inline int get_passage(const size_t idx) const {
@@ -413,12 +413,12 @@ public:
 
   inline void set_classification(const size_t idx, int v) {
     if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    classif[idx] = v;
+    classif[idx] = static_cast<uint16_t>(v);
   }
 
   inline int get_classification(const size_t idx) const {
     if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    return classif[idx];
+    return static_cast<int>(classif[idx]);
   }
 
   inline bool is_ground(const size_t idx) const {
@@ -511,7 +511,7 @@ private:
   std::vector<RGB> rgb;
   std::vector<int> treeid;
   std::vector<uint8_t> foliage;
-  std::vector<short> classif;
+  std::vector<uint16_t> classif;
   std::vector<int> passage;
   std::vector<float> hag;
   std::vector<float> pwood;

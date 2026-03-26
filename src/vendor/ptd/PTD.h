@@ -4,8 +4,8 @@
 #include <vector>
 #include <functional>
 
-#include "constants.h"
-#include "delaunay.h"
+#include "hporro/constants.h"
+#include "hporro/delaunay.h"
 #include "nanoflann/nanoflann.h"
 
 namespace PTD

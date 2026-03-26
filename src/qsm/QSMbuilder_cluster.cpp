@@ -7,7 +7,7 @@
 
 #include "arbor.h"
 #include "QSMbuilder.h"
-#include "dbscan.hpp"
+#include "dbscan/dbscan.hpp"
 
 namespace arbor::qsm {
 

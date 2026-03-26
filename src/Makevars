@@ -8,8 +8,6 @@ PKG_CPPFLAGS = -DUSING_R \
   -I./seed \
   -I./dtm \
   -I./nanoflann \
-  -I./vendor/dbscan \
-  -I./vendor/hporro \
   -I./vendor \
   -I./vendor/ptd \
   -I./R
