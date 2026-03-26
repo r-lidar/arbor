@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Find all .cpp files in the specified subdirectories and src/ root
+# Convert the list of .cpp files to .o files
+SOURCES=$(find src -name "*.cpp" -o -name "*.c")
+OBJECTS=$(echo $SOURCES | sed 's|src/||g' | sed 's/\.cpp/.o/g' | sed 's/\.c/.o/g')
+
+# Use sed to replace the @OBJECTS@ placeholder in Makevars.in
+# and output it to Makevars
+sed "s|@OBJECTS@|$OBJECTS|" src/Makevars.in > src/Makevars
+
+exit 0
