@@ -12,8 +12,8 @@
 #' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 #' tree <- lidR::readLAS(f)
 #' qsm = qsm(tree)
-#' x = plot_semantic(tree)
 #' \dontrun{
+#' x = plot_semantic(tree)
 #' plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
 #' }
 #' @export
