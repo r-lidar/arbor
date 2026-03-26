@@ -436,6 +436,26 @@ PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& 
     this->pwood = nullptr;
   }
 
+  // Merge classif if both have it
+  if (this->has_class() && other.has_class())
+  {
+    int* new_classif = new int[new_size];
+    std::memcpy(new_classif, this->classif, old_size * sizeof(int));
+    std::memcpy(new_classif + old_size, other.classif, other.n_points * sizeof(int));
+
+    if (this->owns_memory)
+      delete[] this->classif;
+
+    this->classif = new_classif;
+  }
+  else if (this->has_class())
+  {
+    if (this->owns_memory)
+      delete[] this->classif;
+
+    this->classif = nullptr;
+  }
+
   this->n_points = new_size;
   this->owns_memory = true;
 
