@@ -97,7 +97,6 @@ Exports
 ")
 
   # --- Processing ---
-  set_lidr_threads(0)
   params <- default_arbor_parameters
   params$path_finder$max_gap = 1
   params$path_finder$k_neighborhood_connectivity = 20
@@ -105,7 +104,7 @@ Exports
   if (tls)
 
   cat("Reading point cloud\n")
-  las <- readTLS(input, select = "xyzic", filter = filter_str)
+  las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
   las <- hybrid_homogeneization(las)
   gc()
 
@@ -121,25 +120,23 @@ Exports
     las$X = las$X - xoffset
     las$Y = las$Y - yoffset
     las$Z = las$Z - zoffset
-    las = las_update(las)
-    las_quantize(las)
+    las = lidR::las_update(las)
+    lidR::las_quantize(las)
   }
 
-  cat("Ground classification\n")
-  las <- arbor_ground(las)
+  cat("Ground classification & height above ground\n")
+  las <- segment_ground(las)
   gc()
 
-  cat("DTM & height above ground\n")
-  dtm <- rasterize_terrain(las, 0.1, tin())
-  las <- height_above_ground(las, algorithm = dtm)
-  las <- filter_poi(las, hag > cut_above_ground)
+  cat("DTM\n")
+  dtm <- lidR::rasterize_terrain(las, 0.1, lidR::tin())
   gc()
 
   cat("Wood likelihood\n")
   las <- wood_likelihood(las, params)
 
   cat("Semantic segmentation\n")
-  las  <- segment_semantic(las, dtm, params)
+  las  <- segment_semantic(las, params)
 
   cat("Seeds\n")
   seeds <- find_seeds(las, params)
@@ -158,18 +155,19 @@ Exports
 
   # --- Exports ---
   cat("Exports\n")
-  if (export_segmented)   writeLAS(las, out_segmented)
-  if (export_trees)       writeLAS(trees, out_trees)
-  if (export_dtm)         writeRaster(dtm, out_dtm, overwrite = TRUE)
-  if (export_dtm_mesh)    arbor:::write_raster_to_obj(dtm, out_dtm_mesh)
+  if (export_segmented)   lidR::writeLAS(las, out_segmented)
+  if (export_trees)       lidR::writeLAS(trees, out_trees)
+  if (export_dtm)         terra::writeRaster(dtm, out_dtm, overwrite = TRUE)
+  if (export_dtm_mesh)    write_raster_to_obj(dtm, out_dtm_mesh)
 
   name = tools::file_path_sans_ext(basename(input))
 
+  treeID <- NULL
   if (export_individual) {
     dir.create(its_dir, showWarnings = FALSE, recursive = TRUE)
     for (i in unique(trees$treeID)) {
-      tree <- filter_poi(trees, treeID == i)
-      writeLAS(tree, file.path(its_dir, paste0(name, "_tree_", i, ".las")))
+      tree <- lidR::filter_poi(trees, treeID == i)
+      lidR::writeLAS(tree, file.path(its_dir, paste0(name, "_tree_", i, ".las")))
     }
   }
 }

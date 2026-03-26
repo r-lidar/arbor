@@ -9,7 +9,6 @@
 #' Finally, a connected component step removes small clusters incorrectly classified as wood.
 #'
 #' @param las A LAS object from lidR.
-#' @param dtm A SpatRaster object. Digital Terrain Model
 #' @param params list See \link{parameters}.
 #' @md
 #' @rdname segment_semantic

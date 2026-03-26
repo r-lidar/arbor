@@ -81,15 +81,15 @@ Settings
 =====================================================
 ")
 
-  res <- qsf(
-    input     = ifiles,
-    odir      = odir,
-    formats   = formats,
-    overwrite = overwrite,
-    ncores    = ncores
-  )
-
-  log <- qsf_log(res)
+  # res <- qsf(
+  #   input     = ifiles,
+  #   odir      = odir,
+  #   formats   = formats,
+  #   overwrite = overwrite,
+  #   ncores    = ncores
+  # )
+  #
+  # log <- qsf_log(res)
 
   #for (i in which(has_msg))
   #{

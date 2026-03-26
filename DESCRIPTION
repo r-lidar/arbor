@@ -20,7 +20,6 @@ Imports:
   pracma,
   Rcpp,
   rgl,
-  rlas,
   sf,
   stats,
   terra,

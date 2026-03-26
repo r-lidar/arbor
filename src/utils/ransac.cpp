@@ -184,9 +184,9 @@ double RansacCircle::get_arc_coverage() const
   for (double angle : angles)
   {
     int bin = static_cast<int>(std::round(angle / bin_size) * bin_size);
+    if (bin == 360)  bin = 0;
     unique_bins.insert(bin);
   }
-
   std::vector<int> sorted_bins(unique_bins.begin(), unique_bins.end());
 
   if (sorted_bins.empty()) return 0.0;

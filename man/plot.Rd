@@ -14,6 +14,7 @@
 \usage{
 \method{plot}{qsf}(
   x,
+  ...,
   color = "cyl_ID",
   pal = c("blue", "green", "yellow", "orange", "red"),
   add = NULL
@@ -46,13 +47,13 @@ colorize_trees(las, darken_foliage = TRUE)
 \arguments{
 \item{x}{A QSM of QSF}
 
+\item{...}{propagated to lidR::plot}
+
 \item{color}{The attribute for color mapping.}
 
 \item{pal}{Color palette}
 
 \item{add}{A numeric vector for translation offsets. Like in the lidR package.}
-
-\item{...}{propagated to lidR::plot}
 
 \item{qsm}{A QSM}
 
@@ -67,8 +68,6 @@ colorize_trees(las, darken_foliage = TRUE)
 \item{darken_foliage}{boolean. In addition to one color per tree, the foliage is darkened
 the same color that its corresponding tree to display semantic and instance segmentation in
 one rendering.}
-
-\item{sides}{Number of sides for each cylinder.}
 }
 \description{
 Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.

@@ -1,7 +1,7 @@
 #' @method plot qsf
 #' @export
 #' @rdname plot
-plot.qsf = function(x, color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"), add = NULL)
+plot.qsf = function(x, ..., color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"), add = NULL)
 {
   if (!is.null(add)) {
     tx = add[1]; ty = add[2]; tz = 0

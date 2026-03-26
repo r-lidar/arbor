@@ -5,7 +5,6 @@
 #' @param x A QSM of QSF
 #' @param qsm A QSM
 #' @param add A numeric vector for translation offsets. Like in the lidR package.
-#' @param sides Number of sides for each cylinder.
 #' @param color The attribute for color mapping.
 #' @param pal Color palette
 #' @param ... Unused (for S3 compatibility).

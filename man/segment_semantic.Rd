@@ -10,8 +10,6 @@ segment_semantic(las, params = default_arbor_parameters)
 \item{las}{A LAS object from lidR.}
 
 \item{params}{list See \link{parameters}.}
-
-\item{dtm}{A SpatRaster object. Digital Terrain Model}
 }
 \description{
 This function performs wood-foliage semantic segmentation by constructing a network of points

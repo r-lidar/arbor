@@ -22,7 +22,7 @@ Other:
   }
 
   if (length(args) == 0 || has_flag(args, "-h") || has_flag(args, "--help")) {
-    usage_segment()
+    usage_blender()
   }
 
   # --- Parse Inputs ---
@@ -90,21 +90,19 @@ Settings
   las = lidR::las_update(las)
   lidR::las_quantize(las)
 
-  cat("Ground classification\n")
-  las <- arbor_ground(las)
+  cat("Ground classification & height above ground\n")
+  las <- segment_ground(las)
   gc()
 
-  cat("DTM & height above ground\n")
+  cat("DTM\n")
   dtm <- lidR::rasterize_terrain(las, 0.1, lidR::tin())
-  las <- lidR::height_above_ground(las, algorithm = dtm)
-  las <- lidR::filter_poi(las, hag > cut_above_ground)
   gc()
 
   cat("Wood likelihood\n")
   las <- wood_likelihood(las, params)
 
   cat("Semantic segmentation\n")
-  las <- segment_semantic(las, dtm, params)
+  las <- segment_semantic(las, params)
 
   cat("Seeds\n")
   seeds <- find_seeds(las, params)
@@ -134,6 +132,7 @@ Settings
   write_cylinders_to_obj(rings, out_rings)
 
   cat("Export las\n")
+  foliage <- NULL
   high = remove_small_trees(las, 2)
   low = keep_small_trees(las, 2)
   rm(las) ; gc()
