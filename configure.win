@@ -1,12 +1,22 @@
 #!/bin/sh
+"${R_HOME}/bin/Rscript" -e "
+  # 1. Find all source files recursively in src/
+  sources <- list.files('src', pattern = '\\\.(cpp|c)$', recursive = TRUE)
+  
+  # 2. Convert to object names (remove 'src/' prefix and change extension)
+  # We use 'basename' if you want them flat, but since you have subdirs, 
+  # we keep the relative path and change the extension.
+  objs <- gsub('^src/', '', sources)
+  objs <- gsub('\\\.(cpp|c)$', '.o', objs)
+  objs_string <- paste(objs, collapse = ' ')
 
-# Find all .cpp files in the specified subdirectories and src/ root
-# Convert the list of .cpp files to .o files
-SOURCES=$(find src -name "*.cpp" -o -name "*.c")
-OBJECTS=$(echo $SOURCES | sed 's|src/||g' | sed 's/\.cpp/.o/g' | sed 's/\.c/.o/g')
-
-# Use sed to replace the @OBJECTS@ placeholder in Makevars.in
-# and output it to Makevars
-sed "s|@OBJECTS@|$OBJECTS|" src/Makevars.in > src/Makevars
-
-exit 0
+  # 3. Read template and replace placeholder
+  if (file.exists('src/Makevars.in')) {
+    txt <- readLines('src/Makevars.in', warn = FALSE)
+    txt <- gsub('@OBJECTS@', objs_string, txt)
+    writeLines(txt, 'src/Makevars.win')
+    cat('Generated src/Makevars.win successfully\n')
+  } else {
+    stop('src/Makevars.in not found!')
+  }
+"
