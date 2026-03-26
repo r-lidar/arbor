@@ -1,3 +1,7 @@
+# Standard C++17 support
+CXX_STD = CXX17
+
+# Compilation flags
 PKG_CPPFLAGS = -DUSING_R \
   -I. \
   -I./utils \
@@ -11,7 +15,57 @@ PKG_CPPFLAGS = -DUSING_R \
   -I./vendor \
   -I./vendor/ptd \
   -I./R
+
+# OpenMP support
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
-CXX_STD = CXX17
-OBJECTS = api/PointCloud.o RcppExports.o vendor/ptd/PTD.o vendor/hporro/pred3d.o vendor/hporro/delaunay.o vendor/hporro/index.o vendor/dbscan/dbscan.o experimental/qsm_distance.o experimental/extrat_context.o qsf/QSF.o qsf/qsf_api.o R/RcppApi_wrappers.o R/RcppApi_segment.o R/RcppApi_qsm.o R/RcppApi_params.o R/RcppApi_tools.o seed/SeedDetector.o seed/find_seeds_api.o seed/SeedDetector_cage.o seed/SeedDetector_circle.o segment/segment_semantic_api.o segment/Graph.o segment/GraphBuilder.o segment/segment_instance_api.o segment/segment_ground_api.o RcppAutoExport.o dtm/dtm.o utils/services.o utils/homogeneization.o utils/ransac.o utils/knn.o utils/progressbar.o utils/Grid3D.o utils/sor.o utils/anisotopy.o misc/read_adtree_skeleton.o qsm/QSMbuilder_layers.o qsm/QSM_mesh.o qsm/QSMbuilder_radius.o qsm/QSMbuilder_smooth.o qsm/QSMbuilder_architecture.o qsm/QSMbuilder_prolongation.o qsm/QSMbuilder_cluster.o qsm/QSMbuilder_skeleton.o qsm/QSMbuilder.o qsm/QSMbuilder_butt.o qsm/qsm_api.o qsm/QSM_write.o
+
+# Explicit list of object files (POSIX compliant)
+OBJECTS = api/PointCloud.o \
+  RcppExports.o \
+  vendor/ptd/PTD.o \
+  vendor/hporro/pred3d.o \
+  vendor/hporro/delaunay.o \
+  vendor/hporro/index.o \
+  vendor/dbscan/dbscan.o \
+  experimental/qsm_distance.o \
+  experimental/extrat_context.o \
+  qsf/QSF.o \
+  qsf/qsf_api.o \
+  R/RcppApi_wrappers.o \
+  R/RcppApi_segment.o \
+  R/RcppApi_qsm.o \
+  R/RcppApi_params.o \
+  R/RcppApi_tools.o \
+  seed/SeedDetector.o \
+  seed/find_seeds_api.o \
+  seed/SeedDetector_cage.o \
+  seed/SeedDetector_circle.o \
+  segment/segment_semantic_api.o \
+  segment/Graph.o \
+  segment/GraphBuilder.o \
+  segment/segment_instance_api.o \
+  segment/segment_ground_api.o \
+  RcppAutoExport.o \
+  dtm/dtm.o \
+  utils/services.o \
+  utils/homogeneization.o \
+  utils/ransac.o \
+  utils/knn.o \
+  utils/progressbar.o \
+  utils/Grid3D.o \
+  utils/sor.o \
+  utils/anisotopy.o \
+  misc/read_adtree_skeleton.o \
+  qsm/QSMbuilder_layers.o \
+  qsm/QSM_mesh.o \
+  qsm/QSMbuilder_radius.o \
+  qsm/QSMbuilder_smooth.o \
+  qsm/QSMbuilder_architecture.o \
+  qsm/QSMbuilder_prolongation.o \
+  qsm/QSMbuilder_cluster.o \
+  qsm/QSMbuilder_skeleton.o \
+  qsm/QSMbuilder.o \
+  qsm/QSMbuilder_butt.o \
+  qsm/qsm_api.o \
+  qsm/QSM_write.o
