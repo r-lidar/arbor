@@ -70,6 +70,8 @@ file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_abo
 
 # Geotree
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/BCI_A0_decimated_50_clip_40x40.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark.las" ; filter =  "-keep_random_fraction 0.3" ; cut_above_ground = 0.25
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark_30x30.las" ; filter =  "-keep_random_fraction 1" ; cut_above_ground = 0.25
 
 # ===== PROCESSING PARAMETERS =====
 
@@ -79,7 +81,13 @@ params = default_arbor_parameters
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
 
-las <- readTLS(file, select = "xyz0", filter = filter)
+ctg = readTLScatalog(file, select = "xyz0", filter = filter)
+opt_chunk_size(ctg) = 50
+opt_chunk_buffer(ctg) = 10
+plot(ctg, chunk = T)
+chunks = lidR:::engine_chunks(ctg)
+
+maxID = 0
 las <- hybrid_homogeneization(las)
 
 plot(header(las))
@@ -187,7 +195,7 @@ seeds <- find_seeds(las, params)
 
 if (display)
 {
-  x <- plot(lidR::filter_poi(las,  hag < 2), color = "foliage", pal = foliage.colors, size =2) |> add_dtm3d(dtm)
+  x <- plot(lidR::filter_poi(las,  hag < 2, hag > 0.25), color = "foliage", pal = foliage.colors, size =2)
   plot(seeds, color = "treeID", add = x, size = 8)
 }
 
@@ -205,6 +213,17 @@ if (display)
 
 }
 
+bb = st_bbox(f)
+bb = sf::st_as_sfc(bb)
+tm = seeds@data[, .(x = mean(X), y = mean(Y)), by = treeID]
+tm = sf::st_as_sf(tm, coords = c("x", "y"))
+seeds_roi = sf::st_contains(bb, tm)
+seeds_roi = tm[seeds_roi[[1]], ]
+seeds_roi_ids = unique(seeds_roi$treeID)
+seeds_roi = filter_poi(seeds, treeID %in% seeds_roi_ids)
+
+las = filter_poi(las, treeID %in% seeds_roi_ids)
+
 # ====== RETAIN ONLY MAIN TREES =======
 
 # Low understory is unlikely to be properly segmented in complex contexts.
@@ -212,7 +231,7 @@ if (display)
 # The goal is to retain the main trees and clean up the understory. It also
 # remove blob of points with no ID
 
-trees <- remove_small_trees(las, max_height = 4)
+trees <- remove_small_trees(las, max_height = 2)
 
 if (display)
 {

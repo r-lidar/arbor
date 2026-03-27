@@ -12,8 +12,10 @@
 #' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 #' tree <- lidR::readLAS(f)
 #' qsm = qsm(tree)
+#' \dontrun{
 #' x = plot_semantic(tree)
 #' plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
+#' }
 #' @export
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm =  function(tree, params = default_arbor_parameters)

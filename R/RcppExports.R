@@ -17,12 +17,20 @@ C_sor <- function(df, k, m) {
     .Call(`_arbor_C_sor`, df, k, m)
 }
 
-segment_semantic_cpp <- function(core, ground, params) {
-    invisible(.Call(`_arbor_segment_semantic_cpp`, core, ground, params))
+segment_ground_cpp <- function(core, params) {
+    invisible(.Call(`_arbor_segment_ground_cpp`, core, params))
+}
+
+segment_semantic_cpp <- function(core, params) {
+    invisible(.Call(`_arbor_segment_semantic_cpp`, core, params))
 }
 
 segment_instance_cpp <- function(core, seeds, params) {
     invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
+}
+
+colorize_trees_cpp <- function(core, dark) {
+    invisible(.Call(`_arbor_colorize_trees_cpp`, core, dark))
 }
 
 find_seeds_cpp <- function(core, params) {

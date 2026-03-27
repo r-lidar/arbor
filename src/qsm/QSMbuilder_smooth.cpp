@@ -1,6 +1,7 @@
 #include "QSMbuilder.h"
 
 #include <algorithm>
+#include <map>
 
 namespace arbor::qsm {
 
@@ -8,7 +9,7 @@ void QSMbuilder::smooth_skeleton(int steps, double lambda, double mu)
 {
   if (graph.edge_count() == 0) return;
 
-  logger("Smoothing skeleton");
+  ServiceLocator::logger()("Smoothing skeleton");
 
   // Build axis map: axis_ID -> ordered list of edge IDs (sorted by subtree_length for root->tip order)
   std::map<int, std::vector<int>> axis_map;

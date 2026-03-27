@@ -91,38 +91,12 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 #' one rendering.
 colorize_trees = function(las, darken_foliage = TRUE)
 {
-  p1 <- las@data$foliage    # 0 = wood, 1/2 = foliage
-  p2 <- las@data$treeID     # tree IDs (non-continuous)
-  n <- max(p2, na.rm = TRUE)   # number of unique trees
-
-  # Example pastel palette
-  pal <- lidR::pastel.colors(n)   # or any vector of colors per tree
-  pal <- t(grDevices::col2rgb(pal))
-
-  # Create vector to store RGB for each point
-  cols <- pal[p2, ]
-
-  R = as.integer(cols[,1])
-  G = as.integer(cols[,2])
-  B = as.integer(cols[,3])
-
-  # Darken foliage points
-  if (darken_foliage)
-  {
-    foliage = p1 >= 1
-    cols[foliage,] =   cols[foliage,] * 0.7
-    R = as.integer(cols[,1])
-    G = as.integer(cols[,2])
-    B = as.integer(cols[,3])
-  }
-
-  R[is.na(R)] = 150L
-  G[is.na(G)] = 150L
-  B[is.na(B)] = 150L
-
-  # Assign to LAS
+  R = rep(150L, lidR::npoints(las))
+  G = rep(150L, lidR::npoints(las))
+  B = rep(150L, lidR::npoints(las))
   las = lidR::add_lasrgb(las, R, G, B)
-  las
+  colorize_trees_cpp(las@data, darken_foliage)
+  return(las)
 }
 
 

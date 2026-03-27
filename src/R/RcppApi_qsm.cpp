@@ -16,7 +16,7 @@ Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
 {
   PointCloud pc(tree);
   arbor::settings::ArborParameters p = extract_arbor_params(params);
-  QSM qsm = arbor::qsm::qsm(pc, p, Rlogger);
+  QSM qsm = arbor::qsm::qsm(pc, p);
   return as_dataframe(qsm);
 }
 

@@ -12,14 +12,19 @@
 \alias{colorize_trees}
 \title{Plot QSM Data in 3D}
 \usage{
-\method{plot}{qsf}(x, ...)
+\method{plot}{qsf}(
+  x,
+  ...,
+  color = "cyl_ID",
+  pal = c("blue", "green", "yellow", "orange", "red"),
+  add = NULL
+)
 
 \method{plot}{qsm}(x, ...)
 
 plot_qsm(
   qsm,
   add = NULL,
-  sides = 12,
   color = "cyl_ID",
   skeleton = TRUE,
   cylinder = TRUE,
@@ -44,17 +49,15 @@ colorize_trees(las, darken_foliage = TRUE)
 
 \item{...}{propagated to lidR::plot}
 
-\item{qsm}{A QSM}
+\item{color}{The attribute for color mapping.}
+
+\item{pal}{Color palette}
 
 \item{add}{A numeric vector for translation offsets. Like in the lidR package.}
 
-\item{sides}{Number of sides for each cylinder.}
-
-\item{color}{The attribute for color mapping.}
+\item{qsm}{A QSM}
 
 \item{skeleton, cylinder}{boolean. plot the skeleton or the cylinders or both.}
-
-\item{pal}{Color palette}
 
 \item{las}{LAS object}
 

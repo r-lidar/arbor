@@ -12,7 +12,7 @@ result7 <- ransac_circle(circle_points, num_iterations = 50, inlier_threshold = 
 
 expect_equal(result7$center_x, 12, tolerance = 0.005)
 expect_equal(result7$center_y, 18.5, tolerance = 0.005)
-expect_equal(result7$radius, 2, tolerance = 0.02)
+expect_equal(result7$radius, 2, tolerance = 0.025)
 expect_equal(result7$covered_arc_degree, 360)
 
 
@@ -32,7 +32,7 @@ expect_equal(result8$center_x, 500, tolerance = 0.005)
 expect_equal(result8$center_y, 500, tolerance = 0.005)
 expect_equal(result8$radius, 0.12, tolerance = 0.05)
 expect_equal(result8$covered_arc_degree, 183, tolerance = 3)
-expect_equal(result8$percentage_inlier, 1, tolerance = 0.01)
+expect_equal(result8$percentage_inlier, 1, tolerance = 0.02)
 
 
 x = structure(

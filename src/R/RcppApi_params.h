@@ -14,6 +14,7 @@ inline void assert_exists(const Rcpp::List& p, const char* name)
 }
 
 // Helper function to extract parameters from R list
+arbor::settings::GlobalParameters extract_global_params(const Rcpp::List& params);
 arbor::settings::GraphParameters extract_pathfinder_params(Rcpp::List params);
 arbor::settings::SemanticParameters extract_semantic_params(const Rcpp::List& params);
 arbor::settings::WoodlikelihoodParameters extract_likelihood_params(const Rcpp::List& params);

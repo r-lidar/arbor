@@ -3,6 +3,48 @@
 #include <algorithm> // for std::copy
 #include <cstring>   // for std::memset
 #include <algorithm>
+#include <random>
+
+// Helper to convert HCL (Polar CIELAB) to RGB
+// Based on standard conversion formulas (D65 illuminant)
+static void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
+{
+  // 1. Convert HCL to CIELAB
+  float h_rad = h * M_PI / 180.0f;
+  float L = l;
+  float a = std::cos(h_rad) * c;
+  float b = std::sin(h_rad) * c;
+
+  // 2. Convert CIELAB to XYZ
+  auto f_inv = [](float t) {
+    return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
+  };
+
+  float y = (L + 16.0f) / 116.0f;
+  float x = y + a / 500.0f;
+  float z = y - b / 200.0f;
+
+  // Scale by D65 white point
+  x = 0.95047f * f_inv(x);
+  y = 1.00000f * f_inv(y);
+  z = 1.08883f * f_inv(z);
+
+  // 3. Convert XYZ to Linear RGB
+  float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
+  float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
+  float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
+
+  // 4. Gamma correction (sRGB) and Clamping
+  auto gamma = [](float val)
+  {
+    val = std::max(0.0f, std::min(1.0f, val));
+    return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
+  };
+
+  *R = gamma(r_lin)*255;
+  *G = gamma(g_lin)*255;
+  *B = gamma(b_lin)*255;
+}
 
 #ifdef USING_R
 
@@ -15,6 +57,7 @@ PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
 {
   init();
   n_points = n;
+  true_n_points = n;
   safe_alloc(n, init_attributes);
 }
 
@@ -22,55 +65,41 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
   init();
   n_points = df.rows();
+  true_n_points = n_points;
   owns_memory = false;
 
-  std::vector<std::string> coord_names = {"X", "Y", "Z"};
-  std::string treeid_name  = "treeID";
-  std::string pwood_name   = "pwood";
-  std::string foliage_name = "foliage";
-  std::string hag_name     = "hag";
-  std::string passage_name = "passage";
+  // The macro now takes a 'mandatory' boolean to handle X, Y, Z logic
+  #define LOAD_ATTR_SAFE(expected_sexp, r_name, member, mandatory)         \
+    if (df.containsElementNamed(r_name)) {                                 \
+      SEXP col_sexp = df[r_name];                                          \
+      if (TYPEOF(col_sexp) != expected_sexp) {                             \
+        throw std::runtime_error(std::string("Column '") + r_name +        \
+                                 "' has wrong type. Copy avoided.");       \
+      }                                                                    \
+      Rcpp::Vector<expected_sexp> col(col_sexp);                           \
+      member = col.begin();                                                \
+    } else if (mandatory) {                                                \
+      throw std::runtime_error(std::string("Missing mandatory column: ")   \
+                                 + r_name);                                \
+    }
 
-  // --- Mandatory coordinates ---
-  for (size_t i = 0; i < 3; ++i)
-  {
-    if (!df.containsElementNamed(coord_names[i].c_str()))
-      throw std::runtime_error("Missing mandatory coordinate column: " + coord_names[i]);
+  // --- Mandatory ---
+  LOAD_ATTR_SAFE(REALSXP, "X", coords[0], true)
+  LOAD_ATTR_SAFE(REALSXP, "Y", coords[1], true)
+  LOAD_ATTR_SAFE(REALSXP, "Z", coords[2], true)
 
-    Rcpp::NumericVector col = df[coord_names[i]];
-    coords[i] = col.begin();
-  }
+  // --- Optional ---
+  LOAD_ATTR_SAFE(REALSXP, "hag",            hag,     false)
+  LOAD_ATTR_SAFE(INTSXP,  "treeID",         treeid,  false)
+  LOAD_ATTR_SAFE(REALSXP, "pwood",          pwood,   false)
+  LOAD_ATTR_SAFE(INTSXP,  "foliage",        foliage, false)
+  LOAD_ATTR_SAFE(INTSXP,  "passage",        passage, false)
+  LOAD_ATTR_SAFE(INTSXP,  "Classification", classif, false)
+  LOAD_ATTR_SAFE(INTSXP,  "R",              red,     false)
+  LOAD_ATTR_SAFE(INTSXP,  "G",              green,   false)
+  LOAD_ATTR_SAFE(INTSXP,  "B",              blue,    false)
 
-  // --- Optional attributes ---
-  if (df.containsElementNamed(hag_name.c_str()))
-  {
-    Rcpp::NumericVector col = df[hag_name];
-    hag = col.begin();
-  }
-
-  if (df.containsElementNamed(treeid_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[treeid_name];
-    treeid = col.begin();
-  }
-
-  if (df.containsElementNamed(pwood_name.c_str()))
-  {
-    Rcpp::NumericVector col = df[pwood_name];
-    pwood = col.begin();
-  }
-
-  if (df.containsElementNamed(foliage_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[foliage_name];
-    foliage = col.begin();
-  }
-
-  if (df.containsElementNamed(passage_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[passage_name];
-    passage = col.begin();
-  }
+  #undef LOAD_ATTR_SAFE
 }
 
 // ------------------------------------------------------------
@@ -119,6 +148,10 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
     if (other.passage) {
       passage = new int[n_points];
       std::copy(other.passage, other.passage + n_points, passage);
+    }
+    if (other.classif) {
+      classif = new int[n_points];
+      std::copy(other.classif, other.classif + n_points, classif);
     }
   }
   catch (...)
@@ -175,9 +208,13 @@ void PointCloudDataFrame::cleanup()
   delete[] pwood;
   delete[] hag;
   delete[] passage;
+  delete[] classif;
+
+  n_points = 0;
+  true_n_points = 0;
 
   coords[0] = coords[1] = coords[2] = nullptr;
-  treeid = foliage = nullptr;
+  treeid = foliage = classif = nullptr;
   pwood = hag = nullptr;
 }
 
@@ -227,6 +264,7 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<int>& indices,
     if (treeid)  result.treeid  = new int[new_count];
     if (foliage) result.foliage = new int[new_count];
     if (passage) result.passage = new int[new_count];
+    if (classif) result.classif = new int[new_count];
     if (pwood)   result.pwood   = new double[new_count];
     if (hag)     result.hag     = new double[new_count];
   }
@@ -246,6 +284,7 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<int>& indices,
       if (treeid)  result.treeid[j]  = treeid[i];
       if (foliage) result.foliage[j] = foliage[i];
       if (passage) result.passage[j] = passage[i];
+      if (classif) result.classif[j] = classif[i];
       if (pwood)   result.pwood[j]   = pwood[i];
       if (hag)     result.hag[j]     = hag[i];
     }
@@ -263,7 +302,7 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<bool>& keep, b
   std::vector<int> indices;
   indices.reserve(n_points/10);
 
-  for (int i = 0; i < (int)n_points; ++i) {
+  for (size_t i = 0; i < n_points; ++i) {
     if (keep[i]) {
       indices.push_back(i);
     }
@@ -291,132 +330,30 @@ PointCloudDataFrame PointCloudDataFrame::operator+(const PointCloudDataFrame& ot
 // In-place merge operator
 PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& other)
 {
-  if (!this->owns_memory) {
-    throw std::runtime_error("This point cloud does not own its memory because it is owned by R. Cannot merge.");
+  if (!this->owns_memory)
+  {
+    throw std::runtime_error("This point cloud does not own its memory. Cannot merge.");
   }
 
-  if (other.n_points == 0) {
-    return *this;
-  }
+  if (other.n_points == 0) return *this;
 
   size_t old_size = this->n_points;
-  size_t new_size = old_size + other.n_points;
+  size_t other_size = other.n_points;
 
-  // Reallocate and merge coordinates
-  for (size_t d = 0; d < 3; ++d)
-  {
-    double* new_coords = new double[new_size];
-    std::memcpy(new_coords, this->coords[d], old_size * sizeof(double));
-    std::memcpy(new_coords + old_size, other.coords[d], other.n_points * sizeof(double));
+  // Merge coordinates (X, Y, Z)
+  merge_attribute(this->coords[0], other.coords[0], old_size, other_size, true);
+  merge_attribute(this->coords[1], other.coords[1], old_size, other_size, true);
+  merge_attribute(this->coords[2], other.coords[2], old_size, other_size, true);
 
-    if (this->owns_memory)
-      delete[] this->coords[d];
+  // Merge optional attributes
+  merge_attribute(this->treeid,  other.treeid,  old_size, other_size, other.has_treeid());
+  merge_attribute(this->foliage, other.foliage, old_size, other_size, other.has_foliage());
+  merge_attribute(this->passage, other.passage, old_size, other_size, other.has_passage());
+  merge_attribute(this->hag,     other.hag,     old_size, other_size, other.has_hag());
+  merge_attribute(this->pwood,   other.pwood,   old_size, other_size, other.has_pwood());
+  merge_attribute(this->classif, other.classif, old_size, other_size, other.has_class());
 
-    this->coords[d] = new_coords;
-  }
-
-  // Merge treeid if both have it
-  if (this->has_treeid() && other.has_treeid())
-  {
-    int* new_treeid = new int[new_size];
-    std::memcpy(new_treeid, this->treeid, old_size * sizeof(int));
-    std::memcpy(new_treeid + old_size, other.treeid, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->treeid;
-
-    this->treeid = new_treeid;
-  }
-  else if (this->has_treeid())
-  {
-    // This has treeid but other doesn't - remove treeid
-    if (this->owns_memory) {
-      delete[] this->treeid;
-    }
-    this->treeid = nullptr;
-  }
-
-  // Merge foliage if both have it
-  if (this->has_foliage() && other.has_foliage())
-  {
-    int* new_foliage = new int[new_size];
-    std::memcpy(new_foliage, this->foliage, old_size * sizeof(int));
-    std::memcpy(new_foliage + old_size, other.foliage, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->foliage;
-
-    this->foliage = new_foliage;
-  }
-  else if (this->has_foliage())
-  {
-    if (this->owns_memory)
-      delete[] this->foliage;
-
-    this->foliage = nullptr;
-  }
-
-  // Merge passage if both have it
-  if (this->has_passage() && other.has_passage())
-  {
-    int* new_passage = new int[new_size];
-    std::memcpy(new_passage, this->passage, old_size * sizeof(int));
-    std::memcpy(new_passage + old_size, other.passage, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->passage;
-
-    this->passage = new_passage;
-  }
-  else if (this->has_passage())
-  {
-    if (this->owns_memory)
-      delete[] this->passage;
-
-    this->passage = nullptr;
-  }
-
-  // Merge hag if both have it
-  if (this->has_hag() && other.has_hag())
-  {
-    double* new_hag = new double[new_size];
-    std::memcpy(new_hag, this->hag, old_size * sizeof(double));
-    std::memcpy(new_hag + old_size, other.hag, other.n_points * sizeof(double));
-
-    if (this->owns_memory)
-      delete[] this->hag;
-
-    this->hag = new_hag;
-  }
-  else if (this->has_hag())
-  {
-    if (this->owns_memory)
-      delete[] this->hag;
-
-    this->hag = nullptr;
-  }
-
-  // Merge pwood if both have it
-  if (this->has_pwood() && other.has_pwood())
-  {
-    double* new_pwood = new double[new_size];
-    std::memcpy(new_pwood, this->pwood, old_size * sizeof(double));
-    std::memcpy(new_pwood + old_size, other.pwood, other.n_points * sizeof(double));
-
-    if (this->owns_memory)
-      delete[] this->pwood;
-
-    this->pwood = new_pwood;
-  }
-  else if (this->has_pwood())
-  {
-    if (this->owns_memory)
-      delete[] this->pwood;
-
-    this->pwood = nullptr;
-  }
-
-  this->n_points = new_size;
+  this->n_points += other_size;
   this->owns_memory = true;
 
   return *this;
@@ -436,6 +373,7 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
   std::swap(first.passage, second.passage);
   std::swap(first.hag, second.hag);
   std::swap(first.pwood, second.pwood);
+  std::swap(first.classif, second.classif);
 }
 
 void PointCloudDataFrame::init()
@@ -450,6 +388,7 @@ void PointCloudDataFrame::init()
   passage = nullptr;
   hag     = nullptr;
   pwood   = nullptr;
+  classif = nullptr;
 }
 
 void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
@@ -465,6 +404,7 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
       treeid  = new int[n]();
       foliage = new int[n]();
       passage = new int[n]();
+      classif = new int[n]();
       hag     = new double[n]();
       pwood   = new double[n]();
     }
@@ -476,5 +416,386 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
     cleanup();
     throw;
   }
+}
+
+void PointCloudDataFrame::colorize_trees(bool darken_foliage)
+{
+  if (!has_red() || !has_green() || !has_blue())
+    throw std::runtime_error("RGB memory not allocated");
+
+  if (!has_treeid())
+    throw std::runtime_error("No treeID in this point cloud");
+
+  if (!has_foliage())
+    darken_foliage = false;
+
+  if (true_size() == 0) return;
+
+  struct RGB { uint8_t r,g,b; };
+
+  std::unordered_map<int, RGB> color_cache;
+  const float darken_factor = 0.7f;
+
+  for (size_t i = 0; i < size(); ++i)
+  {
+    int id = get_treeid(i);
+    if (id < 0) continue;
+
+    auto [it, inserted] = color_cache.try_emplace(id, RGB{});
+    if (inserted)
+    {
+      std::mt19937 gen(static_cast<uint32_t>(id));
+      std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
+      std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
+      std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
+      hcl_to_rgb(dist_h(gen), dist_c(gen), dist_l(gen), &it->second.r, &it->second.g, &it->second.b);
+    }
+
+    RGB color = it->second;
+
+    if (darken_foliage && !is_wood(i))
+    {
+      color.r *= darken_factor;
+      color.g *= darken_factor;
+      color.b *= darken_factor;
+    }
+    set_red(i, static_cast<int>(color.r)*255);
+    set_green(i, static_cast<int>(color.g)*255);
+    set_blue(i, static_cast<int>(color.b)*255);
+  }
+}
+
+#else
+
+PointCloudDefault::PointCloudDefault()
+{
+  init();
+}
+
+PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
+{
+  init();
+  n_points = n;
+  true_n_points = n;
+  safe_alloc(n, init_attributes);
+}
+
+
+// ------------------------------------------------------------
+// Cleanup
+// ------------------------------------------------------------
+void PointCloudDefault::cleanup()
+{
+  coords.clear();
+  rgb.clear();
+  treeid.clear();
+  foliage.clear();
+  passage.clear();
+  hag.clear();
+  pwood.clear();
+  classif.clear();
+  n_points = 0;
+  true_n_points = 0;
+}
+
+// ------------------------------------------------------------
+// Transforms
+// ------------------------------------------------------------
+void PointCloudDefault::translate(double x, double y, double z)
+{
+  for (size_t i = 0; i < n_points; ++i)
+  {
+    if (x != 0) coords[i].x -= static_cast<float>(x);
+    if (y != 0) coords[i].y -= static_cast<float>(y);
+    if (z != 0) coords[i].z -= static_cast<float>(z);
+  }
+}
+
+void PointCloudDefault::scale(double x, double y, double z)
+{
+  for (size_t i = 0; i < n_points; ++i)
+  {
+    if (x != 1.0) coords[i].x *= static_cast<float>(x);
+    if (y != 1.0) coords[i].y *= static_cast<float>(y);
+    if (z != 1.0) coords[i].z *= static_cast<float>(z);
+  }
+}
+
+// ------------------------------------------------------------
+// Subset (by indices)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::subset(const std::vector<int>& indices, bool xyz_only) const
+{
+  size_t new_count = indices.size();
+
+  PointCloudDefault result;
+  result.n_points = new_count;
+  result.true_n_points = new_count;
+  result.coords.resize(new_count);
+
+  for (size_t j = 0; j < new_count; ++j)
+  {
+    int i = indices[j];
+    result.coords[j] = coords[i];
+  }
+
+  if (!xyz_only)
+  {
+    if (!treeid.empty())
+    {
+      result.treeid.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.treeid[j] = treeid[indices[j]];
+    }
+
+    if (!foliage.empty())
+    {
+      result.foliage.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.foliage[j] = foliage[indices[j]];
+    }
+
+    if (!passage.empty())
+    {
+      result.passage.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.passage[j] = passage[indices[j]];
+    }
+
+    if (!hag.empty())
+    {
+      result.hag.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.hag[j] = hag[indices[j]];
+    }
+
+    if (!pwood.empty())
+    {
+      result.pwood.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.pwood[j] = pwood[indices[j]];
+    }
+
+    if (!rgb.empty())
+    {
+      result.rgb.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.rgb[j] = rgb[indices[j]];
+    }
+
+    if (!classif.empty())
+    {
+      result.classif.resize(new_count);
+      for (size_t j = 0; j < new_count; ++j)
+        result.classif[j] = classif[indices[j]];
+    }
+  }
+
+  return result;
+}
+
+// ------------------------------------------------------------
+// Subset (by bool mask)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::subset(const std::vector<bool>& keep, bool xyz_only) const
+{
+  if (keep.size() != n_points)
+    throw std::runtime_error("subset mask size mismatch: expected " +
+      std::to_string(n_points) + " but got " + std::to_string(keep.size()));
+
+  // Convert bool mask to indices
+  std::vector<int> indices;
+  indices.reserve(n_points / 10);
+
+  for (int i = 0; i < (int)n_points; ++i)
+  {
+    if (keep[i])
+      indices.push_back(i);
+  }
+
+  // Handle the "all points" case early to avoid unnecessary copy/allocation
+  if (indices.size() == n_points)
+    return *this;
+
+  return subset(indices, xyz_only);
+}
+
+// ------------------------------------------------------------
+// Merge operator (creates a new point cloud)
+// ------------------------------------------------------------
+PointCloudDefault PointCloudDefault::operator+(const PointCloudDefault& other) const
+{
+  PointCloudDefault result = *this;
+  result += other;
+  return result;
+}
+
+// ------------------------------------------------------------
+// In-place merge operator
+// ------------------------------------------------------------
+PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
+{
+  if (other.n_points == 0)
+    return *this;
+
+  size_t old_size = this->n_points;
+  size_t new_size = old_size + other.n_points;
+
+  // Merge coordinates
+  coords.insert(coords.end(), other.coords.begin(), other.coords.end());
+
+  // Merge rgb if both have it
+  if (!rgb.empty() && !other.rgb.empty())
+  {
+    rgb.insert(rgb.end(), other.rgb.begin(), other.rgb.end());
+  }
+  else if (!rgb.empty())
+  {
+    rgb.clear();
+  }
+
+  // Merge treeid if both have it
+  if (has_treeid() && other.has_treeid())
+  {
+    treeid.insert(treeid.end(), other.treeid.begin(), other.treeid.end());
+  }
+  else if (has_treeid())
+  {
+    treeid.clear();
+  }
+
+  // Merge foliage if both have it
+  if (has_foliage() && other.has_foliage())
+  {
+    foliage.insert(foliage.end(), other.foliage.begin(), other.foliage.end());
+  }
+  else if (has_foliage())
+  {
+    foliage.clear();
+  }
+
+  // Merge passage if both have it
+  if (has_passage() && other.has_passage())
+  {
+    passage.insert(passage.end(), other.passage.begin(), other.passage.end());
+  }
+  else if (has_passage())
+  {
+    passage.clear();
+  }
+
+  // Merge hag if both have it
+  if (has_hag() && other.has_hag())
+  {
+    hag.insert(hag.end(), other.hag.begin(), other.hag.end());
+  }
+  else if (has_hag())
+  {
+    hag.clear();
+  }
+
+  // Merge pwood if both have it
+  if (has_pwood() && other.has_pwood())
+  {
+    pwood.insert(pwood.end(), other.pwood.begin(), other.pwood.end());
+  }
+  else if (has_pwood())
+  {
+    pwood.clear();
+  }
+
+  // Merge classification if both have it
+  if (has_class() && other.has_class())
+  {
+    classif.insert(classif.end(), other.classif.begin(), other.classif.end());
+  }
+  else if (has_class())
+  {
+    classif.clear();
+  }
+
+  this->n_points = new_size;
+  this->true_n_points = new_size;
+
+  return *this;
+}
+
+// ------------------------------------------------------------
+// Init
+// ------------------------------------------------------------
+void PointCloudDefault::init()
+{
+  n_points = 0;
+  true_n_points = 0;
+  coords.clear();
+  rgb.clear();
+  treeid.clear();
+  foliage.clear();
+  passage.clear();
+  hag.clear();
+  pwood.clear();
+  classif.clear();
+}
+
+// ------------------------------------------------------------
+// Safe Alloc
+// ------------------------------------------------------------
+void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
+{
+  try
+  {
+    coords.resize(n, {0.0f, 0.0f, 0.0f});
+
+    if (alloc_attrs)
+    {
+      treeid.resize(n, -1);
+      foliage.resize(n, -1);
+      classif.resize(n, 0);
+      passage.resize(n, 0);
+      hag.resize(n, 0.0f);
+      pwood.resize(n, 0.0f);
+      rgb.resize(n, {128, 128, 128});
+    }
+  }
+  catch (...)
+  {
+    cleanup();
+    throw;
+  }
+}
+
+void PointCloudDefault::colorize_trees(bool darken_foliage)
+{
+    if (true_size() == 0) return;
+    rgb.assign(true_size(), {170, 170, 170});
+
+    std::unordered_map<int, RGB> color_cache;
+    const float darken_factor = 0.7f;
+
+    for (size_t i = 0; i < size(); ++i)
+    {
+        int id = get_treeid(i);
+        if (id == -1) continue;
+
+        auto [it, inserted] = color_cache.try_emplace(id, RGB{});
+        if (inserted)
+        {
+            std::mt19937 gen(static_cast<uint32_t>(id));
+            std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
+            std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
+            std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
+            hcl_to_rgb(dist_h(gen), dist_c(gen), dist_l(gen), &it->second.r, &it->second.g, &it->second.b);
+        }
+
+        RGB color = it->second;
+
+        if (darken_foliage && foliage[i] >= 1)
+        {
+            color.r *= darken_factor;
+            color.g *= darken_factor;
+            color.b *= darken_factor;
+        }
+        rgb[i] = color;
+    }
 }
 #endif

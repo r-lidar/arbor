@@ -1,8 +1,12 @@
-#include <Rcpp.h>
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 #include "myomp.h"
 #include "progressbar.h"
+
+#ifdef USING_R
+#include <Rcpp.h>
+#endif
 
 Progress::Progress(std::size_t total, std::string prefix, double interval)
   : done_(0),
@@ -29,23 +33,26 @@ void Progress::tick() noexcept
 
 bool Progress::check_interrupt()
 {
-  if(omp_get_thread_num() != 0)
+  if (omp_get_thread_num() != 0)
     return false; // # nocov
 
   const std::size_t done = done_.load(std::memory_order_relaxed);
-  if(done % 10000 != 0) return false;
+  if (done % 10000 != 0) return false;
 
+  #ifdef USING_R
   try
   {
     Rcpp::checkUserInterrupt();
   }
-  catch(Rcpp::internal::InterruptedException e)
+  catch (Rcpp::internal::InterruptedException e)
   {
     return true;
   }
+  #endif
 
   return false;
 }
+
 void Progress::update()
 {
   if (omp_get_thread_num() != 0)
@@ -82,14 +89,26 @@ void Progress::update()
   const std::string msg = os.str();
   last_width_ = msg.size();
 
-  Rcpp::Rcout << msg;
-  Rcpp::Rcout.flush();
+  #ifdef USING_R
+    Rcpp::Rcout << msg;
+    Rcpp::Rcout.flush();
+  #else
+    std::cout << msg;
+    std::cout.flush();
+  #endif
 }
 
 void Progress::finalize()
 {
   if (omp_get_thread_num() != 0) return;
-  Rcpp::Rcout << '\r' << std::string(last_width_, ' ') << '\r';
-  Rcpp::Rcout.flush();
-}
+  if (finalized_) return;
+  finalized_ = true;
 
+  #ifdef USING_R
+    Rcpp::Rcout << '\r' << std::string(last_width_, ' ') << '\r';
+    Rcpp::Rcout.flush();
+  #else
+    std::cout << '\r' << std::string(last_width_, ' ') << '\r';
+    std::cout.flush();
+  #endif
+}

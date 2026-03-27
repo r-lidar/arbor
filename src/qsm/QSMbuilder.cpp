@@ -38,11 +38,11 @@ void QSMbuilder::build(const PointCloud& tree)
   // Sometime the very bottom have two clusters of wood
   // this creates trouble. One of the two is removed to ensure
   // a single entry point for the QSM
-  wood = clean_tree_butt(wood, logger);
+  wood = clean_tree_butt(wood);
 
   // Inspired by aRchi and needed to build the skeleton
-  auto layers = this->layers(wood, params.qsm.step, logger);
-  auto clusters = this->clusters(wood, layers, params.qsm.cl_dist, logger);
+  auto layers = this->layers(wood, params.qsm.step);
+  auto clusters = this->clusters(wood, layers, params.qsm.cl_dist);
 
   // Convert std::vector<pair>
   std::vector<std::pair<int, int>> iter_cluster;
@@ -60,7 +60,7 @@ void QSMbuilder::build(const PointCloud& tree)
   if (n_root == 0) throw std::runtime_error("Internal error: 0 root for this QSM. Please report.");
   if (n_root > 1)
   {
-    logger("Multiple nodes connected to root detected");
+    ServiceLocator::logger()("Multiple nodes connected to root detected");
     fix_multiple_root();
   }
 

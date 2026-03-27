@@ -5,43 +5,45 @@ namespace arbor::seeds {
 
 void SeedDetector::run(const PointCloud& scene)
 {
+  auto log = ServiceLocator::logger();
+
   if (scene.size() == 0)     throw std::runtime_error("find_seed: point cloud is empty.");
   if (!scene.has_hag())      throw std::runtime_error("find_seed: point cloud is missing required 'hag' attribute.");
   if (!scene.has_foliage())  throw std::runtime_error("find_seed: point cloud is missing required 'foliage' attribute.");
 
-  logger("Seed detection start");
+  log("Seed detection start");
 
-  logger("Computing lower bound");
+  log("Computing lower bound");
   compute_min_hag(scene);
 
-  logger("Extracting passages");
+  log("Extracting passages");
   extract_passages(scene);
 
-  logger("Slicing the point cloud");
+  log("Slicing the point cloud");
   slice_wood(scene);
 
-  logger("Circle detection");
+  log("Circle detection");
   circles = detect_tree_circles(wood);
   if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
 
-  logger("Generate tree cages");
+  log("Generate tree cages");
   make_cages();
 
-  logger("Safe zone exclusion");
+  log("Safe zone exclusion");
   safe_zone();
 
-  logger("Find primary seeds");
+  log("Find primary seeds");
   find_primary_seeds();
 
-  logger("Pathfinder");
+  log("Pathfinder");
   merge_short_passages();
 
-  logger("Find secondary seeds");
+  log("Find secondary seeds");
   find_secondary_seeds();
 
   seeds = primary_seeds + secondary_seeds;
 
-  logger("Seed detection completed");
+  log("Seed detection completed");
 }
 
 void SeedDetector::compute_min_hag(const PointCloud& scene)
@@ -185,7 +187,10 @@ void SeedDetector::safe_zone()
 // -------------------------------------------------
 void SeedDetector::find_primary_seeds()
 {
+  // Merge wood slices + long passage of the path finder + cages
   PointCloud temp = wood + long_passages + cages;
+
+  // Compute connected components of that point cloud to assign an ID to each point
   temp.scale(1, 1, 0.5);
   double res = std::round(params.pathfinder.decimation * 0.8 * 100.0) / 100.0;
   Grid3D grid(temp, res);
@@ -193,6 +198,9 @@ void SeedDetector::find_primary_seeds()
   for (size_t i = 0 ; i < temp.size() ; i++) temp.set_treeid(i, cluster_ids[i]);
   temp.scale(1, 1, 2);
 
+  // We retain only the point with a passage number > 0
+  // This effectively removes wood points that are subset upstream without passages (assigned 0)
+  // It retains cages are assigned passage = 9999
   std::vector<bool> long_seed_mask(temp.size(), false);
   for (size_t i = 0; i < temp.size(); i++) long_seed_mask[i] = (temp.get_passage(i) > 0);
 

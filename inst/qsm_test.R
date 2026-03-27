@@ -17,6 +17,10 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_130.las"
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_177.las"
 
+# Big tree non circular
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/DUC_MAR/tree_1114.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/DUC_MAR/tree_54.las"
+
 # ==== Single QSM ======
 
 # QSM for a random tree
@@ -25,15 +29,14 @@ file <- files[i]
 files = files[-i]
 file
 tree <- readLAS(file)
+tree = lidR::filter_poi(tree, Z > zmin + 0.2)
 
-qsm = qsm(tree)
-stem = qsm_stem(qsm)
-sum(stem$volume)
+params= default_arbor_parameters
+params$qsm$cl_dist = 0.05
+qsm = qsm(tree, params)
 
-qsm_dbh(qsm, tree, display = T)
 x = plot_semantic(tree)
 plot_qsm(qsm, add = x, color = "branch_order", cylinder = T)
-qsm_stats(qsm, tree, display = T)
 
 
 tr = qsm[axis_ID == 1]

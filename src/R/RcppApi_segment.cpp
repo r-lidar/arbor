@@ -24,21 +24,28 @@ using DF = Rcpp::DataFrame;
 
 namespace arbor::segment
 {
-std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::settings::SemanticParameters& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params, const Logger& logger = [](const std::string&) {});
-std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const arbor::settings::SemanticParameters& params, const Logger& logger = [](const std::string&) {});
+std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params);
+std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
+std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
+std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
+std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, const PointCloud& gnd, const arbor::settings::GraphParameters& params);
 Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const arbor::settings::GraphParameters& params);
 }
 
-void segment_semantic_cpp(DF core, DF ground, Rcpp::List params)
+void segment_ground_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud s(ground);
-  arbor::segment::segment_semantic(p, s, par, Rlogger);
+  arbor::segment::segment_ground(p, par);
+}
+
+void segment_semantic_cpp(DF core, Rcpp::List params)
+{
+  arbor::settings::ArborParameters par = extract_arbor_params(params);
+  PointCloud p(core);
+  PointCloud s = arbor::dtm::dtm(p);
+  arbor::segment::segment_semantic(p, s, par);
 }
 
 void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
@@ -46,7 +53,7 @@ void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   PointCloud s(seeds);
-  arbor::segment::segment_instance(p, s, par, Rlogger);
+  arbor::segment::segment_instance(p, s, par);
   for (size_t i = 0 ; i < p.size() ; i++) {
     if (p.get_treeid(i) == -1) {
       p.set_treeid(i, NA_INTEGER);
@@ -58,8 +65,14 @@ DF find_seeds_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud seeds = arbor::seeds::find_seeds(p, par, Rlogger);
+  PointCloud seeds = arbor::seeds::find_seeds(p, par);
   return as_dataframe(seeds);
+}
+
+void colorize_trees_cpp(DF core, bool dark)
+{
+  PointCloud p(core);
+  p.colorize_trees(dark);
 }
 
 Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
@@ -67,7 +80,7 @@ Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
   arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(gnd);
-  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams, Rlogger);
+  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams);
   return Rcpp::IntegerVector(ans.begin(), ans.end());
 }
 
@@ -75,7 +88,7 @@ Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams, Rlogger);
+  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -83,7 +96,7 @@ Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(DF core, Rcpp::List par
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams, Rlogger);
+  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -91,7 +104,7 @@ Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(DF core, Rcpp::List p
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams, Rlogger);
+  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 
@@ -99,7 +112,7 @@ Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List par
 {
   arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
   PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams, Rlogger);
+  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
 

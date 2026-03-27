@@ -4,7 +4,7 @@
 \alias{remove_small_trees}
 \title{Remove Small Trees and Clean Understory}
 \usage{
-remove_small_trees(las, max_height = 3)
+remove_small_trees(las, max_height = 2)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

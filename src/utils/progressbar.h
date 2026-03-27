@@ -4,20 +4,21 @@
 #include <atomic>
 #include <string>
 #include <chrono>
+#include "services.h"
 
-class Progress
+class Progress : public ProgressBar
 {
 public:
   Progress(std::size_t total, std::string prefix = "", double interval = 0.5);
-  ~Progress();
+  ~Progress() override;
 
   // Called by ALL threads
-  void tick() noexcept;
+  void tick() noexcept override;
 
   // Called by master thread only
-  void update();
-  void finalize();
-  bool check_interrupt();
+  void update() override;
+  void finalize() override;
+  bool check_interrupt() override;
 
 private:
   using clock = std::chrono::steady_clock;
@@ -28,6 +29,7 @@ private:
   std::string prefix_ = "";
   std::size_t last_percent_ = 0;
   std::size_t last_width_ = 0;
+  bool finalized_ = false;
 
   clock::time_point start_;
   clock::time_point last_print_;

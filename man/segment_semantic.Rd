@@ -4,12 +4,10 @@
 \alias{segment_semantic}
 \title{Wood-Foliage Semantic Segmentation}
 \usage{
-segment_semantic(las, dtm, params = default_arbor_parameters)
+segment_semantic(las, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
-
-\item{dtm}{A SpatRaster object. Digital Terrain Model}
 
 \item{params}{list See \link{parameters}.}
 }

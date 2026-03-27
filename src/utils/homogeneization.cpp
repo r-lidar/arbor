@@ -33,7 +33,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
   // --- Compute grid dimensions ---
   int64_t nx = static_cast<int64_t>(std::floor((xmax - xmin) / res)) + 1;
   int64_t ny = static_cast<int64_t>(std::floor((ymax - ymin) / res)) + 1;
-  int64_t nz = static_cast<int64_t>(std::floor((zmax - zmin) / res)) + 1;
+  //int64_t nz = static_cast<int64_t>(std::floor((zmax - zmin) / res)) + 1;
 
   // --- Compute voxel IDs ---
   std::vector<int64_t> id(n);
@@ -98,7 +98,7 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
     mz /= group_size;
 
     // Find closest point to mean
-    double bestDist = R_PosInf;
+    double bestDist = std::numeric_limits<double>::infinity();
     int bestIdx = indices[group_start];
     for (size_t j = group_start; j < i; ++j)
     {

@@ -54,7 +54,8 @@ public:
 void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
   double H = 0.0;
-  for (int i = 0; i < tree.size(); ++i) {
+  for (size_t i = 0; i < tree.size(); ++i)
+  {
     double z = tree.get_z(i);
     if (z > H) H = z;
   }
@@ -67,13 +68,13 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     return;
   }
 
-  logger("Pre-allometry");
+  ServiceLocator::logger()("Pre-allometry");
   conic_allometry(2.0 * R0, tip_radius);
 
-  logger("Measuring diameters");
+  ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
 
-  logger("Polynomial fitting");
+  ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
 
   // Check if main axis has valid measurements
@@ -89,12 +90,12 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    logger("[]WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry");
+    ServiceLocator::logger()("[WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry");
     conic_allometry(R0, tip_radius);
     return;
   }
 
-  logger("Reconstruction");
+  ServiceLocator::logger()("Reconstruction");
   reconstruct_missing_radii(tip_radius);
 }
 
@@ -129,7 +130,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
 
   // Assign tree points to nearest edge (cylinder)
   std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
-  size_t num_points = tree.point_count();
+  size_t num_points = tree.size();
 
   for (size_t i = 0; i < num_points; ++i)
   {

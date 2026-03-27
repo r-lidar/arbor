@@ -1,5 +1,6 @@
 qsm_ring = function(qsm)
 {
+  axis_ID <- NULL
   target_dist <- 1.3
   trunk = qsm[axis_ID == 1]
   len = with(trunk, sqrt((endX - startX)^2 + (endY - startY)^2 +(endZ - startZ)^2))
