@@ -77,7 +77,22 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
         if (!error_occurred)
         {
           error_occurred = true;
-          eptr = std::current_exception(); // Capture the exception to rethrow later
+          try
+          {
+            std::rethrow_exception(std::current_exception());
+          }
+          catch (const std::exception& e)
+          {
+            eptr = std::make_exception_ptr(
+              std::runtime_error("Tree ID " + std::to_string(current_id) + ": " + e.what())
+            );
+          }
+          catch (...)
+          {
+            eptr = std::make_exception_ptr(
+              std::runtime_error("Tree ID " + std::to_string(current_id) + ": unknown error")
+            );
+          }
         }
       }
       ServiceLocator::register_logger(old_logger);
@@ -87,7 +102,10 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
   }
 
   // If something went wrong, rethrow the exception outside the parallel region
-  if (eptr) { std::rethrow_exception(eptr); }
+  if (eptr)
+  {
+    std::rethrow_exception(eptr);
+  }
 
   p->finalize();
   ServiceLocator::register_logger(old_logger);
