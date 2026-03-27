@@ -265,6 +265,26 @@ private:
     if (hag)     std::swap(hag[i], hag[j]);
     if (pwood)   std::swap(pwood[i], pwood[j]);
   }
+  template <typename T>
+  void merge_attribute(T*& current, const T* other, size_t old_n, size_t other_n, bool other_has_it)
+  {
+    if (current && other_has_it)
+    {
+      // Both have the attribute: Reallocate and merge
+      T* next = new T[old_n + other_n];
+      std::memcpy(next, current, old_n * sizeof(T));
+      std::memcpy(next + old_n, other, other_n * sizeof(T));
+
+      delete[] current;
+      current = next;
+    }
+    else if (current)
+    {
+      // Only 'this' has it: Drop the attribute to maintain consistency
+      delete[] current;
+      current = nullptr;
+    }
+  }
 
 private:
   double* coords[3] = {nullptr, nullptr, nullptr};

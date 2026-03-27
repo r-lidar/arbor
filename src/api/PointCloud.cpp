@@ -311,152 +311,30 @@ PointCloudDataFrame PointCloudDataFrame::operator+(const PointCloudDataFrame& ot
 // In-place merge operator
 PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& other)
 {
-  if (!this->owns_memory) {
-    throw std::runtime_error("This point cloud does not own its memory because it is owned by R. Cannot merge.");
+  if (!this->owns_memory)
+  {
+    throw std::runtime_error("This point cloud does not own its memory. Cannot merge.");
   }
 
-  if (other.n_points == 0) {
-    return *this;
-  }
+  if (other.n_points == 0) return *this;
 
   size_t old_size = this->n_points;
-  size_t new_size = old_size + other.n_points;
+  size_t other_size = other.n_points;
 
-  // Reallocate and merge coordinates
-  for (size_t d = 0; d < 3; ++d)
-  {
-    double* new_coords = new double[new_size];
-    std::memcpy(new_coords, this->coords[d], old_size * sizeof(double));
-    std::memcpy(new_coords + old_size, other.coords[d], other.n_points * sizeof(double));
+  // Merge coordinates (X, Y, Z)
+  merge_attribute(this->coords[0], other.coords[0], old_size, other_size, true);
+  merge_attribute(this->coords[1], other.coords[1], old_size, other_size, true);
+  merge_attribute(this->coords[2], other.coords[2], old_size, other_size, true);
 
-    if (this->owns_memory)
-      delete[] this->coords[d];
+  // Merge optional attributes
+  merge_attribute(this->treeid,  other.treeid,  old_size, other_size, other.has_treeid());
+  merge_attribute(this->foliage, other.foliage, old_size, other_size, other.has_foliage());
+  merge_attribute(this->passage, other.passage, old_size, other_size, other.has_passage());
+  merge_attribute(this->hag,     other.hag,     old_size, other_size, other.has_hag());
+  merge_attribute(this->pwood,   other.pwood,   old_size, other_size, other.has_pwood());
+  merge_attribute(this->classif, other.classif, old_size, other_size, other.has_class());
 
-    this->coords[d] = new_coords;
-  }
-
-  // Merge treeid if both have it
-  if (this->has_treeid() && other.has_treeid())
-  {
-    int* new_treeid = new int[new_size];
-    std::memcpy(new_treeid, this->treeid, old_size * sizeof(int));
-    std::memcpy(new_treeid + old_size, other.treeid, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->treeid;
-
-    this->treeid = new_treeid;
-  }
-  else if (this->has_treeid())
-  {
-    // This has treeid but other doesn't - remove treeid
-    if (this->owns_memory) {
-      delete[] this->treeid;
-    }
-    this->treeid = nullptr;
-  }
-
-  // Merge foliage if both have it
-  if (this->has_foliage() && other.has_foliage())
-  {
-    int* new_foliage = new int[new_size];
-    std::memcpy(new_foliage, this->foliage, old_size * sizeof(int));
-    std::memcpy(new_foliage + old_size, other.foliage, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->foliage;
-
-    this->foliage = new_foliage;
-  }
-  else if (this->has_foliage())
-  {
-    if (this->owns_memory)
-      delete[] this->foliage;
-
-    this->foliage = nullptr;
-  }
-
-  // Merge passage if both have it
-  if (this->has_passage() && other.has_passage())
-  {
-    int* new_passage = new int[new_size];
-    std::memcpy(new_passage, this->passage, old_size * sizeof(int));
-    std::memcpy(new_passage + old_size, other.passage, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->passage;
-
-    this->passage = new_passage;
-  }
-  else if (this->has_passage())
-  {
-    if (this->owns_memory)
-      delete[] this->passage;
-
-    this->passage = nullptr;
-  }
-
-  // Merge hag if both have it
-  if (this->has_hag() && other.has_hag())
-  {
-    double* new_hag = new double[new_size];
-    std::memcpy(new_hag, this->hag, old_size * sizeof(double));
-    std::memcpy(new_hag + old_size, other.hag, other.n_points * sizeof(double));
-
-    if (this->owns_memory)
-      delete[] this->hag;
-
-    this->hag = new_hag;
-  }
-  else if (this->has_hag())
-  {
-    if (this->owns_memory)
-      delete[] this->hag;
-
-    this->hag = nullptr;
-  }
-
-  // Merge pwood if both have it
-  if (this->has_pwood() && other.has_pwood())
-  {
-    double* new_pwood = new double[new_size];
-    std::memcpy(new_pwood, this->pwood, old_size * sizeof(double));
-    std::memcpy(new_pwood + old_size, other.pwood, other.n_points * sizeof(double));
-
-    if (this->owns_memory)
-      delete[] this->pwood;
-
-    this->pwood = new_pwood;
-  }
-  else if (this->has_pwood())
-  {
-    if (this->owns_memory)
-      delete[] this->pwood;
-
-    this->pwood = nullptr;
-  }
-
-  // Merge classif if both have it
-  if (this->has_class() && other.has_class())
-  {
-    int* new_classif = new int[new_size];
-    std::memcpy(new_classif, this->classif, old_size * sizeof(int));
-    std::memcpy(new_classif + old_size, other.classif, other.n_points * sizeof(int));
-
-    if (this->owns_memory)
-      delete[] this->classif;
-
-    this->classif = new_classif;
-  }
-  else if (this->has_class())
-  {
-    if (this->owns_memory)
-      delete[] this->classif;
-
-    this->classif = nullptr;
-  }
-
-  this->n_points = new_size;
+  this->n_points += other_size;
   this->owns_memory = true;
 
   return *this;
