@@ -46,6 +46,8 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
   std::sort(valid_tree_ids.begin(), valid_tree_ids.end());
 
   auto p = ServiceLocator::make_progress(valid_tree_ids.size(), "QSF");
+  auto old_logger = ServiceLocator::logger();
+  ServiceLocator::register_logger([](const std::string&) {});
   std::atomic<bool> error_occurred{false};
   std::exception_ptr eptr = nullptr;
 
@@ -78,6 +80,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
           eptr = std::current_exception(); // Capture the exception to rethrow later
         }
       }
+      ServiceLocator::register_logger(old_logger);
     }
 
     p->tick();
@@ -87,6 +90,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
   if (eptr) { std::rethrow_exception(eptr); }
 
   p->finalize();
+  ServiceLocator::register_logger(old_logger);
   return result;
 }
 
