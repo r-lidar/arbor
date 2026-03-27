@@ -12,11 +12,66 @@
 #include <span>
 #endif
 
+class BasePointCloud
+{
+public:
+  // For nanoflann
+  template <class BBOX>
+  bool kdtree_get_bbox(BBOX&) const { return false; }
+  inline size_t kdtree_get_point_count() const { return size(); }
+
+  // Generic
+  inline size_t size()        const { return n_points; }
+  inline size_t true_size()   const { return true_n_points; }
+
+  // Partition like std::partition
+  template <typename Predicate>
+  size_t partition(Predicate pred)
+  {
+    if (n_points == 0) return 0;
+
+    int64_t left = 0;
+    int64_t right = static_cast<int64_t>(n_points) - 1;
+
+    while (left <= right)
+    {
+      // Move left pointer until we find a point that should be at the back
+      while (left <= right && pred(left))
+      {
+        left++;
+      }
+      // Move right pointer until we find a point that should be at the front
+      while (left <= right && !pred(right))
+      {
+        right--;
+      }
+
+      if (left <= right)
+      {
+        swap_points(left, right);
+        left++;
+        right--;
+      }
+    }
+
+    // Update n_points so nanoflann only sees the front section
+    // Or keep n_points same and return 'left' as the new logical size
+    size_t new_size = static_cast<size_t>(left);
+    n_points = new_size;
+    return new_size;
+  }
+
+protected:
+  virtual void swap_points(size_t i, size_t j) = 0; // Needed for partition
+  size_t n_points;
+  size_t true_n_points;
+};
+
 /**
  * @brief Blueprint for a custom PointCloud implementation.
  * Users can copy-paste this and fill in their specific memory logic.
  */
-class MinimalPointCloud
+class MinimalPointCloud : public BasePointCloud
 {
 public:
   // Constructors / destructor
@@ -85,11 +140,23 @@ public:
 
 private:
   // Custom memory layout
+  void swap_points(size_t i, size_t j) { return; }
 };
 
 
 #ifdef USING_R
-class PointCloudDataFrame
+
+#define POINT_CLOUD_ATTR(type, name, container, has_func, error_msg) \
+inline type get_##name(const size_t idx) const {                     \
+  if (!has_func()) throw std::runtime_error(error_msg);              \
+  return container[idx];                                             \
+}                                                                    \
+inline void set_##name(const size_t idx, type v) {                   \
+  if (!has_func()) throw std::runtime_error(error_msg);              \
+  container[idx] = v;                                                \
+}                                                                    \
+
+class PointCloudDataFrame : public BasePointCloud
 {
 public:
   // Constructors / destructor
@@ -107,13 +174,7 @@ public:
   PointCloudDataFrame  operator+(const PointCloudDataFrame& other) const;
 
   // --- Nanoflann KD-tree interface ---
-  inline size_t kdtree_get_point_count() const { return size(); }
   inline double kdtree_get_pt(const size_t idx, const size_t dim) const { return coords[dim][idx]; }
-  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
-
-  // --- Num. points ---
-  inline size_t size()        const { return n_points; }
-  inline size_t true_size()   const { return true_n_points; }
 
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const { for (size_t d = 0; d < 3; ++d) q[d] = coords[d][idx];}
@@ -133,109 +194,21 @@ public:
   inline bool has_passage() const { return passage != nullptr; }
   inline bool has_class()   const { return classif != nullptr; }
 
-  inline int get_treeid(const size_t idx) const {
-    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
-    return treeid[idx];
-  }
+  POINT_CLOUD_ATTR(int, treeid, treeid, has_treeid, "Instance segmentation not available")
+  POINT_CLOUD_ATTR(double, pwood, pwood, has_pwood, "Wood likelihood data not available")
+  POINT_CLOUD_ATTR(int, foliage, foliage, has_foliage, "Semantic segmentation not available")
+  POINT_CLOUD_ATTR(double, hag, hag, has_hag, "HAG not available")
+  POINT_CLOUD_ATTR(int, passage, passage, has_passage, "Passage not available")
+  POINT_CLOUD_ATTR(int, classification, classif, has_class, "Classification not available")
 
-  inline void set_treeid(const size_t idx, int v) {
-    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
-    treeid[idx] = v;
-  }
-
-  inline double get_pwood(const size_t idx) const {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    return pwood[idx];
-  }
-
-  inline void set_pwood(const size_t idx, double v) {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    pwood[idx] = v;
-  }
-
-  inline int get_foliage(const size_t idx) const {
-    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    return foliage[idx];
-  }
-
-  inline void set_foliage(const size_t idx, int v) {
-    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    foliage[idx] = v;
-  }
-
-  inline double get_hag(const size_t idx) const {
-    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    return hag[idx];
-  }
-
-  inline void set_hag(const size_t idx, double v) {
-    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    hag[idx] = v;
-  }
-
-  inline int get_passage(const size_t idx) const {
-    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
-    return passage[idx];
-  }
-
-  inline void set_passage(const size_t idx, int v) {
-    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
-    passage[idx] = v;
-  }
+  #undef POINT_CLOUD_ATTR
 
   inline bool is_wood(const size_t idx) const {
     return get_foliage(idx) == 0;
   }
 
-  inline void set_classification(const size_t idx, int v) {
-    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    classif[idx] = v;
-  }
-
-  inline int get_classification(const size_t idx) const {
-    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    return classif[idx];
-  }
-
   inline bool is_ground(const size_t idx) const {
     return get_classification(idx) == 2;
-  }
-
-  // -- Partitioning ---
-  template <typename Predicate>
-  size_t partition(Predicate pred)
-  {
-    if (n_points == 0) return 0;
-
-    int64_t left = 0;
-    int64_t right = static_cast<int64_t>(n_points) - 1;
-
-    while (left <= right)
-    {
-      // Move left pointer until we find a point that should be at the back
-      while (left <= right && pred(left))
-      {
-        left++;
-      }
-      // Move right pointer until we find a point that should be at the front
-      while (left <= right && !pred(right))
-      {
-        right--;
-      }
-
-      if (left <= right)
-      {
-        swap_points(left, right);
-        left++;
-        right--;
-      }
-    }
-
-    // Update n_points so nanoflann only sees the front section
-    // Or keep n_points same and return 'left' as the new logical size
-    size_t new_size = static_cast<size_t>(left);
-    n_points = new_size;
-    return new_size;
   }
 
   // --- In-place transforms ---
@@ -255,7 +228,7 @@ private:
   void swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept;
   void init();
   void safe_alloc(size_t n, bool alloc_attrs);
-  void swap_points(size_t i, size_t j)
+  void swap_points(size_t i, size_t j) override
   {
     for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
     if (treeid)  std::swap(treeid[i], treeid[j]);
@@ -298,11 +271,21 @@ private:
   double* pwood   = nullptr;
 
   bool owns_memory = false;
-  size_t n_points  = 0;
-  size_t true_n_points = 0;
 };
+
 #else
-class PointCloudDefault
+
+#define POINT_CLOUD_ATTR(interface_type, internal_type, name, container, has_func, error_msg)  \
+inline interface_type get_##name(const size_t idx) const {                                     \
+  if (!has_func()) throw std::runtime_error(error_msg);                                        \
+  return static_cast<interface_type>(container[idx]);                                          \
+}                                                                                              \
+inline void set_##name(const size_t idx, interface_type v) {                                   \
+  if (!has_func()) throw std::runtime_error(error_msg);                                        \
+  container[idx] = static_cast<internal_type>(v);                                              \
+}
+
+class PointCloudDefault : public BasePointCloud
 {
 public:
   // Constructors / destructor
@@ -376,112 +359,22 @@ public:
   inline bool has_passage() const { return !passage.empty(); }
   inline bool has_class()   const { return !classif.empty(); }
 
+  POINT_CLOUD_ATTR(int,    int,      treeid,         treeid,  has_treeid,  "Instance segmentation not available")
+  POINT_CLOUD_ATTR(double, double,   pwood,          pwood,   has_pwood,   "Wood likelihood data not available")
+  POINT_CLOUD_ATTR(int,    uint8_t,  foliage,        foliage, has_foliage, "Semantic segmentation not available")
+  POINT_CLOUD_ATTR(double, float,    hag,            hag,     has_hag,     "HAG data not available")
+  POINT_CLOUD_ATTR(int,    int,      passage,        passage, has_passage, "Passage not available")
+  POINT_CLOUD_ATTR(int,    uint16_t, classification, classif, has_class,   "Classification data not available")
 
-  inline int get_treeid(const size_t idx) const {
-    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
-    return treeid[idx];
-  }
-
-  inline void set_treeid(const size_t idx, int v) {
-    if (!has_treeid()) throw std::runtime_error("Instance segmentation not available in this point cloud");
-    treeid[idx] = v;
-  }
-
-  inline double get_pwood(const size_t idx) const {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    return pwood[idx];
-  }
-
-  inline void set_pwood(const size_t idx, double v) {
-    if (!has_pwood()) throw std::runtime_error("Wood likelihood data not available in this point cloud");
-    pwood[idx] = v;
-  }
-
-  inline int get_foliage(const size_t idx) const {
-    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    return static_cast<int>(foliage[idx]);
-  }
-
-  inline void set_foliage(const size_t idx, int v) {
-    if (!has_foliage()) throw std::runtime_error("Semantic segmentation not available in this point cloud");
-    foliage[idx] = static_cast<uint8_t>(v);
-  }
-
-  inline double get_hag(const size_t idx) const {
-    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    return static_cast<double>(hag[idx]);
-  }
-
-  inline void set_hag(const size_t idx, double v) {
-    if (!has_hag()) throw std::runtime_error("HAG data not available in this point cloud");
-    hag[idx] = static_cast<float>(v);
-  }
-
-  inline int get_passage(const size_t idx) const {
-    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
-    return passage[idx];
-  }
-
-  inline void set_passage(const size_t idx, int v) {
-    if (!has_passage()) throw std::runtime_error("Passage not available in this point cloud");
-    passage[idx] = v;
-  }
+  #undef POINT_CLOUD_ATTR
 
   inline bool is_wood(const size_t idx) const {
-    return get_foliage(idx) == 0;
-  }
-
-  inline void set_classification(const size_t idx, int v) {
-    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    classif[idx] = static_cast<uint16_t>(v);
-  }
-
-  inline int get_classification(const size_t idx) const {
-    if (!has_class()) throw std::runtime_error("Classification data not available in this point cloud");
-    return static_cast<int>(classif[idx]);
+      return get_foliage(idx) == 0;
   }
 
   inline bool is_ground(const size_t idx) const {
-    return get_classification(idx) == 2;
+      return get_classification(idx) == 2;
   }
-
-  // -- Partitioning ---
-  template <typename Predicate>
-  size_t partition(Predicate pred)
-  {
-    if (n_points == 0) return 0;
-
-    int64_t left = 0;
-    int64_t right = static_cast<int64_t>(n_points) - 1;
-
-    while (left <= right)
-    {
-      // Move left pointer until we find a point that should be at the back
-      while (left <= right && pred(left))
-      {
-        left++;
-      }
-      // Move right pointer until we find a point that should be at the front
-      while (left <= right && !pred(right))
-      {
-        right--;
-      }
-
-      if (left <= right)
-      {
-        swap_points(left, right);
-        left++;
-        right--;
-      }
-    }
-
-    // Update n_points so nanoflann only sees the front section
-    // Or keep n_points same and return 'left' as the new logical size
-    size_t new_size = static_cast<size_t>(left);
-    n_points = new_size;
-    return new_size;
-  }
-
 
   // --- In-place transforms ---
   void translate(double x, double y, double z) ;
@@ -500,7 +393,6 @@ public:
     if (coords.empty()) return {};
     return { reinterpret_cast<float*>(coords.data()), coords.size() * 3};
   }
-
 
   std::span<uint8_t> rgb_view()
   {
@@ -535,9 +427,6 @@ private:
   std::vector<int> passage;
   std::vector<float> hag;
   std::vector<float> pwood;
-
-  size_t n_points  = 0;
-  size_t true_n_points = 0;
 };
 #endif
 
