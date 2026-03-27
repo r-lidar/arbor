@@ -5,43 +5,45 @@ namespace arbor::seeds {
 
 void SeedDetector::run(const PointCloud& scene)
 {
+  auto log = ServiceLocator::logger();
+
   if (scene.size() == 0)     throw std::runtime_error("find_seed: point cloud is empty.");
   if (!scene.has_hag())      throw std::runtime_error("find_seed: point cloud is missing required 'hag' attribute.");
   if (!scene.has_foliage())  throw std::runtime_error("find_seed: point cloud is missing required 'foliage' attribute.");
 
-  ServiceLocator::logger()("Seed detection start");
+  log("Seed detection start");
 
-  ServiceLocator::logger()("Computing lower bound");
+  log("Computing lower bound");
   compute_min_hag(scene);
 
-  ServiceLocator::logger()("Extracting passages");
+  log("Extracting passages");
   extract_passages(scene);
 
-  ServiceLocator::logger()("Slicing the point cloud");
+  log("Slicing the point cloud");
   slice_wood(scene);
 
-  ServiceLocator::logger()("Circle detection");
+  log("Circle detection");
   circles = detect_tree_circles(wood);
   if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
 
-  ServiceLocator::logger()("Generate tree cages");
+  log("Generate tree cages");
   make_cages();
 
-  ServiceLocator::logger()("Safe zone exclusion");
+  log("Safe zone exclusion");
   safe_zone();
 
-  ServiceLocator::logger()("Find primary seeds");
+  log("Find primary seeds");
   find_primary_seeds();
 
-  ServiceLocator::logger()("Pathfinder");
+  log("Pathfinder");
   merge_short_passages();
 
-  ServiceLocator::logger()("Find secondary seeds");
+  log("Find secondary seeds");
   find_secondary_seeds();
 
   seeds = primary_seeds + secondary_seeds;
 
-  ServiceLocator::logger()("Seed detection completed");
+  log("Seed detection completed");
 }
 
 void SeedDetector::compute_min_hag(const PointCloud& scene)
