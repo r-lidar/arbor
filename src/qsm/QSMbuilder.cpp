@@ -39,6 +39,7 @@ void QSMbuilder::build(const PointCloud& tree)
   // this creates trouble. One of the two is removed to ensure
   // a single entry point for the QSM
   wood = clean_tree_butt(wood);
+  n = wood.size();
 
   // Inspired by aRchi and needed to build the skeleton
   auto layers = this->layers(wood, params.qsm.step);
