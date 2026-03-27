@@ -1,6 +1,7 @@
 # arbor 0.9.1
 
 - `colorize_trees()` in C++
+- NEW: `qsf_treemap()`
 
 # arbor 0.9.0
 
