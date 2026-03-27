@@ -29,6 +29,10 @@ segment_instance_cpp <- function(core, seeds, params) {
     invisible(.Call(`_arbor_segment_instance_cpp`, core, seeds, params))
 }
 
+colorize_trees_cpp <- function(core, dark) {
+    invisible(.Call(`_arbor_colorize_trees_cpp`, core, dark))
+}
+
 find_seeds_cpp <- function(core, params) {
     .Call(`_arbor_find_seeds_cpp`, core, params)
 }

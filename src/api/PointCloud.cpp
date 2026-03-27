@@ -5,6 +5,47 @@
 #include <algorithm>
 #include <random>
 
+// Helper to convert HCL (Polar CIELAB) to RGB
+// Based on standard conversion formulas (D65 illuminant)
+static void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
+{
+  // 1. Convert HCL to CIELAB
+  float h_rad = h * M_PI / 180.0f;
+  float L = l;
+  float a = std::cos(h_rad) * c;
+  float b = std::sin(h_rad) * c;
+
+  // 2. Convert CIELAB to XYZ
+  auto f_inv = [](float t) {
+    return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
+  };
+
+  float y = (L + 16.0f) / 116.0f;
+  float x = y + a / 500.0f;
+  float z = y - b / 200.0f;
+
+  // Scale by D65 white point
+  x = 0.95047f * f_inv(x);
+  y = 1.00000f * f_inv(y);
+  z = 1.08883f * f_inv(z);
+
+  // 3. Convert XYZ to Linear RGB
+  float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
+  float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
+  float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
+
+  // 4. Gamma correction (sRGB) and Clamping
+  auto gamma = [](float val)
+  {
+    val = std::max(0.0f, std::min(1.0f, val));
+    return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
+  };
+
+  *R = gamma(r_lin)*255;
+  *G = gamma(g_lin)*255;
+  *B = gamma(b_lin)*255;
+}
+
 #ifdef USING_R
 
 PointCloudDataFrame::PointCloudDataFrame()
@@ -27,60 +68,38 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   true_n_points = n_points;
   owns_memory = false;
 
-  std::vector<std::string> coord_names = {"X", "Y", "Z"};
-  std::string treeid_name  = "treeID";
-  std::string pwood_name   = "pwood";
-  std::string foliage_name = "foliage";
-  std::string hag_name     = "hag";
-  std::string passage_name = "passage";
-  std::string classif_name = "Classification";
+  // The macro now takes a 'mandatory' boolean to handle X, Y, Z logic
+  #define LOAD_ATTR_SAFE(expected_sexp, r_name, member, mandatory)         \
+    if (df.containsElementNamed(r_name)) {                                 \
+      SEXP col_sexp = df[r_name];                                          \
+      if (TYPEOF(col_sexp) != expected_sexp) {                             \
+        throw std::runtime_error(std::string("Column '") + r_name +        \
+                                 "' has wrong type. Copy avoided.");       \
+      }                                                                    \
+      Rcpp::Vector<expected_sexp> col(col_sexp);                           \
+      member = col.begin();                                                \
+    } else if (mandatory) {                                                \
+      throw std::runtime_error(std::string("Missing mandatory column: ")   \
+                                 + r_name);                                \
+    }
 
-  // --- Mandatory coordinates ---
-  for (size_t i = 0; i < 3; ++i)
-  {
-    if (!df.containsElementNamed(coord_names[i].c_str()))
-      throw std::runtime_error("Missing mandatory coordinate column: " + coord_names[i]);
+  // --- Mandatory ---
+  LOAD_ATTR_SAFE(REALSXP, "X", coords[0], true)
+  LOAD_ATTR_SAFE(REALSXP, "Y", coords[1], true)
+  LOAD_ATTR_SAFE(REALSXP, "Z", coords[2], true)
 
-    Rcpp::NumericVector col = df[coord_names[i]];
-    coords[i] = col.begin();
-  }
+  // --- Optional ---
+  LOAD_ATTR_SAFE(REALSXP, "hag",            hag,     false)
+  LOAD_ATTR_SAFE(INTSXP,  "treeID",         treeid,  false)
+  LOAD_ATTR_SAFE(REALSXP, "pwood",          pwood,   false)
+  LOAD_ATTR_SAFE(INTSXP,  "foliage",        foliage, false)
+  LOAD_ATTR_SAFE(INTSXP,  "passage",        passage, false)
+  LOAD_ATTR_SAFE(INTSXP,  "Classification", classif, false)
+  LOAD_ATTR_SAFE(INTSXP,  "R",              red,     false)
+  LOAD_ATTR_SAFE(INTSXP,  "G",              green,   false)
+  LOAD_ATTR_SAFE(INTSXP,  "B",              blue,    false)
 
-  // --- Optional attributes ---
-  if (df.containsElementNamed(hag_name.c_str()))
-  {
-    Rcpp::NumericVector col = df[hag_name];
-    hag = col.begin();
-  }
-
-  if (df.containsElementNamed(treeid_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[treeid_name];
-    treeid = col.begin();
-  }
-
-  if (df.containsElementNamed(pwood_name.c_str()))
-  {
-    Rcpp::NumericVector col = df[pwood_name];
-    pwood = col.begin();
-  }
-
-  if (df.containsElementNamed(foliage_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[foliage_name];
-    foliage = col.begin();
-  }
-
-  if (df.containsElementNamed(passage_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[passage_name];
-    passage = col.begin();
-  }
-
-  if (df.containsElementNamed(classif_name.c_str()))
-  {
-    Rcpp::IntegerVector col = df[classif_name];
-    classif = col.begin();
-  }
+  #undef LOAD_ATTR_SAFE
 }
 
 // ------------------------------------------------------------
@@ -399,6 +418,53 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
   }
 }
 
+void PointCloudDataFrame::colorize_trees(bool darken_foliage)
+{
+  if (!has_red() || !has_green() || !has_blue())
+    throw std::runtime_error("RGB memory not allocated");
+
+  if (!has_treeid())
+    throw std::runtime_error("No treeID in this point cloud");
+
+  if (!has_foliage())
+    darken_foliage = false;
+
+  if (true_size() == 0) return;
+
+  struct RGB { uint8_t r,g,b; };
+
+  std::unordered_map<int, RGB> color_cache;
+  const float darken_factor = 0.7f;
+
+  for (size_t i = 0; i < size(); ++i)
+  {
+    int id = get_treeid(i);
+    if (id < 0) continue;
+
+    auto [it, inserted] = color_cache.try_emplace(id, RGB{});
+    if (inserted)
+    {
+      std::mt19937 gen(static_cast<uint32_t>(id));
+      std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
+      std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
+      std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
+      hcl_to_rgb(dist_h(gen), dist_c(gen), dist_l(gen), &it->second.r, &it->second.g, &it->second.b);
+    }
+
+    RGB color = it->second;
+
+    if (darken_foliage && !is_wood(i))
+    {
+      color.r *= darken_factor;
+      color.g *= darken_factor;
+      color.b *= darken_factor;
+    }
+    set_red(i, static_cast<int>(color.r)*255);
+    set_green(i, static_cast<int>(color.g)*255);
+    set_blue(i, static_cast<int>(color.b)*255);
+  }
+}
+
 #else
 
 PointCloudDefault::PointCloudDefault()
@@ -696,46 +762,6 @@ void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
     cleanup();
     throw;
   }
-}
-
-// Helper to convert HCL (Polar CIELAB) to RGB
-// Based on standard conversion formulas (D65 illuminant)
-void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
-{
-    // 1. Convert HCL to CIELAB
-    float h_rad = h * M_PI / 180.0f;
-    float L = l;
-    float a = std::cos(h_rad) * c;
-    float b = std::sin(h_rad) * c;
-
-    // 2. Convert CIELAB to XYZ
-    auto f_inv = [](float t) {
-        return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
-    };
-
-    float y = (L + 16.0f) / 116.0f;
-    float x = y + a / 500.0f;
-    float z = y - b / 200.0f;
-
-    // Scale by D65 white point
-    x = 0.95047f * f_inv(x);
-    y = 1.00000f * f_inv(y);
-    z = 1.08883f * f_inv(z);
-
-    // 3. Convert XYZ to Linear RGB
-    float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
-    float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
-    float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
-
-    // 4. Gamma correction (sRGB) and Clamping
-    auto gamma = [](float val) {
-        val = std::max(0.0f, std::min(1.0f, val));
-        return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
-    };
-
-    *R = gamma(r_lin)*255;
-    *G = gamma(g_lin)*255;
-    *B = gamma(b_lin)*255;
 }
 
 void PointCloudDefault::colorize_trees(bool darken_foliage)

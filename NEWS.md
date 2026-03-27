@@ -1,3 +1,7 @@
+# arbor 0.9.1
+
+- `colorize_trees()` in C++
+
 # arbor 0.9.0
 
 - Change: a lot of C++. 

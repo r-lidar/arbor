@@ -88,6 +88,16 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// colorize_trees_cpp
+void colorize_trees_cpp(Rcpp::DataFrame core, bool dark);
+RcppExport SEXP _arbor_colorize_trees_cpp(SEXP coreSEXP, SEXP darkSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< bool >::type dark(darkSEXP);
+    colorize_trees_cpp(core, dark);
+    return R_NilValue;
+END_RCPP
+}
 // find_seeds_cpp
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_find_seeds_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -342,6 +352,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_segment_ground_cpp", (DL_FUNC) &_arbor_segment_ground_cpp, 2},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
+    {"_arbor_colorize_trees_cpp", (DL_FUNC) &_arbor_colorize_trees_cpp, 2},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
     {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
     {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},

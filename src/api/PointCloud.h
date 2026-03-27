@@ -193,6 +193,9 @@ public:
   inline bool has_foliage() const { return foliage != nullptr; }
   inline bool has_passage() const { return passage != nullptr; }
   inline bool has_class()   const { return classif != nullptr; }
+  inline bool has_red()     const { return red != nullptr; }
+  inline bool has_green()   const { return green != nullptr; }
+  inline bool has_blue()    const { return blue != nullptr; }
 
   POINT_CLOUD_ATTR(int, treeid, treeid, has_treeid, "Instance segmentation not available")
   POINT_CLOUD_ATTR(double, pwood, pwood, has_pwood, "Wood likelihood data not available")
@@ -200,6 +203,9 @@ public:
   POINT_CLOUD_ATTR(double, hag, hag, has_hag, "HAG not available")
   POINT_CLOUD_ATTR(int, passage, passage, has_passage, "Passage not available")
   POINT_CLOUD_ATTR(int, classification, classif, has_class, "Classification not available")
+  POINT_CLOUD_ATTR(int, red, red, has_red, "RGB not available")
+  POINT_CLOUD_ATTR(int, green, green, has_green, "RGB not available")
+  POINT_CLOUD_ATTR(int, blue, blue, has_blue, "RGB not available")
 
   #undef POINT_CLOUD_ATTR
 
@@ -218,6 +224,9 @@ public:
   // --- Subset ---
   PointCloudDataFrame subset(const std::vector<int>&  indices, bool xyz_only = false) const;
   PointCloudDataFrame subset(const std::vector<bool>& mask,    bool xyz_only = false) const;
+
+  // --- Color ---
+  void colorize_trees(bool darken_foliage = false);
 
   // --- Used only in R ----
   explicit PointCloudDataFrame(const Rcpp::DataFrame& df);
@@ -267,6 +276,9 @@ private:
   int*    foliage = nullptr;
   int*    passage = nullptr;
   int*    classif = nullptr;
+  int*    red     = nullptr;
+  int*    green   = nullptr;
+  int*    blue    = nullptr;
   double* hag     = nullptr;
   double* pwood   = nullptr;
 

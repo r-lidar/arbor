@@ -34,6 +34,9 @@ void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::List params);
 void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
+void colorize_trees_cpp(Rcpp::DataFrame core, bool dark);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]

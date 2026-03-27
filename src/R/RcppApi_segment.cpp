@@ -69,6 +69,12 @@ DF find_seeds_cpp(DF core, Rcpp::List params)
   return as_dataframe(seeds);
 }
 
+void colorize_trees_cpp(DF core, bool dark)
+{
+  PointCloud p(core);
+  p.colorize_trees(dark);
+}
+
 Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
 {
   arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);

@@ -9,9 +9,9 @@
 find_seeds <- function(las, params)
 {
   params = evaluate_penalty(params)
-  cloud = las@data ; cloud[["treeID"]] = -1 # Allocate memory because C++ assumes memory allocated
+  cloud = las@data ; cloud[["treeID"]] = -1L # Allocate memory because C++ assumes memory allocated
   seeds = find_seeds_cpp(cloud, params)
-  seeds = lidR::LAS(seeds, lidR::header(las))
+  seeds = suppressWarnings(lidR::LAS(seeds, lidR::header(las)))
   return(seeds)
 }
 
