@@ -8,7 +8,7 @@
 #include "QSMbuilder.h"
 #include "PointCloud.h"
 #include "nanoflann.h"
-#include "ransac.h"
+#include "fitting.h"
 
 namespace arbor::qsm {
 
@@ -164,22 +164,26 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     const QSMNode& src = graph.node(einfo.source);
     const QSMNode& tgt = graph.node(einfo.target);
 
-    RansacCircle ransac(100, 0.02);
+    utils::fitting::Vec3 axis_start = {src.x, src.y, src.z};
+    utils::fitting::Vec3 axis_end   = {tgt.x, tgt.y, tgt.z};
+
+    utils::fitting::FittingCircloid fitter;
+    fitter.set_axe(axis_start, axis_end);
+
     for (size_t pt_idx : point_indices)
     {
       double x = tree.get_x(pt_idx);
       double y = tree.get_y(pt_idx);
       double z = tree.get_z(pt_idx);
-      ransac.add_point(x, y, z);
+      fitter.add_point(x, y, z);
     }
-    std::array<double, 3> axis_start = {src.x, src.y, src.z};
-    std::array<double, 3> axis_end   = {tgt.x, tgt.y, tgt.z};
-    ransac.find_circle(axis_start, axis_end);
 
-    double r_meas    = ransac.get_radius();
-    double p_inside  = ransac.get_inside_percentage();
-    double arc       = ransac.get_arc_coverage();
-    double p_inlier  = ransac.get_inlier_percentage();
+    utils::fitting::FittingResult res = fitter.fit(0.03);
+
+    double r_meas    = res.radius;
+    double p_inside  = 0;
+    double arc       = res.arc_coverage_deg;
+    double p_inlier  = res.inlier_percentage;
     bool valid = true;
     if (r_meas < srmeas) valid = false;
     else if (p_inside > sins) valid = false;

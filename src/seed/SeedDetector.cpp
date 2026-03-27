@@ -192,7 +192,7 @@ void SeedDetector::find_primary_seeds()
 
   // Compute connected components of that point cloud to assign an ID to each point
   temp.scale(1, 1, 0.5);
-  double res = std::round(params.pathfinder.decimation * 0.8 * 100.0) / 100.0;
+  double res = std::round(params.pathfinder.decimation * 100.0) / 100.0;
   Grid3D grid(temp, res);
   std::vector<int> cluster_ids = grid.connected_components(26);
   for (size_t i = 0 ; i < temp.size() ; i++) temp.set_treeid(i, cluster_ids[i]);

@@ -324,7 +324,6 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
 RcppExport SEXP _arbor_fit_circloid_cpp(SEXP xSEXP, SEXP fromSEXP, SEXP toSEXP, SEXP toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type from(fromSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type to(toSEXP);

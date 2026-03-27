@@ -55,7 +55,7 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
 {
   MatrixAdaptor pc(x);
   RansacCircle rc(num_iterations, inlier_threshold, early_exit);
-  for (int i = 0 ; i < pc.point_count() ; i++)
+  for (size_t i = 0 ; i < pc.point_count() ; i++)
     rc.add_point(pc.get_x(i), pc.get_y(i), pc.get_z(i));
   rc.find_circle();
 
@@ -70,11 +70,6 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
   double arc_score = arc_deg / 360.0;
   double score_inside = (inside_pct == 0.0) ? 1.0 : (1.0 - inside_pct);
 
-  double w_arc = 0.4;
-  double w_inside = 0.1;
-  double w_inlier = 0.4;
-  double cfqi = (w_arc * arc_score + w_inlier * inlier_pct + w_inside / score_inside);
-
   Rcpp::IntegerVector r_inliers = Rcpp::wrap(inliers);
 
   return Rcpp::List::create(
@@ -85,73 +80,72 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
     Rcpp::Named("covered_arc_degree") = arc_deg,
     Rcpp::Named("percentage_inlier") = inlier_pct,
     Rcpp::Named("percentage_inside") = inside_pct,
-    Rcpp::Named("inliers") = r_inliers+1,
-    Rcpp::Named("CFQI") = cfqi
+    Rcpp::Named("inliers") = r_inliers+1
   );
 }
 
 #include "fitting.h"
 
- Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from = {0,0,0}, Rcpp::NumericVector to = {0,0,1}, double tolerance = 0.02)
- {
-   if (x.ncol() != 3) {
-     Rcpp::stop("Input matrix must have 3 columns (X, Y, Z)");
-   }
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance)
+{
+  if (x.ncol() != 3) {
+    Rcpp::stop("Input matrix must have 3 columns (X, Y, Z)");
+  }
 
-   arbor::utils::fitting::Vec3 f = {from[0], from[1], from[2]};
-   arbor::utils::fitting::Vec3 t = {to[0], to[1], to[2]};
+  arbor::utils::fitting::Vec3 f = {from[0], from[1], from[2]};
+  arbor::utils::fitting::Vec3 t = {to[0], to[1], to[2]};
 
-   arbor::utils::fitting::FittingCircloid fitter;
-   fitter.set_axe(f, t);
+  arbor::utils::fitting::FittingCircloid fitter;
+  fitter.set_axe(f, t);
 
-   // Add all points
-   int n = x.nrow();
-   for (int i = 0; i < n; i++) {
-     fitter.add_point(x(i, 0), x(i, 1), x(i, 2));
-   }
+  // Add all points
+  int n = x.nrow();
+  for (int i = 0; i < n; i++) {
+    fitter.add_point(x(i, 0), x(i, 1), x(i, 2));
+  }
 
-   // Perform fitting
-   arbor::utils::fitting::FittingResult result = fitter.fit(tolerance);
+  // Perform fitting
+  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance);
 
-   if (!result.success)
-    {
-     return Rcpp::List::create(
-       Rcpp::Named("success") = false,
-       Rcpp::Named("shape_type") = result.shape_type,
-       Rcpp::Named("message") = "Fitting failed"
-     );
-   }
+  if (!result.success)
+  {
+    return Rcpp::List::create(
+      Rcpp::Named("success") = false,
+      Rcpp::Named("shape_type") = result.shape_type,
+      Rcpp::Named("message") = "Fitting failed"
+    );
+  }
 
-   // Convert inliers to R (1-indexed)
-   Rcpp::IntegerVector r_inliers = Rcpp::wrap(result.inlier_indices);
-   for (int i = 0; i < r_inliers.size(); i++) { r_inliers[i] += 1; }  // Convert to 1-based indexing
+  // Convert inliers to R (1-indexed)
+  Rcpp::IntegerVector r_inliers = Rcpp::wrap(result.inlier_indices);
+  for (int i = 0; i < r_inliers.size(); i++) { r_inliers[i] += 1; }  // Convert to 1-based indexing
 
-   size_t nnodes = result.nodes.size();
-   Rcpp::NumericMatrix nodes(nnodes, 3);
+  size_t nnodes = result.nodes.size();
+  Rcpp::NumericMatrix nodes(nnodes, 3);
 
-   for (size_t i = 0; i < nnodes; ++i)
-   {
-     nodes(i,0) = result.nodes[i].x;
-     nodes(i,1) = result.nodes[i].y;
-     nodes(i,2) = result.nodes[i].z;
-   }
+  for (size_t i = 0; i < nnodes; ++i)
+  {
+    nodes(i,0) = result.nodes[i].x;
+    nodes(i,1) = result.nodes[i].y;
+    nodes(i,2) = result.nodes[i].z;
+  }
 
-   // Build result list based on shape type
-   Rcpp::List output = Rcpp::List::create(
-     Rcpp::Named("success") = result.success,
-     Rcpp::Named("radius") = result.radius,
-     Rcpp::Named("shape_type") = result.shape_type,
-     Rcpp::Named("center_x") = result.center.x,
-     Rcpp::Named("center_y") = result.center.y,
-     Rcpp::Named("center_z") = result.center.z,
-     Rcpp::Named("covered_arc_degree") = result.arc_coverage_deg,
-     Rcpp::Named("percentage_inlier") = result.inlier_percentage,
-     //Rcpp::Named("percentage_inside") = result.inside_percentge,
-     Rcpp::Named("nodes") = nodes,
-     Rcpp::Named("inliers") = r_inliers
-   );
+  // Build result list based on shape type
+  Rcpp::List output = Rcpp::List::create(
+    Rcpp::Named("success") = result.success,
+    Rcpp::Named("radius") = result.radius,
+    Rcpp::Named("shape_type") = result.shape_type,
+    Rcpp::Named("center_x") = result.center.x,
+    Rcpp::Named("center_y") = result.center.y,
+    Rcpp::Named("center_z") = result.center.z,
+    Rcpp::Named("covered_arc_degree") = result.arc_coverage_deg,
+    Rcpp::Named("percentage_inlier") = result.inlier_percentage,
+    //Rcpp::Named("percentage_inside") = result.inside_percentge,
+    Rcpp::Named("nodes") = nodes,
+    Rcpp::Named("inliers") = r_inliers
+  );
 
-   return output;
- }
+  return output;
+}
 
 #endif
