@@ -45,20 +45,33 @@ void QSMbuilder::build(const PointCloud& tree)
   auto layers = this->layers(wood, params.qsm.step);
   auto clusters = this->clusters(wood, layers, params.qsm.cl_dist);
 
+  if (layers.size() != clusters.size()) throw std::runtime_error("Internal error in QSMbuilder::build. layers and clusters have different sizes. Please report to info@r-lidar.com");
+  if (layers.size() != wood.size()) throw std::runtime_error("Internal error in QSMbuilder::build. wood and layer have different sizes. Please report to info@r-lidar.com");
+
   // Convert std::vector<pair>
   std::vector<std::pair<int, int>> iter_cluster;
   iter_cluster.reserve(n);
-  for (std::size_t i = 0; i < n; ++i) { iter_cluster.emplace_back(layers[i].first, clusters[i].first); }
+  for (std::size_t i = 0; i < n; ++i)
+  {
+    iter_cluster.emplace_back(layers[i].first, clusters[i].first);
+  }
 
   // Build the QSM nodes
   build_skeleton(wood, iter_cluster, params.qsm.max_d);
+
+  // Extremely rare case with so few points that we have no cluster
+  if (graph.edges().size() == 0)
+  {
+    shift(tx, ty, tz);
+    return;
+  }
 
   // Connect the QSM nodes (sets parent_ID in each edge)
   compute_topology();
 
   // Fix root issue (rare)
   int n_root = count_nodes_connected_to_root();
-  if (n_root == 0) throw std::runtime_error("Internal error: 0 root for this QSM. Please report.");
+  if (n_root == 0) throw std::runtime_error("Internal error in QSMbuilder::build. 0 root for this QSM. Please report to info@r-lidar.com.");
   if (n_root > 1)
   {
     ServiceLocator::logger()("Multiple nodes connected to root detected");

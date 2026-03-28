@@ -31,6 +31,8 @@ static std::array<double,3> compute_face_normal(const std::array<double,3>& v0, 
 
 void QSM::write(const std::string& filename, bool binary) const
 {
+  if (edges.size() == 0) return;
+
   // Find extension
   auto pos = filename.find_last_of('.');
   if (pos == std::string::npos) throw std::runtime_error("Filename has no extension: " + filename);
@@ -278,5 +280,41 @@ void QSM::write_csv(const std::string& filename) const
         << std::endl;
   }
 }
+
+/*void QSM::dump(std::ostream& os, bool detailed) const
+{
+  os << "=== QSM Graph Debug Info ===\n";
+
+  // NOTE: You may need to change `num_nodes()` and `num_edges()` to match
+  // the exact method names in your DirectedGraph base class (e.g., node_count(), edges.size()).
+  os << "Total Nodes: " << this->nodes().size() << "\n";
+  os << "Total Edges: " << this->edges().size() << "\n";
+
+  if (detailed) {
+    os << "\n--- Edge (Cylinder) Details ---\n";
+
+    // NOTE: Adjust this loop to match your DirectedGraph iterator/container.
+    // If your graph stores edges in a std::vector<QSMEdge> called `edges_`,
+    // this loop would just be `for (const auto& edge : this->edges_)`
+    for (const auto e  : edges()) {
+
+      // Assuming your iterator gives you an edge ID, and you fetch the data:
+      const QSMEdge& edge = e.second.data;
+
+      // If you also want to print length/volume, fetch the source and target nodes:
+      // const QSMNode& src = this->get_node_data(this->source(*it));
+      // const QSMNode& tgt = this->get_node_data(this->target(*it));
+
+      os << "Cyl ID: "   << std::setw(4) << edge.cyl_ID
+         << " | Parent ID: " << std::setw(4) << edge.parent_ID
+         << " | Axis ID: "   << std::setw(2) << edge.axis_ID
+         << " | Order: "     << std::setw(2) << edge.branch_order
+         << " | Radius: "    << edge.radius
+      // << " | Length: "  << edge.length(src, tgt)
+         << "\n";
+    }
+  }
+  os << "============================\n";
+}*/
 
 }

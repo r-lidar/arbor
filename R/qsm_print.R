@@ -11,17 +11,22 @@
 print.qsm <- function(x, ...)
 {
   n_cyl <- nrow(x)
-  total_volume <- sum(x$volume, na.rm = TRUE)
-  zmin <- min(c(x$startZ, x$endZ), na.rm = TRUE)
-  zmax <- max(c(x$startZ, x$endZ), na.rm = TRUE)
-  height <- zmax - zmin
+  total_volume <- 0
+  height <- 0
+  if (n_cyl > 0)
+  {
+    total_volume <- sum(x$volume, na.rm = TRUE)
+    zmin <- min(c(x$startZ, x$endZ), na.rm = TRUE)
+    zmax <- max(c(x$startZ, x$endZ), na.rm = TRUE)
+    height <- zmax - zmin
+  }
   crs = attr(x, "crs")
   if (is.null(crs)) crs = sf::NA_crs_
 
-  cat("QSM\n")
-  cat(sprintf("Cylinders   : %d\n", n_cyl))
-  cat(sprintf("Height      : %.1f m\n", height))
-  cat(sprintf("Volume      : %.2f m\u00b3\n", total_volume))
+  cat(sprintf("class       : QSM\n"))
+  cat(sprintf("cylinders   : %d\n", n_cyl))
+  cat(sprintf("height      : %.1f m\n", height))
+  cat(sprintf("volume      : %.2f m\u00b3\n", total_volume))
   cat("Coord. ref. :", crs$Name, "\n")
 
   invisible(x)
