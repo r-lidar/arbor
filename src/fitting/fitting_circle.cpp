@@ -45,10 +45,22 @@ FittingResult FittingCircle::fit(const std::vector<Vec3>& points, double toleran
   // Calculate metrics
   result.success = true;
   result.center = center_3d;
+  result.radius = circle.radius;
   result.inlier_indices = inliers;
   result.inlier_percentage = (double)inliers.size() / points.size() * 100.0;
   result.arc_coverage_deg = calculate_arc_coverage(points, inliers, center_3d);
   result.parameters = {circle.cx, circle.cy, circle.radius};
+
+  double r = circle.radius;
+  for (int i = 0; i <= 360; i += 2)
+  {
+    double t = i * M_PI / 180.0;
+    double x = center_3d.x + r * std::cos(t);
+    double y = center_3d.y + r * std::sin(t);
+    double z = m_zmean;
+
+    result.nodes.push_back({x, y, z});
+  }
 
   return result;
 }

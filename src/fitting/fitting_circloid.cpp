@@ -5,23 +5,46 @@
 
 namespace arbor::utils::fitting {
 
-double IFittingStrategy::calculate_arc_coverage(const std::vector<Vec3>& points, const std::vector<int>& inliers,  const Vec3& center)
+double IFittingStrategy::calculate_arc_coverage(const std::vector<Vec3>& points, const std::vector<int>& inliers, const Vec3& center)
 {
   if (inliers.empty()) return 0.0;
-  std::vector<double> angles;
+
+  const double bin_size = 10.0;
+  std::set<int> unique_bins;
+
+  // Calculate angles and directly populate the sorted/unique set of bins
   for (int idx : inliers)
   {
-    angles.push_back(std::atan2(points[idx].y - center.y, points[idx].x - center.x));
-  }
-  std::sort(angles.begin(), angles.end());
+    const auto& p = points[idx];
+    double angle = std::atan2(p.y - center.y, p.x - center.x) * 180.0 / M_PI;
+    if (angle < 0.0) angle += 360.0;
 
-  double max_gap = 0.0;
-  for (size_t i = 0; i < angles.size(); ++i)
-  {
-    double diff = (i == angles.size() - 1) ? (2.0 * M_PI - (angles[i] - angles[0])) : (angles[i+1] - angles[i]);
-    max_gap = std::max(max_gap, diff);
+    int bin = static_cast<int>(std::round(angle / bin_size) * bin_size);
+    if (bin == 360) bin = 0;
+    unique_bins.insert(bin);
   }
-  return (2.0 * M_PI - max_gap) * (180.0 / M_PI);
+
+  std::vector<int> sorted_bins(unique_bins.begin(), unique_bins.end());
+
+  if (sorted_bins.empty()) return 0.0;
+  if (sorted_bins.size() == 1) return bin_size;
+
+  int consecutive_count = 0;
+  for (size_t i = 1; i < sorted_bins.size(); ++i)
+  {
+    if (sorted_bins[i] - sorted_bins[i-1] <= static_cast<int>(bin_size))
+    {
+      ++consecutive_count;
+    }
+  }
+
+  // Check wraparound: is last bin close to first bin + 360?
+  if (sorted_bins.back() >= 360 - static_cast<int>(bin_size) && sorted_bins.front() <= static_cast<int>(bin_size))
+  {
+    ++consecutive_count;
+  }
+
+  return consecutive_count * bin_size;
 }
 
 FittingCircloid::FittingCircloid()
