@@ -43,6 +43,8 @@
 #' @export
 qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
 {
+  if (nrow(qsm) == 0) return(NULL)
+
   if (missing(qsm)) stop("'qsm' is missing")
   if (!is.data.frame(qsm)) stop("'qsm' must be a data.frame or data.table")
 

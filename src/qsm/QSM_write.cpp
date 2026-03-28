@@ -31,7 +31,7 @@ static std::array<double,3> compute_face_normal(const std::array<double,3>& v0, 
 
 void QSM::write(const std::string& filename, bool binary) const
 {
-  if (edges.size() == 0) return;
+  if (edges().size() == 0) return;
 
   // Find extension
   auto pos = filename.find_last_of('.');
