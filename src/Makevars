@@ -58,6 +58,7 @@ OBJECTS = api/PointCloud.o \
   utils/Grid3D.o \
   utils/sor.o \
   utils/anisotopy.o \
+  utils/smooth3d.o \
   misc/read_adtree_skeleton.o \
   qsm/QSMbuilder_layers.o \
   qsm/QSM_mesh.o \

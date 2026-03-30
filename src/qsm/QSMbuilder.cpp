@@ -8,19 +8,38 @@ namespace arbor::qsm {
 
 void QSMbuilder::build(const PointCloud& tree)
 {
-  size_t n;
+  std::size_t n = tree.size();
 
-  // Filter wood only
-  n = tree.size();
+  // Find the vertical bounds of the tree
+  double min_z = std::numeric_limits<double>::max();
+  double max_z = -std::numeric_limits<double>::max();
+
+  for (std::size_t i = 0; i < n; ++i)
+  {
+    double current_z = tree.get_z(i);
+    if (current_z < min_z) min_z = current_z;
+    if (current_z > max_z) max_z = current_z;
+  }
+
+  // Calculate height and 1% threshold
+  double tree_height = max_z - min_z;
+  double trim_offset = tree_height * 0.01;
+  double z_threshold = min_z + trim_offset;
+
+  // Filter wood only and apply the dynamic trim
   std::vector<bool> wood_mask(n, false);
-  for (std::size_t i = 0; i < n; ++i) wood_mask[i] = tree.is_wood(i);
+  for (std::size_t i = 0; i < n; ++i)
+  {
+    wood_mask[i] = tree.is_wood(i) && (tree.get_z(i) >= z_threshold);
+  }
+
   PointCloud wood = tree.subset(wood_mask);
   n = wood.size();
 
   // Determine the geographic coordinates minimum
   // and center on 0,0,0 for numerical stability
   size_t min_idx = 0;
-  double min_z = std::numeric_limits<double>::max();
+  min_z = tree.get_z(0);
   for (size_t i = 0; i < n; ++i)
   {
     double current_z = wood.get_z(i);
@@ -41,9 +60,14 @@ void QSMbuilder::build(const PointCloud& tree)
   wood = clean_tree_butt(wood);
   n = wood.size();
 
+  // 3D smoothing for a better architecture computation
+  // (but measure on the original on)
+  ServiceLocator::logger()("Smoothing 3D for better skeleton");
+  PointCloud swood = utils::smooth3d(wood, 0.04, 1);
+
   // Inspired by aRchi and needed to build the skeleton
-  auto layers = this->layers(wood, params.qsm.step);
-  auto clusters = this->clusters(wood, layers, params.qsm.cl_dist);
+  auto layers = this->layers(swood, params.qsm.step);
+  auto clusters = this->clusters(swood, layers, params.qsm.cl_dist);
 
   if (layers.size() != clusters.size()) throw std::runtime_error("Internal error in QSMbuilder::build. layers and clusters have different sizes. Please report to info@r-lidar.com");
   if (layers.size() != wood.size()) throw std::runtime_error("Internal error in QSMbuilder::build. wood and layer have different sizes. Please report to info@r-lidar.com");
@@ -57,9 +81,10 @@ void QSMbuilder::build(const PointCloud& tree)
   }
 
   // Build the QSM nodes
-  build_skeleton(wood, iter_cluster, params.qsm.max_d);
+  build_skeleton(swood, iter_cluster, params.qsm.max_d);
 
   // Extremely rare case with so few points that we have no cluster
+  // (seen once with a very bad DTM in Murray's data)
   if (graph.edges().size() == 0)
   {
     shift(tx, ty, tz);
@@ -81,9 +106,11 @@ void QSMbuilder::build(const PointCloud& tree)
   compute_architecture(false);
   smooth_skeleton(params.qsm.smooth_steps, params.qsm.smooth_lambda, params.qsm.smooth_mu);
   detect_weird_butt();
+  construct_radii(wood, params.qsm.apex);
+  refine_radii(wood);
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
-  construct_radii(wood, params.qsm.apex);
+  smooth_radii(15, 0.5, -0.7);
   shift(tx, ty, tz);
 }
 

@@ -189,8 +189,109 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     else if (p_inside > sins) valid = false;
     else if (!(arc > sarc && p_inlier > sinl)) valid = false;
 
-    if (valid) ed.radius = r_meas;
+    // We fitted a valid circloid:
+    //  - update the radius
+    //  - update the position of the node for more accuracy
+    if (valid)
+    {
+      ed.radius = r_meas;
+      /*auto nodeid = einfo.source;
+      auto& node = graph.nodes()[nodeid];
+      node.x = res.center.x;
+      node.y = res.center.y;
+      node.z = res.center.z;*/
+    }
   }
+}
+
+void QSMbuilder::refine_radii(const PointCloud& tree)
+{
+  ServiceLocator::logger()("Refine radii");
+
+  int nc = 0;
+  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM");
+
+  // Prepare centroids for KD-Tree
+  SimpleAdaptor centroids_cloud;
+  centroids_cloud.points.reserve(graph.edge_count());
+  std::vector<int> index_to_eid;
+  index_to_eid.reserve(graph.edge_count());
+
+  for (auto& [eid, einfo] : graph.edges())
+  {
+    const QSMNode& src = graph.node(einfo.source);
+    const QSMNode& tgt = graph.node(einfo.target);
+    double cx = (src.x + tgt.x) / 2.0;
+    double cy = (src.y + tgt.y) / 2.0;
+    double cz = (src.z + tgt.z) / 2.0;
+    centroids_cloud.points.push_back({cx, cy, cz, eid});
+    index_to_eid.push_back(eid);
+  }
+
+  CentroidKDTree index(3, centroids_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  index.buildIndex();
+
+  // Assign tree points to nearest edge (cylinder)
+  std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
+  size_t num_points = tree.size();
+  for (size_t i = 0; i < num_points; ++i)
+  {
+    double query_pt[3] = { tree.get_x(i), tree.get_y(i), tree.get_z(i) };
+    size_t ret_index;
+    double out_dist_sqr;
+    nanoflann::KNNResultSet<double> resultSet(1);
+    resultSet.init(&ret_index, &out_dist_sqr);
+    index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
+    points_per_edge[ret_index].push_back(i);
+  }
+
+  for (size_t i = 0; i < points_per_edge.size(); ++i)
+  {
+    const auto& point_indices = points_per_edge[i];
+    int eid = index_to_eid[i];
+    auto& einfo = graph.edge(eid);
+    QSMEdge& ed = einfo.data;
+
+    // Skip too small radii. They are unlikely to be robust enough
+    if (ed.radius < 0.07) continue;
+    if (point_indices.empty()) continue;
+
+    // Get the orientation of the edge by gathering its nodes
+    const QSMNode& src = graph.node(einfo.source);
+    const QSMNode& tgt = graph.node(einfo.target);
+    utils::fitting::Vec3 axis_start = {src.x, src.y, src.z};
+    utils::fitting::Vec3 axis_end   = {tgt.x, tgt.y, tgt.z};
+
+    // Fitting
+    utils::fitting::FittingCircloid fitter;
+    fitter.set_axe(axis_start, axis_end);
+    for (size_t pt_idx : point_indices)
+    {
+      fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
+    }
+
+    utils::fitting::FittingResult res = fitter.fit(0.04);
+
+    float ratio = (res.radius - ed.radius) / ed.radius;
+    // Very strict validation: we only accept a near-perfect measurement
+    bool valid =
+      res.arc_coverage_deg > 320.0 &&   // Close to full closed loop
+      res.inlier_percentage > 80.0 &&   // Lot of inliers
+      ed.radius >= 0.07 &&              // At least 7 cm radius
+      ratio > -0.1;                     // Not smaller than -10% than reference
+
+    if (valid)
+    {
+      nc++;
+      ed.radius = res.radius;
+      /*auto& node = graph.nodes()[einfo.source];
+      node.x = res.center.x;
+      node.y = res.center.y;
+      node.z = res.center.z;*/
+    }
+  }
+
+  ServiceLocator::logger()(std::to_string(nc) + " refined radii");
 }
 
 void QSMbuilder::polynomial_fitting(double tip_radius)
@@ -282,8 +383,9 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       }
       else
       {
-        double diff = 99999; // feature disabled
-        if (diff > 0.20 * pred_radius)
+        double diff = std::abs(ed.radius - pred_radius);
+        //double diff = 99999; // feature disabled
+        if (diff > 0.25 * pred_radius)
           should_update = true;
       }
 

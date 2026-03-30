@@ -33,6 +33,7 @@ FittingResult FittingComplex::fit(const std::vector<Vec3>& points, double tolera
   result.success = !result.inlier_indices.empty();
   result.inlier_percentage = (100.0 * result.inlier_indices.size()) / points.size();
   result.arc_coverage_deg = calculate_arc_coverage(points, result.inlier_indices, result.center);
+  if (result.arc_coverage_deg < 300) result.success = false;
 
   for (int i = 0; i < coefficients.size(); ++i) result.parameters.push_back(coefficients(i));
 

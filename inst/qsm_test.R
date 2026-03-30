@@ -18,8 +18,12 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_177.las"
 
 # Big tree non circular
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/DUC_MAR/tree_1114.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/DUC_MAR/tree_54.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_681.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_848.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_939.las"
 
 # ==== Single QSM ======
 
@@ -28,11 +32,12 @@ i = sample(seq_along(files), 1)
 file <- files[i]
 files = files[-i]
 file
-tree <- readLAS(file)
-tree = lidR::filter_poi(tree, Z > zmin + 0.2)
+tree <- lidR::readLAS(file)
 
 params= default_arbor_parameters
-params$qsm$cl_dist = 0.05
+params$qsm$cl_dist = 0.02
+params$qsm$step = 0.1
+params$qsm$smooth_steps = 15
 qsm = qsm(tree, params)
 
 x = plot_semantic(tree)

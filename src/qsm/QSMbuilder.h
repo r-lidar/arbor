@@ -20,12 +20,14 @@ public:
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(bool use_volume = false);
+  void smooth_radii(int steps = 10, double lambda = 0.5, double mu = -0.7);
   void smooth_skeleton(int steps = 10, double lambda = 0.5, double mu = -0.53);
   void detect_weird_butt(double thresh = 50.0, int window = 4);
   void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);
   void construct_radii(const PointCloud& tree, double tip_radius = 0.0025);
   void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
+  void refine_radii(const PointCloud& tree);
   void polynomial_fitting(double tip_radius = 0.0025);
   void reconstruct_missing_radii(double tip_radius);
   void conic_allometry(double R0, double tip_radius = 0.0025);

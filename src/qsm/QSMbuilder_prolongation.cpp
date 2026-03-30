@@ -31,6 +31,7 @@ void QSMbuilder::prolongate(double d, double L)
     // Find root edge: axis_ID==1 edge with the maximum subtree_length
     // (the root of the main axis always has the highest subtree_length)
     int root_eid = axis_eids[0];  // already sorted descending by subtree_length
+    double root_radius = graph.edge_data(root_eid).radius;
 
     // Compute cylinder lengths and cumulative lengths
     std::vector<double> lens(n);
@@ -46,17 +47,11 @@ void QSMbuilder::prolongate(double d, double L)
     }
     if (total == 0.0) return;
 
-    // Take only the first ~10% of the axis or 30 cm
-    double cutoff = 0.1 * total;
+    // Take only the first min(3.0 m, 25% of total axis length) for direction estimation
+    double cutoff = std::min(3.0, 0.25 * total);
     size_t k = 0;
     while (k < n && cum[k] <= cutoff) k++;
     if (k == 0) k = 1;
-    if (k < n)
-    {
-      double s = 0.0;
-      for (size_t i = 0; i < k; i++) s += lens[i];
-      if (s < 0.3) k++;
-    }
     if (k > n) k = n;
 
     // Root node position
@@ -141,6 +136,7 @@ void QSMbuilder::prolongate(double d, double L)
       ed.axis_ID       = 1;
       ed.branch_order  = 1;
       ed.subtree_length = root_subtree + d_adj - (d_adj / nseg) * (i - 1);
+      ed.radius = root_radius * std::pow(1.01, i);
 
       graph.add_edge(node_id_1, node_id_2, ed);
 

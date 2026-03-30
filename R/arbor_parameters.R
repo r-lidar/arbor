@@ -49,8 +49,8 @@ default_parameters_v1 = list(
     )
   ),
   qsm = list(
-    step = 0.2,
-    cl_dist = 0.1,
+    step = 0.1,
+    cl_dist = 0.02,
     max_d = 0.1,
     apex = 0.0025,
     smooth_steps = 15,

@@ -71,8 +71,8 @@ namespace arbor
 
     struct QsmParameters
     {
-      double step = 0.2;
-      double cl_dist = 0.1;
+      double step = 0.1;
+      double cl_dist = 0.02;
       double max_d = 0.1;
       double apex = 0.0025;
       int smooth_steps = 15;
@@ -120,6 +120,7 @@ namespace arbor
     std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid = true);
     std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m);
     std::vector<float> anisotropy(const PointCloud& pc, int k);
+    PointCloud smooth3d(const PointCloud& pc, double radius, int ncores);
   }
 }
 
