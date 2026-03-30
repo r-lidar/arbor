@@ -99,6 +99,7 @@ public:
   void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void write(const std::string& filename, bool binary = true) const;
+  //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 private:
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;
   void write_ply(const std::string& filename, bool binary) const;
