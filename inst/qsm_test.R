@@ -39,9 +39,6 @@ tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
 params= default_arbor_parameters
-params$qsm$cl_dist = 0.02
-params$qsm$step = 0.1
-params$qsm$smooth_steps = 15
 qsm = qsm(tree, params)
 
 x = plot_semantic(tree)

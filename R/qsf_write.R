@@ -17,7 +17,7 @@
 #' @md
 qsf_write = function(qsf, dir, formats = c("csv", "obj"), binary = TRUE)
 {
-  file = normalizePath(dir, mustWork = FALSE)
+  dir = normalizePath(dir, mustWork = FALSE)
   for (format in formats) qsf_write_cpp(qsf, dir, format, binary)
   return(invisible(TRUE))
 }

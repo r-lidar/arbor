@@ -24,9 +24,10 @@ plot.qsf = function(x, ..., color = "cyl_ID", pal = c("blue", "green", "yellow",
 
   meshes = lapply(x, as_mesh, color, pal)
   mesches = Filter(Negate(is.null), meshes)
-  rgl::open3d()
+  if (is.null(add)) rgl::open3d()
   rgl::bg3d("black")
   rgl::shapelist3d(mesches)
   lidR:::.pan3d(2)
+  return(c(tx, ty))
 }
 
