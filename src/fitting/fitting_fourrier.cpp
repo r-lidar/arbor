@@ -49,36 +49,42 @@ FittingResult FittingComplex::fit(const std::vector<Vec3>& points, double tolera
   }
 
   size_t n = result.nodes.size();
-
   double A = 0.0;
   double Cx = 0.0;
   double Cy = 0.0;
+  double ref_x = result.center.x;
+  double ref_y = result.center.y;
 
   for(size_t i = 0; i < n; ++i)
   {
     const auto& p0 = result.nodes[i];
     const auto& p1 = result.nodes[(i + 1) % n];
 
-    double x0 = p0.x;
-    double y0 = p0.y;
-    double x1 = p1.x;
-    double y1 = p1.y;
+    double x0 = p0.x - ref_x;
+    double y0 = p0.y - ref_y;
+    double x1 = p1.x - ref_x;
+    double y1 = p1.y - ref_y;
 
     double cross = x0 * y1 - x1 * y0;
-
     A  += cross;
     Cx += (x0 + x1) * cross;
     Cy += (y0 + y1) * cross;
   }
-
   A *= 0.5;
 
-  Cx /= (6.0 * A);
-  Cy /= (6.0 * A);
+  if (std::abs(A) < 1e-9)
+  {
+    // Fallback stays on the initial centroid (pole)
+    result.radius = 0.0;
+  }
+  else
+  {
+    result.radius = std::sqrt(std::abs(A) / M_PI);
 
-  result.center = {Cx, Cy, m_zmean};
-  result.radius = std::sqrt(A/M_PI);
-
+    Cx /= (6.0 * A);
+    Cy /= (6.0 * A);
+    result.center = {Cx + ref_x, Cy + ref_y, m_zmean};
+  }
 
   return result;
 }
