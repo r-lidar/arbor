@@ -1,7 +1,7 @@
 library(lidR)
 library(arbor)
 
-files = list.files("/home/jr/Documents/r-lidar/clients/MRNF-MLS/las/Sta/output/its/", full.names = TRUE)
+files = list.files("/media/jr/easystore/r-lidar/Projets/2025/MNRF-MLS/wd/las/Sta/output/its/", full.names = TRUE)
 files = list.files("/home/jr/Documents/Bastien/Individual trees/SainteVeronique/las", full.names = TRUE)
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its/", full.names = TRUE, pattern = ".las")
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/ITS/", full.names = TRUE, pattern = ".las")
@@ -25,6 +25,9 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_848.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_939.las"
 
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15240.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15408.las"
+
 # ==== Single QSM ======
 
 # QSM for a random tree
@@ -33,6 +36,7 @@ file <- files[i]
 files = files[-i]
 file
 tree <- lidR::readLAS(file)
+tree@data$treeID = as.integer(tree@data$treeID)
 
 params= default_arbor_parameters
 params$qsm$cl_dist = 0.02

@@ -277,7 +277,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     bool valid =
       res.arc_coverage_deg > 320.0 &&   // Close to full closed loop
       res.inlier_percentage > 80.0 &&   // Lot of inliers
-      ed.radius >= 0.07 &&              // At least 7 cm radius
+      ed.radius >= 0.05 &&              // At least 5 cm radius
       ratio > -0.1;                     // Not smaller than -10% than reference
 
     if (valid)
@@ -414,7 +414,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
     {
       if (axe_eids.empty()) continue;
 
-      // Sort root→tip
+      // Sort root->tip
       std::sort(axe_eids.begin(), axe_eids.end(), [this](int a, int b) {
         return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
       });
@@ -432,7 +432,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
       if (parent_eid < 0) continue;
 
       const QSMEdge& parent_ed = graph.edge_data(parent_eid);
-      const double r0 = parent_ed.radius * 0.9;
+      const double r0 = parent_ed.radius * 0.85;
       const double w0 = parent_ed.subtree_length;
 
       // Check if reconstruction is needed (any RADIUS_UNSET in axis)
@@ -455,7 +455,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
         if (ratio < 1)
         {
           for (int eid : axe_eids)
-            graph.edge_data(eid).radius *= ratio;
+            graph.edge_data(eid).radius *= ratio*0.85;
         }
       }
     }
