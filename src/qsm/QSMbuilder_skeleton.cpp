@@ -8,7 +8,7 @@
 
 #include "arbor.h"
 #include "QSMbuilder.h"
-#include "ransac.h"
+#include "fitting.h"
 
 namespace arbor::qsm {
 
@@ -54,7 +54,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
     if (indices.size() >= 100)
     {
-      RansacCircle rc(100, 0.02);
+      utils::fitting::FittingCircloid rc;
 
       for (int idx : indices)
       {
@@ -64,14 +64,14 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         rc.add_point(x, y, z);
       }
 
-      rc.find_circle();
+      utils::fitting::FittingResult ans = rc.fit(0.03);
 
-      if (rc.is_valid(0.5, 0.3, 120.0))
+      if (ans.is_valid(50, 30, 120.0))
       {
-        auto center = rc.get_center();
-        c.x = center[0];
-        c.y = center[1];
-        c.z = center[2];
+        auto center = ans.center;
+        c.x = center.x;
+        c.y = center.y;
+        c.z = center.z;
       }
       else
       {

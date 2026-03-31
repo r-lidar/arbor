@@ -81,11 +81,8 @@ params = default_arbor_parameters
 
 # Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
 
-ctg = readTLScatalog(file, select = "xyz0", filter = filter)
-opt_chunk_size(ctg) = 50
-opt_chunk_buffer(ctg) = 10
-plot(ctg, chunk = T)
-chunks = lidR:::engine_chunks(ctg)
+las = readTLS(file, select = "xyz0", filter = filter)
+
 
 maxID = 0
 las <- hybrid_homogeneization(las)
@@ -163,7 +160,7 @@ if (display) plot_likelihood(las)
 # segment_foliage relies, at least partially, on a good anisotropy measurement.
 # If the previous step is bad this step will be bad too.
 
-las <- segment_semantic(las, dtm, params)
+las <- segment_semantic(las, params)
 
 if (display)
 {

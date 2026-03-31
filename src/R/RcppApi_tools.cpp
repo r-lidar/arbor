@@ -2,7 +2,8 @@
 
 #include <Rcpp.h>
 #include "Grid3D.h"
-#include "ransac.h"
+//#include "ransac.h"
+#include "fitting.h"
 #include "arbor.h"
 
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
@@ -51,7 +52,7 @@ public:
 };
 
 
-Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0)
+/*Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0)
 {
   MatrixAdaptor pc(x);
   RansacCircle rc(num_iterations, inlier_threshold, early_exit);
@@ -82,9 +83,7 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
     Rcpp::Named("percentage_inside") = inside_pct,
     Rcpp::Named("inliers") = r_inliers+1
   );
-}
-
-#include "fitting.h"
+}*/
 
 Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance)
 {

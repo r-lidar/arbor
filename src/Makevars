@@ -52,7 +52,6 @@ OBJECTS = api/PointCloud.o \
   dtm/dtm.o \
   utils/services.o \
   utils/homogeneization.o \
-  utils/ransac.o \
   utils/knn.o \
   utils/progressbar.o \
   utils/Grid3D.o \

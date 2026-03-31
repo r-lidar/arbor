@@ -34,12 +34,22 @@ struct FittingResult
   bool success = false;
   double radius = 0;
   double inlier_percentage = 0.0;
+  double insider_percentage = 0.0;
   double arc_coverage_deg = 0.0;
   Vec3 center = {0.0, 0.0, 0.0};
   std::vector<int> inlier_indices;
   std::string shape_type;
   std::vector<Vec3> nodes;
   std::vector<double> parameters;
+  bool is_valid(double min_inlier_percentage, double max_inside_percentage, double min_arc_coverage_deg) const
+  {
+    if (!success) return false;
+    if (radius <= 0.0) return false;
+    if (inlier_percentage < min_inlier_percentage) return false;
+    if (insider_percentage > max_inside_percentage) return false;
+    if (arc_coverage_deg < min_arc_coverage_deg) return false;
+    return true;
+  }
 };
 
 struct PolarData

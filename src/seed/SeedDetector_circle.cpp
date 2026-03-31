@@ -7,7 +7,7 @@
 #include <map>
 
 #include "SeedDetector.h"
-#include "ransac.h"
+#include "fitting.h"
 #include "Grid3D.h"
 
 namespace arbor::seeds {
@@ -38,27 +38,27 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
 
   if (cluster.indices.size() < 20) return nullptr;
 
-  RansacCircle ransac(num_iterations, inlier_threshold);
+  utils::fitting::FittingCircloid fitter;
   for (size_t idx : cluster.indices)
   {
     double x = point_cloud.get_x(idx);
     double y = point_cloud.get_y(idx);
     double z = point_cloud.get_z(idx);
-    ransac.add_point(x, y, z);
+    fitter.add_point(x, y, z);
   }
-  ransac.find_circle();
+  utils::fitting::FittingResult res = fitter.fit(0.03);
 
-  double radius = ransac.get_radius();
-  double covered_arc_degree = ransac.get_arc_coverage();
-  double percentage_inlier = ransac.get_inlier_percentage() * 100.0;
-  double percentage_inside = ransac.get_inside_percentage() * 100.0;
+  double radius = res.radius;
+  double covered_arc_degree = res.arc_coverage_deg;
+  double percentage_inlier = res.inlier_percentage;
+  double percentage_inside = 0;
 
   bool valid = is_valid_circle(radius, covered_arc_degree, percentage_inlier, percentage_inside);
 
   if (valid)
   {
-    auto center = ransac.get_center();
-    return std::make_unique<Circle>(center[0], center[1],  center[2], radius, id);
+    auto center = res.center;
+    return std::make_unique<Circle>(center.x, center.y,  center.z, radius, id);
   }
 
   return nullptr;
