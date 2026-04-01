@@ -8,7 +8,7 @@
 #'
 #'
 #' @return
-#' A named list with:
+#' A data.frame with:
 #' \itemize{
 #'   \item{dbh: DBH in meter}
 #'   \item{pos: xyz position of the center}
@@ -20,16 +20,16 @@
 #' qsm <- qsm(tree)
 #' ans <- qs_dbh(qsm)
 #' @export
-qs_dbh <- function(qs, bh = 1.30)
+qsm_dbh <- function(qs, bh = 1.30)
 {
-  UseMethod("qs_dbh")
+  UseMethod("qsm_dbh")
 }
 
 #' @export
-qs_dbh.qsm <- function(qsm, bh = 1.30)
+qsm_dbh.qsm <- function(qs, bh = 1.30)
 {
-  main_axis <- qsm[branch_order == 1]
-  ground_z  <- min(qsm$startZ)
+  main_axis <- qs[branch_order == 1]
+  ground_z  <- min(qs$startZ)
 
   len = with(main_axis, sqrt((endX - startX)^2 + (endY - startY)^2 + (endZ - startZ)^2))
   dist_to_root = cumsum(len)
@@ -55,7 +55,7 @@ qs_dbh.qsm <- function(qsm, bh = 1.30)
 }
 
 #' @export
-qs_dbh.qsf <- function(qs, bh = 1.30)
+qsm_dbh.qsf <- function(qs, bh = 1.30)
 {
   ans <- lapply(qs, qs_dbh, bh = bh)
   ans <- data.table::rbindlist(ans, idcol = "treeID")

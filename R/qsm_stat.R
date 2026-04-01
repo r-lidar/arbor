@@ -6,10 +6,7 @@
 #' statistics can be complemented with information derived from a LAS point cloud
 #' of the tree and visual diagnostics can be displayed.
 #'
-#' @param qsm A `data.table` or `data.frame` representing a QSM, typically
-#'   produced by \link{qsm}.
-#' @param tree Optional. A `LAS` object containing the tree point cloud that generated the QSM
-#'   If provided, additional statistics are computed.
+#' @param qsm A QSM or QSF produced by \link{qsm} or \link{qsf}.
 #' @param display Logical. If `TRUE`, diagnostic plots are displayed, including
 #'   volume distributions, stem profile, and vertical projections.
 #' @param ... passed to \link{qsm_dbh}.
@@ -41,33 +38,35 @@
 #' qsm <- qsm(tree)
 #' ans <- qsm_stats(qsm, tree, display = TRUE)
 #' @export
-qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
+qsm_stats <- function(qs, ..., display = FALSE)
 {
-  if (nrow(qsm) == 0) return(NULL)
+  UseMethod("qsm_stats")
+}
 
-  if (missing(qsm)) stop("'qsm' is missing")
-  if (!is.data.frame(qsm)) stop("'qsm' must be a data.frame or data.table")
+#' @export
+qsm_stats.qsm <- function(qs, ..., display = FALSE)
+{
+  if (nrow(qs) == 0) return(NULL)
+
+  if (!is.data.frame(qs)) stop("'qs' must be a data.frame or data.table")
 
   required_cols <- c("radius", "branch_order", "axis_ID", "startX", "startY", "startZ", "endZ")
-  missing_cols <- setdiff(required_cols, names(qsm))
+  missing_cols <- setdiff(required_cols, names(qs))
   if (length(missing_cols) > 0) stop("Missing required QSM columns: ", paste(missing_cols, collapse = ", "))
-
-  if (!is.null(tree)) {
-    if (!methods::is(tree, "LAS"))
-      stop("'tree' must be a LAS object")
-  }
 
   if (!is.logical(display) || length(display) != 1)  stop("'display' must be a single logical value (TRUE/FALSE)")
 
   .N <- radius <- radius_bin <- branch_order <- axis_ID <- dist_to_root <-. <- NULL
 
-  dt = data.table::copy(qsm)
+  dt = data.table::copy(qs)
   dt$radius_bin = cut(dt$radius*100, breaks = seq(0, max(dt$radius*100)+2, 2))
 
   stats_by_radius <- dt[, .(volume = round(sum(volume),3), N = .N), by = .(radius = radius_bin)]
+  data.table::setDT(stats_by_radius)
   data.table::setorder(stats_by_radius, radius)
 
   stats_by_order <- dt[, .(volume = round(sum(volume), 3)), by = branch_order]
+  data.table::setDT(stats_by_order)
   data.table::setorder(stats_by_order, branch_order)
   stats_by_order$percentage = round(cumsum(stats_by_order$volume)/sum(stats_by_order$volume)*100,1)
 
@@ -76,23 +75,23 @@ qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
   dist_to_root = max(sl)-sl
   r = main_axis$radius
   stem_profile = data.frame(dist_to_root = dist_to_root, diametre = r*2)
+  data.table::setDT(stem_profile)
   data.table::setorder(stem_profile, dist_to_root)
 
-  dbh = qsm_dbh(qsm, tree, ..., display = display)
-  X_bh = dbh$average$pos[1]
-  Y_bh = dbh$average$pos[2]
-  Z_bh = dbh$average$pos[3]
+  dbh = qsm_dbh(qs, ...)
+  X_bh = dbh$x
+  Y_bh = dbh$y
+  Z_bh = dbh$z
 
-  root = qsm[axis_ID == 1][1]
+  root = qs[axis_ID == 1][1]
   X_root = root$startX
   Y_root = root$startY
   Z_root = root$startZ
 
-  qsm = qsm_volume(qsm)
-  V   = round(sum(qsm$volume), 3)
-  H   = round(max(qsm$endZ) - Z_root, 3)
-  DBH = dbh$qsm$dbh
-  if (!is.na(dbh$slice$dbh)) DBH = dbh$slice$dbh
+  qs = qsm_volume(qs)
+  V   = round(sum(qs$volume), 3)
+  H   = round(max(qs$endZ) - Z_root, 3)
+  DBH = dbh$dbh
 
   stats_global = data.frame(X_root = X_root,
                             Y_root = Y_root,
@@ -104,21 +103,37 @@ qsm_stats <- function(qsm, tree = NULL, ..., display = FALSE)
                             V = V,
                             H = H)
 
-  if (!is.null(tree))
-  {
-    H = max(tree$Z)
-    q98 = stats::quantile(tree$Z, probs = 0.98)
-    stats_global$H = H - Z_root
-    stats_global$q98 = q98- Z_root
-  }
-
-  if (display) .plot_stats(stats_by_radius, stats_by_order, stats_global, stem_profile, tree)
+  if (display) .plot_stats(stats_by_radius, stats_by_order, stats_global, stem_profile, NULL)
 
   return(list(stats_by_order = stats_by_order,
               stats_by_radius = stats_by_radius,
               stats_global = stats_global,
               stem_taper = stem_profile))
 
+}
+
+#' @export
+qsm_stats.qsf <- function(qs, ..., display = FALSE)
+{
+  if (!is.list(qs)) stop("'qsm' must be a list of qsm objects")
+
+  res <- lapply(qs, function(x)
+  {
+    out <- qsm_stats(x, ..., display = FALSE)
+    if (is.null(out)) return(NULL)
+    out$stats_global
+  })
+
+  res <- Filter(Negate(is.null), res)
+  if (length(res) == 0) return(NULL)
+
+  res <- data.table::rbindlist(res, idcol = "treeID")
+
+  if (display) {
+    message("Display not supported for qsf (global stats only).")
+  }
+
+  return(res)
 }
 
 .plot_stats = function(stats_by_radius, stats_by_order, stats_global, stem_profile, tree)
