@@ -13,7 +13,7 @@ qsm_read = function(x)
   qsm = unify_names(qsm)
   name = tools::file_path_sans_ext(basename(x))
   attr(qsm, "ID") = name
-  qsm = set_qsm_class(qsm)
+  qsm = as_qsm(qsm)
   return(qsm)
 }
 

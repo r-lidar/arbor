@@ -1,6 +1,7 @@
 #include "arbor.h"
 #include "myomp.h"
 #include "nanoflann.h"
+#include "Grid3D.h"
 #include "GraphBuilder.h"
 
 #include <chrono>
@@ -31,6 +32,60 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   builder.add_master_seed_layer();
 
   return builder.get_graph();
+}
+
+void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min_size = 200)
+{
+  const size_t n = las.size();
+
+  // group indices by tree ID
+  std::unordered_map<int, std::vector<int>> tree_to_indices;
+  for (size_t i = 0; i < n; ++i)
+  {
+    if (!las.is_wood(i))        continue;
+    if (las.get_hag(i) >= 3.0)  continue;
+    int id = las.get_treeid(i);
+    if (id < 0)                 continue; // NA from R or -1
+    tree_to_indices[id].push_back(static_cast<int>(i));
+  }
+
+  // PER-TREE
+  for (auto& [id, indices] : tree_to_indices)
+  {
+    // Build a sub-cloud with Z scaled down by 0.1 to flatten the search
+    PointCloud sub(indices.size());
+    for (size_t k = 0; k < indices.size(); ++k)
+    {
+      int i = indices[k];
+      sub.set_x(k, las.get_x(i));
+      sub.set_y(k, las.get_y(i));
+      sub.set_z(k, las.get_z(i) * 0.1);
+    }
+
+    // Run connected components on the flattened sub-cloud
+    Grid3D grid(sub, res);
+    std::vector<int> cluster_ids = grid.connected_components(26);
+
+    // Count points per cluster
+    std::unordered_map<int, int> counts;
+    for (int cid : cluster_ids) counts[cid]++;
+
+    if (counts.size() <= 1) continue;
+
+    // Find the largest cluster
+    int best_cluster = -1, best_count = -1;
+    for (auto& [cid, cnt] : counts)
+    {
+      if (cnt > best_count) { best_count = cnt; best_cluster = cid; }
+    }
+
+    // Reclassify non-largest cluster points as foliage
+    for (size_t k = 0; k < indices.size(); ++k)
+    {
+      if (cluster_ids[k] != best_cluster)
+        las.set_foliage(indices[k], 1);
+    }
+  }
 }
 
 void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params)
@@ -120,6 +175,9 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(1) << elapsed.count();
+
+  ServiceLocator::logger()("Fix low isolated wood clusters");
+  fix_small_isolated_low_clusters(core);
 
   ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }

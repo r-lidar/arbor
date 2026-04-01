@@ -73,6 +73,10 @@ find_closest_node <- function(graph_ptr, ids) {
     .Call(`_arbor_find_closest_node`, graph_ptr, ids)
 }
 
+C_fix_small_isolated_low_clusters <- function(df, res = 0.05, min_size = 200L) {
+    invisible(.Call(`_arbor_C_fix_small_isolated_low_clusters`, df, res, min_size))
+}
+
 generate_cage_cpp <- function(circles, decimation) {
     .Call(`_arbor_generate_cage_cpp`, circles, decimation)
 }

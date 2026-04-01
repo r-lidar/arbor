@@ -66,6 +66,9 @@ Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 
+//[[Rcpp::export(rng = false)]]
+void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200);
+
 // ========================
 // SEEDS
 // ========================

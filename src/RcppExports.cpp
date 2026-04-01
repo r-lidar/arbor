@@ -214,6 +214,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_fix_small_isolated_low_clusters
+void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res, int min_size);
+RcppExport SEXP _arbor_C_fix_small_isolated_low_clusters(SEXP dfSEXP, SEXP resSEXP, SEXP min_sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type res(resSEXP);
+    Rcpp::traits::input_parameter< int >::type min_size(min_sizeSEXP);
+    C_fix_small_isolated_low_clusters(df, res, min_size);
+    return R_NilValue;
+END_RCPP
+}
 // generate_cage_cpp
 Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
 RcppExport SEXP _arbor_generate_cage_cpp(SEXP circlesSEXP, SEXP decimationSEXP) {
@@ -363,6 +374,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
     {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
+    {"_arbor_C_fix_small_isolated_low_clusters", (DL_FUNC) &_arbor_C_fix_small_isolated_low_clusters, 3},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},

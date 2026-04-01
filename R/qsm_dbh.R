@@ -18,7 +18,7 @@
 #' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 #' tree <- lidR::readLAS(f)
 #' qsm <- qsm(tree)
-#' ans <- qs_dbh(qsm)
+#' ans <- qsm_dbh(qsm)
 #' @export
 qsm_dbh <- function(qs, bh = 1.30)
 {
@@ -28,7 +28,7 @@ qsm_dbh <- function(qs, bh = 1.30)
 #' @export
 qsm_dbh.qsm <- function(qs, bh = 1.30)
 {
-  main_axis <- qs[branch_order == 1]
+  main_axis <- qs[qs$branch_order == 1,]
   ground_z  <- min(qs$startZ)
 
   len = with(main_axis, sqrt((endX - startX)^2 + (endY - startY)^2 + (endZ - startZ)^2))
@@ -57,7 +57,7 @@ qsm_dbh.qsm <- function(qs, bh = 1.30)
 #' @export
 qsm_dbh.qsf <- function(qs, bh = 1.30)
 {
-  ans <- lapply(qs, qs_dbh, bh = bh)
+  ans <- lapply(qs, qsm_dbh, bh = bh)
   ans <- data.table::rbindlist(ans, idcol = "treeID")
   return(ans)
 }

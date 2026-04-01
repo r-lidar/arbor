@@ -1,3 +1,5 @@
+# Function used by cmd_blender
+# Generate mesh ring as a QSM object with 1 cylinder
 qsm_ring = function(qsm)
 {
   axis_ID <- NULL

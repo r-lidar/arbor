@@ -122,7 +122,7 @@ Settings
   rings = lapply(qsf, qsm_ring)
   rings = do.call(rbind, rings)
   rings$cyl_ID = 1:nrow(rings)
-  rings = set_qsm_class(rings)
+  rings = as_qsm(rings)
 
   # --- Exports ---
   cat("Export qsf\n")

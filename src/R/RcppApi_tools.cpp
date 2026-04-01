@@ -147,4 +147,13 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   return output;
 }
 
+namespace arbor::segment{
+void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min_size = 200);
+}
+void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200)
+{
+  PointCloud pc(df);
+  arbor::segment::fix_small_isolated_low_clusters(pc, res, min_size);
+}
+
 #endif

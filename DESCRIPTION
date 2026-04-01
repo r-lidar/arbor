@@ -16,11 +16,9 @@ Imports:
   graphics,
   lidR (>= 4.2.2),
   methods,
-  progressr,
   Rcpp,
   rgl,
   sf,
-  stats,
   utils
 Suggests: 
   tinytest,

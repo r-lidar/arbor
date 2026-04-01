@@ -27,5 +27,5 @@ Extract the diameter at breast height (DBH) from a Quantitative Structure Model
 f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 tree <- lidR::readLAS(f)
 qsm <- qsm(tree)
-ans <- qs_dbh(qsm)
+ans <- qsm_dbh(qsm)
 }

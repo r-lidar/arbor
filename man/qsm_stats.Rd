@@ -7,12 +7,13 @@
 qsm_stats(qs, ..., display = FALSE)
 }
 \arguments{
+\item{qs}{A QSM or QSF produced by \link{qsm} or \link{qsf}. If `qs` is a `QSF` the output is less
+comprehensive to fit in a `data.frame`}
+
 \item{...}{passed to \link{qsm_dbh}.}
 
 \item{display}{Logical. If `TRUE`, diagnostic plots are displayed, including
 volume distributions, stem profile, and vertical projections.}
-
-\item{qsm}{A QSM or QSF produced by \link{qsm} or \link{qsf}.}
 }
 \value{
 A named list with the following elements:
@@ -45,7 +46,7 @@ from the point cloud and QSM rather than the QSM alone.
 f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 tree <- lidR::readLAS(f)
 qsm <- qsm(tree)
-ans <- qsm_stats(qsm, tree, display = TRUE)
+ans <- qsm_stats(qsm, display = TRUE)
 }
 \seealso{
 \link{qsm_dbh}, \link{qsm}

@@ -146,7 +146,6 @@ Exports
 
   cat("Cleaning segmentation\n")
   trees <- remove_small_trees(las, max_height = min_tree_height)
-  trees <- fix_small_isolated_low_clusters(trees)
   trees <- clip_buffer(trees, -buffer)
 
   cat("Colorization\n")

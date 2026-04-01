@@ -6,7 +6,8 @@
 #' statistics can be complemented with information derived from a LAS point cloud
 #' of the tree and visual diagnostics can be displayed.
 #'
-#' @param qsm A QSM or QSF produced by \link{qsm} or \link{qsf}.
+#' @param qs A QSM or QSF produced by \link{qsm} or \link{qsf}. If `qs` is a `QSF` the output is less
+#' comprehensive to fit in a `data.frame`
 #' @param display Logical. If `TRUE`, diagnostic plots are displayed, including
 #'   volume distributions, stem profile, and vertical projections.
 #' @param ... passed to \link{qsm_dbh}.
@@ -36,7 +37,7 @@
 #' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 #' tree <- lidR::readLAS(f)
 #' qsm <- qsm(tree)
-#' ans <- qsm_stats(qsm, tree, display = TRUE)
+#' ans <- qsm_stats(qsm, display = TRUE)
 #' @export
 qsm_stats <- function(qs, ..., display = FALSE)
 {

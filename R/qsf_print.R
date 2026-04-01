@@ -14,6 +14,8 @@ print.qsf <- function(x, ...)
   n_tree <- length(x)
   n_cyl  <- sum(sapply(x, nrow))
   crs = attr(x, "crs")
+  dbh = qsm_dbh(x)
+  ba  = sum(pi*(dbh$dbh/2)^2)
   if (is.null(crs)) crs = sf::NA_crs_
 
   # total volume
@@ -22,6 +24,7 @@ print.qsf <- function(x, ...)
   cat("QSF\n")
   cat(sprintf("Trees       : %d\n", n_tree))
   cat(sprintf("Cylinders   : %d\n", n_cyl))
+  cat(sprintf("Basal area  : %.2f m\u00b2\n", ba))
   cat(sprintf("Volume      : %.2f m\u00b3\n", total_volume))
   cat("Coord. ref. :", crs$Name, "\n")
 
