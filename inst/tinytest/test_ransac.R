@@ -1,5 +1,5 @@
 # Test case 7: RANSAC on noisy circle points
-ransac_circle = arbor:::ransac_circle
+ransac_circle = arbor:::fit_circloid_cpp
 
 set.seed(123)
 n = 500
@@ -8,7 +8,7 @@ circle_points <- matrix(c(12 + 2 * cos(theta) + rnorm(n, 0, 0.1),
                           18.5 + 2 * sin(theta) + rnorm(n, 0, 0.1),
                           rep(0, n)), ncol = 3, byrow = FALSE)
 
-result7 <- ransac_circle(circle_points, num_iterations = 50, inlier_threshold = 0.2)
+result7 <- ransac_circle(circle_points, tolerance = 0.2)
 
 expect_equal(result7$center_x, 12, tolerance = 0.005)
 expect_equal(result7$center_y, 18.5, tolerance = 0.005)
@@ -26,13 +26,13 @@ circle_points <- matrix(c(500 + 0.12 * cos(theta) + runif(n, 0, 0.01),
 rm = circle_points[,1] > 500
 circle_points = circle_points[rm,]
 
-result8 <- ransac_circle(circle_points, num_iterations = 400)
+result8 <- ransac_circle(circle_points)
 
 expect_equal(result8$center_x, 500, tolerance = 0.005)
 expect_equal(result8$center_y, 500, tolerance = 0.005)
 expect_equal(result8$radius, 0.12, tolerance = 0.05)
 expect_equal(result8$covered_arc_degree, 183, tolerance = 3)
-expect_equal(result8$percentage_inlier, 1, tolerance = 0.02)
+expect_equal(result8$percentage_inlier, 100, tolerance = 0.02)
 
 
 x = structure(
@@ -61,7 +61,7 @@ x = structure(
 
 xc = mean(x[,1])
 yc = mean(x[,2])
-c = ransac_circle(x, inlier_threshold = 0.02)
+c = ransac_circle(x, tolerance = 0.02)
 
 expect_true(c$center_x - xc < 0.02)
 expect_true(c$center_y - yc < 0.02)

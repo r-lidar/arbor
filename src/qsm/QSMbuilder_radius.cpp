@@ -208,8 +208,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 {
   ServiceLocator::logger()("Refine radii");
 
-  int nc = 0;
-  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM");
+    if (graph.edge_count() == 0) return;
 
   // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
@@ -282,7 +281,6 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 
     if (valid)
     {
-      nc++;
       ed.radius = res.radius;
       /*auto& node = graph.nodes()[einfo.source];
       node.x = res.center.x;
@@ -290,8 +288,6 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
       node.z = res.center.z;*/
     }
   }
-
-  ServiceLocator::logger()(std::to_string(nc) + " refined radii");
 }
 
 void QSMbuilder::polynomial_fitting(double tip_radius)

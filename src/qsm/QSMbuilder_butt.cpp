@@ -75,7 +75,7 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
   for (const auto& [eid, einfo] : graph.edges())
     if (einfo.data.axis_ID == 1) main_axis_eids.push_back(eid);
 
-  if (main_axis_eids.empty()) return;
+  if (main_axis_eids.size() < 5) return;
 
   // Sort root→tip (descending subtree_length)
   std::sort(main_axis_eids.begin(), main_axis_eids.end(), [this](int a, int b) {

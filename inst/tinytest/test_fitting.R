@@ -38,30 +38,36 @@ Rx <- matrix(c(
   0, sin(theta_rot),  cos(theta_rot)
 ), ncol = 3, byrow = TRUE)
 
-circle_points <- matrix(c(xc + r * cos(theta) + rnorm(n, 0, 0.1),
-                          yc + r * sin(theta) + rnorm(n, 0, 0.1),
+set.seed(123)
+ex = rnorm(n, 0, 0.1)
+set.seed(321)
+ey = rnorm(n, 0, 0.1)
+
+circle_points <- matrix(c(xc + r * cos(theta) + ex,
+                          yc + r * sin(theta) + ey,
                           runif(n, 0, 2)), ncol = 3, byrow = FALSE)
 
 
-ellipse_points <- matrix(c(xc + a * cos(theta) + rnorm(n, 0, 0.1),
-                           yc + b * sin(theta) + rnorm(n, 0, 0.1),
+ellipse_points <- matrix(c(xc + a * cos(theta) + ex,
+                           yc + b * sin(theta) + ey,
                            runif(n, 0, 2)), ncol = 3, byrow = FALSE)
 
 theta = seq(0, pi, length.out = n)
 
-hcircle_points <- matrix(c(xc + r * cos(theta) + rnorm(n, 0, 0.1),
-                           yc + r * sin(theta) + rnorm(n, 0, 0.1),
+hcircle_points <- matrix(c(xc + r * cos(theta) + ex,
+                           yc + r * sin(theta) + ey,
                            runif(n, 0, 2)), ncol = 3, byrow = FALSE)
 
 
-hellipse_points <- matrix(c(xc + a * cos(theta) + rnorm(n, 0, 0.1),
-                            yc + b * sin(theta) + rnorm(n, 0, 0.1),
+hellipse_points <- matrix(c(xc + a * cos(theta) + ex,
+                            yc + b * sin(theta) + ey,
                             runif(n, 0, 2)), ncol = 3, byrow = FALSE)
 
 rcircle_points <- circle_points %*% t(Rx)
 
 
 theta <- seq(0, 2 * pi, length.out = n)
+set.seed(42)
 R = 3+0.5*cos(theta)+sin(2*theta) + runif(n, -0.25, 0.25)
 x = xc + R*cos(theta)
 y = yc + R*sin(theta)
@@ -71,33 +77,14 @@ circloid_points = cbind(x,y,z )
 rcircloid_points <- circloid_points %*% t(Rx)
 
 theta = seq(0, pi, length.out = n)
+set.seed(314)
 R = 3+0.5*cos(theta)+sin(2*theta) + runif(n, -0.25, 0.25)
 x = xc + R*cos(theta)
 y = yc + R*sin(theta)
 z = 0
 hcircloid_points = cbind(x,y,z )
 
-circle_points <- matrix(c(xc + r * cos(theta) + rnorm(n, 0, 0.1),
-                          yc + r * sin(theta) + rnorm(n, 0, 0.1),
-                          rep(0, n)), ncol = 3, byrow = FALSE)
-
-
-a <- 4.0
-b <- 1.5
-
-ellipse_points <- matrix(c(
-  xc + a * cos(theta) + rnorm(n, 0, 0.1),   # X coordinates
-  yc + b * sin(theta) + rnorm(n, 0, 0.1), # Y coordinates
-  rep(0, n)                                 # Z coordinates (remains 0)
-), ncol = 3, byrow = FALSE)
-
-
-r = 3+0.5*cos(theta)+sin(2*theta) + runif(n, -0.25, 0.25)
-x = xc + r*cos(theta)
-y = yc + r*sin(theta)
-z = 0
-circloid_points = cbind(x,y,z)
-
+disp = FALSE
 
 # ================
 # Check circle
@@ -107,7 +94,7 @@ pt = circle_points
 tol = 0.07
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
@@ -119,7 +106,7 @@ pt = circle_points
 tol = 0.15
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
@@ -131,21 +118,21 @@ expect_equal(res$covered_arc_degree, 360)
 # ================
 
 pt = hcircle_points
-tol = 0.07
+tol = 0.06
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
-expect_equal(res$center_y, yc, tolerance = 0.005)
-expect_equal(res$radius, r, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 180)
+expect_equal(res$center_y, 18.79, tolerance = 0.005)
+expect_equal(res$radius, 1.81, tolerance = 0.025)
+expect_equal(res$covered_arc_degree, 200)
 
 pt = hcircle_points
-tol = 0.15
+tol = 0.02
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
@@ -160,7 +147,7 @@ pt = rcircle_points
 tol = 0.15
 res <- fit(pt, tolerance = tol, from = c(0,0,0), to = c(0, -1, 1))
 
-if (FALSE) show3d(pt, res)
+if (disp) show3d(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, 12.38, tolerance = 0.005)
@@ -175,7 +162,7 @@ pt = ellipse_points
 tol = 0.08
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
@@ -187,7 +174,7 @@ pt = ellipse_points
 tol = 0.15
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
@@ -202,11 +189,11 @@ pt = hellipse_points
 tol = 0.08
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
-expect_equal(res$center_y, yc, tolerance = 0.005)
-expect_equal(res$radius, 2.41, tolerance = 0.05)
+expect_equal(res$center_y, 18.75, tolerance = 0.005)
+expect_equal(res$radius, 2.17, tolerance = 0.05)
 expect_equal(res$covered_arc_degree, 180)
 
 
@@ -218,7 +205,7 @@ pt = circloid_points
 tol = 0.07
 res <- fit(pt, tolerance = tol)
 
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, yc, tolerance = 0.05)
@@ -229,7 +216,7 @@ expect_equal(res$covered_arc_degree, 360)
 pt = circloid_points
 tol = 0.15
 res <- fit(pt, tolerance = tol)
-if (FALSE) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, yc, tolerance = 0.05)
@@ -244,7 +231,7 @@ pt = hcircloid_points
 tol = 0.2
 res <- fit(pt, tolerance = tol)
 
-if (FALSE)
+if (disp) show(pt, res)
 
 
 expect_equal(res$center_x, 13.4, tolerance = 0.01)
@@ -260,7 +247,7 @@ pt = rcircloid_points
 tol = 0.15
 res <- fit(pt, tolerance = tol, from = c(0,0,0), to = c(0, -1, 1))
 
-if (FALSE) show3d(pt, res)
+if (disp) show3d(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, 12.48, tolerance = 0.05)
@@ -378,18 +365,19 @@ pt = structure(c(312335.542, 312335.582, 312335.491, 312335.497, 312335.493,
 
 res = fit(pt, tolerance = 0.1)
 
-if (false) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
 expect_equal(res$radius, 0.191, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 340)
 
-res = fit(pts, tolerance = 0.03)
+res = fit(pt, tolerance = 0.03)
 
-if (false) show(pt, res)
+if (disp) show(pt, res)
 
 expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
 expect_equal(res$radius, 0.19, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+

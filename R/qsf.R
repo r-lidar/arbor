@@ -11,13 +11,14 @@
 qsf <- function(las, params = default_arbor_parameters)
 {
   params <- evaluate_penalty(params)
-  res = qsf_cpp(las@data, params)
+  res <- qsf_cpp(las@data, params)
   for(i in seq_along(res)) res[[i]] <- qsm_finalize(res[[i]])
-  res = set_qsf_class(res)
+  res <- res[order(as.numeric(names(res)))]
+  res <- as_qsf(res)
   res
 }
 
-set_qsf_class <- function(x)
+as_qsf <- function(x)
 {
   class(x) <- c("qsf", class(x))
   x

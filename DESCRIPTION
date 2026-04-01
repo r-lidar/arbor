@@ -17,11 +17,11 @@ Imports:
   lidR (>= 4.2.2),
   methods,
   progressr,
-  pracma,
   Rcpp,
   rgl,
   sf,
   stats,
-  terra,
   utils
-Suggests: tinytest
+Suggests: 
+  tinytest,
+  terra

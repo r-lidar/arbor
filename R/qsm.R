@@ -31,13 +31,13 @@ qsm_finalize = function(qsm)
   data.table::setDT(qsm)
   order <- c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
   data.table::setcolorder(qsm, order)
-  qsm <- set_qsm_class(qsm)
+  qsm <- as_qsm(qsm)
   qsm
 }
 
-set_qsm_class <- function(x)
+as_qsm <- function(x)
 {
-  stopifnot(data.table::is.data.table(x))
+  data.table::setDT(x)
   class(x) <- c("qsm", class(x))
   x
 }
