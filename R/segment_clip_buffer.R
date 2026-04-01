@@ -1,43 +1,63 @@
-#' Clip Trees Using a Buffered Convex Hull
+#' Clip Trees Using a Buffer
 #'
-#' This function removes trees located near the edges of a point cloud by clipping them
-#' using a buffered convex hull. It first computes the convex hull of the input LAS object
+#' Removes trees located near the edges of a point cloud by clipping the tree that are beyond the
+#' limit of the polygon. It first computes the convex hull of the input LAS object
 #' and shrinks it by the specified buffer distance. Only trees with seed points inside
 #' this buffered region are retained.
 #'
 #' @param las A LAS object from lidR containing segmented trees.
+#' @param seeds A LAS object. The seeds from \link{find_seeds}. If missing an internal routine
+#' will estimate the position of the trees based on their lowest points.
 #' @param buffer Numeric value (in meters). The distance by which the convex hull is shrunk
 #'   before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
 #'   Can also be a sf POLYGON object.
-#' @return A filtered LAS object containing only trees whose seeds fall within the buffered region.
+#' @return A filtered LAS object where treeID of trees whose seeds fall outside the region of interest
+#' are NA. They can later be removed.
 #' @export
-#'
-clip_buffer = function(las, buffer = -5)
+clip_buffer = function(las, seeds, buffer = -5)
 {
   # Avoid NOTES
   X <- Y <- Z <- treeID <- NULL
 
-  # Make root robust to small groups
-  root <- function(x, y, z)
-  {
-    i <- order(z)
-    n <- min(100L, length(i))            # Use available points (<=100)
-    if (n < 10L) {                       # Guard against tiny groups
-      return(list(X = NA_real_, Y = NA_real_, Z = NA_real_))
-    }
-    x <- x[i][seq_len(n)]
-    y <- y[i][seq_len(n)]
-    z <- z[i][seq_len(n)]
-    x <- mean(x)
-    y <- mean(y)
-    z <- mean(z)
-    return(list(X = x, Y = y, Z = z))
-  }
-
   # Compute roots per tree (drop unsegmented)
-  roots <- las@data[!is.na(treeID), root(X, Y, Z), by = treeID]
-  roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
-  if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+  if (missing(seeds))
+  {
+    # Make root robust to small groups
+    root <- function(x, y, z)
+    {
+      i <- order(z)
+      n <- min(100L, length(i))            # Use available points (<=100)
+      if (n < 10L) {                       # Guard against tiny groups
+        return(list(X = NA_real_, Y = NA_real_, Z = NA_real_))
+      }
+      x <- x[i][seq_len(n)]
+      y <- y[i][seq_len(n)]
+      z <- z[i][seq_len(n)]
+      x <- mean(x)
+      y <- mean(y)
+      z <- mean(z)
+      return(list(X = x, Y = y, Z = z))
+    }
+
+    roots <- las@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
+    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+  }
+  else
+  {
+    # Make root robust to small groups
+    root <- function(x, y, z)
+    {
+      x <- mean(x)
+      y <- mean(y)
+      z <- mean(z)
+      return(list(X = x, Y = y, Z = z))
+    }
+
+    roots <- seeds@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
+    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+  }
 
   # Build buffered convex hull
   if (is.numeric(buffer))
@@ -61,5 +81,7 @@ clip_buffer = function(las, buffer = -5)
   if (!nrow(valid_seeds)) return(las[0])
 
   # Keep trees whose seeds are inside
-  las[las$treeID %in% valid_seeds$treeID]
+  las@data$treeID = data.table::copy(las@data$treeID)
+  las@data[!treeID %in% valid_seeds$treeID, treeID := NA_integer_]
+  return(las)
 }

@@ -2,12 +2,15 @@
 % Please edit documentation in R/segment_clip_buffer.R
 \name{clip_buffer}
 \alias{clip_buffer}
-\title{Clip Trees Using a Buffered Convex Hull}
+\title{Clip Trees Using a Buffer}
 \usage{
-clip_buffer(las, buffer = -5)
+clip_buffer(las, seeds, buffer = -5)
 }
 \arguments{
 \item{las}{A LAS object from lidR containing segmented trees.}
+
+\item{seeds}{A LAS object. The seeds from \link{find_seeds}. If missing an internal routine
+will estimate the position of the trees based on their lowest points.}
 
 \item{buffer}{Numeric value (in meters). The distance by which the convex hull is shrunk
 before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
@@ -17,8 +20,8 @@ Can also be a sf POLYGON object.}
 A filtered LAS object containing only trees whose seeds fall within the buffered region.
 }
 \description{
-This function removes trees located near the edges of a point cloud by clipping them
-using a buffered convex hull. It first computes the convex hull of the input LAS object
+Removes trees located near the edges of a point cloud by clipping the tree that are beyond the
+limit of the polygon. It first computes the convex hull of the input LAS object
 and shrinks it by the specified buffer distance. Only trees with seed points inside
 this buffered region are retained.
 }

@@ -10,7 +10,7 @@ default_parameters_v1 = list(
     k_seed_connectivity = 100,
     decimation = 0.05,
     space_res = 0.2,
-    max_gap = 0.2,
+    max_gap = 0.5,
     distance_power = 3,
     angle_penalty = function(x) { y = exp(0.046051*x); ifelse(x > 100, 100, y) }
   ),
