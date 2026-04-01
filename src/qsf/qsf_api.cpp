@@ -95,7 +95,6 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
           }
         }
       }
-      ServiceLocator::register_logger(old_logger);
     }
 
     p->tick();
@@ -104,6 +103,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
   // If something went wrong, rethrow the exception outside the parallel region
   if (eptr)
   {
+    ServiceLocator::register_logger(old_logger);
     std::rethrow_exception(eptr);
   }
 
