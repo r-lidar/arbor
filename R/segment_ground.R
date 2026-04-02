@@ -12,7 +12,7 @@ segment_ground = function(las, params = default_arbor_parameters)
 {
   params <- evaluate_penalty(params)
   if (!"Classification" %in% names(las)) las@data$Classification = 0L
-  las@data$hag = 0
+  las <- lidR::add_lasattribute(las, 0, "hag", "Height Above Ground")
   segment_ground_cpp(las@data, params)
   return(las)
 }
