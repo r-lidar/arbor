@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
+#include <sstream>
+#include <iomanip>
 
 #include "QSMbuilder.h"
 #include "PointCloud.h"
@@ -31,16 +33,22 @@ public:
 
 typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, SimpleAdaptor>, SimpleAdaptor, 3> CentroidKDTree;
 
+// Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
+// tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
+
 class Allometry
 {
 public:
-  static double H_vs_DBH(double dbh) {
+  static double H_vs_DBH(double dbh)
+  {
     return 36.03 * std::pow(1.0 - std::exp(-0.05 * dbh), 1.1);
   }
 
-  static double DBH_vs_H(double H) {
+  static double DBH_vs_H(double H)
+  {
     double DBH_cm;
-    if (H < 25.0) {
+    if (H < 25.0)
+    {
       double ratio = std::clamp(H / 36.03, 0.0, 1.0 - 1e-12);
       DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
     }
@@ -62,9 +70,23 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   double R0 = Allometry::DBH_vs_H(H) / 2.0;
 
-  if (R0 < 0.04)
+  // TODO: control parameter
+  if (R0 < 0.03)
   {
     conic_allometry(R0, tip_radius);
+
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2);
+    oss << "[WARN] H = " << H
+        << std::fixed << std::setprecision(1)
+        << " m: estimated DBH = " << (2 * R0 * 100)
+        << " cm. Too small to be measured. "
+        << "The QSM is the result of pure allometry without actual measurements.";
+
+    std::string msg = oss.str();
+
+    graph.messages.push_back(msg);
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     return;
   }
 
@@ -73,6 +95,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
+
 
   ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
@@ -90,7 +113,9 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    ServiceLocator::logger()("[WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry");
+    std::string msg = "[WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+    graph.messages.push_back(msg);
     conic_allometry(R0, tip_radius);
     return;
   }
@@ -158,7 +183,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
 
     if (ed.cyl_ID < 1) continue;              // cyl_ID < 1 means it is a prolongation
     if (point_indices.empty()) continue;
-    if (ed.conic_allometry < 0.04) continue;
+    if (ed.conic_allometry < 0.04) continue;  // TODO: control parameter
     if (point_indices.size() < 50) continue;
 
     const QSMNode& src = graph.node(einfo.source);

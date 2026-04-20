@@ -119,6 +119,11 @@ QSM as_qsm(Rcpp::DataFrame df)
   // Prepare the QSM
   QSM graph;
 
+  if (df.hasAttribute("message"))
+  {
+    graph.messages = Rcpp::as<std::vector<std::string>>(df.attr("message"));
+  }
+
   // Map coordinates to node IDs
   constexpr int digits = 6;
   const double  factor = std::pow(10.0, digits);
@@ -217,8 +222,7 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
     branch_order[i]   = ed.branch_order;
   }
 
-  // Build DataFrame
-  return Rcpp::DataFrame::create(
+  Rcpp::DataFrame df = Rcpp::DataFrame::create(
     Rcpp::Named("startX") = sx,
     Rcpp::Named("startY") = sy,
     Rcpp::Named("startZ") = sz,
@@ -233,6 +237,10 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
     Rcpp::Named("subtree_length") = subtree_length,
     Rcpp::Named("stringsAsFactors") = false
   );
+
+  df.attr("message") = graph.messages;
+
+  return df;
 }
 
 #endif
