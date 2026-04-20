@@ -17,7 +17,8 @@ before filtering trees. Default is -5 (removes trees within 5 meters of the boun
 Can also be a sf POLYGON object.}
 }
 \value{
-A filtered LAS object containing only trees whose seeds fall within the buffered region.
+A filtered LAS object where treeID of trees whose seeds fall outside the region of interest
+are NA. They can later be removed.
 }
 \description{
 Removes trees located near the edges of a point cloud by clipping the tree that are beyond the
