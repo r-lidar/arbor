@@ -209,6 +209,8 @@ void SeedDetector::find_primary_seeds()
 
 void SeedDetector::merge_short_passages()
 {
+  if (short_passages.size() == 0) return;
+  
   // Force short passage to be wood to avoid wood/foliage penalties in pathfinder
   for (size_t i = 0; i < short_passages.size(); i++) short_passages.set_foliage(i, 0);
 
