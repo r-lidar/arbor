@@ -93,6 +93,7 @@ private:
 class FittingCircle : public IFittingStrategy
 {
 public:
+  FittingCircle(int max_iterations = 1000, double early_exit_ratio = 0.9, unsigned seed = 64);
   FittingResult fit(const std::vector<Vec3>& points, double tolerance) override;
 
 private:
@@ -102,20 +103,15 @@ private:
     bool valid = false;
   };
 
-  // Least squares circle fitting using algebraic method
-  CircleParams fit_circle_algebraic(const std::vector<Vec3>& points) const;
-
-  // Project 3D points to 2D using PCA
-  Eigen::MatrixXd project_to_2d(const std::vector<Vec3>& points) const;
-
-  // Calculate distance from point to circle
+  CircleParams fit_circle_ransac(const std::vector<Vec3>& points, double tolerance) const;
+  CircleParams fit_circle_on_3_points(double x1, double y1, double x2, double y2, double x3, double y3) const;
   double point_to_circle_distance(double px, double py, const CircleParams& circle) const;
+  std::vector<int> find_inliers(const std::vector<Vec3>& points, const CircleParams& circle, double tolerance) const;
+  Vec3 calculate_3d_center(const CircleParams& circle, const std::vector<Vec3>& points) const;
 
-  // Find inliers based on tolerance
-  std::vector<int> find_inliers(const Eigen::MatrixXd& points_2d, const CircleParams& circle, double tolerance) const;
-
-  // Calculate 3D center from 2D circle parameters
-  Vec3 calculate_3d_center(const CircleParams& circle, const Eigen::MatrixXd& points_2d, const std::vector<Vec3>& points_3d) const;
+  int m_max_iterations;
+  double m_early_exit_ratio;
+  mutable std::mt19937 m_rng;
 };
 
 // --- Ellipse Fitting ---

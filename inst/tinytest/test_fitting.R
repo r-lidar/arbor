@@ -124,9 +124,9 @@ res <- fit(pt, tolerance = tol)
 if (disp) show(pt, res)
 
 expect_equal(res$center_x, xc, tolerance = 0.005)
-expect_equal(res$center_y, 18.79, tolerance = 0.005)
-expect_equal(res$radius, 1.81, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 200)
+expect_equal(res$center_y, yc, tolerance = 0.005)
+expect_equal(res$radius, r, tolerance = 0.025)
+expect_equal(res$covered_arc_degree, 180)
 
 pt = hcircle_points
 tol = 0.02
@@ -369,8 +369,8 @@ if (disp) show(pt, res)
 
 expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
-expect_equal(res$radius, 0.191, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 340)
+expect_equal(res$radius, 0.199, tolerance = 0.025)
+expect_equal(res$covered_arc_degree, 360)
 
 res = fit(pt, tolerance = 0.03)
 
