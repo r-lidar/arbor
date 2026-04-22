@@ -84,9 +84,9 @@ private:
   PolarData to_polar(const std::vector<Vec3>& points, const Vec3& center) const;
   double calculate_median(std::vector<double> values) const;
   PolarData inject_missing_angles(const PolarData& polar, double fill_radius) const;
-  Eigen::MatrixXd build_fourier_matrix(const std::vector<double>& theta) const;
-  Eigen::VectorXd fit_fourier(const std::vector<double>& theta, const std::vector<double>& r) const;
-  double evaluate_fourier(double theta, const Eigen::VectorXd& coefficients) const;
+  std::vector<double> build_fourier_matrix(const std::vector<double>& theta) const;
+  std::vector<double> fit_fourier(const std::vector<double>& theta, const std::vector<double>& r) const;
+  double evaluate_fourier(double theta, const std::vector<double>& coefficients) const;
 };
 
 // --- Circle Fitting ---
