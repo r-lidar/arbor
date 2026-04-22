@@ -100,7 +100,7 @@ record_entry <- function(las, timing, file_path) {
   if (file.exists(.DB_PATH)) {
     db <- utils::read.csv(.DB_PATH, stringsAsFactors = FALSE)
   } else {
-    message("Database not found — creating a new one at: ", .DB_PATH)
+    message("Database not found - creating a new one at: ", .DB_PATH)
     db <- data.frame(
       file_path  = character(),
       n_points   = integer(),
@@ -125,7 +125,7 @@ record_entry <- function(las, timing, file_path) {
   # --- Save back to disk ---
   utils::write.csv(db, file = .DB_PATH, row.names = FALSE)
   message(sprintf(
-    "Entry recorded — file: %s | points: %d | area: %.2f m\u00b2 | timing: %.2f s | date: %s",
+    "Entry recorded - file: %s | points: %d | area: %.2f m\u00b2 | timing: %.2f s | date: %s",
     file_path, n_points, area_m2, timing_sec, new_entry$date
   ))
 
