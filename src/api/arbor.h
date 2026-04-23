@@ -29,11 +29,11 @@ namespace arbor
       int k_seed = 100;
       double decimation = 0.05;
       double space_res = 0.2;
-      double max_gap = 0.2;
+      double max_gap = 0.5;
       double power = 3.0;
       double wood2wood = 0.1;
       double leaf2leaf = 20.0;
-      double wood2leaf = 100.0;
+      double wood2leaf = 1000.0;
       std::vector<float> angle_penalty;
       GraphParameters(): angle_penalty(181)
       {
@@ -71,13 +71,13 @@ namespace arbor
 
     struct QsmParameters
     {
-      double step = 0.1;
+      double step = 0.2;
       double cl_dist = 0.02;
       double max_d = 0.1;
       double apex = 0.0025;
       int smooth_steps = 15;
       double smooth_lambda = 0.5;
-      double smooth_mu = -0.55;
+      double smooth_mu = -0.53;
     };
 
     struct ArborParameters

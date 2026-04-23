@@ -10,6 +10,15 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// default_arbor_params_cpp
+Rcpp::List default_arbor_params_cpp();
+RcppExport SEXP _arbor_default_arbor_params_cpp() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    rcpp_result_gen = Rcpp::wrap(default_arbor_params_cpp());
+    return rcpp_result_gen;
+END_RCPP
+}
 // C_homogeneization
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid);
 RcppExport SEXP _arbor_C_homogeneization(SEXP dfSEXP, SEXP resSEXP, SEXP hybridSEXP) {
@@ -369,6 +378,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
     {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},

@@ -16,7 +16,7 @@
 #' @export
 segment_semantic = function(las, params = default_arbor_parameters)
 {
-  params <- evaluate_penalty(params)
+  #params <- evaluate_penalty(params)
   las@data$passage <- NA_integer_
   las@data$foliage <- NA_integer_
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")

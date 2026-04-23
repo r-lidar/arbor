@@ -6,7 +6,7 @@
 \alias{default_arbor_parameters}
 \title{Parameters}
 \format{
-An object of class \code{list} of length 8.
+An object of class \code{list} of length 7.
 }
 \usage{
 default_arbor_parameters

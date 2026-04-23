@@ -22,6 +22,16 @@ arbor::settings::SeedParameters extract_seeds_params(const Rcpp::List& params);
 arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params);
 arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params);
 
+// Helper function to convert to R list
+Rcpp::List global_to_list(const arbor::settings::GlobalParameters& s);
+Rcpp::List likelihood_to_list(const arbor::settings::WoodlikelihoodParameters& s);
+Rcpp::List semantic_to_list(const arbor::settings::SemanticParameters& s);
+Rcpp::List seeds_to_list(const arbor::settings::SeedParameters& s);
+Rcpp::List qsm_to_list(const arbor::settings::QsmParameters& s);
+Rcpp::List graph_to_pathfinder_list(const arbor::settings::GraphParameters& g);
+Rcpp::List graph_to_instance_list(const arbor::settings::GraphParameters& g);
+Rcpp::List default_arbor_params_cpp(const arbor::settings::ArborParameters& params);
+
 void Rlogger(const std::string& msg);
 
 #endif

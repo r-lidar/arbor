@@ -111,3 +111,8 @@ For more details see https://www.eukhost.com/kb/how-to-add-to-the-path-on-window
 
   stop("Operating system not supported or detected.")
 }
+
+.onLoad <- function(libname, pkgname)
+{
+  default_arbor_parameters <<- default_arbor_params_cpp()
+}

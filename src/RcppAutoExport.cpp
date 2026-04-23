@@ -9,6 +9,9 @@
 // =======================
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::List default_arbor_params_cpp();
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true);
 
 //[[Rcpp::export(rng = false)]]
