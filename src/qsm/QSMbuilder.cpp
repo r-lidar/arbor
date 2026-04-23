@@ -60,10 +60,12 @@ void QSMbuilder::build(const PointCloud& tree)
   wood = clean_tree_butt(wood);
   n = wood.size();
 
+  // REMOVED: it was not a good idea. This creates very bad trees ending and break in trunks
   // 3D smoothing for a better architecture computation
   // (but measure on the original on)
-  ServiceLocator::logger()("Smoothing 3D for better skeleton");
-  PointCloud swood = utils::smooth3d(wood, 0.04, 1);
+  //ServiceLocator::logger()("Smoothing 3D for better skeleton");
+  //PointCloud swood = utils::smooth3d(wood, 0.04, 1);
+  PointCloud& swood = wood;
 
   // Inspired by aRchi and needed to build the skeleton
   auto layers = this->layers(swood, params.qsm.step);
