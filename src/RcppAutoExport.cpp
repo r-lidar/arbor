@@ -94,50 +94,6 @@ Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params);
 
-/*
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume = false);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius = 0.0025);
-
-//[[Rcpp::export(rng = false)]]
-double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
- */
-
 //[[Rcpp::export(rng = false)]]
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 
@@ -178,5 +134,53 @@ Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id,  bool exclude_tree = false, int k = 10);
+
+// ========================
+// DEBUG IN R
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume = false);
+
+/*
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius = 0.0025);
+
+//[[Rcpp::export(rng = false)]]
+double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
+*/
 
 #endif

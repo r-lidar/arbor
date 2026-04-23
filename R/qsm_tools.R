@@ -25,6 +25,7 @@ volume = function(qsm, ..., plot = F)
 #' @md
 qsm_distance_to_root = function(qsm)
 {
+  qsm$length = with(qsm, sqrt((startX - endX)^2 +  (startY - endY)^2 +  (startZ - endZ)^2))
   qsm$dist2root <- NA_real_
   qsm$dist2root[qsm$parent_ID == 0] <- 0  # Set root distance to 0
 
@@ -68,28 +69,6 @@ filter_tree = function(tree)
   }
 
   return(tree)
-}
-
-shift = function(x, tx, ty, tz)
-{
-  if (methods::is(x, "LAS"))
-  {
-    x@data$X <- x@data$X-tx
-    x@data$Y <- x@data$Y-ty
-    x@data$Z <- x@data$Z-tz
-  }
-
-  if (is.data.frame(x))
-  {
-    x$startX  <- x$startX-tx
-    x$startY  <- x$startY-ty
-    x$startZ  <- x$startZ-tz
-    x$endX    <- x$endX-tx
-    x$endY    <- x$endY-ty
-    x$endZ    <- x$endZ-tz
-  }
-
-  return(x)
 }
 
 

@@ -36,7 +36,20 @@ Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params)
   return output;
 }
 
-/*Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
+
+void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
+{
+  QSM qsm = as_qsm(df);
+  qsm.write(filename, binary);
+}
+
+/* =======================
+ *  DEBUG R TOOLS
+ *  ======================
+ */
+
+
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
 {
   PointCloud pc(df);
   std::vector<std::pair<int, double>> res_pairs = QSMbuilder::layers(pc, D);
@@ -91,13 +104,6 @@ Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
   );
 }
 
-Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree)
-{
-  PointCloud pc(tree);
-  PointCloud res = QSMbuilder::clean_tree_butt(pc);
-  return(as_dataframe(res));
-}
-
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
 {
   Rcpp::IntegerVector iter = data["iter"];
@@ -118,25 +124,34 @@ Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
   return as_dataframe(qsm);
 }
 
-Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
-{
-  /*QSM qsm = as_qsm(df);
-  QSMbuilder b(qsm);
-  b.compute_topology();
 
-  // Extract parent_ID for each cylinder (ordered by cyl_ID)
-  int n = (int)qsm.size();
-  Rcpp::IntegerVector parent_ID(n);
-  for (const auto& [eid, einfo] : graph.edges())
-  {
-    int cid = einfo.data.cyl_ID;
-    if (cid >= 1 && cid <= n)
-      parent_ID[cid - 1] = einfo.data.parent_ID;
-  }
+ /*Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree)
+ {
+   PointCloud pc(tree);
+   PointCloud res = QSMbuilder::clean_tree_butt(pc);
+   return(as_dataframe(res));
+ }*/
 
-  df["parent_ID"] = parent_ID;
-  return df;
-}
+ Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
+ {
+   QSM qsm = as_qsm(df);
+   QSMbuilder b(qsm);
+   b.compute_topology();
+
+   // Extract parent_ID for each cylinder (ordered by cyl_ID)
+   int n = (int)qsm.edges().size();
+   Rcpp::IntegerVector parent_ID(n);
+   for (const auto& [eid, einfo] : qsm.edges())
+   {
+     int cid = einfo.data.cyl_ID;
+     if (cid >= 1 && cid <= n)
+       parent_ID[cid - 1] = einfo.data.parent_ID;
+   }
+
+   df["parent_ID"] = parent_ID;
+   return df;
+ }
+
 
 Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false)
 {
@@ -144,12 +159,12 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false
   QSMbuilder b(qsm);
   b.compute_architecture(use_volume);
 
-  int n = (int)qsm.size();
+  int n = (int)qsm.edges().size();
   Rcpp::NumericVector subtree_length(n);
   Rcpp::IntegerVector axis_ID(n);
   Rcpp::IntegerVector branching_order(n);
 
-  for (const auto& [eid, einfo] : graph.edges())
+  for (const auto& [eid, einfo] : qsm.edges())
   {
     int cid = einfo.data.cyl_ID;
     if (cid >= 1 && cid <= n)
@@ -166,12 +181,6 @@ Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false
   df["subtree_length"] = subtree_length;
 
   return df;
-}*/
-
-void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
-{
-  QSM qsm = as_qsm(df);
-  qsm.write(filename, binary);
 }
 
 /*Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0)

@@ -376,6 +376,60 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_layers_cpp
+Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
+RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type D(DSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_cluster_cpp
+Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
+RcppExport SEXP _arbor_qsm_cluster_cpp(SEXP dfSEXP, SEXP cl_distSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type cl_dist(cl_distSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_cluster_cpp(df, cl_dist));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_build_skeleton
+Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
+RcppExport SEXP _arbor_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_topology_cpp
+Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
+RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_topology_cpp(qsm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qsm_architecture_cpp
+Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume);
+RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP use_volumeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
+    Rcpp::traits::input_parameter< bool >::type use_volume(use_volumeSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, use_volume));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
@@ -410,6 +464,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
+    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
+    {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
+    {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
+    {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
+    {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
     {NULL, NULL, 0}
 };
 

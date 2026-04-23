@@ -129,3 +129,23 @@ extract_tree_context_cpp <- function(las, tree_id, exclude_tree = FALSE, k = 10L
     .Call(`_arbor_extract_tree_context_cpp`, las, tree_id, exclude_tree, k)
 }
 
+qsm_layers_cpp <- function(df, D) {
+    .Call(`_arbor_qsm_layers_cpp`, df, D)
+}
+
+qsm_cluster_cpp <- function(df, cl_dist) {
+    .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
+}
+
+cpp_build_skeleton <- function(data, max_d) {
+    .Call(`_arbor_cpp_build_skeleton`, data, max_d)
+}
+
+qsm_topology_cpp <- function(qsm) {
+    .Call(`_arbor_qsm_topology_cpp`, qsm)
+}
+
+qsm_architecture_cpp <- function(qsm, use_volume = FALSE) {
+    .Call(`_arbor_qsm_architecture_cpp`, qsm, use_volume)
+}
+

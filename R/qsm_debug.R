@@ -1,52 +1,44 @@
-# qsm_debug = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
-# {
-#   #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.0025
-#
-#   t0 <- tic() ; gc()
-#
-#   # Move to origin for numerical stability
-#   j    <- which.min(tree$Z)
-#   tx   <- tree$X[j]
-#   ty   <- tree$Y[j]
-#   tz   <- tree$Z[j]
-#   tree <- shift(tree, tx, ty, tz)
-#
-#   tree <- filter_tree(tree)                        # R
-#   tree <- clean_tree_butt(tree)                    # c++
-#
-#   qsm  <- qsm_skeleton(tree, step, cl_dist, max_d) # c++
-#   qsm  <- qsm_architecture(qsm)                    # c++
-#   qsm  <- qsm_smooth(qsm, niter = 1)               # c++
-#   qsm  <- qsm_detect_weird_butt(qsm)               # c++
-#
-#   d    <- estimate_prolongation(tree, qsm)         # c++
-#
-#   qsm  <- qsm_prolongation(qsm, d)                 # c++
-#   qsm  <- qsm_radius(qsm, tree, tip_radius = apex) # c++
-#   qsm  <- qsm_volume(qsm)
-#   qsm  <- shift(qsm, -tx, -ty, -tz)
-#
-#   data.table::setDT(qsm)
-#
-#   order = c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
-#   data.table::setcolorder(qsm, order)
-#
-#   qsm <- set_qsm_class(qsm)
-#
-#   st_crs(qsm) <- sf::st_crs(tree)
-#
-#   toc(t0, space = "")
-#
-#   return(qsm)
-# }
-#
-# qsm_architecture <- function(qsm)
-# {
-#   logger("Building architecture")
-#   qsm <- qsm_architecture_cpp(qsm)
-#   data.table::setDT(qsm)
-#   return(qsm[])
-# }
+qsm_debug = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025, ...)
+{
+  #step = 0.2; cl_dist = 0.1; max_d = 0.1; apex = 0.0025
+
+  t0 <- tic() ; gc()
+
+  # Move to origin for numerical stability
+  j    <- which.min(tree$Z)
+  tx   <- tree$X[j]
+  ty   <- tree$Y[j]
+  tz   <- tree$Z[j]
+  tree <- shift(tree, tx, ty, tz)
+
+  tree <- filter_tree(tree)                        # R
+  #tree <- clean_tree_butt(tree)                    # c++
+
+  qsm  <- qsm_skeleton(tree, step, cl_dist, max_d) # c++
+  qsm  <- qsm_architecture(qsm)                    # c++
+  # qsm  <- qsm_smooth(qsm, niter = 1)               # c++
+  # qsm  <- qsm_detect_weird_butt(qsm)               # c++
+  #
+  # d    <- estimate_prolongation(tree, qsm)         # c++
+  #
+  # qsm  <- qsm_prolongation(qsm, d)                 # c++
+  # qsm  <- qsm_radius(qsm, tree, tip_radius = apex) # c++
+  qsm  <- qsm_volume(qsm)
+  qsm  <- shift(qsm, -tx, -ty, -tz)
+
+  data.table::setDT(qsm)
+
+  order = c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
+  data.table::setcolorder(qsm, order)
+  qsm <- as_qsm(qsm)
+  #
+  # st_crs(qsm) <- sf::st_crs(tree)
+  #
+  # toc(t0, space = "")
+
+  return(qsm)
+}
+
 #
 # qsm_detect_weird_butt = function(qsm)
 # {
@@ -526,37 +518,107 @@
 #   return(qsm[])
 # }
 #
-# qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
-# {
-#   data <- qsm_layers(tree, step)
-#   data <- qsm_clusters(data, cl_dist)
-#   skel <- qsm_nodes(data, max_d)
-#   skel <- qsm_topology(skel)
-#   return(skel)
-# }
-#
-# qsm_layers = function(tree, step)
-# {
-#   logger("Computing layers")
-#   data = qsm_layers_cpp(tree@data, step)
-#
-#   res = list()
-#   res[["X"]] = tree@data[["X"]]
-#   res[["Y"]] = tree@data[["Y"]]
-#   res[["Z"]] = tree@data[["Z"]]
-#   res[["iter"]] = data[["iter"]]
-#   res[["dist"]] = data[["dist"]]
-#   data.table::setDT(res)
-#   return(res[])
-# }
-#
-# qsm_clusters = function(data, cl_dist)
-# {
-#   res = qsm_cluster_cpp(data, cl_dist)
-#   data[["cluster"]] = res[["cluster"]]
-#   data[["radius"]] = res[["radius"]]
-#   return(data)
-# }
+
+qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
+{
+  data <- qsm_layers(tree, step)
+  data <- qsm_clusters(data, cl_dist)
+
+
+  if (FALSE)
+  {
+    tree@data$iter = data$iter
+    tree@data$dist = data$dist
+    tree@data$cluster = data$cluster
+    lidR::plot(tree, color = "iter")
+    lidR::plot(tree, color = "cluster", pal = lidR::pastel.colors(4096))
+  }
+
+  skel <- qsm_nodes(data, max_d)
+  skel <- qsm_topology(skel)
+  return(skel)
+}
+
+qsm_layers = function(tree, step)
+{
+  #logger("Computing layers")
+  data = qsm_layers_cpp(tree@data, step)
+
+  res = list()
+  res[["X"]] = tree@data[["X"]]
+  res[["Y"]] = tree@data[["Y"]]
+  res[["Z"]] = tree@data[["Z"]]
+  res[["iter"]] = data[["iter"]]
+  res[["dist"]] = data[["dist"]]
+  data.table::setDT(res)
+  return(res[])
+}
+
+qsm_clusters = function(data, cl_dist)
+{
+  res = qsm_cluster_cpp(data, cl_dist)
+  data[["cluster"]] = res[["cluster"]]
+  data[["radius"]] = res[["radius"]]
+  return(data)
+}
+
+qsm_nodes = function(data, max_d)
+{
+  #logger("Building nodes")
+  skel = cpp_build_skeleton(data, max_d)
+  data.table::setDT(skel)
+
+  if (FALSE)
+  {
+    x = plot(tree, bg = "white")
+    plot_qsm(skel, add = x)
+  }
+
+  return(skel)
+}
+
+qsm_topology = function(skeleton)
+{
+  #logger("Computing qsm topology")
+
+  skeleton$cyl_ID = 1:nrow(skeleton)
+  skeleton$parent_ID = 0
+  skeleton = qsm_topology_cpp(skeleton)
+
+  n_root = sum(skeleton$parent_ID == 0)
+
+  # No root is a bug
+  if (n_root == 0)
+    stop("Internal error: no root found")
+
+  # Two roots are rare but possible if forking at root
+  # Add a 1 mm cylinder to force one root
+  if (n_root > 1)
+  {
+    xyz = skeleton[which(skeleton$parent_ID == 0)[1],]
+    xyz$endX = xyz$startX
+    xyz$endY = xyz$startY
+    xyz$endZ = xyz$startZ
+    xyz$startZ = xyz$startZ - 0.001
+    skeleton = rbind(xyz, skeleton)
+    skeleton$cyl_ID = 1:nrow(skeleton)
+    skeleton$parent_ID = 0
+    skeleton = qsm_topology_cpp(skeleton)
+  }
+
+  data.table::setDT(skeleton)
+
+  return(skeleton)
+}
+
+qsm_architecture <- function(qsm)
+{
+  #logger("Building architecture")
+  qsm <- qsm_architecture_cpp(qsm)
+  data.table::setDT(qsm)
+  return(qsm[])
+}
+
 #
 # # @importFrom data.table :=
 # # qsm_clusters = function(data, cl_dist)
@@ -632,21 +694,8 @@
 # #
 # #   return(data[])
 # # }
-#
-# qsm_nodes = function(data, max_d)
-# {
-#   logger("Building nodes")
-#   skel = cpp_build_skeleton(data, max_d)
-#   data.table::setDT(skel)
-#
-#   if (FALSE)
-#   {
-#     x = plot(tree, bg = "white")
-#     plot_qsm(skel, add = x)
-#   }
-#
-#   return(skel)
-# }
+
+
 #
 # qsm_radius = function(qsm, tree, tip_radius = 0.0025)
 # {
@@ -1025,37 +1074,27 @@
 #   return(ans)
 # }
 #
-# qsm_topology = function(skeleton)
-# {
-#   logger("Computing qsm topology")
 #
-#   skeleton$cyl_ID = 1:nrow(skeleton)
-#   skeleton$parent_ID = 0
-#   skeleton = qsm_topology_cpp(skeleton)
-#
-#   n_root = sum(skeleton$parent_ID == 0)
-#
-#   # No root is a bug
-#   if (n_root == 0)
-#     stop("Internal error: no root found")
-#
-#   # Two roots are rare but possible if forking at root
-#   # Add a 1 mm cylinder to force one root
-#   if (n_root > 1)
-#   {
-#     xyz = skeleton[which(skeleton$parent_ID == 0)[1],]
-#     xyz$endX = xyz$startX
-#     xyz$endY = xyz$startY
-#     xyz$endZ = xyz$startZ
-#     xyz$startZ = xyz$startZ - 0.001
-#     skeleton = rbind(xyz, skeleton)
-#     skeleton$cyl_ID = 1:nrow(skeleton)
-#     skeleton$parent_ID = 0
-#     skeleton = qsm_topology_cpp(skeleton)
-#   }
-#
-#   data.table::setDT(skeleton)
-#
-#   return(skeleton)
-# }
-#
+
+
+shift = function(x, tx, ty, tz)
+{
+  if (methods::is(x, "LAS"))
+  {
+    x@data$X <- x@data$X-tx
+    x@data$Y <- x@data$Y-ty
+    x@data$Z <- x@data$Z-tz
+  }
+
+  if (is.data.frame(x))
+  {
+    x$startX  <- x$startX-tx
+    x$startY  <- x$startY-ty
+    x$startZ  <- x$startZ-tz
+    x$endX    <- x$endX-tx
+    x$endY    <- x$endY-ty
+    x$endZ    <- x$endZ-tz
+  }
+
+  return(x)
+}
