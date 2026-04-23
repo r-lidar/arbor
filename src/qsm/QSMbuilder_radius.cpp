@@ -64,7 +64,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   double H = 0.0;
   for (size_t i = 0; i < tree.size(); ++i)
   {
-    double z = tree.get_z(i);
+    double z = tree.get_hag(i);
     if (z > H) H = z;
   }
 
