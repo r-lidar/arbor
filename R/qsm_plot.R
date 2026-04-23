@@ -27,6 +27,9 @@ plot_qsm = function(qsm, add = NULL, color = "cyl_ID", skeleton = TRUE, cylinder
     stop("Input must be a data.frame")
   }
 
+  if (all(is.na(qsm$radius)))
+    cylinder = FALSE
+
   # --- Global Translation Logic ---
   # translateXYZ is for compatibility with computree
   if (!is.null(add)) {
