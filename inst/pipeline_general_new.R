@@ -83,8 +83,6 @@ params = default_arbor_parameters
 
 las = readTLS(file, select = "xyz0", filter = filter)
 
-
-maxID = 0
 las <- hybrid_homogeneization(las)
 
 plot(header(las))
@@ -95,33 +93,16 @@ plot(header(las))
 print(las)
 plot(header(las))
 
-# ===== GROUND CLASSIFICATION ======
+# ===== GROUND CLASSIFICATION + HAG ======
 
-las    <- lidR::classify_ground(las, lidR::csf(rigidness = 1, class_threshold = 0.05, cloth_resolution = 0.1), last_returns = FALSE)
-ground <- lidR::filter_poi(las, Classification == LASGROUND)
-ground <- lidR::decimate_points(ground, lidR::lowest(0.25))
-ground <- lidR::classify_noise(ground, lidR::sor(k = 10, m = 2))
-ground <- lidR::remove_noise(ground)
-ground$Classification <- lidR::LASGROUND
+las    <-  arbor::segment_ground(las, params)
 gc()
 
 # ====== DTM & HAG ======
 
-dtm <- lidR::rasterize_terrain(ground, 0.5, lidR::tin())
-las <- lidR::height_above_ground(las, algorithm = lidR::tin(), dtm = dtm)
+dtm <- lidR::rasterize_terrain(las, 0.5, lidR::tin())
 
 if (display) plot_dtm3d(dtm)
-
-# ====== KEEP ABOVE DTM ======
-
-# We remove points close to the ground. It is impossible to segment
-# anything close to the ground. This remove a lot of points, reduces computation time
-# and clean the understory. This is controlled by cut_above_ground. The value must
-# be chosen depending on the level of understory complexity close to the ground. The idea
-# is to remove most of the very low vegetation. 25 cm might be good. Some plot require 50 cm.
-
-las <- lidR::filter_poi(las, hag > cut_above_ground)
-
 if (display) plot(las) |> add_dtm3d(dtm)
 
 gc()
@@ -210,17 +191,6 @@ if (display)
 
 }
 
-bb = st_bbox(f)
-bb = sf::st_as_sfc(bb)
-tm = seeds@data[, .(x = mean(X), y = mean(Y)), by = treeID]
-tm = sf::st_as_sf(tm, coords = c("x", "y"))
-seeds_roi = sf::st_contains(bb, tm)
-seeds_roi = tm[seeds_roi[[1]], ]
-seeds_roi_ids = unique(seeds_roi$treeID)
-seeds_roi = filter_poi(seeds, treeID %in% seeds_roi_ids)
-
-las = filter_poi(las, treeID %in% seeds_roi_ids)
-
 # ====== RETAIN ONLY MAIN TREES =======
 
 # Low understory is unlikely to be properly segmented in complex contexts.
@@ -236,20 +206,6 @@ if (display)
   plot_semantic(trees, dtm)
   plot_semantic_instance(trees, dtm)
   plot(lidR::filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
-}
-
-# ====== FIX SEGMENTATION ISSUES =======
-
-# Segmentation is not always perfect, especially in complex environments.
-# The seed detection may assign two seeds to a single tree, or an additional
-# patch of wood may be assigned the ID of a large tree due to a missing seed.
-
-trees <- fix_small_isolated_low_clusters(trees)
-
-if (display)
-{
-  plot_semantic_instance(trees, dtm)
-  plot_semantic(trees, dtm)
 }
 
 # ==== CLIP BUFFER ======
@@ -291,17 +247,9 @@ for (i in unique(valid_trees$treeID))
   olas <- paste0(dirname(o), "/ITS/tree_", i, ".las")
   writeLAS(tree, olas)
 }
-# ==== QSM ======
+# ==== QSF ======
 
-# QSM for a random tree
-id   <- sample(unique(trees$treeID), 1)
-tree <- lidR::filter_poi(trees, treeID == id)
-plot_semantic(tree)
-qsm  <- qsm(tree, step = 0.5, cl_dist = 0.2)
-x <- plot_semantic(tree)
-qsm_dbh(qsm, tree, display = T)
-plot_qsm(qsm, color = "branch_order", add = x, skeleton = T)
+qsf = qsf(las)
 
-# ==== QSM batch =====
-
-qsm_batch( paste0(dirname(o), "/ITS/"), paste0(dirname(o), "/qsm/"))
+x = plot_instance(las)
+plot(qsf, add = x, pal = "gray")

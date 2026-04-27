@@ -111,7 +111,11 @@ Settings
   las <- segment_instance(las, seeds, params)
 
   cat("Cleaning segmentation\n")
-  if (buffer > 0) las <- clip_buffer(las, -buffer)
+  if (buffer > 0)
+  {
+    las <- clip_buffer(las, seeds, -buffer)
+    las <- lidR::filter_poi(las, !is.na(treeID))
+  }
 
   cat("Colorization\n")
   las <- colorize_trees(las)

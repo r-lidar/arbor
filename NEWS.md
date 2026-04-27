@@ -1,3 +1,9 @@
+# arbor 0.10.0
+
+- C++
+- Change: `fix_small_isolated_low_clusters()` removed
+- Change: `clip_buffer()` no longer clips. It assigns NAs. Up to the user to clip.
+
 # arbor 0.9.1
 
 - `colorize_trees()` in C++
