@@ -65,7 +65,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   total_core_nodes = n_points;
   total_nodes = n_points;
 
-  graph->ensure_size(total_nodes);
+  graph->resize(total_nodes, params.k);
 
   // Build the KD-tree index
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
@@ -164,7 +164,7 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
   total_target_nodes = n_points;
   total_nodes += n_target;
 
-  graph->ensure_size(total_nodes);
+  graph->resize(total_nodes, 1);
 
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
@@ -208,7 +208,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seed
   total_seed_nodes = n_points;
   total_nodes += n_points;
 
-  graph->ensure_size(total_nodes);
+  graph->resize(total_nodes, k);
 
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
@@ -251,7 +251,6 @@ void GraphBuilder::add_master_seed_layer()
   total_master_nodes = 1;
   total_nodes += 1;
 
-  graph->ensure_size(total_nodes);
 
   for (int i = 0; i < total_seed_nodes; ++i)
   {

@@ -12,10 +12,18 @@ void Graph::add_edge(NodeId source, NodeId destination, Cost cost)
   adjacency_list[source].push_back({destination, cost});
 }
 
-void Graph::ensure_size(size_t n)
+void Graph::resize(size_t n, int k)
 {
   if (adjacency_list.size() < n)
+  {
+    size_t old_size = adjacency_list.size();
     adjacency_list.resize(n);
+
+    for (size_t i = old_size; i < n; ++i)
+    {
+      adjacency_list[i].reserve(k);
+    }
+  }
 }
 
 std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances(NodeId start) const
