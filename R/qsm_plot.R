@@ -29,6 +29,8 @@ plot_qsm = function(qsm, add = NULL, color = "cyl_ID", skeleton = TRUE, cylinder
 
   if (all(is.na(qsm$radius)))
     cylinder = FALSE
+  else if (anyNA(qsm$radius))
+    qsm$radius[is.na(qsm$radius)] = 0
 
   # --- Global Translation Logic ---
   # translateXYZ is for compatibility with computree
