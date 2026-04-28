@@ -35,7 +35,6 @@ typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double,
 
 // Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
 // tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
-
 class Allometry
 {
 public:
@@ -68,16 +67,18 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     if (z > H) H = z;
   }
 
+  // Estimation of an expected radius based on broad allometry
   double R0 = Allometry::DBH_vs_H(H) / 2.0;
 
   // TODO: control parameter
+  // If the estimated radius is too small we don't even try to measure the tree
   if (R0 < 0.03)
   {
     conic_allometry(R0, tip_radius);
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
-    oss << "[WARN] H = " << H
+    oss << "[WARN 1] H = " << H
         << std::fixed << std::setprecision(1)
         << " m: estimated DBH = " << (2 * R0 * 100)
         << " cm. Too small to be measured. "
@@ -96,7 +97,6 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
 
-
   ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
 
@@ -113,10 +113,41 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    std::string msg = "[WARN] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
+    std::string msg = "[WARN 2] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
     conic_allometry(R0, tip_radius);
+    return;
+  }
+
+
+  // Check root radius
+  double Rroot;
+  for (auto& [eid, einfo] : graph.edges())
+  {
+    if (einfo.data.axis_ID == 1 && einfo.data.parent_ID == 0)
+    {
+      Rroot = einfo.data.radius;
+      break;
+    }
+  }
+
+  if (Rroot > 3*R0)
+  {
+    std::ostringstream oss;
+    oss << "[WARN 3] Measured root diameter is "
+        << static_cast<int>(Rroot / R0)
+        << " times greater than the expected DBH ("
+        << std::fixed << std::setprecision(1) << 2 * Rroot
+        << " vs. "
+        << std::fixed << std::setprecision(2) << 2 * R0
+        << ").  Fall back to pure reconstruction based on allometry";
+
+    std::string msg = oss.str();
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+    graph.messages.push_back(msg);
+
+    conic_allometry(2.0 * R0, tip_radius);
     return;
   }
 
