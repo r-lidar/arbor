@@ -811,12 +811,14 @@ qsm_architecture <- function(qsm)
 #   return(qsm)
 # }
 #
-# qsm_polynomial_fitting = function(qsm, tip_radius)
-# {
-#   qsm = qsm_polynomial_fitting_cpp(qsm, tip_radius)
-#   data.table::setDT(qsm)
-#   return(qsm[])
-# }
+
+qsm_polynomial_fitting = function(qsm, tip_radius)
+{
+  qsm = qsm_polynomial_fitting_cpp(qsm, tip_radius)
+  data.table::setDT(qsm)
+  return(qsm[])
+}
+
 #
 # qsm_reconstruction = function(qsm, tip_radius)
 # {
@@ -1075,6 +1077,20 @@ qsm_architecture <- function(qsm)
 # }
 #
 #
+
+H_vs_DBH <- function(dbh) {
+  36.03 * (1 - exp(-0.05 * dbh))^1.1
+}
+
+DBH_vs_H <- function(H) {
+  if (H < 25.0) {
+    ratio <- max(min(H / 36.03, 1.0 - 1e-12), 0.0)
+    DBH_cm <- -1.0 / 0.05 * log(1.0 - ratio^(1.0 / 1.1))
+  } else {
+    DBH_cm <- 4.0 * H - 75.0
+  }
+  DBH_cm / 100.0
+}
 
 
 shift = function(x, tx, ty, tz)

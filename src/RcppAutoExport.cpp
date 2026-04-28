@@ -175,10 +175,11 @@ Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
-
+*/
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
 
+/*
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
 */

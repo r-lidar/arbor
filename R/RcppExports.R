@@ -149,3 +149,7 @@ qsm_architecture_cpp <- function(qsm, use_volume = FALSE) {
     .Call(`_arbor_qsm_architecture_cpp`, qsm, use_volume)
 }
 
+qsm_polynomial_fitting_cpp <- function(df, tip_radius) {
+    .Call(`_arbor_qsm_polynomial_fitting_cpp`, df, tip_radius)
+}
+

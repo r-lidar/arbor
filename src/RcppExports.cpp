@@ -430,6 +430,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_polynomial_fitting_cpp
+Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
+RcppExport SEXP _arbor_qsm_polynomial_fitting_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_polynomial_fitting_cpp(df, tip_radius));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
@@ -469,6 +480,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
     {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
+    {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {NULL, NULL, 0}
 };
 

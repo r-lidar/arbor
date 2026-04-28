@@ -270,7 +270,7 @@ Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sa
   QSMbuilder b(qsm);
   b.measure_radii(tree, sarc, sins, sinl, srmeas);
   return as_dataframe(qsm);
-}
+}*/
 
 Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius)
 {
@@ -280,7 +280,7 @@ Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius
   return as_dataframe(qsm);
 }
 
-Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius)
+/*Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius)
 {
   QSM qsm = as_qsm(df);
   QSMbuilder b(qsm);
