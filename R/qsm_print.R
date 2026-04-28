@@ -25,12 +25,15 @@ print.qsm <- function(x, ...)
   crs = attr(x, "crs")
   if (is.null(crs)) crs = sf::NA_crs_
 
+  msg = attr(x, "message")
+
   cat(sprintf("Class       : QSM\n"))
   cat(sprintf("Cylinders   : %d\n", n_cyl))
   cat(sprintf("Diameter    : %.1f cm\n", dbh*100))
   cat(sprintf("Height      : %.1f m\n", height))
   cat(sprintf("Volume      : %.2f m\u00b3\n", total_volume))
   cat("Coord. ref. :", crs$Name, "\n")
+  if (length(msg) > 0) cat("Message     :", msg, "\n")
 
   invisible(x)
 }

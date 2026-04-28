@@ -32,5 +32,43 @@ as_qsf <- function(x)
 #' @export
 qsf_log = function(qsf)
 {
-  attr(qsf, "log")
+  messages = lapply(qsf, function(x) attr(x, "message"))
+
+  # Identify which elements are NOT empty
+  keep_idx <- which(sapply(messages, length) > 0)
+
+  # Subset messages and store their original positions
+  clean_list <- messages[keep_idx]
+
+  # Extract the tags to use as grouping keys
+  warn_tags <- sapply(clean_list, function(x) {
+    regmatches(x, regexpr("\\[WARN \\d+\\]", x))
+  })
+
+  # Create the structured list
+  unique_tags <- unique(unlist(warn_tags))
+
+  final_output <- lapply(unique_tags, function(tag)
+  {
+    match_mask <- warn_tags == tag
+
+    matches <- clean_list[match_mask]
+    original_indices <- keep_idx[match_mask]
+
+    # Get the first message and "templatize" it
+    # This replaces digits/decimals with 'x' to make it generic
+    raw_msg <- matches[[1]]
+    generic_msg <- gsub("\\d+\\.\\d+|\\d+", "x", raw_msg)
+    generic_msg <- trimws(gsub("\\[WARN x]", "", generic_msg))
+
+    list(
+      message = generic_msg,
+      index = unname(original_indices),
+      treeID = as.integer(names(matches))
+    )
+  })
+
+  # Name the list elements by their tag
+  names(final_output) <- unique_tags
+  final_output
 }
