@@ -20,12 +20,12 @@ Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params)
   return as_dataframe(qsm);
 }
 
-Rcpp::List qsf_cpp(Rcpp::DataFrame scene, Rcpp::List params)
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params)
 {
 
   PointCloud pc(scene);
   arbor::settings::ArborParameters p = extract_arbor_params(params);
-  QSF qsf = arbor::qsm::qsf(pc, p);
+  QSF qsf = arbor::qsm::qsf(pc, min_height, p);
 
   Rcpp::List output;
   for (const auto& item : qsf.get_qsm_map())

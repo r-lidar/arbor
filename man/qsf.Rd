@@ -4,10 +4,12 @@
 \alias{qsf}
 \title{Quantitative Structural Forest}
 \usage{
-qsf(las, params = default_arbor_parameters)
+qsf(las, min_height = 2, params = default_arbor_parameters)
 }
 \arguments{
 \item{las}{A point cloud with semantic and instance segmentation computed}
+
+\item{min_height}{numeric. Default: any instance higher than 2 m generates a QSMs}
 
 \item{params}{list See \link{parameters}.}
 }

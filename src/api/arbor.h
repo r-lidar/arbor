@@ -110,7 +110,7 @@ namespace arbor
   namespace qsm
   {
     QSM qsm(const PointCloud&,  const settings::ArborParameters& params);
-    QSF qsf(const PointCloud&,  const settings::ArborParameters& params);
+    QSF qsf(const PointCloud&, double min_height, const settings::ArborParameters& params);
   }
 
   namespace dtm

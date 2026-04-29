@@ -9,11 +9,12 @@
 
 namespace arbor::qsm {
 
-QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
+QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParameters& params)
 {
+  if (min_height < 2)      throw std::runtime_error("Height limit cannot be inferior to 2");
   if (!scene.has_hag())    throw std::runtime_error("Missing attribute 'hag' in the point cloud");
   if (!scene.has_treeid()) throw std::runtime_error("Missing attribute 'treeID' in the point cloud");
-  if (scene.size() == 0)  throw std::runtime_error("Point cloud with 0 point: failure");
+  if (scene.size() == 0)   throw std::runtime_error("Point cloud with 0 point: failure");
 
   QSF result;
 
@@ -40,7 +41,7 @@ QSF qsf(const PointCloud& scene, const settings::ArborParameters& params)
   valid_tree_ids.reserve(tree_indices.size());
   for (auto const& [id, height] : tree_heights)
   {
-    if (height >= 2.0)
+    if (height >= min_height)
       valid_tree_ids.push_back(id);
   }
   std::sort(valid_tree_ids.begin(), valid_tree_ids.end());

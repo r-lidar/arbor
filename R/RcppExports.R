@@ -93,8 +93,8 @@ qsm_cpp <- function(tree, params) {
     .Call(`_arbor_qsm_cpp`, tree, params)
 }
 
-qsf_cpp <- function(scene, params) {
-    .Call(`_arbor_qsf_cpp`, scene, params)
+qsf_cpp <- function(scene, min_height, params) {
+    .Call(`_arbor_qsf_cpp`, scene, min_height, params)
 }
 
 qsm_write_cpp <- function(df, filename, binary) {
