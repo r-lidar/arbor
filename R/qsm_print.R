@@ -25,7 +25,7 @@ print.qsm <- function(x, ...)
   crs = attr(x, "crs")
   if (is.null(crs)) crs = sf::NA_crs_
 
-  msg = attr(x, "message")
+  msg <- qsm_message(x)
 
   cat(sprintf("Class       : QSM\n"))
   cat(sprintf("Cylinders   : %d\n", n_cyl))

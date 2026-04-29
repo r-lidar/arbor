@@ -14,11 +14,16 @@ void QSMbuilder::build(const PointCloud& tree)
   double min_z = std::numeric_limits<double>::max();
   double max_z = -std::numeric_limits<double>::max();
 
+  std::size_t index;
   for (std::size_t i = 0; i < n; ++i)
   {
     double current_z = tree.get_z(i);
     if (current_z < min_z) min_z = current_z;
-    if (current_z > max_z) max_z = current_z;
+    if (current_z > max_z)
+    {
+      max_z = current_z;
+      index = i;
+    }
   }
 
   // Calculate height and 1% threshold
@@ -31,6 +36,7 @@ void QSMbuilder::build(const PointCloud& tree)
   for (std::size_t i = 0; i < n; ++i)
   {
     wood_mask[i] = tree.is_wood(i) && (tree.get_z(i) >= z_threshold);
+    if (i == index) wood_mask[i] = true; // The highest point is enforced to be wood.
   }
 
   PointCloud wood = tree.subset(wood_mask);

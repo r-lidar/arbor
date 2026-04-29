@@ -20,7 +20,6 @@
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm =  function(tree, params = default_arbor_parameters)
 {
-  #params <- evaluate_penalty(params)
   qsm <- qsm_cpp(tree@data, params)
   qsm_finalize(qsm)
 }
@@ -32,7 +31,15 @@ qsm_finalize = function(qsm)
   order <- c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
   data.table::setcolorder(qsm, order)
   qsm <- as_qsm(qsm)
+  msg = qsm_message(qsm)
+  if (length(msg) > 0) warning(msg, call. = FALSE)
   qsm
+}
+
+qsm_message = function(qsm)
+{
+  msg = attr(qsm, "message")
+  msg
 }
 
 as_qsm <- function(x)

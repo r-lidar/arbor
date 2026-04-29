@@ -522,6 +522,16 @@ double QSMbuilder::conic_allometry(double tip_radius, double wi, double w0, doub
 
 void QSMbuilder::conic_allometry(double R0, double tip_radius)
 {
+  if (graph.edges().size() == 1)
+  {
+    for (auto& [eid, einfo] : graph.edges())
+    {
+      einfo.data.radius = R0;
+    }
+
+    return;
+  }
+
   double w0 = 0;
   for (const auto& [eid, einfo] : graph.edges())
   {

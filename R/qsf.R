@@ -20,6 +20,14 @@ qsf <- function(las, params = default_arbor_parameters)
 
 as_qsf <- function(x)
 {
+  if (!is.list(x)) {
+    stop("`x` must be a list.", call. = FALSE)
+  }
+
+  if (length(x) > 0 && !all(vapply(x, inherits, logical(1), what = "qsm"))) {
+    stop("All elements of `x` must be QSM objects (class 'qsm').", call. = FALSE)
+  }
+
   class(x) <- c("qsf", class(x))
   x
 }
