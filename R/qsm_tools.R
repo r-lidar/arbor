@@ -71,6 +71,44 @@ filter_tree = function(tree)
   return(tree)
 }
 
+#' Add Synthetic Ground Points to a Single-Tree Point Cloud
+#'
+#' Adds a set of synthetic ground points below a single-tree point cloud. Useful to perform
+#' arbor operations on already externally isolated trees
+#'
+#' @param las A `LAS` object containing a single-tree point cloud.
+#' @param n integer. Number of ground points
+#'
+#' @return A `LAS` object containing the original points plus n synthetic
+#' ground points.
+#'
+#' @export
+add_single_tree_ground = function(las, n = 1000)
+{
+  z   <- min(las$Z)
+  bb  <- st_bbox(las)
+  xg  <- runif(n, bb[1]-1, bb[3]+1)
+  yg  <- runif(n, bb[2]-1, bb[4]+1)
+  lidR::quantize(xg, 0.001, las@header[["X offset"]])
+  lidR::quantize(xg, 0.001, las@header[["Y offset"]])
+  gnd <- data.frame(X = xg, Y = yg, Z = z)
+  gnd <- suppressWarnings(LAS(gnd, header = las@header))
+  suppressWarnings(rbind(las, gnd))
+}
+add_single_tree_ground = function(las)
+{
+  z   <- min(las$Z)
+  bb  <- st_bbox(las)
+  xg  <- runif(800, bb[1], bb[3])
+  yg  <- runif(800, bb[2], bb[4])
+  lidR::quantize(xg, 0.001, las@header[["X offset"]])
+  lidR::quantize(xg, 0.001, las@header[["Y offset"]])
+  gnd <- data.frame(X = xg, Y = yg, Z = z)
+  gnd <- suppressWarnings(LAS(gnd, header = las@header))
+  suppressWarnings(rbind(las, gnd))
+}
+
+
 
 
 
