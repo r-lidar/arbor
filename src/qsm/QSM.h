@@ -102,6 +102,8 @@ public:
   void write(const std::string& filename, bool binary = true) const;
   std::vector<std::string> messages;
   NodeID find_root_node() const;
+  QSM stem() const;
+  QSM merchantable(double merch_radius) const;
   double dbh(double d, double* xyz = nullptr, double* n = nullptr) const;
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 private:

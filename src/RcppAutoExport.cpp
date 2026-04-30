@@ -98,7 +98,13 @@ Rcpp::DataFrame qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List par
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::List qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3);
+Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_stem_cpp(Rcpp::DataFrame df);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchandable_radius);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

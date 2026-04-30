@@ -17,7 +17,7 @@
 #' @export
 wood_likelihood = function(las, params = default_arbor_parameters)
 {
-  t0 <- tic()
+  stop_if_not_tls(las)
   k <- params$woodlikelihood$k
   anisotropy <- C_anisotropy(las@data, k)
   las <- lidR::add_lasattribute_manual(las, anisotropy, "pwood", "wood likelyhood", "float")

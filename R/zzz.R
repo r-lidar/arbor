@@ -1,7 +1,6 @@
 #' @useDynLib arbor, .registration = TRUE
 .datatable.aware = TRUE
 
-
 #' Use some arbor features from a terminal
 #'
 #' Install the required files to be able to run some simple arbor commands from a terminal.

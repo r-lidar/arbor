@@ -8,6 +8,7 @@
 #' @export
 hybrid_homogeneization = function(las, res = 0.02)
 {
+  stop_if_not_tls(las)
   decimated <- TRUE
   keep <- C_homogeneization(las@data, res)
   las <- las[keep]

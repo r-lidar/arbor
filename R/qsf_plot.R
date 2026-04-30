@@ -15,10 +15,10 @@ plot.qsf = function(x, ..., color = "cyl_ID", pal = c("blue", "green", "yellow",
   {
     qsm$startX <- qsm$startX - tx
     qsm$startY <- qsm$startY - ty
-    qsm$startZ <- qsm$startZ - tz
+    #qsm$startZ <- qsm$startZ - tz
     qsm$endX   <- qsm$endX - tx
     qsm$endY   <- qsm$endY - ty
-    qsm$endZ   <- qsm$endZ - tz
+    #qsm$endZ   <- qsm$endZ - tz
     qsm
   })
 

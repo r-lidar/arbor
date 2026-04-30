@@ -8,7 +8,7 @@
 #' @export
 find_seeds <- function(las, params)
 {
-  #params = evaluate_penalty(params)
+  stop_if_not_tls(las)
   cloud = las@data ; cloud[["treeID"]] = -1L # Allocate memory because C++ assumes memory allocated
   seeds = find_seeds_cpp(cloud, params)
   seeds = suppressWarnings(lidR::LAS(seeds, lidR::header(las)))

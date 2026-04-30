@@ -13,7 +13,7 @@ qsf <- function(las, min_height = 2, params = default_arbor_parameters)
 {
   #params <- evaluate_penalty(params)
   res <- qsf_cpp(las@data, min_height, params)
-  for(i in seq_along(res)) res[[i]] <- qsm_finalize(res[[i]])
+  for(i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]
   res <- as_qsf(res)
   res

@@ -19,6 +19,17 @@ toc = function(t0, space = "  ")
   cat(paste0(space, "Done in ", round(dt, 1), " ", units,  "\n"))
 }
 
+is.tls = function(las)
+{
+  return(lidR::sensor(las) == lidR:::TLSLAS)
+}
+
+stop_if_not_tls = function(las)
+{
+  if (!is.tls(las))
+    stop("This point cloud is not flagged as TLS. It has not been read with lidR::readTLSLAS(). Please use the correct read function.")
+}
+
 free = function(...)
 {
   object_names <- as.character(substitute(list(...)))[-1L]

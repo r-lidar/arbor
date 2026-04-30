@@ -43,6 +43,13 @@ tree@data$treeID = as.integer(tree@data$treeID)
 
 params= default_arbor_parameters
 qsm = qsm(tree, params)
+stem = qsm_stem(qsm)
+merch = qsm_merchantable(qsm, 0.045)
+merch_stem  = qsm_stem(qsm) |> qsm_merchantable(0.045)
+plot_qsm(qsm)
+plot_qsm(stem)
+plot_qsm(merch)
+plot_qsm(merch_stem)
 
 u = microbenchmark::microbenchmark(qsm_dbh(qsm), qsm_dbh_cpp(qsm), times = 50)
 ggplot2::autoplot(u)
