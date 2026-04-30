@@ -74,6 +74,7 @@ Settings
 
   cat("Reading point cloud\n")
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
+  t0  <- Sys.time()
   las <- hybrid_homogeneization(las)
   gc()
 
@@ -113,6 +114,7 @@ Settings
   cat("Cleaning segmentation\n")
   if (buffer > 0)
   {
+    treeID <- NULL
     las <- clip_buffer(las, seeds, -buffer)
     las <- lidR::filter_poi(las, !is.na(treeID))
   }
@@ -122,6 +124,10 @@ Settings
 
   cat("Computing qsf\n")
   qsf = qsf(las)
+
+  tf = Sys.time()
+  dt = difftime(tf, t0)
+  record_entry(las, dt, input)
 
   rings = lapply(qsf, qsm_ring)
   rings = do.call(rbind, rings)
