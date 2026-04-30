@@ -4,7 +4,7 @@
 \alias{add_single_tree_ground}
 \title{Add Synthetic Ground Points to a Single-Tree Point Cloud}
 \usage{
-add_single_tree_ground(las)
+add_single_tree_ground(las, n = 1000)
 }
 \arguments{
 \item{las}{A `LAS` object containing a single-tree point cloud.}

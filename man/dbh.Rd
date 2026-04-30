@@ -7,7 +7,7 @@
 \usage{
 qsm_dbh(qs, bh = 1.3)
 
-add_dbh3d(x, df, col = "red", lwd = 2)
+add_dbh3d(x, df, col = "red", lwd = 3)
 }
 \arguments{
 \item{qs}{A QSM or QSF}
@@ -37,4 +37,7 @@ f <- system.file("extdata", "tree_qsm.laz", package="arbor")
 tree <- lidR::readLAS(f)
 qsm <- qsm(tree)
 ans <- qsm_dbh(qsm)
+\dontrun{
+plot_semantic(tree) |> add_dbh3d(ans)
+plot_qsm(qsm) |> add_dbh3d(ans)}
 }

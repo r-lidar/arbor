@@ -36,12 +36,6 @@ qsm_finalize = function(qsm)
   qsm
 }
 
-qsm_message = function(qsm)
-{
-  msg = attr(qsm, "message")
-  msg
-}
-
 as_qsm <- function(x)
 {
   data.table::setDT(x)

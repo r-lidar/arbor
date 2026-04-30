@@ -59,10 +59,12 @@ double QSM::dbh(double d, double* xyz, double* n) const
   for (const auto& [eid, einfo] : edges())
   {
     if (einfo.data.axis_ID != 1) continue;
+    if (einfo.data.distance_to_root == DISTANCE_TO_ROOT_UNSET) throw std::runtime_error("'Distance to root' attribute not populated");
+    if (einfo.data.distance_to_root == RADIUS_UNSET) throw std::runtime_error("'Radius' attribute not populated");
     trunk_edges.push_back({einfo.data.distance_to_root, einfo.data.radius, einfo.source, einfo.target});
   }
 
-  if (trunk_edges.empty()) return -1.0;
+  if (trunk_edges.empty()) throw std::runtime_error("Internal error: no axis_ID = 1 in this QSM");
 
   // Sort by distance to root
   std::sort(trunk_edges.begin(), trunk_edges.end(), [](const TrunkEdge& a, const TrunkEdge& b) { return a.distance_to_root < b.distance_to_root; });

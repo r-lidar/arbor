@@ -20,10 +20,9 @@
 #' ans <- qsm_dbh(qsm)
 #' \dontrun{
 #' plot_semantic(tree) |> add_dbh3d(ans)
-#' plot_qsm(qsm) |> add_dbh3d(ans)
-#'}
+#' plot_qsm(qsm) |> add_dbh3d(ans)}
 #' @export
-
+#' @rdname dbh
 qsm_dbh <- function(qs, bh = 1.30)
 {
   UseMethod("qsm_dbh")
@@ -50,7 +49,7 @@ qsm_dbh.qsf <- function(qs, bh = 1.30)
 #' @param df the output of `qsm_dbh()`
 #' @param col,lwd render parameters
 #'
-#' @rdname qsm_dbh
+#' @rdname dbh
 #' @export
 add_dbh3d <- function(x, df, col = "red", lwd = 3)
 {
