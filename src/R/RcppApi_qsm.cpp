@@ -43,7 +43,27 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
   qsm.write(filename, binary);
 }
 
-/* =======================
+
+Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3)
+{
+  double xyz[3];
+  double n[3];
+  double dbh;
+  QSM qsm = as_qsm(df);
+  dbh = qsm.dbh(d, xyz, n);
+
+  return Rcpp::DataFrame::create(
+    Rcpp::Named("dbh") = dbh,
+    Rcpp::Named("x")   = xyz[0],
+    Rcpp::Named("y")   = xyz[1],
+    Rcpp::Named("z")   = xyz[2],
+    Rcpp::Named("nx")  = n[0],
+    Rcpp::Named("ny")  = n[1],
+    Rcpp::Named("nz")  = n[2]
+  );
+}
+
+ /* =======================
  *  DEBUG R TOOLS
  *  ======================
  */

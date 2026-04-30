@@ -119,6 +119,7 @@ void QSMbuilder::build(const PointCloud& tree)
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
   smooth_radii(15, 0.5, -0.7);
+  distance_to_root();
   shift(tx, ty, tz);
 }
 

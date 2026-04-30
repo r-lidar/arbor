@@ -33,6 +33,7 @@ public:
   void conic_allometry(double R0, double tip_radius = 0.0025);
   void fix_multiple_root();
   void shift(double tx, double ty, double tz);
+  void distance_to_root();
 
   // recursive helpers (operate on graph edge IDs, analogous to cyl_IDs)
   double compute_subtree_length(int edge_id);

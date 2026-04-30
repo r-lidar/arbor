@@ -55,7 +55,7 @@ void QSMbuilder::prolongate(double d, double L)
     if (k > n) k = n;
 
     // Root node position
-    QSM::NodeID root_src_nid = graph.edge(root_eid).source;
+    NodeID root_src_nid = graph.edge(root_eid).source;
     const QSMNode& root_node    = graph.node(root_src_nid);
     const QSMNode& last_node    = graph.node(graph.edge(axis_eids[k - 1]).target);
 
@@ -88,8 +88,8 @@ void QSMbuilder::prolongate(double d, double L)
     int prev_cyl_id = 0;  // The deepest segment has no parent (it's the new root)
 
     // We'll build from the deepest point upward, then connect to the former root
-    QSM::NodeID prev_node_id = -1;  // Will be set in the loop
-    QSM::NodeID first_prolongation_node = -1;  // The deepest node (new root)
+    NodeID prev_node_id = -1;  // Will be set in the loop
+    NodeID first_prolongation_node = -1;  // The deepest node (new root)
 
     // Create segments from deepest (new root) to shallowest (connects to former root)
     for (int i = nseg; i >= 1; i--)
@@ -105,7 +105,7 @@ void QSMbuilder::prolongate(double d, double L)
       double y2 = root_node.y - oy * d_adj * f2;
       double z2 = root_node.z - oz * d_adj * f2;
 
-      QSM::NodeID node_id_1, node_id_2;
+      NodeID node_id_1, node_id_2;
 
       if (i == nseg)
       {

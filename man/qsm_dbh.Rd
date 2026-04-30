@@ -2,14 +2,23 @@
 % Please edit documentation in R/qsm_dbh.R
 \name{qsm_dbh}
 \alias{qsm_dbh}
+\alias{add_dbh3d}
 \title{Extract diameter at breast height (DBH) from a QSM}
 \usage{
 qsm_dbh(qs, bh = 1.3)
+
+add_dbh3d(x, df, col = "red", lwd = 2)
 }
 \arguments{
 \item{qs}{A QSM or QSF}
 
 \item{bh}{Numeric. Breast height (in meters). Default is 1.30.}
+
+\item{x}{An alignment offset returned by a `plot` function.}
+
+\item{df}{the output of `qsm_dbh()`}
+
+\item{col, lwd}{render parameters}
 }
 \value{
 A data.frame with:

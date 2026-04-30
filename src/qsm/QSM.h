@@ -11,6 +11,7 @@ static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
 static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
 static constexpr double SUBTREE_VOLUME_UNSET    = -1;
 static constexpr double RADIUS_UNSET            = -1.0;
+static constexpr double DISTANCE_TO_ROOT_UNSET  = -1.0;
 static constexpr double Z_EPS                   = 1e-9;
 
 // A node in the QSM graph: a 3-D junction point in the tree structure.
@@ -36,6 +37,7 @@ struct QSMEdge
   double subtree_length   = SUBTREE_LENGTH_UNSET;
   double subtree_max_endZ = SUBTREE_MAXZ_UNSET;
   double subtree_volume   = SUBTREE_VOLUME_UNSET;
+  double distance_to_root = DISTANCE_TO_ROOT_UNSET;
   int    axis_ID          = 0;
   int    branch_order     = 0;
 
@@ -64,8 +66,7 @@ struct QSMEdge
     return std::acos(dz / len) * 180.0 / M_PI;
   }
 
-  inline double distance(const QSMNode& src, const QSMNode& tgt,
-                         double px, double py, double pz) const
+  inline double distance(const QSMNode& src, const QSMNode& tgt, double px, double py, double pz) const
   {
     double ab_x = tgt.x - src.x;
     double ab_y = tgt.y - src.y;
@@ -100,6 +101,8 @@ public:
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void write(const std::string& filename, bool binary = true) const;
   std::vector<std::string> messages;
+  NodeID find_root_node() const;
+  double dbh(double d, double* xyz = nullptr, double* n = nullptr) const;
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 private:
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;

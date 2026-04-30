@@ -28,7 +28,7 @@ qsm_finalize = function(qsm)
 {
   qsm <- qsm_volume(qsm)
   data.table::setDT(qsm)
-  order <- c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order","subtree_length", "radius", "volume")
+  order <- c("startX", "startY", "startZ", "endX", "endY", "endZ", "cyl_ID", "parent_ID", "axis_ID", "branch_order", "dist_to_root", "subtree_length", "radius", "volume")
   data.table::setcolorder(qsm, order)
   qsm <- as_qsm(qsm)
   msg = qsm_message(qsm)

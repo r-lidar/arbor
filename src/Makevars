@@ -60,8 +60,8 @@ OBJECTS = api/PointCloud.o \
   utils/ransac.o \
   utils/smooth3d.o \
   misc/read_adtree_skeleton.o \
+  qsm/QSMbuilder_dist2root.o \
   qsm/QSMbuilder_layers.o \
-  qsm/QSM_mesh.o \
   qsm/QSMbuilder_radius.o \
   qsm/QSMbuilder_smooth.o \
   qsm/QSMbuilder_architecture.o \
@@ -71,6 +71,8 @@ OBJECTS = api/PointCloud.o \
   qsm/QSMbuilder.o \
   qsm/QSMbuilder_butt.o \
   qsm/qsm_api.o \
+  qsm/QSM_mesh.o \
+  qsm/QSM_utils.o \
   qsm/QSM_write.o \
   fitting/fitting_fourrier.o \
   fitting/fitting_ellipse.o \

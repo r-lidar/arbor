@@ -165,4 +165,3 @@ as_mesh <- function(qsm, color = "cyl_ID", pal = c("blue", "green", "yellow", "o
 
   return(mesh)
 }
-

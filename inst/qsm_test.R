@@ -17,6 +17,9 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_130.las"
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_177.las"
 
+# Buttress
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
+
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"
@@ -41,8 +44,15 @@ tree@data$treeID = as.integer(tree@data$treeID)
 params= default_arbor_parameters
 qsm = qsm(tree, params)
 
+u = microbenchmark::microbenchmark(qsm_dbh(qsm), qsm_dbh_cpp(qsm), times = 50)
+ggplot2::autoplot(u)
+
 x = plot_semantic(tree)
 plot_qsm(qsm, add = x, color = "branch_order", cylinder = T)
+
+dbh = qsm_dbh_cpp(qsm)
+x = plot_semantic(tree) |> add_dbh3d(dbh, lwd = 3)
+plot(qsm, add = x, pal = "chocolate4")
 
 
 tr = qsm[axis_ID == 1]

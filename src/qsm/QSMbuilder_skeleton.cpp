@@ -122,7 +122,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   searchSpace.erase(std::remove(searchSpace.begin(), searchSpace.end(), root), searchSpace.end());
 
   // Map ClusterCenter id -> graph NodeID
-  std::unordered_map<int, QSM::NodeID> center_to_node;
+  std::unordered_map<int, NodeID> center_to_node;
   center_to_node[root->id] = graph.add_node({root->x, root->y, root->z});
 
   const double max_d2 = max_d * max_d;
@@ -213,7 +213,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
 void QSMbuilder::fix_multiple_root()
 {
-  QSM::NodeID old_root_id = -1;
+  NodeID old_root_id = -1;
 
   // Find the single existing root
   for (const auto& [nid, _] : graph.nodes())
@@ -232,7 +232,7 @@ void QSMbuilder::fix_multiple_root()
   QSMNode new_root_node = old_root;
   new_root_node.z -= 0.01;
 
-  QSM::NodeID new_root_id = graph.add_node(new_root_node);
+  NodeID new_root_id = graph.add_node(new_root_node);
 
   // Connect them
   QSMEdge new_edge_data;

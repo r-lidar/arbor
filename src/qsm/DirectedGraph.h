@@ -6,15 +6,15 @@
 #include <algorithm>
 #include <stdexcept>
 
+using NodeID = int;
+using EdgeID = int;
+
 // Generic directed graph with typed node and edge data.
 // NodeID and EdgeID are integers, auto-incremented from 1.
 template<typename NodeData, typename EdgeData>
 class DirectedGraph
 {
 public:
-  using NodeID = int;
-  using EdgeID = int;
-
   struct EdgeInfo
   {
     NodeID  source;

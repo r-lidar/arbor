@@ -272,7 +272,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsf_cpp
-Rcpp::List qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
+Rcpp::DataFrame qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
 RcppExport SEXP _arbor_qsf_cpp(SEXP sceneSEXP, SEXP min_heightSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -292,6 +292,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
     qsm_write_cpp(df, filename, binary);
     return R_NilValue;
+END_RCPP
+}
+// qsm_dbh_cpp
+Rcpp::List qsm_dbh_cpp(Rcpp::DataFrame df, double d);
+RcppExport SEXP _arbor_qsm_dbh_cpp(SEXP dfSEXP, SEXP dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type d(dSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_dbh_cpp(df, d));
+    return rcpp_result_gen;
 END_RCPP
 }
 // read_adtree_skeleton
@@ -469,6 +480,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
     {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 3},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
+    {"_arbor_qsm_dbh_cpp", (DL_FUNC) &_arbor_qsm_dbh_cpp, 2},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},

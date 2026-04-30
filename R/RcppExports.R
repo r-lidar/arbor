@@ -101,6 +101,10 @@ qsm_write_cpp <- function(df, filename, binary) {
     invisible(.Call(`_arbor_qsm_write_cpp`, df, filename, binary))
 }
 
+qsm_dbh_cpp <- function(df, d = 1.3) {
+    .Call(`_arbor_qsm_dbh_cpp`, df, d)
+}
+
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }
