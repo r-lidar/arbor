@@ -14,7 +14,7 @@ qsm_merchantable(qs, merchantable_radius = 0.045)
 
 qsf_merchantable(qsf, merchantable_radius = 0.045)
 
-qsm_nostump(qsm, stump_height = 0.25)
+qsm_nostump(qs)
 }
 \arguments{
 \item{qs}{A QSM or QSF}

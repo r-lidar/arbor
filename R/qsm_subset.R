@@ -81,9 +81,25 @@ qsf_merchantable = function(qsf, merchantable_radius = 0.045)
 #' @export
 #' @param stump_height The height to remove from the root. Default 25 cm
 #' @rdname qsm_subset
-qsm_nostump = function(qsm, stump_height = 0.25)
+#' @exportMethod qsm_nostump
+qsm_nostump = function(qs)
 {
-  #qsm = qsm_nostump_cpp(qsm, stump_height)
-  #as_qsm(qsm)
+  UseMethod("qsm_nostump")
+}
+
+#' @export
+qsm_nostump.qsm = function(qs, stump_height = 0.15)
+{
+  rm = qs$dist_to_root < stump_height
+  qs$radius[rm] = 0
+  qs
+}
+
+#' @export
+qsm_nostump.qsf = function(qs, stump_height = 0.15)
+{
+  qsf <- lapply(qs, qsm_nostump)
+  qsf <- Filter(function(x) nrow(x) > 0, qsf)
+  as_qsf(qsf)
 }
 
