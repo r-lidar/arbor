@@ -16,7 +16,8 @@ print.qsm <- function(x, ...)
   dbh <- 0
   if (n_cyl > 0)
   {
-    total_volume <- sum(x$volume, na.rm = TRUE)
+    volume <- with(x, qsrt((startX - endX)^2, (startY - endY)^2 + (startZ - endZ)^2))
+    total_volume <- sum(volume, na.rm = TRUE)
     zmin <- min(c(x$startZ, x$endZ), na.rm = TRUE)
     zmax <- max(c(x$startZ, x$endZ), na.rm = TRUE)
     height <- zmax - zmin
