@@ -32,14 +32,14 @@ struct QSMEdge
   int parent_ID = 0;
 
   // Geometric / structural properties
-  double radius           = RADIUS_UNSET;
-  double conic_allometry  = RADIUS_UNSET;
-  double subtree_length   = SUBTREE_LENGTH_UNSET;
-  double subtree_max_endZ = SUBTREE_MAXZ_UNSET;
-  double subtree_volume   = SUBTREE_VOLUME_UNSET;
-  double distance_to_root = DISTANCE_TO_ROOT_UNSET;
-  int    axis_ID          = 0;
-  int    branch_order     = 0;
+  float radius           = RADIUS_UNSET;
+  float conic_allometry  = RADIUS_UNSET;
+  float subtree_length   = SUBTREE_LENGTH_UNSET;
+  float subtree_max_endZ = SUBTREE_MAXZ_UNSET;
+  float subtree_volume   = SUBTREE_VOLUME_UNSET;
+  float distance_to_root = DISTANCE_TO_ROOT_UNSET;
+  int   axis_ID          = 0;
+  int   branch_order     = 0;
 
   // ---- Computed geometry (requires source/target node positions) ----
 
