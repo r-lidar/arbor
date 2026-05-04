@@ -6,6 +6,34 @@
 
 namespace arbor::qsm {
 
+static std::vector<int> cut(const std::vector<double>& x, double by = 0.1)
+{
+  if (x.empty()) return {};
+
+  double xmax = *std::max_element(x.begin(), x.end());
+  double xmin = *std::min_element(x.begin(), x.end());
+
+  double start = std::floor(xmin);
+  double end   = std::ceil(xmax);
+
+  const double eps = 1e-9;
+
+  int n_bins = static_cast<int>(std::round((end - start) / by));
+
+  std::vector<int> out;
+  out.reserve(x.size());
+
+  for (double val : x)
+  {
+    int bin = static_cast<int>(std::floor(((val - start) + eps) / by));
+    if (bin >= n_bins) bin = n_bins - 1;
+    if (bin < 0) bin = 0;
+    out.push_back(bin);
+  }
+
+  return out;
+}
+
 void QSMbuilder::build(const PointCloud& tree)
 {
   std::size_t n = tree.size();
@@ -31,7 +59,8 @@ void QSMbuilder::build(const PointCloud& tree)
   double trim_offset = tree_height * 0.01;
   double z_threshold = min_z + trim_offset;
 
-  // Filter wood only and apply the dynamic trim
+  // Filter wood only
+  // Cut below the 1% threshold to clean the bottom of the tree
   std::vector<bool> wood_mask(n, false);
   for (std::size_t i = 0; i < n; ++i)
   {
@@ -45,7 +74,7 @@ void QSMbuilder::build(const PointCloud& tree)
   // Determine the geographic coordinates minimum
   // and center on 0,0,0 for numerical stability
   size_t min_idx = 0;
-  min_z = tree.get_z(0);
+  min_z = wood.get_z(0);
   for (size_t i = 0; i < n; ++i)
   {
     double current_z = wood.get_z(i);
@@ -61,7 +90,7 @@ void QSMbuilder::build(const PointCloud& tree)
   wood.translate(tx, ty, tz);
 
   // Sometime the very bottom have two clusters of wood
-  // this creates trouble. One of the two is removed to ensure
+  // this creates troubles. One of the two is removed to ensure
   // a single entry point for the QSM
   wood = clean_tree_butt(wood);
   n = wood.size();
@@ -73,19 +102,76 @@ void QSMbuilder::build(const PointCloud& tree)
   //PointCloud swood = utils::smooth3d(wood, 0.04, 1);
   PointCloud& swood = wood;
 
-  // Inspired by aRchi and needed to build the skeleton
-  auto layers = this->layers(swood, params.qsm.step);
-  auto clusters = this->clusters(swood, layers, params.qsm.cl_dist);
-
-  if (layers.size() != clusters.size()) throw std::runtime_error("Internal error in QSMbuilder::build. layers and clusters have different sizes. Please report to info@r-lidar.com");
-  if (layers.size() != wood.size()) throw std::runtime_error("Internal error in QSMbuilder::build. wood and layer have different sizes. Please report to info@r-lidar.com");
-
-  // Convert std::vector<pair>
+  // The skeleton reconstruction needs a pair of <iter, cluster>
+  // What is iter and cluster varies depending on arbor versions
   std::vector<std::pair<int, int>> iter_cluster;
   iter_cluster.reserve(n);
-  for (std::size_t i = 0; i < n; ++i)
+
   {
-    iter_cluster.emplace_back(layers[i].first, clusters[i].first);
+
+    printf("wood size = %lu\n", swood.size());
+    // We need ground points. We don't have ground points so
+    // as a workaround we use first 5 cm above min HAG
+    PointCloud gnd;
+    double th = 0.05;
+    while (gnd.size() == 0)
+    {
+      printf("th = %lf\n", th);
+      std::vector<bool> gnd_mask(n);
+      for (size_t i = 0 ; i < n ; i++)
+      {
+        if (swood.get_z(i) < th)
+          gnd_mask[i] = true;
+      }
+      th += 0.05;
+      gnd = swood.subset(gnd_mask);
+    }
+
+    printf("gnd size = %lu\n", gnd.size());
+
+    arbor::settings::GraphParameters p;
+    p.k = 50;
+    p.max_gap = 1;
+    p.power = 2;
+    std::vector<double> dist = arbor::segment::dist2root(swood, gnd, p);
+
+    // Keep only points with valid distance to root
+    std::vector<bool> valid_mask(n);
+    size_t n_valid = 0;
+    for (size_t i = 0; i < n; ++i)
+    {
+      if (dist[i] >= 0)
+      {
+        valid_mask[i] = true;
+        ++n_valid;
+      }
+    }
+
+    printf("n valid = %lu\n", n_valid);
+
+    swood = swood.subset(valid_mask);
+
+    printf("wood size = %lu\n", swood.size());
+
+    std::vector<double> filtered_dist;
+    filtered_dist.reserve(n_valid);
+
+    for (size_t i = 0; i < n; ++i)
+    {
+      if (valid_mask[i])
+        filtered_dist.push_back(dist[i]);
+    }
+    dist = std::move(filtered_dist);
+    n = swood.size();
+
+    // Now we can compute iter and clust
+    std::vector<int>    iter = cut(dist, params.qsm.step);
+    std::vector<int>   clust = cluster(swood, iter, params.qsm.cl_dist);
+
+    for (std::size_t i = 0; i < n; ++i)
+    {
+      iter_cluster.emplace_back(iter[i], clust[i]);
+    }
   }
 
   // Build the QSM nodes
@@ -99,7 +185,6 @@ void QSMbuilder::build(const PointCloud& tree)
     return;
   }
 
-  // Connect the QSM nodes (sets parent_ID in each edge)
   compute_topology();
 
   // Fix root issue (rare)
@@ -125,6 +210,8 @@ void QSMbuilder::build(const PointCloud& tree)
 
 void QSMbuilder::shift(double tx, double ty, double tz)
 {
+  ServiceLocator::logger()("Shift back to geographic coordinates");
+
   // Shift all node positions (a single update per node covers all incident edges)
   for (auto& [nid, ndata] : graph.nodes())
   {

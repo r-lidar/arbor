@@ -6,6 +6,8 @@ namespace arbor::qsm {
 
 void QSMbuilder::distance_to_root()
 {
+  ServiceLocator::logger()("Compute distance to root");
+
   for (auto& [eid, einfo] : graph.edges())
     einfo.data.distance_to_root = DISTANCE_TO_ROOT_UNSET;
 

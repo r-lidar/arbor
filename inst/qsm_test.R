@@ -20,6 +20,10 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 # Buttress
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
+# Conifer
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
+
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"
@@ -42,7 +46,35 @@ tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
 params= default_arbor_parameters
-qsm = qsm(tree, params)
+params$path_finder$k_neighborhood_connectivity = 30
+params$path_finder$max_gap = 1
+params$path_finder$distance_power = 2
+params$qsm$cl_dist = 0.1
+qsm2 = qsm(tree, params)
+
+x <- plot_semantic(tree)
+plot(qsm2, add = x)
+
+
+x = lidR::plot(tree)
+rgl::close3d()
+
+rgl::open3d()
+rgl::bg3d("black")
+rgl::mfrow3d(1, 2, sharedMouse = TRUE)
+
+# --- Left subplot ---
+# Capture current subscene id before plotting
+left <- rgl::currentSubscene3d()
+plot_qsm(qsm2, add = x, color = "branch_order")
+rgl::useSubscene3d(left)
+
+# --- Right subplot ---
+rgl::next3d()
+right <- rgl::currentSubscene3d()
+x <- lidR::plot(tree, pal = "chocolate4", add = x)
+plot_qsm(qsm2, add = x, color = "branch_order")
+
 stem = qsm_stem(qsm)
 merch = qsm_merchantable(qsm, 0.045)
 merch_stem  = qsm_stem(qsm) |> qsm_merchantable(0.045)
@@ -51,97 +83,176 @@ plot_qsm(stem)
 plot_qsm(merch)
 plot_qsm(merch_stem)
 
-u = microbenchmark::microbenchmark(qsm_dbh(qsm), qsm_dbh_cpp(qsm), times = 50)
-ggplot2::autoplot(u)
 
-x = plot_semantic(tree)
-plot_qsm(qsm, add = x, color = "branch_order", cylinder = T)
+### TEST
 
-dbh = qsm_dbh_cpp(qsm)
-x = plot_semantic(tree) |> add_dbh3d(dbh, lwd = 3)
-plot(qsm, add = x, pal = "chocolate4")
+wood = arbor:::filter_tree(tree)
+
+# ground
+mhag = min(wood$hag)
+gnd = wood[wood$hag < mhag + 0.05]
+
+p = default_arbor_parameters
+p$path_finder$k_neighborhood_connectivity = 20
+p$path_finder$max_gap = 1
+p$path_finder$distance_power = 2
+
+wood@data$dist2root = arbor:::dist2root(wood@data, gnd@data, p)
+wood@data$dgroup = as.integer(cut(wood$dist2root, seq(floor(min(wood$dist2root)), ceiling(max(wood$dist2root)), by = 0.1)))
+wood@data$iter = wood@data$dgroup
 
 
-tr = qsm[axis_ID == 1]
-m = lm(radius ~ 0+subtree_length, data = tr[tr$measure == TRUE,])
-plot(tr$subtree_length, tr$theoric_radius, col = "gray50")
-points(tr$subtree_length, tr$radius, col = "blue")
-abline(m)
-
-distance_to_root = function(dt)
+eps_value <- 0.1      # Adjust based on your distance units
+minPts_value <- 1     # Minimum points to form a dense region
+clust = function(x,y,z)
 {
-  # Build adjacency (children of each parent)
-  children_list <- split(dt$cyl_ID, dt$parent_ID)
-
-  # Initialize vector
-  dist_root <- numeric(nrow(dt))
-  names(dist_root) <- dt$cyl_ID
-
-  # Recursive DFS function
-  accumulate_dist <- function(node, current_dist) {
-    dist_root[[as.character(node)]] <<- current_dist
-    children <- children_list[[as.character(node)]]
-    if (!is.null(children)) {
-      for (child in children) {
-        cyl_len <- dt[cyl_ID == child, cyl_length]
-        accumulate_dist(child, current_dist + cyl_len)
-      }
-    }
-  }
-
-  # Run from the root (parent_ID == 0)
-  root_id <- dt[parent_ID == 0, cyl_ID]
-  accumulate_dist(root_id, 0)
-
-  # Attach to table
-  dt[, distance_to_root := dist_root[as.character(cyl_ID)]]
+  dbscan::dbscan(cbind(x,y,z), eps = eps_value, minPts = minPts_value)$cluster
 }
 
 
+wood@data[, dbcl := clust(X,Y,Z), by = dgroup]
+wood@data[, cl := as.integer(as.factor(paste0("g", dgroup, "_c", dbcl)))]
+wood@data$cluster = wood@data$cl
 
-x = plot_semantic(tree)
-passage <- lidR::filter_poi(tree, passage > 1)
-sampled = lidR::decimate_points(tree, random_per_voxel(0.04))
+lidR::plot(wood, color = "dist2root")
 
-data = data.table::copy(tree)
+wood = lidR::filter_poi(wood, dist2root >= 0)
+u = cpp_build_skeleton(wood@data, default_arbor_parameters$qsm$max_d)
+plot_qsm(u)
 
-z = data$Z
-z = z - min(z)
-lay = lidR:::round_any(z, 0.05)
-data@data$lay = lay
-data@data[, Z := Z + lay*2, by = lay]
-plot(data)
-data = connected_components(data, 0.05, 1, connectivity = 26, "treeID")
-plot(data, color = "treeID")
+library(rgl)
 
-skel = data@data[, .(X = median(X), Y = median(Y), Z = median(Z), lay = min(lay)), by = treeID]
-skel$treeID = NULL
-skel[, Z := Z - lay*2, by = lay]
-skel = LAS(skel)
+x = plot(wood)
 
-x= plot(tree)
-plot(skel, pal = "red", size = 4, add=x)
+# Open ONE device manually first
+open3d()
+bg3d("black")
+mfrow3d(1, 2, sharedMouse = TRUE)
 
-gr = compute_point_network(skel, k = 25, max_gap = 2, power = 1, downward = T)
+# --- Left subplot ---
+# Capture current subscene id before plotting
+left <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(u, add = x, color = "cyl_ID", pal = "red")
+useSubscene3d(left)
 
+# --- Right subplot ---
+next3d()
+right <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(qsm, add = x, pal = "blue", cylinder = F)
 
-library(igraph)
-g <- graph_from_data_frame(gr, directed = FALSE)
-mst <- mst(g, weights = E(g)$cost)
-mst = as_data_frame(mst, what = "edges")
-mst$from = as.integer(mst$from)
-mst$to = as.integer(mst$to)
+#lidR::plot(wood, color = "dist2root")
+#lidR::plot(wood, color = "dgroup", pal = lidR::pastel.colors(250))
+#lidR::plot(wood, color = "cl", pal = lidR::pastel.colors(7300))
 
-startX = skel$X[mst$from]
-startY = skel$Y[mst$from]
-startZ = skel$Z[mst$from]
-endX = skel$X[mst$to]
-endY = skel$Y[mst$to]
-endZ = skel$Z[mst$to]
-pid1 = mst$from
-pid2 = mst$to
-mst = data.table::data.table(startX, startY, startZ,  endX,  endY,  endZ, pid1, pid2)
-plot_qsm(mst)
+nodes = wood@data[, .(X = mean(X), Y = mean(Y), Z = mean(Z), dgroup = dgroup[1], dist2root = dist2root[1]), by = cl]
+nodes = lidR::LAS(nodes)
+nodes = lidR::filter_poi(nodes, dist2root >= 0)
+lidR::plot(nodes, color = "cl", pal = lidR::pastel.colors(7300))
+lidR::plot(nodes, color = "dist2root")
+lidR::plot(nodes, color = "dgroup", pal = lidR::pastel.colors(7300))
+
+params$path_finder$k_neighborhood_connectivity = 10
+params$path_finder$max_gap = 0.5
+params$path_finder$distance_power = 3
+spt = spt_to_dataframe(nodes@data, params)
+
+library(rgl)
+
+x = plot(wood)
+
+# Open ONE device manually first
+open3d()
+bg3d("black")
+mfrow3d(1, 2, sharedMouse = TRUE)
+
+# --- Left subplot ---
+# Capture current subscene id before plotting
+left <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(spt, add = x, color = "pid1", pal = "red")
+useSubscene3d(left)
+
+# --- Right subplot ---
+next3d()
+right <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(qsm, add = x, pal = "blue", cylinder = F)
+
+mst = qsm_topology(mst)
+mst = qsm_architecture(mst)
+plot_qsm(mst, color = "subtree_length")
+lidR:::.pan3d(2)
+
+# 1. Compute KNN
+k = 10
+knn = lidR::knn(nodes, k = k)
+n_nodes = nrow(nodes)
+
+# 2. Create long-format edge list
+from_nodes = rep(1:n_nodes, each = k)
+to_nodes = as.vector(t(knn$nn.index))
+edge_costs = as.vector(t(knn$nn.dist^2)) # Using squared distance as weight
+
+edges_df = data.frame(from = from_nodes, to = to_nodes, cost = edge_costs)
+
+# 3. Create the igraph object (Undirected for shortest path calculations)
+g <- graph_from_data_frame(edges_df, directed = FALSE)
+
+# 4. Find the lowest node (the node with the minimum Z coordinate)
+root_node <- which.min(nodes$Z)
+
+# 5. Compute shortest paths from the root to all other nodes
+# This returns the sequence of vertices/edges for the shortest paths
+paths <- shortest_paths(g, from = root_node, to = V(g), weights = E(g)$cost, output = "epath")
+
+# 6. Extract all edge IDs that belong to the Shortest Path Tree
+spt_edge_ids <- unique(unlist(paths$epath))
+
+# 7. Create a new graph containing only these shortest path edges
+spt_graph <- subgraph_from_edges(g, eids = spt_edge_ids, delete.vertices = FALSE)
+
+# 8. Convert the SPT graph back to a data frame of edges
+spt_df = as_data_frame(spt_graph, what = "edges")
+spt_df$from = as.integer(spt_df$from)
+spt_df$to = as.integer(spt_df$to)
+
+# 9. Map coordinates back to the SPT edges
+startX = nodes$X[spt_df$from]
+startY = nodes$Y[spt_df$from]
+startZ = nodes$Z[spt_df$from]
+endX = nodes$X[spt_df$to]
+endY = nodes$Y[spt_df$to]
+endZ = nodes$Z[spt_df$to]
+pid1 = spt_df$from
+pid2 = spt_df$to
+
+# 10. Create final data.table and plot
+spt_final = data.table::data.table(startX, startY, startZ, endX, endY, endZ, pid1, pid2)
+
+library(rgl)
+
+x = plot(wood)
+
+# Open ONE device manually first
+open3d()
+bg3d("black")
+mfrow3d(1, 2, sharedMouse = TRUE)
+
+# --- Left subplot ---
+# Capture current subscene id before plotting
+left <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(spt_final, add = x, color = "pid1", pal = "red")
+useSubscene3d(left)
+
+# --- Right subplot ---
+next3d()
+right <- currentSubscene3d()
+x <- plot(wood, pal = "chocolate4", add = x)
+plot_qsm(qsm, add = x, pal = "blue", cylinder = F)
+
 mst = qsm_topology(mst)
 mst = qsm_architecture(mst)
 plot_qsm(mst, color = "subtree_length")

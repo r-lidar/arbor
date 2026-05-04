@@ -107,10 +107,10 @@ plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cy
   }
 
   # --- Axes ---
-  z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
-  rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
-  rgl::axis3d("x", col = "black")
-  rgl::axis3d("y", col = "black")
+  #z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
+  #rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
+  #rgl::axis3d("x", col = "black")
+  #rgl::axis3d("y", col = "black")
 
   lidR:::.pan3d(2)
 

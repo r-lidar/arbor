@@ -4,6 +4,7 @@
 - Change: `fix_small_isolated_low_clusters()` removed
 - Change: `clip_buffer()` no longer clips. It assigns NAs. Up to the user to clip.
 - New: `qsm_message()`, `qsf_log()`, `qsm_stem()`, `qsm_merchantable()`.
+- New: `qsm()` massive improvement
 
 # arbor 0.9.1
 

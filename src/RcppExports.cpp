@@ -130,6 +130,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// dist2root
+Rcpp::NumericVector dist2root(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
+RcppExport SEXP _arbor_dist2root(SEXP coreSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    rcpp_result_gen = Rcpp::wrap(dist2root(core, gnd, params));
+    return rcpp_result_gen;
+END_RCPP
+}
 // assign_wood_from_passage_cpp
 Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_assign_wood_from_passage_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -409,17 +421,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// qsm_layers_cpp
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
-RcppExport SEXP _arbor_qsm_layers_cpp(SEXP dfSEXP, SEXP DSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type D(DSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_layers_cpp(df, D));
-    return rcpp_result_gen;
-END_RCPP
-}
 // qsm_cluster_cpp
 Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
 RcppExport SEXP _arbor_qsm_cluster_cpp(SEXP dfSEXP, SEXP cl_distSEXP) {
@@ -487,6 +488,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_colorize_trees_cpp", (DL_FUNC) &_arbor_colorize_trees_cpp, 2},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
     {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
+    {"_arbor_dist2root", (DL_FUNC) &_arbor_dist2root, 3},
     {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},
     {"_arbor_assign_wood_from_high_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_high_likelihood_cpp, 2},
     {"_arbor_assign_wood_from_medium_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_medium_likelihood_cpp, 2},
@@ -511,7 +513,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 4},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
-    {"_arbor_qsm_layers_cpp", (DL_FUNC) &_arbor_qsm_layers_cpp, 2},
     {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
     {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
     {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},

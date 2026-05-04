@@ -132,7 +132,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     }
   }
 
-  if (Rroot > 3*R0)
+  /*if (Rroot > 3*R0)
   {
     std::ostringstream oss;
     oss << "[WARN 3] Measured root diameter is "
@@ -149,7 +149,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
     conic_allometry(2.0 * R0, tip_radius);
     return;
-  }
+  }*/
 
   ServiceLocator::logger()("Reconstruction");
   reconstruct_missing_radii(tip_radius);
@@ -308,7 +308,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     QSMEdge& ed = einfo.data;
 
     // Skip too small radii. They are unlikely to be robust enough
-    if (ed.radius < 0.07) continue;
+    if (ed.radius < 0.03) continue;
     if (point_indices.empty()) continue;
 
     // Get the orientation of the edge by gathering its nodes
@@ -484,7 +484,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
       if (parent_eid < 0) continue;
 
       const QSMEdge& parent_ed = graph.edge_data(parent_eid);
-      const double r0 = parent_ed.radius * 0.85;
+      const double r0 = parent_ed.radius * 0.9;
       const double w0 = parent_ed.subtree_length;
 
       // Check if reconstruction is needed (any RADIUS_UNSET in axis)
@@ -507,7 +507,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
         if (ratio < 1)
         {
           for (int eid : axe_eids)
-            graph.edge_data(eid).radius *= ratio*0.85;
+            graph.edge_data(eid).radius *= ratio*0.9;
         }
       }
     }

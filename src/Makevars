@@ -61,7 +61,6 @@ OBJECTS = api/PointCloud.o \
   utils/smooth3d.o \
   misc/read_adtree_skeleton.o \
   qsm/QSMbuilder_dist2root.o \
-  qsm/QSMbuilder_layers.o \
   qsm/QSMbuilder_radius.o \
   qsm/QSMbuilder_smooth.o \
   qsm/QSMbuilder_architecture.o \

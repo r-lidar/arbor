@@ -46,6 +46,9 @@ Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::NumericVector dist2root(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
@@ -112,6 +115,7 @@ Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution);
 
+
 /*
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
@@ -147,9 +151,6 @@ Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id,  
 // ========================
 // DEBUG IN R
 // ========================
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);

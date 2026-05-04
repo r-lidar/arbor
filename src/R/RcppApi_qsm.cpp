@@ -77,58 +77,27 @@ Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchandable_rad
   return(as_dataframe(stem));
 }
 
-Rcpp::DataFrame qsm_layers_cpp(Rcpp::DataFrame df, double D)
-{
-  PointCloud pc(df);
-  std::vector<std::pair<int, double>> res_pairs = QSMbuilder::layers(pc, D);
-
-  // Unzip the vector of pairs into two separate vectors for Rcpp compatibility
-  size_t n = res_pairs.size();
-  Rcpp::IntegerVector iter_out(n);
-  Rcpp::NumericVector dist_out(n);
-
-  for(size_t i = 0; i < n; ++i) {
-    iter_out[i] = res_pairs[i].first;
-    dist_out[i] = res_pairs[i].second;
-  }
-
-  return Rcpp::DataFrame::create(
-    Rcpp::_["iter"] = iter_out,
-    Rcpp::_["dist"] = dist_out
-  );
-}
-
 Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
 {
   // Extract the iter and dist columns from the dataframe
-  Rcpp::IntegerVector iter = df["iter"];
-  Rcpp::NumericVector dist = df["dist"];
+  Rcpp::IntegerVector iterdf = df["iter"];
 
   // Convert to std::vector<std::pair<int, double>>
-  size_t n = iter.size();
-  std::vector<std::pair<int, double>> iter_dist(n);
-  for(size_t i = 0; i < n; ++i) {
-    iter_dist[i] = {iter[i], dist[i]};
-  }
+  size_t n = iterdf.size();
+  std::vector<int> iter = Rcpp::as<std::vector<int>>(iterdf);
+
 
   // Create PointCloud from dataframe
   PointCloud pc(df);
 
   // Call the clustering function
-  std::vector<std::pair<int, double>> res_pairs = QSMbuilder::clusters(pc, iter_dist, cl_dist);
+  std::vector<int> cl = QSMbuilder::cluster(pc, iter, cl_dist);
 
   // Unzip the vector of pairs into two separate vectors for Rcpp compatibility
-  Rcpp::IntegerVector cluster_out(n);
-  Rcpp::NumericVector radius_out(n);
-
-  for(size_t i = 0; i < n; ++i) {
-    cluster_out[i] = res_pairs[i].first;
-    radius_out[i] = res_pairs[i].second;
-  }
+  Rcpp::IntegerVector cluster_out = Rcpp::wrap(cl);
 
   return Rcpp::DataFrame::create(
-    Rcpp::_["cluster"] = cluster_out,
-    Rcpp::_["radius"] = radius_out
+    Rcpp::_["cluster"] = cluster_out
   );
 }
 

@@ -25,6 +25,7 @@ using DF = Rcpp::DataFrame;
 namespace arbor::segment
 {
 std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params);
+std::vector<double>  dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
 std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
@@ -83,6 +84,16 @@ Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
   std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams);
   return Rcpp::IntegerVector(ans.begin(), ans.end());
 }
+
+Rcpp::NumericVector dist2root(DF core, DF gnd, Rcpp::List params)
+{
+  arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
+  PointCloud p(core);
+  PointCloud s(gnd);
+  std::vector<double> ans = arbor::segment::dist2root(p, s, gparams);
+  return Rcpp::NumericVector(ans.begin(), ans.end());
+}
+
 
 Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
 {

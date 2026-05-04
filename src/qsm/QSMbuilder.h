@@ -13,8 +13,7 @@ public:
   void build(const PointCloud& pc);
 
   // Static and public to be exported in R
-  static std::vector<std::pair<int, double>> layers(const PointCloud& points, double D);
-  static std::vector<std::pair<int, double>> clusters(const PointCloud& points, const std::vector<std::pair<int, double>>&, double cl_dist);
+  static std::vector<int> cluster(const PointCloud& data, const std::vector<int>& iter, float eps);
   static PointCloud clean_tree_butt(const PointCloud&);
 
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);

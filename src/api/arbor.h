@@ -75,8 +75,8 @@ namespace arbor
 
     struct QsmParameters
     {
-      double step = 0.2;
-      double cl_dist = 0.02;
+      double step = 0.1;
+      double cl_dist = 0.1;
       double max_d = 0.1;
       double apex = 0.0025;
       int smooth_steps = 15;
@@ -100,6 +100,8 @@ namespace arbor
     void segment_ground  (PointCloud& core, const settings::ArborParameters& params);
     void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params);
     void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params);
+
+    std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
   }
 
   namespace seeds
