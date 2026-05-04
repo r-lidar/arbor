@@ -45,6 +45,10 @@ accumulate_passages_cpp <- function(core, gnd, params) {
     .Call(`_arbor_accumulate_passages_cpp`, core, gnd, params)
 }
 
+dist2root <- function(core, gnd, params) {
+    .Call(`_arbor_dist2root`, core, gnd, params)
+}
+
 assign_wood_from_passage_cpp <- function(core, params) {
     .Call(`_arbor_assign_wood_from_passage_cpp`, core, params)
 }

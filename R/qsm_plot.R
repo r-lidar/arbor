@@ -20,7 +20,7 @@ plot.qsm = function(x, ...)
 
 #' @export
 #' @rdname plot
-plot_qsm = function(qsm, add = NULL, color = "cyl_ID", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
+plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
 {
   # --- Input Validation ---
   if (!is.data.frame(qsm)) {
