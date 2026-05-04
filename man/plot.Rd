@@ -25,7 +25,7 @@
 plot_qsm(
   qsm,
   add = NULL,
-  color = "cyl_ID",
+  color = "branch_order",
   skeleton = TRUE,
   cylinder = TRUE,
   pal = c("blue", "green", "yellow", "orange", "red"),
