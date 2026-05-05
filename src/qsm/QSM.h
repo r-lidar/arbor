@@ -27,19 +27,22 @@ struct QSMNode
 // conversion to and from the flat QSM / QSMcylinder representation.
 struct QSMEdge
 {
+  // Core geometric / structural properties
+  float radius           = RADIUS_UNSET;
+  float subtree_length   = SUBTREE_LENGTH_UNSET;
+  float distance_to_root = DISTANCE_TO_ROOT_UNSET;
+  int   axis_ID          = 0;
+  int   branch_order     = 0;
+
   // Backward-compatibility IDs populated during conversion or build.
   int cyl_ID    = 0;
   int parent_ID = 0;
 
-  // Geometric / structural properties
-  float radius           = RADIUS_UNSET;
+
+  // Temporary properties needed only while building the QSM
   float conic_allometry  = RADIUS_UNSET;
-  float subtree_length   = SUBTREE_LENGTH_UNSET;
   float subtree_max_endZ = SUBTREE_MAXZ_UNSET;
   float subtree_volume   = SUBTREE_VOLUME_UNSET;
-  float distance_to_root = DISTANCE_TO_ROOT_UNSET;
-  int   axis_ID          = 0;
-  int   branch_order     = 0;
 
   // ---- Computed geometry (requires source/target node positions) ----
 
@@ -96,16 +99,18 @@ struct QSMEdge
 class QSM : public DirectedGraph<QSMNode, QSMEdge>
 {
 public:
-  enum class MeshMode { Cylinders, Continuous };
   void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void write(const std::string& filename, bool binary = true) const;
-  std::vector<std::string> messages;
   NodeID find_root_node() const;
   QSM stem() const;
   QSM merchantable(double merch_radius) const;
   double dbh(double d, double* xyz = nullptr, double* n = nullptr) const;
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
+
+public:
+  std::vector<std::string> messages;
+
 private:
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;
   void write_ply(const std::string& filename, bool binary) const;

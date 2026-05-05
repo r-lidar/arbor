@@ -43,17 +43,33 @@ file <- files[i]
 files = files[-i]
 file
 tree <- lidR::readLAS(file)
+plot_semantic(tree)
+
+{
+tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
+t0 = Sys.time()
 params= default_arbor_parameters
 params$path_finder$k_neighborhood_connectivity = 30
 params$path_finder$max_gap = 1
 params$path_finder$distance_power = 2
 params$qsm$cl_dist = 0.1
-qsm2 = qsm(tree, params)
+qsm = qsm(tree, params)
+tf = Sys.time()
+difftime(tf, t0)
+qsm_write(qsm, "/home/jr/Blender/QSM/QSM5/QSM5.obj")
+writeLAS(tree, "/home/jr/Blender/QSM/QSM5/QSM5.las")
+writeLines(as.character(round(difftime(tf, t0),2)), "/home/jr/Blender/QSM/QSM5/QSM5.time")
+}
 
-x <- plot_semantic(tree)
-plot(qsm2, add = x)
+d = 10
+qsm$startX = qsm$startX - d
+qsm$endX = qsm$endX - d
+qsm$startY = qsm$startY - d
+qsm$endY = qsm$endY - d
+x <- plot_semantic(tree, size = 1)
+plot(qsm, add = x, skel = F)
 
 
 x = lidR::plot(tree)
@@ -82,6 +98,44 @@ plot_qsm(qsm)
 plot_qsm(stem)
 plot_qsm(merch)
 plot_qsm(merch_stem)
+
+find_selected_treeID <- function(las) {
+
+  # Check that treeID exists
+  if (!"treeID" %in% names(las@data)) {
+    stop("LAS does not contain a 'treeID' attribute.")
+  }
+
+  # Open 3D plot
+  x = arbor::plot_instance(las)
+
+  message("Click a point in the rgl window...")
+
+  # User clicks a point in 3D
+  click <- rgl::select3d(button = "left")
+
+  # Extract xyz coordinates
+  xyz <- as.matrix(las@data[, c("X", "Y", "Z")])
+  xyz[,1] =   xyz[,1] - x[1]
+  xyz[,2] =   xyz[,2] - x[2]
+
+  # Find selected points
+  selected <- click(xyz[,1], xyz[,2], xyz[,3])
+
+  if (!any(selected)) {
+    message("No point selected.")
+    return(NULL)
+  }
+
+  # If multiple points selected, use first one
+  idx <- which(selected)[1]
+
+  tree_id <- las@data$treeID[idx]
+
+  message(sprintf("Selected treeID: %s", tree_id))
+
+  return(tree_id)
+}
 
 
 ### TEST

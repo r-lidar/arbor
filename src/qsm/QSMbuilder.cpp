@@ -6,33 +6,7 @@
 
 namespace arbor::qsm {
 
-static std::vector<int> cut(const std::vector<double>& x, double by = 0.1)
-{
-  if (x.empty()) return {};
-
-  double xmax = *std::max_element(x.begin(), x.end());
-  double xmin = *std::min_element(x.begin(), x.end());
-
-  double start = std::floor(xmin);
-  double end   = std::ceil(xmax);
-
-  const double eps = 1e-9;
-
-  int n_bins = static_cast<int>(std::round((end - start) / by));
-
-  std::vector<int> out;
-  out.reserve(x.size());
-
-  for (double val : x)
-  {
-    int bin = static_cast<int>(std::floor(((val - start) + eps) / by));
-    if (bin >= n_bins) bin = n_bins - 1;
-    if (bin < 0) bin = 0;
-    out.push_back(bin);
-  }
-
-  return out;
-}
+static std::vector<int> cut(const std::vector<double>& x, double by = 0.1);
 
 void QSMbuilder::build(const PointCloud& tree)
 {
@@ -95,87 +69,69 @@ void QSMbuilder::build(const PointCloud& tree)
   wood = clean_tree_butt(wood);
   n = wood.size();
 
-  // REMOVED: it was not a good idea. This creates very bad trees ending and break in trunks
-  // 3D smoothing for a better architecture computation
-  // (but measure on the original on)
-  //ServiceLocator::logger()("Smoothing 3D for better skeleton");
-  //PointCloud swood = utils::smooth3d(wood, 0.04, 1);
-  PointCloud& swood = wood;
-
   // The skeleton reconstruction needs a pair of <iter, cluster>
   // What is iter and cluster varies depending on arbor versions
   std::vector<std::pair<int, int>> iter_cluster;
   iter_cluster.reserve(n);
 
+  // We need ground points. We don't have ground points so
+  // as a workaround we use first 5 cm above min HAG
+  PointCloud gnd;
+  double th = 0.05;
+  while (gnd.size() == 0)
   {
-
-    printf("wood size = %lu\n", swood.size());
-    // We need ground points. We don't have ground points so
-    // as a workaround we use first 5 cm above min HAG
-    PointCloud gnd;
-    double th = 0.05;
-    while (gnd.size() == 0)
+    std::vector<bool> gnd_mask(n);
+    for (size_t i = 0 ; i < n ; i++)
     {
-      printf("th = %lf\n", th);
-      std::vector<bool> gnd_mask(n);
-      for (size_t i = 0 ; i < n ; i++)
-      {
-        if (swood.get_z(i) < th)
-          gnd_mask[i] = true;
-      }
-      th += 0.05;
-      gnd = swood.subset(gnd_mask);
+      if (wood.get_z(i) < th)
+        gnd_mask[i] = true;
     }
+    th += 0.05;
+    gnd = wood.subset(gnd_mask);
+  }
 
-    printf("gnd size = %lu\n", gnd.size());
+  arbor::settings::GraphParameters p;
+  p.k = 50;
+  p.max_gap = 1;
+  p.power = 2;
+  std::vector<double> dist = arbor::segment::dist2root(wood, gnd, p);
 
-    arbor::settings::GraphParameters p;
-    p.k = 50;
-    p.max_gap = 1;
-    p.power = 2;
-    std::vector<double> dist = arbor::segment::dist2root(swood, gnd, p);
-
-    // Keep only points with valid distance to root
-    std::vector<bool> valid_mask(n);
-    size_t n_valid = 0;
-    for (size_t i = 0; i < n; ++i)
+  // Keep only points with valid distance to root
+  std::vector<bool> valid_mask(n);
+  size_t n_valid = 0;
+  for (size_t i = 0; i < n; ++i)
+  {
+    if (dist[i] >= 0)
     {
-      if (dist[i] >= 0)
-      {
-        valid_mask[i] = true;
-        ++n_valid;
-      }
-    }
-
-    printf("n valid = %lu\n", n_valid);
-
-    swood = swood.subset(valid_mask);
-
-    printf("wood size = %lu\n", swood.size());
-
-    std::vector<double> filtered_dist;
-    filtered_dist.reserve(n_valid);
-
-    for (size_t i = 0; i < n; ++i)
-    {
-      if (valid_mask[i])
-        filtered_dist.push_back(dist[i]);
-    }
-    dist = std::move(filtered_dist);
-    n = swood.size();
-
-    // Now we can compute iter and clust
-    std::vector<int>    iter = cut(dist, params.qsm.step);
-    std::vector<int>   clust = cluster(swood, iter, params.qsm.cl_dist);
-
-    for (std::size_t i = 0; i < n; ++i)
-    {
-      iter_cluster.emplace_back(iter[i], clust[i]);
+      valid_mask[i] = true;
+      ++n_valid;
     }
   }
 
+  wood = wood.subset(valid_mask);
+
+  std::vector<double> filtered_dist;
+  filtered_dist.reserve(n_valid);
+
+  for (size_t i = 0; i < n; ++i)
+  {
+    if (valid_mask[i])
+      filtered_dist.push_back(dist[i]);
+  }
+  dist = std::move(filtered_dist);
+  n = wood.size();
+
+  // Now we can compute iter and clust
+  std::vector<int>    iter = cut(dist, params.qsm.step);
+  std::vector<int>   clust = cluster(wood, iter, params.qsm.cl_dist);
+
+  for (std::size_t i = 0; i < n; ++i)
+  {
+    iter_cluster.emplace_back(iter[i], clust[i]);
+  }
+
   // Build the QSM nodes
-  build_skeleton(swood, iter_cluster, params.qsm.max_d);
+  build_skeleton(wood, iter_cluster, params.qsm.max_d);
 
   // Extremely rare case with so few points that we have no cluster
   // (seen once with a very bad DTM in Murray's data)
@@ -208,43 +164,33 @@ void QSMbuilder::build(const PointCloud& tree)
   shift(tx, ty, tz);
 }
 
-void QSMbuilder::shift(double tx, double ty, double tz)
+
+std::vector<int> cut(const std::vector<double>& x, double by)
 {
-  ServiceLocator::logger()("Shift back to geographic coordinates");
+  if (x.empty()) return {};
 
-  // Shift all node positions (a single update per node covers all incident edges)
-  for (auto& [nid, ndata] : graph.nodes())
+  double xmax = *std::max_element(x.begin(), x.end());
+  double xmin = *std::min_element(x.begin(), x.end());
+
+  double start = std::floor(xmin);
+  double end   = std::ceil(xmax);
+
+  const double eps = 1e-9;
+
+  int n_bins = static_cast<int>(std::round((end - start) / by));
+
+  std::vector<int> out;
+  out.reserve(x.size());
+
+  for (double val : x)
   {
-    ndata.x += tx;
-    ndata.y += ty;
-    ndata.z += tz;
-  }
-}
-
-int QSMbuilder::count_nodes_connected_to_root() const
-{
-  // Iterate through the public nodes map
-  for (const auto& [id, data] : graph.nodes())
-  {
-    // The root is defined as a node with zero incoming edges
-    if (graph.incoming_edges(id).empty())
-    {
-      // Return the count of its outgoing edges
-      return graph.outgoing_edges(id).size();
-    }
+    int bin = static_cast<int>(std::floor(((val - start) + eps) / by));
+    if (bin >= n_bins) bin = n_bins - 1;
+    if (bin < 0) bin = 0;
+    out.push_back(bin);
   }
 
-  return 0;
-}
-
-int QSMbuilder::find_root_edge() const
-{
-  for (const auto& [eid, einfo] : graph.edges())
-  {
-    if (graph.incoming_edges(einfo.source).empty())
-      return eid;
-  }
-  return -1;
+  return out;
 }
 
 }
