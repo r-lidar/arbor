@@ -2,6 +2,7 @@
 #include <numeric>
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
 
 // ---------------------------------------------------------------------------
 // Minimal dense linear-algebra helpers (replace Eigen)

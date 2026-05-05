@@ -7,30 +7,91 @@ FittingEllipse::FittingEllipse(int max_iterations, int min_inliers, unsigned see
 
 }
 
-Eigen::MatrixXd FittingEllipse::project_to_2d(const std::vector<Vec3>& points) const
-{
-  Eigen::MatrixXd pts(points.size(), 2);
-  for (size_t i = 0; i < points.size(); ++i) {
-    pts(i, 0) = points[i].x; pts(i, 1) = points[i].y;
-  }
-  return pts;
-}
-
 FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::vector<Vec3>& pts) const
 {
   EllipseParams res;
   if (pts.size() < 5) return res;
-  Eigen::MatrixXd points_2d = project_to_2d(pts);
-  Eigen::MatrixXd D(points_2d.rows(), 6);
-  for (int i = 0; i < points_2d.rows(); ++i)
+
+  // Build the 6-column design matrix D manually (no Eigen)
+  // Each row: [x², xy, y², x, y, 1]
+  // We need the null vector of D^T * D, i.e. the eigenvector for the smallest eigenvalue.
+  // For 6 unknowns we use a simple 6x6 symmetric accumulation + Jacobi or power method.
+  // Here we use the compact normal equations via a 6x6 scatter matrix.
+
+  const int N = 6;
+  double S[N][N] = {};
+
+  for (const auto& p : pts)
   {
-    double x = points_2d(i,0), y = points_2d(i,1);
-    D.row(i) << x*x, x*y, y*y, x, y, 1.0;
+    double x = p.x, y = p.y;
+    double row[6] = { x*x, x*y, y*y, x, y, 1.0 };
+    for (int i = 0; i < N; ++i)
+      for (int j = 0; j < N; ++j)
+        S[i][j] += row[i] * row[j];
   }
-  Eigen::VectorXd p = Eigen::JacobiSVD<Eigen::MatrixXd>(D.transpose()*D, Eigen::ComputeFullV).matrixV().col(5);
-  res.a = p(0); res.b = p(1); res.c = p(2); res.d = p(3); res.e = p(4); res.f = p(5);
-  res.valid = (res.b*res.b - 4*res.a*res.c < 0);
-  return res;
+
+  // Power-iteration to find the eigenvector of S corresponding to the SMALLEST eigenvalue.
+  // We do inverse iteration: find the dominant eigenvector of (S - shift*I)^{-1}.
+  // For robustness, use the standard approach: find the last column of V in SVD via
+  // repeated deflation — but that's heavy. Instead, use a small Jacobi SVD on 6x6.
+  // Given the small fixed size (6x6), a Jacobi eigendecomposition is straightforward.
+
+  // --- Jacobi eigendecomposition of symmetric S ---
+  double V[N][N] = {};   // eigenvectors (columns)
+  double A[N][N] = {};   // working copy of S
+  for (int i = 0; i < N; ++i) { V[i][i] = 1.0; for (int j = 0; j < N; ++j) A[i][j] = S[i][j]; }
+
+  for (int sweep = 0; sweep < 100; ++sweep)
+  {
+    double off = 0.0;
+    for (int i = 0; i < N; ++i)
+      for (int j = i+1; j < N; ++j)
+        off += A[i][j] * A[i][j];
+    if (off < 1e-24) break;
+
+    for (int p2 = 0; p2 < N-1; ++p2)
+    {
+      for (int q = p2+1; q < N; ++q)
+      {
+        if (std::fabs(A[p2][q]) < 1e-15) continue;
+        double tau = (A[q][q] - A[p2][p2]) / (2.0 * A[p2][q]);
+        double t   = (tau >= 0 ? 1.0 : -1.0) / (std::fabs(tau) + std::sqrt(1.0 + tau*tau));
+        double c   = 1.0 / std::sqrt(1.0 + t*t);
+        double s   = t * c;
+
+        // Update A
+        double App = A[p2][p2], Aqq = A[q][q], Apq = A[p2][q];
+        A[p2][p2] = App - t*Apq;
+        A[q][q]   = Aqq + t*Apq;
+        A[p2][q]  = A[q][p2] = 0.0;
+        for (int r = 0; r < N; ++r)
+        {
+          if (r == p2 || r == q) continue;
+          double Arp = A[r][p2], Arq = A[r][q];
+          A[r][p2] = A[p2][r] = c*Arp - s*Arq;
+          A[r][q]  = A[q][r]  = s*Arp + c*Arq;
+        }
+        // Update V
+        for (int r = 0; r < N; ++r)
+        {
+          double Vrp = V[r][p2], Vrq = V[r][q];
+          V[r][p2] = c*Vrp - s*Vrq;
+          V[r][q]  = s*Vrp + c*Vrq;
+        }
+      }
+    }
+  }
+
+  // Find the column of V with the smallest eigenvalue (diagonal of A)
+  int min_col = 0;
+  double min_val = std::fabs(A[0][0]);
+  for (int i = 1; i < N; ++i)
+    if (std::fabs(A[i][i]) < min_val) { min_val = std::fabs(A[i][i]); min_col = i; }
+
+    res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];
+    res.d = V[3][min_col]; res.e = V[4][min_col]; res.f = V[5][min_col];
+    res.valid = (res.b*res.b - 4*res.a*res.c < 0);
+    return res;
 }
 
 std::vector<double> FittingEllipse::calculate_distances(const std::vector<Vec3>& pts, const EllipseParams& p) const

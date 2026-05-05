@@ -484,7 +484,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
       if (parent_eid < 0) continue;
 
       const QSMEdge& parent_ed = graph.edge_data(parent_eid);
-      const double r0 = parent_ed.radius * 0.9;
+      const double r0 = parent_ed.radius * 0.85;
       const double w0 = parent_ed.subtree_length;
 
       // Check if reconstruction is needed (any RADIUS_UNSET in axis)
@@ -507,7 +507,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
         if (ratio < 1)
         {
           for (int eid : axe_eids)
-            graph.edge_data(eid).radius *= ratio*0.9;
+            graph.edge_data(eid).radius *= ratio*0.85;
         }
       }
     }

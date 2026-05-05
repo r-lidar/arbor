@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -8,7 +7,6 @@
 #include <string>
 #include <memory>
 #include <random>
-#include <Eigen/Dense>
 
 namespace arbor::utils::fitting {
 
@@ -137,7 +135,6 @@ private:
   EllipseParams fit_ellipse_algebraic(const std::vector<Vec3>& pts) const;
   std::vector<double> calculate_distances(const std::vector<Vec3>& pts, const EllipseParams& params) const;
   EllipseGeometry get_ellipse_geometry(const EllipseParams& params) const;
-  Eigen::MatrixXd project_to_2d(const std::vector<Vec3>& points) const;
 
   int m_max_iterations;
   int m_min_inliers;
