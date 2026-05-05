@@ -10,7 +10,6 @@
 #' The entire trees are retains.
 #'
 #' @param qs A QSM or QSF
-#' @param qsm A QSM
 #' @param qsf A QSF
 #'
 #' @name qsm_subset
@@ -82,7 +81,7 @@ qsf_merchantable = function(qsf, merchantable_radius = 0.045)
 #' @param stump_height The height to remove from the root. Default 25 cm
 #' @rdname qsm_subset
 #' @exportMethod qsm_nostump
-qsm_nostump = function(qs)
+qsm_nostump = function(qs, stump_height = 0.15)
 {
   UseMethod("qsm_nostump")
 }

@@ -14,6 +14,7 @@
 #' @return A filtered LAS object where treeID of trees whose seeds fall outside the region of interest
 #' are NA. They can later be removed.
 #' @export
+#' @importFrom data.table :=
 clip_buffer = function(las, seeds, buffer = -5)
 {
   # Avoid NOTES

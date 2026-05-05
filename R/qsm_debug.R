@@ -521,7 +521,7 @@ qsm_debug = function(tree, step = 0.2, cl_dist = 0.1, max_d = 0.1, apex = 0.0025
 
 qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
 {
-  data <- qsm_layers(tree, step)
+  #data <- qsm_layers(tree, step)
   data <- qsm_clusters(data, cl_dist)
 
 
@@ -539,20 +539,20 @@ qsm_skeleton = function(tree, step = .2, cl_dist = 0.1, max_d = 0.3)
   return(skel)
 }
 
-qsm_layers = function(tree, step)
-{
-  #logger("Computing layers")
-  data = qsm_layers_cpp(tree@data, step)
-
-  res = list()
-  res[["X"]] = tree@data[["X"]]
-  res[["Y"]] = tree@data[["Y"]]
-  res[["Z"]] = tree@data[["Z"]]
-  res[["iter"]] = data[["iter"]]
-  res[["dist"]] = data[["dist"]]
-  data.table::setDT(res)
-  return(res[])
-}
+# qsm_layers = function(tree, step)
+# {
+#   #logger("Computing layers")
+#   data = qsm_layers_cpp(tree@data, step)
+#
+#   res = list()
+#   res[["X"]] = tree@data[["X"]]
+#   res[["Y"]] = tree@data[["Y"]]
+#   res[["Z"]] = tree@data[["Z"]]
+#   res[["iter"]] = data[["iter"]]
+#   res[["dist"]] = data[["dist"]]
+#   data.table::setDT(res)
+#   return(res[])
+# }
 
 qsm_clusters = function(data, cl_dist)
 {

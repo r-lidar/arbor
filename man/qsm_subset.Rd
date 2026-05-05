@@ -14,7 +14,7 @@ qsm_merchantable(qs, merchantable_radius = 0.045)
 
 qsf_merchantable(qsf, merchantable_radius = 0.045)
 
-qsm_nostump(qs)
+qsm_nostump(qs, stump_height = 0.15)
 }
 \arguments{
 \item{qs}{A QSM or QSF}
@@ -23,8 +23,6 @@ qsm_nostump(qs)
 is the standard in Canada.}
 
 \item{qsf}{A QSF}
-
-\item{qsm}{A QSM}
 
 \item{stump_height}{The height to remove from the root. Default 25 cm}
 }

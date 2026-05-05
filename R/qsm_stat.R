@@ -47,6 +47,8 @@ qsm_stats <- function(qs, ..., display = FALSE)
 #' @export
 qsm_stats.qsm <- function(qs, ..., display = FALSE)
 {
+  volume = NULL
+
   if (nrow(qs) == 0) return(NULL)
 
   if (!is.data.frame(qs)) stop("'qs' must be a data.frame or data.table")

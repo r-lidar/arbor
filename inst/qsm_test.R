@@ -20,6 +20,10 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 # Buttress
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
+# Bad
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
+
 # Conifer
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
@@ -54,7 +58,7 @@ params= default_arbor_parameters
 params$path_finder$k_neighborhood_connectivity = 30
 params$path_finder$max_gap = 1
 params$path_finder$distance_power = 2
-params$qsm$cl_dist = 0.1
+params$qsm$cl_dist = 0.2
 qsm = qsm(tree, params)
 tf = Sys.time()
 difftime(tf, t0)
@@ -144,19 +148,20 @@ wood = arbor:::filter_tree(tree)
 
 # ground
 mhag = min(wood$hag)
-gnd = wood[wood$hag < mhag + 0.05]
+gnd = wood[wood$hag < mhag + 0.1]
 
 p = default_arbor_parameters
-p$path_finder$k_neighborhood_connectivity = 20
+p$path_finder$k_neighborhood_connectivity = 50
 p$path_finder$max_gap = 1
 p$path_finder$distance_power = 2
+p$qsm$step = 0.2
 
 wood@data$dist2root = arbor:::dist2root(wood@data, gnd@data, p)
 wood@data$dgroup = as.integer(cut(wood$dist2root, seq(floor(min(wood$dist2root)), ceiling(max(wood$dist2root)), by = 0.1)))
 wood@data$iter = wood@data$dgroup
 
 
-eps_value <- 0.1      # Adjust based on your distance units
+eps_value <- 0.3      # Adjust based on your distance units
 minPts_value <- 1     # Minimum points to form a dense region
 clust = function(x,y,z)
 {
@@ -168,9 +173,22 @@ wood@data[, dbcl := clust(X,Y,Z), by = dgroup]
 wood@data[, cl := as.integer(as.factor(paste0("g", dgroup, "_c", dbcl)))]
 wood@data$cluster = wood@data$cl
 
-lidR::plot(wood, color = "dist2root")
+x = lidR::plot(wood, color = "dist2root")
+lidR::plot(gnd, add = x, size = 6)
+lidR::plot(wood, color = "dgroup", pal = pastel.colors(2500))
+lidR::plot(wood, color = "cl", pal = pastel.colors(2500))
 
-wood = lidR::filter_poi(wood, dist2root >= 0)
+wood = lidR::filter_poi(wood, dist2root >= 0, !is.na(iter))
+
+plot(wood, color ="iter")
+plot(wood, color ="cluster", pal = pastel.colors(2500))
+
+x = plot(wood)
+plot(filter_poi(wood, cluster == 50), add = x, pal = "red", size = 4)
+
+w = wood@data[, .(X = mean(X), Y = mean(Y), Z = mean(Z)), by = .(iter, cluster)]
+plot(LAS(w))
+
 u = cpp_build_skeleton(wood@data, default_arbor_parameters$qsm$max_d)
 plot_qsm(u)
 
