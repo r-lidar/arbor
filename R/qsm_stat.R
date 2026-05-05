@@ -59,6 +59,9 @@ qsm_stats.qsm <- function(qs, ..., display = FALSE)
 
   .N <- radius <- radius_bin <- branch_order <- axis_ID <- dist_to_root <-. <- NULL
 
+  l = sqrt((qs$endX-qs$startX)^2+(qs$endY-qs$startY)^2+(qs$endZ-qs$startZ)^2)
+  qs$volume = pi*qs$radius^2*l
+
   dt = data.table::copy(qs)
   dt$radius_bin = cut(dt$radius*100, breaks = seq(0, max(dt$radius*100)+2, 2))
 
@@ -89,7 +92,6 @@ qsm_stats.qsm <- function(qs, ..., display = FALSE)
   Y_root = root$startY
   Z_root = root$startZ
 
-  qs = qsm_volume(qs)
   V   = round(sum(qs$volume), 3)
   H   = round(max(qs$endZ) - Z_root, 3)
   DBH = dbh$dbh
