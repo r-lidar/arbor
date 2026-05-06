@@ -4,14 +4,19 @@
 \name{parameters}
 \alias{parameters}
 \alias{arbor_parameters_default}
+\alias{arbor_parameters_occlusion}
 \title{Parameters}
 \format{
+An object of class \code{list} of length 7.
+
 An object of class \code{list} of length 7.
 }
 \usage{
 arbor_parameters_default
+
+arbor_parameters_occlusion
 }
 \description{
-Parameters
+Default is suitable for most dataset. Occlusion is suitable for lower quality datasets
 }
 \keyword{datasets}
