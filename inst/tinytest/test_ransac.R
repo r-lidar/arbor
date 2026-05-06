@@ -1,5 +1,19 @@
 # Test case 7: RANSAC on noisy circle points
-ransac_circle = arbor:::fit_circloid_cpp
+fit = arbor:::fit_circloid_cpp
+
+show = function(pt, res, tol = 0.03)
+{
+  inliers = pt[res$inliers,]
+  plot(pt, asp = 1, main = res$shape_type)
+  points(res$center_x, res$center_y, pch = 3, cex = 2)
+  points(inliers, col = "blue", pch = 18)
+  lines(res$nodes, lwd = 2, col = "red")
+  symbols(res$center_x, res$center_y, circles = res$radius, inches = FALSE, add = T, fg = "purple")
+  symbols(res$center_x, res$center_y, circles = res$radius+tol, inches = FALSE, add = T, fg = "purple")
+  symbols(res$center_x, res$center_y, circles = res$radius-tol, inches = FALSE, add = T, fg = "purple")
+}
+
+disp = FALSE
 
 set.seed(123)
 n = 500
@@ -8,7 +22,9 @@ circle_points <- matrix(c(12 + 2 * cos(theta) + rnorm(n, 0, 0.1),
                           18.5 + 2 * sin(theta) + rnorm(n, 0, 0.1),
                           rep(0, n)), ncol = 3, byrow = FALSE)
 
-result7 <- ransac_circle(circle_points, tolerance = 0.2)
+result7 <- fit(circle_points, tolerance = 0.02)
+
+if (disp) show(circle_points, result7)
 
 expect_equal(result7$center_x, 12, tolerance = 0.005)
 expect_equal(result7$center_y, 18.5, tolerance = 0.005)
@@ -23,10 +39,12 @@ theta <- seq(0, 2 * pi, length.out = n)
 circle_points <- matrix(c(500 + 0.12 * cos(theta) + runif(n, 0, 0.01),
                           500 + 0.12 * sin(theta) + runif(n, 0, 0.01),
                           rep(0, n)), ncol = 3, byrow = FALSE)
-rm = circle_points[,1] > 500
+rm = circle_points[,1] > 499.95
 circle_points = circle_points[rm,]
 
-result8 <- ransac_circle(circle_points)
+result8 <- fit(circle_points, tolerance = 0.01)
+
+if (disp) show(circle_points, result8, 0.02)
 
 expect_equal(result8$center_x, 500, tolerance = 0.005)
 expect_equal(result8$center_y, 500, tolerance = 0.005)
@@ -61,7 +79,7 @@ x = structure(
 
 xc = mean(x[,1])
 yc = mean(x[,2])
-c = ransac_circle(x, tolerance = 0.02)
+c = fit(x, tolerance = 0.02)
 
 expect_true(c$center_x - xc < 0.02)
 expect_true(c$center_y - yc < 0.02)

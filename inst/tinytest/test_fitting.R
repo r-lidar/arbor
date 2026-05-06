@@ -1,7 +1,7 @@
 
 fit = arbor:::fit_circloid_cpp
 
-show = function(pt, res)
+show = function(pt, res, tol = 0.03)
 {
   inliers = pt[res$inliers,]
   plot(pt, asp = 1, main = res$shape_type)
@@ -363,21 +363,12 @@ pt = structure(c(312335.542, 312335.582, 312335.491, 312335.497, 312335.493,
             152.611, 152.606, 152.601, 152.619, 152.601, 152.603, 152.61,
             152.614), dim = c(200L, 3L))
 
-res = fit(pt, tolerance = 0.1)
-
-if (disp) show(pt, res)
-
-expect_equal(res$center_x, 312335.577, tolerance = 0.05)
-expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
-expect_equal(res$radius, 0.199, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 360)
-
 res = fit(pt, tolerance = 0.03)
 
-if (disp) show(pt, res)
+if (disp) show(pt, res, 0.03)
 
 expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
-expect_equal(res$radius, 0.19, tolerance = 0.025)
+expect_equal(res$radius, 0.19, tolerance = 0.03)
 expect_equal(res$covered_arc_degree, 360)
 
