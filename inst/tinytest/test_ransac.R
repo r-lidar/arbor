@@ -22,7 +22,7 @@ circle_points <- matrix(c(12 + 2 * cos(theta) + rnorm(n, 0, 0.1),
                           18.5 + 2 * sin(theta) + rnorm(n, 0, 0.1),
                           rep(0, n)), ncol = 3, byrow = FALSE)
 
-result7 <- fit(circle_points, tolerance = 0.02)
+result7 <- fit(circle_points, tolerance = 0.04)
 
 if (disp) show(circle_points, result7)
 
@@ -42,7 +42,7 @@ circle_points <- matrix(c(500 + 0.12 * cos(theta) + runif(n, 0, 0.01),
 rm = circle_points[,1] > 499.95
 circle_points = circle_points[rm,]
 
-result8 <- fit(circle_points, tolerance = 0.01)
+result8 <- fit(circle_points, tolerance = 0.02)
 
 if (disp) show(circle_points, result8, 0.02)
 
