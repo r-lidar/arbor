@@ -55,14 +55,47 @@ filter_tree = function(tree)
 #' @export
 add_single_tree_ground = function(las, n = 1000)
 {
-  z   <- min(las$Z)
-  bb  <- lidR::st_bbox(las)
-  xg  <- stats::runif(n, bb[1]-1, bb[3]+1)
-  yg  <- stats::runif(n, bb[2]-1, bb[4]+1)
+  z  <- min(las$Z)
+  bb <- lidR::st_bbox(las)
+
+  xg <- stats::runif(n, bb[1] - 1, bb[3] + 1)
+  yg <- stats::runif(n, bb[2] - 1, bb[4] + 1)
+
   lidR::quantize(xg, 0.001, las@header[["X offset"]])
-  lidR::quantize(xg, 0.001, las@header[["Y offset"]])
-  gnd <- data.frame(X = xg, Y = yg, Z = z)
-  gnd <- suppressWarnings(lidR::LAS(gnd, header = las@header))
+  lidR::quantize(yg, 0.001, las@header[["Y offset"]])
+
+  # Create a data.frame with same columns as input LAS
+  template <- las@data[rep(1, n), , drop = FALSE]
+
+  # Reset all values
+  for (col in names(template))
+  {
+    if (is.integer(template[[col]]))
+      template[[col]] <- NA_integer_
+    else if (is.numeric(template[[col]]))
+      template[[col]] <- NA_real_
+    else if (is.logical(template[[col]]))
+      template[[col]] <- NA
+    else
+      template[[col]] <- NA
+  }
+
+  # Fill mandatory coordinates
+  template$X <- xg
+  template$Y <- yg
+  template$Z <- z
+
+  # Set common ground defaults if present
+  if ("Classification" %in% names(template))
+    template$Classification <- 2L  # ASPRS ground
+
+  if ("ReturnNumber" %in% names(template))
+    template$ReturnNumber <- 1L
+
+  if ("NumberOfReturns" %in% names(template))
+    template$NumberOfReturns <- 1L
+
+  gnd <- suppressWarnings(lidR::LAS(template, header = las@header))
   suppressWarnings(rbind(las, gnd))
 }
 
