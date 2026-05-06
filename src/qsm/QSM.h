@@ -56,7 +56,13 @@ struct QSMEdge
 
   inline double volume(const QSMNode& src, const QSMNode& tgt) const noexcept
   {
-    return M_PI * radius * radius * length(src, tgt);
+    float R = radius;
+    if (R == RADIUS_UNSET)
+      R = conic_allometry;
+    if (R == RADIUS_UNSET)
+      R = 0;
+
+    return M_PI * R * R * length(src, tgt);
   }
 
   inline double angle(const QSMNode& src, const QSMNode& tgt) const noexcept

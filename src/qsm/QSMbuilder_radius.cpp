@@ -97,8 +97,11 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
 
+  compute_architecture(true);
+
   ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
+
 
   // Check if main axis has valid measurements
   bool has_na = false;
@@ -502,7 +505,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
           ed.radius = conic_allometry(tip_radius, ed.subtree_length, w0, r0);
         }
       }
-      else
+      /*else
       {
         double r1    = graph.edge_data(axe_eids[0]).radius;
         double ratio = r0 / r1;
@@ -511,7 +514,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
           for (int eid : axe_eids)
             graph.edge_data(eid).radius *= ratio*0.85;
         }
-      }
+      }*/
     }
   }
 }
