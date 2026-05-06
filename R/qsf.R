@@ -9,7 +9,7 @@
 #'
 #' @export
 #' @seealso  \link{qsm}
-qsf <- function(las, min_height = 2, params = default_arbor_parameters)
+qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
   #params <- evaluate_penalty(params)
   res <- qsf_cpp(las@data, min_height, params)

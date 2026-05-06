@@ -8,7 +8,7 @@
 #' @md
 #' @export
 #' @seealso \link{find_seeds}, \link{segment_semantic}, \link{segment_instance}
-segment_ground = function(las, params = default_arbor_parameters)
+segment_ground = function(las, params = arbor_parameters_default)
 {
   if (!"Classification" %in% names(las)) las@data$Classification = 0L
   las <- lidR::add_lasattribute(las, 0, "hag", "Height Above Ground")

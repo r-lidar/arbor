@@ -70,7 +70,7 @@ Settings
 ")
 
   # --- Processing ---
-  params <- default_arbor_parameters
+  params <- arbor_parameters_default
 
   cat("Reading point cloud\n")
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)

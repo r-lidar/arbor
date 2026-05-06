@@ -4,7 +4,7 @@
 \alias{wood_likelihood}
 \title{Compute Local Wood Likelihood}
 \usage{
-wood_likelihood(las, params = default_arbor_parameters)
+wood_likelihood(las, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

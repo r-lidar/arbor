@@ -4,7 +4,7 @@
 \alias{segment_ground}
 \title{Ground Segmentation}
 \usage{
-segment_ground(las, params = default_arbor_parameters)
+segment_ground(las, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A \code{LAS} object (from the \code{lidR} package) containing the point cloud data}

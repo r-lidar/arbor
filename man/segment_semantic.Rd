@@ -4,7 +4,7 @@
 \alias{segment_semantic}
 \title{Wood-Foliage Semantic Segmentation}
 \usage{
-segment_semantic(las, params = default_arbor_parameters)
+segment_semantic(las, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}

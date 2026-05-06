@@ -222,7 +222,7 @@ find_seeds <- function(las, params)
 # merge_short_passages = function(short_passages, long_passages_seeds)
 # {
 #   short_passages@data$foliage = 0 # Everything is wood
-#   p = default_arbor_parameters
+#   p = arbor_parameters_default
 #   p$path_finder$max_gap = 0.1
 #   p$path_finder$k_neighborhood_connectivity = 10
 #   p$path_finder$k_seed_connectivity = 2

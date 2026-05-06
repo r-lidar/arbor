@@ -4,7 +4,7 @@
 \alias{qsm}
 \title{Generate a QSM from a single tree point cloud}
 \usage{
-qsm(tree, params = default_arbor_parameters)
+qsm(tree, params = arbor_parameters_default)
 }
 \arguments{
 \item{tree}{A `LAS` object from lidR containing a single tree point cloud. Only

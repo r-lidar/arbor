@@ -15,7 +15,7 @@
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
 #' @export
-wood_likelihood = function(las, params = default_arbor_parameters)
+wood_likelihood = function(las, params = arbor_parameters_default)
 {
   stop_if_not_tls(las)
   k <- params$woodlikelihood$k

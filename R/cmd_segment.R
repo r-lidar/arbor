@@ -97,7 +97,7 @@ Exports
 ")
 
   # --- Processing ---
-  params <- default_arbor_parameters
+  params <- arbor_parameters_default
   params$path_finder$max_gap = 1
   params$path_finder$k_neighborhood_connectivity = 20
 

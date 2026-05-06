@@ -113,5 +113,12 @@ For more details see https://www.eukhost.com/kb/how-to-add-to-the-path-on-window
 
 .onLoad <- function(libname, pkgname)
 {
-  default_arbor_parameters <<- default_arbor_params_cpp()
+  arbor_parameters_default <<- default_arbor_params_cpp()
+
+  occ <- arbor_parameters_default
+  occ$path_finder$k_neighborhood_connectivity = 30
+  occ$path_finder$max_gap = 1
+  occ$qsm$step = 0.2
+  occ$qsm$cl_dist = 0.2
+  arbor_parameters_occlusion <<- occ
 }

@@ -4,7 +4,7 @@
 \alias{qsf}
 \title{Quantitative Structural Forest}
 \usage{
-qsf(las, min_height = 2, params = default_arbor_parameters)
+qsf(las, min_height = 2, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A point cloud with semantic and instance segmentation computed}

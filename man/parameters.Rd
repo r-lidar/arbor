@@ -3,13 +3,13 @@
 \docType{data}
 \name{parameters}
 \alias{parameters}
-\alias{default_arbor_parameters}
+\alias{arbor_parameters_default}
 \title{Parameters}
 \format{
 An object of class \code{list} of length 7.
 }
 \usage{
-default_arbor_parameters
+arbor_parameters_default
 }
 \description{
 Parameters

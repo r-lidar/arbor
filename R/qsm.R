@@ -18,7 +18,7 @@
 #' }
 #' @export
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
-qsm =  function(tree, params = default_arbor_parameters)
+qsm =  function(tree, params = arbor_parameters_default)
 {
   qsm <- qsm_cpp(tree@data, params)
   qsm_finalize(qsm)

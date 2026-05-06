@@ -3,8 +3,10 @@
 - C++
 - Change: `fix_small_isolated_low_clusters()` removed
 - Change: `clip_buffer()` no longer clips. It assigns NAs. Up to the user to clip.
-- New: `qsm_message()`, `qsf_log()`, `qsm_stem()`, `qsm_merchantable()`.
+- Change: `default_arbor_parameters` renamed `arbor_parameters_default`
+- New: `qsm_message()`, `qsf_log()`, `qsm_stem()`, `qsm_merchantable()`
 - New: `qsm()` massive improvement
+- New: set of parameters `arbor_parameters_occlusion`
 
 # arbor 0.9.1
 

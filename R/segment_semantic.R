@@ -14,7 +14,7 @@
 #' @rdname segment_semantic
 #' @name segment_semantic
 #' @export
-segment_semantic = function(las, params = default_arbor_parameters)
+segment_semantic = function(las, params = arbor_parameters_default)
 {
   #params <- evaluate_penalty(params)
   las@data$passage <- NA_integer_
@@ -47,7 +47,7 @@ segment_semantic = function(las, params = default_arbor_parameters)
 # }
 
 # # Old R around C++
-# segment_semantic_r_cpp = function(las, dtm, params = default_arbor_parameters)
+# segment_semantic_r_cpp = function(las, dtm, params = arbor_parameters_default)
 # {
 #   stopifnot("pwood" %in% names(las))
 #
@@ -86,7 +86,7 @@ segment_semantic = function(las, params = default_arbor_parameters)
 # }
 
 # Old R code for debugging and rendering
-# segment_semantic_r = function(las, dtm, params = default_arbor_parameters)
+# segment_semantic_r = function(las, dtm, params = arbor_parameters_default)
 # {
 #   attributes <- names(las)
 #   stopifnot("pwood" %in% attributes)
