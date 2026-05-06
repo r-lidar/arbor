@@ -7,12 +7,12 @@
 
 namespace arbor::qsm {
 
-static constexpr double SUBTREE_LENGTH_UNSET    = -1.0;
-static constexpr double SUBTREE_MAXZ_UNSET      = -1e300;
-static constexpr double SUBTREE_VOLUME_UNSET    = -1;
-static constexpr double RADIUS_UNSET            = -1.0;
-static constexpr double DISTANCE_TO_ROOT_UNSET  = -1.0;
-static constexpr double Z_EPS                   = 1e-9;
+static constexpr float SUBTREE_LENGTH_UNSET    = -1.0;
+static constexpr float SUBTREE_MAXZ_UNSET      = -1e30;
+static constexpr float SUBTREE_VOLUME_UNSET    = -1;
+static constexpr float RADIUS_UNSET            = -1.0;
+static constexpr float DISTANCE_TO_ROOT_UNSET  = -1.0;
+static constexpr float Z_EPS                   = 1e-9;
 
 // A node in the QSM graph: a 3-D junction point in the tree structure.
 struct QSMNode
@@ -102,6 +102,7 @@ public:
   void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void write(const std::string& filename, bool binary = true) const;
+  void validate() const;
   NodeID find_root_node() const;
   QSM stem() const;
   QSM merchantable(double merch_radius) const;

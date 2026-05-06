@@ -12,6 +12,8 @@ void QSMbuilder::build(const PointCloud& tree)
 {
   std::size_t n = tree.size();
 
+  if (n == 0) throw std::runtime_error("Empty point cloud");
+
   // Find the vertical bounds of the tree
   double min_z = std::numeric_limits<double>::max();
   double max_z = -std::numeric_limits<double>::max();
@@ -44,6 +46,8 @@ void QSMbuilder::build(const PointCloud& tree)
 
   PointCloud wood = tree.subset(wood_mask);
   n = wood.size();
+
+  if (n == 0) throw std::runtime_error("No wood points");
 
   // Determine the geographic coordinates minimum
   // and center on 0,0,0 for numerical stability
@@ -89,6 +93,9 @@ void QSMbuilder::build(const PointCloud& tree)
     th += 0.05;
     gnd = wood.subset(gnd_mask);
   }
+
+  if (gnd.size() == wood.size())
+    throw std::runtime_error("Internal error in QSMbuilder::build: gnd size == wood size. Please report.");
 
   arbor::settings::GraphParameters p;
   p.k = 50;
@@ -145,7 +152,7 @@ void QSMbuilder::build(const PointCloud& tree)
 
   // Fix root issue (rare)
   int n_root = count_nodes_connected_to_root();
-  if (n_root == 0) throw std::runtime_error("Internal error in QSMbuilder::build. 0 root for this QSM. Please report to info@r-lidar.com.");
+  if (n_root == 0) throw std::runtime_error("Internal error in QSMbuilder::build. 0 root for this QSM. Please report.");
   if (n_root > 1)
   {
     ServiceLocator::logger()("Multiple nodes connected to root detected");
@@ -162,6 +169,8 @@ void QSMbuilder::build(const PointCloud& tree)
   smooth_radii(15, 0.5, -0.7);
   distance_to_root();
   shift(tx, ty, tz);
+
+  graph.validate();
 }
 
 
