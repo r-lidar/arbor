@@ -2,6 +2,8 @@
 
 #include <Rcpp.h>
 
+#include <array>
+
 #include "myomp.h"
 #include "arbor.h"
 #include "QSMbuilder.h"

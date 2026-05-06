@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 #include <cmath>
+#include <string>
 
 namespace arbor::qsm {
 

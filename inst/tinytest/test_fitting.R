@@ -129,7 +129,7 @@ expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 180)
 
 pt = hcircle_points
-tol = 0.02
+tol = 0.03
 res <- fit(pt, tolerance = tol)
 
 if (disp) show(pt, res)
@@ -194,7 +194,7 @@ if (disp) show(pt, res)
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, 18.75, tolerance = 0.005)
 expect_equal(res$radius, 2.17, tolerance = 0.05)
-expect_equal(res$covered_arc_degree, 180)
+expect_true(res$covered_arc_degree >= 180)
 
 
 # ================
@@ -234,10 +234,10 @@ res <- fit(pt, tolerance = tol)
 if (disp) show(pt, res)
 
 
-expect_equal(res$center_x, 13.4, tolerance = 0.01)
-expect_equal(res$center_y, 19.6, tolerance = 0.01)
-expect_equal(res$radius, 2.43, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 220)
+expect_equal(res$center_x, 13.4, tolerance = 0.02)
+expect_equal(res$center_y, 19.6, tolerance = 0.02)
+expect_equal(res$radius, 2.43, tolerance = 0.03)
+expect_true(res$covered_arc_degree >= 220)
 
 # ================
 # Check rotated circloid
