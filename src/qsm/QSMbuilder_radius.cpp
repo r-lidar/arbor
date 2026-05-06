@@ -157,7 +157,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
 void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
-  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM");
+  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM. Please report.");
 
   // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
@@ -332,7 +332,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     bool valid =
       res.arc_coverage_deg > 320.0 &&   // Close to full closed loop
       res.inlier_percentage > 80.0 &&   // Lot of inliers
-      ed.radius >= 0.05 &&              // At least 5 cm radius
+      ed.radius >= 0.04 &&              // At least 4 cm radius
       ratio > -0.1;                     // Not smaller than -10% than reference
 
     if (valid)
@@ -442,7 +442,9 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       }
 
       if (should_update)
+      {
         ed.radius = pred_radius;
+      }
     }
   }
 }
@@ -516,6 +518,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
 
 double QSMbuilder::conic_allometry(double tip_radius, double wi, double w0, double r0) const
 {
+  if (w0 == 0) return tip_radius;
   const double s = std::pow(wi / w0, 1.1);
   return tip_radius + s * (r0 - tip_radius);
 }
