@@ -1,6 +1,7 @@
 #' Ground Segmentation
 #'
-#' Classifies ground points and computes height above ground.
+#' Classifies ground points and computes height above ground. See
+#' the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param las A `LAS` object (from the `lidR` package) containing the point cloud data
 #' @param params list See \link{parameters}.

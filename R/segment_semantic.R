@@ -6,10 +6,13 @@
 #' is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
 #' (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 #' first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
-#' Finally, a connected component step removes small clusters incorrectly classified as wood.
+#' Finally, a connected component step removes small clusters incorrectly classified as wood. See
+#' the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
+#'
+#' @return A `LAS` object with an additional attribute `foliage`. 0 - wood, 1 and 2 foliage.
 #' @md
 #' @rdname segment_semantic
 #' @name segment_semantic

@@ -12,7 +12,8 @@ segment_ground(las, params = arbor_parameters_default)
 \item{params}{list See \link{parameters}.}
 }
 \description{
-Classifies ground points and computes height above ground.
+Classifies ground points and computes height above ground. See
+the \href{placeholder}{Arbor book} for mode details.
 }
 \seealso{
 \link{find_seeds}, \link{segment_semantic}, \link{segment_instance}

@@ -4,27 +4,7 @@
 #' and computing the least-cost path for each point to predefined seed points. The goal is to assign
 #' each point in the point cloud a `treeID` corresponding to its nearest seed, based on the least-cost
 #' path computed through the network. The process incorporates both spatial and heuristic constraints
-#' to segment trees effectively.\cr\cr
-#' The segmentation algorithm operates as follows:
-#' \enumerate{
-#' \item **Network Construction**: A k-nearest neighbor (k-NN) graph is built where points are connected
-#' to their `k` closest neighbors. The cost to move in the graph between two points is explained in
-#' next section and is calculated based on criteria such as euclidean distance, foliage type, and
-#' movement direction
-#' \item **Pathfinding**: Using the constructed graph, the function computes the least-cost path from
-#' every point to each seed.
-#' \item **Tree ID Assignment**: Each point is assigned the `treeID` of the seed with the least-cost
-#' path.
-#' }
-#' Key Features of the Cost Function:
-#' \itemize{
-#' \item **Proximity Penalty**: Close points are favored with lower movement costs by using the cube of
-#' the euclidean distance
-#' \item **Foliage Type Penalty**: Foliage to foliage movement or foliage to wood movement incur
-#' substantial additional costs.
-#' \item **Directional Penalty**: Movements against gravity (upward) are penalized more to prioritize
-#' paths leading downward to seeds.
-#' }
+#' to segment trees effectively. See the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param las A `LAS` object (from the `lidR` package) containing the point cloud data. It must have
 #'   an attribute `foliage`, which can be generated using prior semantic segmentation.
@@ -34,22 +14,6 @@
 #'
 #' @return A `LAS` object with an additional attribute `treeID`, indicating the ID of the tree to
 #'   which each point belongs.
-#'
-#' @details
-#' Internal Processing Steps:
-#' 1. **Preprocessing**:
-#'    - Decimate the point cloud based on the specified resolution (`res`).
-#'    - Transform and scale coordinates for network construction and pathfinding.
-#' 2. **Network Construction**:
-#'    - Points are connected to their `k` nearest neighbors with a distance threshold (`max_gap`).
-#'    - The cost on each edge is the cube of the euclidean distance
-#'    - Additional cost penalties are applied based on movement direction and wood/foliage transitions.
-#' 3. **Pathfinding**:
-#'    - A graph is built combining point and seed networks.
-#'    - The shortest path (least-cost) from each point to all seeds is calculated.
-#' 4. **Tree Assignment**:
-#'    - Points are assigned the `treeID` of the nearest seed based on path costs.
-#'    - IDs are propagated back to the original dense point cloud.
 #'
 #' @md
 #' @export

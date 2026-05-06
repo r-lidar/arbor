@@ -14,7 +14,7 @@ will estimate the position of the trees based on their lowest points.}
 
 \item{buffer}{Numeric value (in meters). The distance by which the convex hull is shrunk
 before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
-Can also be a sf POLYGON object.}
+Can also be a sf POLYGON object to clip a more complex polygon.}
 }
 \value{
 A filtered LAS object where treeID of trees whose seeds fall outside the region of interest
@@ -24,5 +24,5 @@ are NA. They can later be removed.
 Removes trees located near the edges of a point cloud by clipping the tree that are beyond the
 limit of the polygon. It first computes the convex hull of the input LAS object
 and shrinks it by the specified buffer distance. Only trees with seed points inside
-this buffered region are retained.
+this buffered region are retained. See the \href{placeholder}{Arbor book} for mode details.
 }

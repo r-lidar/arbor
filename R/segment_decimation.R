@@ -1,10 +1,12 @@
 #' Homogenization of the Point Cloud
 #'
 #' Homogenization of the point cloud using a hybrid approach that includes
-#' Barycentric Voxel Decimation and reinjection of random points. See the [Arbor book].
+#' Barycentric Voxel Decimation and reinjection of random points. See
+#' the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param las LAS object from lidR
 #' @param res Voxel resolution.
+#' @md
 #' @export
 hybrid_homogeneization = function(las, res = 0.02)
 {

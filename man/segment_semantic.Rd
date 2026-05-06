@@ -11,6 +11,9 @@ segment_semantic(las, params = arbor_parameters_default)
 
 \item{params}{list See \link{parameters}.}
 }
+\value{
+A \code{LAS} object with an additional attribute \code{foliage}. 0 - wood, 1 and 2 foliage.
+}
 \description{
 This function performs wood-foliage semantic segmentation by constructing a network of points
 using k-nearest neighbors (KNN). A pathfinding algorithm navigates this network to identify the
@@ -18,5 +21,6 @@ tree skeleton by finding the least-cost path from every point in space to the gr
 is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
 (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
-Finally, a connected component step removes small clusters incorrectly classified as wood.
+Finally, a connected component step removes small clusters incorrectly classified as wood. See
+the \href{placeholder}{Arbor book} for mode details.
 }

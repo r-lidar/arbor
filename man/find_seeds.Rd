@@ -13,5 +13,6 @@ find_seeds(las, params)
 }
 \description{
 In order to perform instance segmentation with  \link{segment_instance} we need
-some seeds with reference treeIDs. Thus function finds the seeds
+some seeds with reference treeIDs. Thus function finds the seeds. See
+the \href{placeholder}{Arbor book} for mode details.
 }
