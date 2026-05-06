@@ -20,7 +20,6 @@ NULL
 #' @export
 #' @rdname qsm_subset
 #' @export
-#' @exportMethod qsm_stem
 qsm_stem = function(qs)
 {
   UseMethod("qsm_stem")
@@ -43,7 +42,6 @@ qsm_stem.qsf = function(qs)
 #' @param merchantable_radius The radius considered merchantable. Default 4.5 cm (9 cm diameter) which
 #' is the standard in Canada.
 #' @rdname qsm_subset
-#' @exportMethod qsm_merchantable
 qsm_merchantable = function(qs, merchantable_radius = 0.045)
 {
   UseMethod("qsm_merchantable")
@@ -80,7 +78,6 @@ qsf_merchantable = function(qsf, merchantable_radius = 0.045)
 #' @export
 #' @param stump_height The height to remove from the root. Default 25 cm
 #' @rdname qsm_subset
-#' @exportMethod qsm_nostump
 qsm_nostump = function(qs, stump_height = 0.15)
 {
   UseMethod("qsm_nostump")
