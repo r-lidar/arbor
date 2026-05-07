@@ -160,6 +160,7 @@ void QSMbuilder::build(const PointCloud& tree)
   }
 
   compute_architecture(false);
+  prune_spurious_branches();
   smooth_skeleton(params.qsm.smooth_steps, params.qsm.smooth_lambda, params.qsm.smooth_mu);
   detect_weird_butt();
   construct_radii(wood, params.qsm.apex);
