@@ -115,8 +115,8 @@ Settings
   if (buffer > 0)
   {
     treeID <- NULL
-    las <- clip_buffer(las, seeds, -buffer)
-    las <- lidR::filter_poi(las, !is.na(treeID))
+    las <- remove_buffer(las, seeds, -buffer)
+    las <- lidR::filter_poi(las, treeID > 0)
   }
 
   cat("Colorization\n")

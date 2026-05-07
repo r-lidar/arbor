@@ -25,7 +25,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
   for (size_t i = 0; i < scene.size(); ++i)
   {
     int id = scene.get_treeid(i);
-    if (id < 0) continue; // NA from R or -1 from arbor
+    if (id <= 0) continue; // NA from R or negative (removed) or 0 from arbor
     double hag = scene.get_hag(i);
 
     tree_indices[id].push_back(i);

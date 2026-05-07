@@ -1,5 +1,7 @@
 cmd_segment <- function(args) {
 
+  treeID <- NULL
+
   # --- Segment Usage ---
   usage_segment <- function() {
     cat("
@@ -22,7 +24,6 @@ Export options (enabled by default):
   -no-trees               Do not write all trees
   -no-valid-trees         Do not write valid trees
   -no-dtm                 Do not write DTM raster
-  -no-individual          Do not export individual trees (its/)
 
 Other:
   -h, --help              Show this help
@@ -56,7 +57,6 @@ Other:
   export_trees       <- export_enabled("trees")
   export_valid_trees <- export_enabled("valid-trees")
   export_dtm         <- export_enabled("dtm")
-  export_individual  <- export_enabled("individual")
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
   tls                <- has_flag(args, "-tls")
@@ -92,7 +92,6 @@ Exports
   All trees            :", export_trees, "
   Valid trees          :", export_valid_trees, "
   DTM                  :", export_dtm, "
-  Individual trees     :", export_individual, "
 ====================================================
 ")
 
@@ -102,6 +101,7 @@ Exports
   params$path_finder$k_neighborhood_connectivity = 20
 
   if (tls)
+  {}
 
   cat("Reading point cloud\n")
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
@@ -139,18 +139,19 @@ Exports
   las  <- segment_semantic(las, params)
 
   cat("Seeds\n")
-  seeds <- find_seeds(las, params)
+  see <- find_seeds(las, params)
 
   cat("Instance segmentation\n")
-  las <- segment_instance(las, seeds, params)
+  las <- segment_instance(las, see, params)
 
   cat("Cleaning segmentation\n")
-  trees <- remove_small_trees(las, max_height = min_tree_height)
-  trees <- clip_buffer(trees, -buffer)
+  las <- remove_small_trees(las, max_height = min_tree_height)
+  las <- remove_buffer(trees, las, -buffer)
 
   cat("Colorization\n")
-  las         <- colorize_trees(las)
-  trees       <- colorize_trees(trees)
+  las <- colorize_trees(las)
+
+  trees <- lidR::filter_poi(las, treeID > 0)
 
   # --- Exports ---
   cat("Exports\n")
@@ -158,15 +159,4 @@ Exports
   if (export_trees)       lidR::writeLAS(trees, out_trees)
   if (export_dtm)         terra::writeRaster(dtm, out_dtm, overwrite = TRUE)
   if (export_dtm_mesh)    write_raster_to_obj(dtm, out_dtm_mesh)
-
-  name = tools::file_path_sans_ext(basename(input))
-
-  treeID <- NULL
-  if (export_individual) {
-    dir.create(its_dir, showWarnings = FALSE, recursive = TRUE)
-    for (i in unique(trees$treeID)) {
-      tree <- lidR::filter_poi(trees, treeID == i)
-      lidR::writeLAS(tree, file.path(its_dir, paste0(name, "_tree_", i, ".las")))
-    }
-  }
 }

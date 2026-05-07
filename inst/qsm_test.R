@@ -63,9 +63,13 @@ tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = T)
+plot_qsm(qsm, add = x, cylinder = F)
+plot_qsm(qsm, add = x, cylinder = F)
 }
 
+x = plot_semantic(tree)
+plot_qsm(qsm, add = x, cylinder = F)
+plot_qsm(qsm, cylinder = T)
 p
 
 d = 10

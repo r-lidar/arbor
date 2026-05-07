@@ -45,7 +45,7 @@ void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min
     if (!las.is_wood(i))        continue;
     if (las.get_hag(i) >= 3.0)  continue;
     int id = las.get_treeid(i);
-    if (id < 0)                 continue; // NA from R or -1
+    if (id <= 0)                continue; // NA from R or -1
     tree_to_indices[id].push_back(static_cast<int>(i));
   }
 
@@ -168,7 +168,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
     }
   }
 
-  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]);
+  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]+1); // +1 ensure no 0 treeID. 0 is interpreted as NA.
 
   const auto t1 = std::chrono::steady_clock::now();
   const std::chrono::duration<double> elapsed = t1 - t0;

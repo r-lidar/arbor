@@ -1,3 +1,7 @@
+# arbor 0.11.0
+
+- Change: `remove_buffer()` replaces `clip_buffer()`
+
 # arbor 0.10.0
 
 - C++

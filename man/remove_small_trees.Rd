@@ -13,5 +13,7 @@ remove_small_trees(las, max_height = 2)
 }
 \description{
 This function removes small trees that are likely to be poorly segmented and filters out
-low understory vegetation based on height.
+low understory vegetation based on height. The function does not removes the points. Instead the
+tree IDs become negative. Negative tree IDs are never processed by \link{qsf} can easily be reverted.
+See the [Arbor book](<placeholder>) for mode details.
 }
