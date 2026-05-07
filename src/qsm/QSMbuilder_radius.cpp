@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder_radius.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -80,11 +80,14 @@ public:
 
 void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
+  distance_to_root();
   double H = 0.0;
-  for (size_t i = 0; i < tree.size(); ++i)
+  for (const auto& [edge_id, edge_info] : graph.edges())
   {
-    double z = tree.get_hag(i);
-    if (z > H) H = z;
+    const float dist = edge_info.data.distance_to_root;
+
+    if (dist != arbor::qsm::DISTANCE_TO_ROOT_UNSET && dist > H)
+      H = dist;
   }
 
   // Estimation of an expected radius based on broad allometry
