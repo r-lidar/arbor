@@ -24,6 +24,9 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
 
+# gap
+file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
+
 # Conifer
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
@@ -57,18 +60,18 @@ tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
 t0 = Sys.time()
-params= arbor_parameters_default
+params= arbor_parameters_occlusion
 qsm = qsm(tree, params)
 tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = F)
+plot_qsm(qsm, add = x, cylinder = T)
 plot_qsm(qsm, add = x, cylinder = F)
 }
 
 x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = F)
+plot_qsm(qsm, add = x, cylinder = T)
 plot_qsm(qsm, cylinder = T)
 p
 
@@ -155,7 +158,7 @@ wood = arbor:::filter_tree(tree)
 mhag = min(wood$hag)
 gnd = wood[wood$hag < mhag + 0.1]
 
-p = default_arbor_parameters
+p = arbor_parameters_default
 p$path_finder$k_neighborhood_connectivity = 50
 p$path_finder$max_gap = 1
 p$path_finder$distance_power = 2
@@ -178,7 +181,9 @@ wood@data[, dbcl := clust(X,Y,Z), by = dgroup]
 wood@data[, cl := as.integer(as.factor(paste0("g", dgroup, "_c", dbcl)))]
 wood@data$cluster = wood@data$cl
 
+neg = lidR::filter_poi(wood, dist2root < 0)
 x = lidR::plot(wood, color = "dist2root")
+lidR::plot(neg, add = x, pal = "pink", size = 6)
 lidR::plot(gnd, add = x, size = 6)
 lidR::plot(wood, color = "dgroup", pal = pastel.colors(2500))
 lidR::plot(wood, color = "cl", pal = pastel.colors(2500))

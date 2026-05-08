@@ -1,19 +1,19 @@
 /**
  * @file QSM.h
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -34,6 +34,16 @@ static constexpr float RADIUS_UNSET            = -1.0;
 static constexpr float DISTANCE_TO_ROOT_UNSET  = -1.0;
 static constexpr float Z_EPS                   = 1e-9;
 
+enum class EdgeQuality
+{
+  UNKNOWN    = 0,
+  PROLONG    = 1,
+  CONICALLOM = 2,
+  POLYNOMIAL = 3,
+  MEASURED   = 4,
+  REFINED    = 5,
+};
+
 // A node in the QSM graph: a 3-D junction point in the tree structure.
 struct QSMNode
 {
@@ -52,11 +62,10 @@ struct QSMEdge
   float subtree_length   = SUBTREE_LENGTH_UNSET;
   float distance_to_root = DISTANCE_TO_ROOT_UNSET;
   int   axis_ID          = 0;
+  int   cyl_ID           = 0;
+  int   parent_ID        = 0;
   int   branch_order     = 0;
-
-  // Backward-compatibility IDs populated during conversion or build.
-  int cyl_ID    = 0;
-  int parent_ID = 0;
+  EdgeQuality quality    = EdgeQuality::UNKNOWN;
 
 
   // Temporary properties needed only while building the QSM

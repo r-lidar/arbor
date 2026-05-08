@@ -1,19 +1,19 @@
 /**
  * @file RcppApi_wrappers.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -134,6 +134,7 @@ QSM as_qsm(Rcpp::DataFrame df)
   Rcpp::IntegerVector branch_order   = df.containsElementNamed("branch_order")    ? df["branch_order"]    : Rcpp::IntegerVector(cid.size(), 0);
   Rcpp::NumericVector dist_to_root   = df.containsElementNamed("dist_to_root")    ? df["dist_to_root"]    : Rcpp::NumericVector(cid.size(), arbor::qsm::DISTANCE_TO_ROOT_UNSET);
   Rcpp::NumericVector subtree_length = df.containsElementNamed("subtree_length")  ? df["subtree_length"]  : Rcpp::NumericVector(cid.size(), arbor::qsm::SUBTREE_LENGTH_UNSET);
+  Rcpp::IntegerVector quality        = df.containsElementNamed("quality")         ? df["quality"]         : Rcpp::IntegerVector(cid.size(), (int)arbor::qsm::EdgeQuality::UNKNOWN);
 
   int n = cid.size();
 
@@ -194,6 +195,7 @@ QSM as_qsm(Rcpp::DataFrame df)
     ed.subtree_length    = Rcpp::NumericVector::is_na(subtree_length[i]) ? arbor::qsm::SUBTREE_LENGTH_UNSET  : subtree_length[i];
     ed.subtree_max_endZ  = arbor::qsm::SUBTREE_MAXZ_UNSET;
     ed.subtree_volume    = arbor::qsm::SUBTREE_VOLUME_UNSET;
+    ed.quality           = Rcpp::IntegerVector::is_na(quality[i]) ? arbor::qsm::EdgeQuality::UNKNOWN  : static_cast<arbor::qsm::EdgeQuality>(quality[i]);
 
     graph.add_edge(src, tgt, ed);
   }
@@ -216,7 +218,7 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
   });
 
   // Allocate R vectors
-  Rcpp::IntegerVector cid(n), pid(n), axis_id(n), branch_order(n);
+  Rcpp::IntegerVector cid(n), pid(n), axis_id(n), branch_order(n), quality(n);
   Rcpp::NumericVector sx(n), sy(n), sz(n), ex(n), ey(n), ez(n);
   Rcpp::NumericVector radius(n), subtree_length(n), dist_to_root(n);
 
@@ -243,6 +245,7 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
     subtree_length[i] = (ed.subtree_length == arbor::qsm::SUBTREE_LENGTH_UNSET) ? NA_REAL : ed.subtree_length;
     axis_id[i]        = ed.axis_ID;
     branch_order[i]   = ed.branch_order;
+    quality[i]        = static_cast<int>(ed.quality);
   }
 
   Rcpp::DataFrame df = Rcpp::DataFrame::create(
@@ -259,6 +262,7 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
     Rcpp::Named("radius") = radius,
     Rcpp::Named("dist_to_root") = dist_to_root,
     Rcpp::Named("subtree_length") = subtree_length,
+    Rcpp::Named("quality") = quality,
     Rcpp::Named("stringsAsFactors") = false
   );
 

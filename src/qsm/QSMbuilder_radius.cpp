@@ -87,7 +87,9 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     const float dist = edge_info.data.distance_to_root;
 
     if (dist != arbor::qsm::DISTANCE_TO_ROOT_UNSET && dist > H)
+    {
       H = dist;
+    }
   }
 
   // Estimation of an expected radius based on broad allometry
@@ -238,9 +240,9 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     auto& einfo = graph.edge(eid);
     QSMEdge& ed = einfo.data;
 
-    if (ed.cyl_ID < 1) continue;              // cyl_ID < 1 means it is a prolongation
-    if (point_indices.empty()) continue;
-    if (ed.conic_allometry < 0.04) continue;  // TODO: control parameter
+    if (ed.cyl_ID < 1)             continue;  // cyl_ID < 1 means it is a prolongation
+    if (point_indices.empty())     continue;
+    if (ed.conic_allometry < 0.03) continue;  // TODO: control parameter
     if (point_indices.size() < 50) continue;
 
     const QSMNode& src = graph.node(einfo.source);
@@ -277,6 +279,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     if (valid)
     {
       ed.radius = r_meas;
+      ed.quality = EdgeQuality::MEASURED;
       /*auto nodeid = einfo.source;
       auto& node = graph.nodes()[nodeid];
       node.x = res.center.x;
@@ -334,7 +337,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     QSMEdge& ed = einfo.data;
 
     // Skip too small radii. They are unlikely to be robust enough
-    if (ed.radius < 0.03) continue;
+    if (ed.radius < 0.03)      continue;
     if (point_indices.empty()) continue;
 
     // Get the orientation of the edge by gathering its nodes
@@ -356,14 +359,16 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     float ratio = (res.radius - ed.radius) / ed.radius;
     // Very strict validation: we only accept a near-perfect measurement
     bool valid =
-      res.arc_coverage_deg > 320.0 &&   // Close to full closed loop
-      res.inlier_percentage > 80.0 &&   // Lot of inliers
+      res.arc_coverage_deg > 300.0 &&   // Close to full closed loop
+      res.inlier_percentage > 70.0 &&   // Lot of inliers
       ed.radius >= 0.04 &&              // At least 4 cm radius
       ratio > -0.1;                     // Not smaller than -10% than reference
 
     if (valid)
     {
+      printf("Refined %.2lf to %.2lf\n", ed.radius, res.radius);
       ed.radius = res.radius;
+      einfo.data.quality = EdgeQuality::REFINED;
       /*auto& node = graph.nodes()[einfo.source];
       node.x = res.center.x;
       node.y = res.center.y;
@@ -470,6 +475,7 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       if (should_update)
       {
         ed.radius = pred_radius;
+        ed.quality = EdgeQuality::POLYNOMIAL;
       }
     }
   }
@@ -526,6 +532,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
         {
           QSMEdge& ed = graph.edge_data(eid);
           ed.radius = conic_allometry(tip_radius, ed.subtree_length, w0, r0);
+          ed.quality = EdgeQuality::CONICALLOM;
         }
       }
       /*else
@@ -556,6 +563,7 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
     for (auto& [eid, einfo] : graph.edges())
     {
       einfo.data.radius = R0;
+      einfo.data.quality = EdgeQuality::CONICALLOM;
     }
 
     return;
@@ -583,6 +591,7 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
     double wi = ed.subtree_length;
     ed.radius          = conic_allometry(tip_radius, wi, w0, R0);
     ed.conic_allometry = ed.radius;
+    ed.quality = EdgeQuality::CONICALLOM;
   }
 }
 

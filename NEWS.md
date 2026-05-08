@@ -3,6 +3,7 @@
 - Change: `flag_buffer()` replaces `clip_buffer()`
 - Change: `flag_small_trees()` replaces `remove_small_trees()`
 - Fix: edge case connections in `qsm()`
+- New: attribute `quality` in the QSM (`qsm$quality`). See new section in the book.
 
 # arbor 0.10.0
 
