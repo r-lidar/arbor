@@ -1,41 +1,61 @@
 # @file segment_post_prod.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#' Remove Small Trees and Clean Understory
+#' Flag Trees for Exclusion
 #'
-#' This function removes small trees that are likely to be poorly segmented and filters out
-#' low understory vegetation based on height. The function does not removes the points. Instead the
-#' tree IDs become negative. Negative tree IDs are never processed by \link{qsf} can easily be reverted.
-#' See the [Arbor book](<placeholder>) for mode details.
+#' Utilities to flag trees that should be excluded from downstream processing.
+#' These functions do not remove points from the point cloud. Instead, tree IDs are
+#' made negative. Negative tree IDs are ignored by \link{qsf} and can be restored
+#' by rerunning the function with different parameters.
 #'
-#' @param las A LAS object from lidR.
-#' @param max_height Trees with a height less than this threshold (in meters) will be removed.
+#' `flag_small_trees()` flags trees below a given height threshold, which are often
+#' poorly segmented or correspond to understory vegetation.\cr\cr
+#' `flag_buffer()` flags trees located near the edges of a point cloud by clipping
+#' trees whose seed points fall outside a buffered polygon.\cr\cr
+#' See the [Arbor book](<placeholder>) for more details.
+#'
+#' @param las A LAS object from lidR containing segmented trees.
+#' @param max_height Numeric. Trees with a height lower than this threshold (in meters)
+#'   are flagged.
+#' @param seeds A LAS object containing tree seeds, typically generated with
+#'   \link{find_seeds}. If missing, an internal routine estimates seed positions
+#'   from the lowest point of each tree.
+#' @param buffer Numeric value (in meters) used to shrink the convex hull before
+#'   filtering trees. Default is `-5`, which excludes trees within 5 meters of the
+#'   boundary. Can also be an `sf` polygon object for custom clipping.
+#'
+#' @return A modified LAS object with flagged trees assigned negative `treeID` values.
+#'
+#' @seealso \link{qsf}, \link{find_seeds}
+#'
+#' @name flagging
+#' @md
 #' @export
-remove_small_trees = function(las, max_height = 2)
+flag_small_trees = function(las, max_height = 2)
 {
   treeID <- hag <- hag_max <- hag_min <- NULL
 
   attributes <- names(las)
-  stopifnot("treeID" %in% attributes)
-  stopifnot("hag" %in% attributes)
+  if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
+  if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
-  ans   <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
-  ans   <- ans[hag_max > max_height & hag_min < max_height]
+  ans <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
+  ans <- ans[hag_max > max_height & hag_min < max_height]
 
   # Keep trees whose seeds are inside
   las@data$treeID = data.table::copy(las@data$treeID)
@@ -61,26 +81,10 @@ keep_small_trees = function(las, max_height = 2)
 }
 
 
-#' Clip Trees Using a Buffer
-#'
-#' Removes trees located near the edges of a point cloud by clipping the tree that are beyond the
-#' limit of the polygon. It first computes the convex hull of the input LAS object
-#' and shrinks it by the specified buffer distance. Only trees with seed points inside
-#' this buffered region are retained. The function does not removes the points. Instead the tree IDs
-#' of trees whose seeds fall outside the region of interest become negative. Negative tree IDs are
-#' never processed by \link{qsf} and buffering can easily be reverted. See the [Arbor book](<placeholder>)
-#' for mode details.
-#'
-#' @param las A LAS object from lidR containing segmented trees.
-#' @param seeds A LAS object. The seeds from \link{find_seeds}. If missing an internal routine
-#' will estimate the position of the trees based on their lowest points.
-#' @param buffer Numeric value (in meters). The distance by which the convex hull is shrunk
-#'   before filtering trees. Default is -5 (removes trees within 5 meters of the boundary).
-#'   Can also be a sf POLYGON object to clip a more complex polygon.
+#' @rdname flagging
 #' @export
-#' @md
 #' @importFrom data.table :=
-remove_buffer = function(las, seeds, buffer = -5)
+flag_buffer = function(las, seeds, buffer = -5)
 {
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
   if (!"treeID" %in% names(seeds)) stop("Input seeds must have an attribute 'treeID'")

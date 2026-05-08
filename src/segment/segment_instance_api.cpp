@@ -1,19 +1,19 @@
 /**
  * @file segment_instance_api.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -205,10 +205,12 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
 std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
 {
+  ServiceLocator::logger()("Computing shortest paths to ground");
+
   if (core.size() == 0) throw std::runtime_error("dist2root(): point cloud is empty.");
   if (dtm.size() == 0)  throw std::runtime_error("dist2root(): seeds point cloud is empty.");
 
-  ServiceLocator::logger()("Constructing the graph");
+  ServiceLocator::logger()(" Constructing the graph");
   GraphBuilder builder(params);
   builder.add_core_layer(core);
   builder.add_seed_layer(core, dtm);
@@ -223,11 +225,54 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
   const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_gnd);
 
   // Run Dijkstra from master seed
-  ServiceLocator::logger()("Computing shortest paths to ground");
-  const Graph::GraphCache cache = graph->compute_distances(master_id);
+  ServiceLocator::logger()(" Dijkstra");
+  Graph::GraphCache cache = graph->compute_distances(master_id);
   const auto& [graph_distances, predecessors] = cache;
 
+  // Identify reachable and isolated sets
+  ServiceLocator::logger()(" Identifying isolated sub-graph");
+  std::vector<Graph::NodeId> reachable, isolated;
+  for (size_t i = 0; i < num_points; ++i)
+  {
+    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())
+      isolated.push_back(static_cast<Graph::NodeId>(i));
+    else
+      reachable.push_back(static_cast<Graph::NodeId>(i));
+  }
+
+  // Add fallback edges: isolated -> nearest reachable core point
+  if (isolated.size() > 100 && !reachable.empty())
+  {
+    ServiceLocator::logger()("\033[33m " + std::to_string(isolated.size()) + " isolated points detected: restart and expand.\033[0m");
+    for (size_t ii = 0; ii < isolated.size(); ii += 2)
+    {
+      Graph::NodeId iso = isolated[ii];
+      double ci[3];
+      core.get_point(iso, ci);
+
+      double best_dist = std::numeric_limits<double>::max();
+      Graph::NodeId best_node = reachable[0];
+
+      for (size_t k = 0; k < reachable.size(); k += 2)
+      {
+        Graph::NodeId reach = reachable[k];
+        double cr[3];
+        core.get_point(reach, cr);
+        double dx = ci[0]-cr[0], dy = ci[1]-cr[1], dz = ci[2]-cr[2];
+        double d  = std::sqrt(dx*dx + dy*dy + dz*dz);
+        d = std::pow(d, params.power);
+        if (d < best_dist) { best_dist = d; best_node = reach; }
+      }
+
+      graph->add_edge(best_node, iso, best_dist);
+    }
+
+    // Second Dijkstra run on augmented graph
+    cache = graph->compute_distances(master_id);
+  }
+
   // For each core point, walk the predecessor chain and accumulate Euclidean distance
+  ServiceLocator::logger()(" Computing euclidian distance to ground");
   std::vector<double> euclidean_distance_to_root(num_points, -1.0);
 
   for (size_t i = 0; i < num_points; ++i)

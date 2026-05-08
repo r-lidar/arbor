@@ -1,6 +1,8 @@
 # arbor 0.11.0
 
-- Change: `remove_buffer()` replaces `clip_buffer()`
+- Change: `flag_buffer()` replaces `clip_buffer()`
+- Change: `flag_small_trees()` replaces `remove_small_trees()`
+- Fix: edge case connections in `qsm()`
 
 # arbor 0.10.0
 
