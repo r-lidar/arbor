@@ -60,7 +60,7 @@ tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
 t0 = Sys.time()
-params= arbor_parameters_occlusion
+params= arbor_parameters_default
 qsm = qsm(tree, params)
 tf = Sys.time()
 print(difftime(tf, t0))
@@ -69,6 +69,9 @@ x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)
 plot_qsm(qsm, add = x, cylinder = F)
 }
+
+x = plot_semantic(tree)
+plot(qsm, add = x, color = "quality")
 
 x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)
