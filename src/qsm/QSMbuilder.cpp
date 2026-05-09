@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -26,7 +26,7 @@
 
 namespace arbor::qsm {
 
-static std::vector<int> cut(const std::vector<double>& x, double by = 0.1);
+static std::vector<int> cut(const std::vector<float>& x, float by = 0.1);
 
 void QSMbuilder::build(const PointCloud& tree)
 {
@@ -121,7 +121,7 @@ void QSMbuilder::build(const PointCloud& tree)
   p.k = 50;
   p.max_gap = 1;
   p.power = 2;
-  std::vector<double> dist = arbor::segment::dist2root(wood, gnd, p);
+  std::vector<float> dist = arbor::segment::dist2root(wood, gnd, p);
 
   // Keep only points with valid distance to root
   std::vector<bool> valid_mask(n);
@@ -137,7 +137,7 @@ void QSMbuilder::build(const PointCloud& tree)
 
   wood = wood.subset(valid_mask);
 
-  std::vector<double> filtered_dist;
+  std::vector<float> filtered_dist;
   filtered_dist.reserve(n_valid);
 
   for (size_t i = 0; i < n; ++i)
@@ -197,17 +197,17 @@ void QSMbuilder::build(const PointCloud& tree)
 }
 
 
-std::vector<int> cut(const std::vector<double>& x, double by)
+std::vector<int> cut(const std::vector<float>& x, float by)
 {
   if (x.empty()) return {};
 
-  double xmax = *std::max_element(x.begin(), x.end());
-  double xmin = *std::min_element(x.begin(), x.end());
+  float xmax = *std::max_element(x.begin(), x.end());
+  float xmin = *std::min_element(x.begin(), x.end());
 
-  double start = std::floor(xmin);
-  double end   = std::ceil(xmax);
+  float start = std::floor(xmin);
+  float end   = std::ceil(xmax);
 
-  const double eps = 1e-9;
+  const float eps = 1e-9;
 
   int n_bins = static_cast<int>(std::round((end - start) / by));
 

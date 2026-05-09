@@ -1,19 +1,19 @@
 /**
  * @file RcppApi_segment.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -45,7 +45,7 @@ using DF = Rcpp::DataFrame;
 namespace arbor::segment
 {
 std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params);
-std::vector<double>  dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
+std::vector<float>dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
 std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
@@ -110,7 +110,7 @@ Rcpp::NumericVector dist2root(DF core, DF gnd, Rcpp::List params)
   arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
   PointCloud p(core);
   PointCloud s(gnd);
-  std::vector<double> ans = arbor::segment::dist2root(p, s, gparams);
+  std::vector<float> ans = arbor::segment::dist2root(p, s, gparams);
   return Rcpp::NumericVector(ans.begin(), ans.end());
 }
 

@@ -203,7 +203,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 }
 
 
-std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
+std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
 {
   ServiceLocator::logger()("Computing shortest paths to ground");
 
@@ -273,41 +273,49 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
 
   // For each core point, walk the predecessor chain and accumulate Euclidean distance
   ServiceLocator::logger()(" Computing euclidian distance to ground");
-  std::vector<double> euclidean_distance_to_root(num_points, -1.0);
+  std::vector<float> euclidean_distance_to_root(num_points, -1.0);
 
+  // 1. Precompute per-node euclidean contribution (from node -> its predecessor)
+  // O(N) point fetches total
+  std::vector<float> edge_euclidean(num_points, 0.0);
   for (size_t i = 0; i < num_points; ++i)
   {
-    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())
-      continue; // unreachable
+    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())   continue;
 
-    double total_euclidean = 0.0;
-    Graph::NodeId current = static_cast<Graph::NodeId>(i);
-
-    while (true)
+    auto it = predecessors.find(static_cast<Graph::NodeId>(i));
+    if (it == predecessors.end()) continue;
+    Graph::NodeId prev = it->second;
+    if (prev < static_cast<Graph::NodeId>(num_points))
     {
-      auto it = predecessors.find(current);
-      if (it == predecessors.end()) break; // reached master or disconnected
-
-      Graph::NodeId prev = it->second;
-
-      // Only accumulate Euclidean distance between two core nodes.
-      // Seed and master nodes are virtual (no real 3D coords) and have 0-cost edges.
-      if (prev < static_cast<Graph::NodeId>(num_points) && current < static_cast<Graph::NodeId>(num_points))
-      {
-        double c[3], p[3];
-        core.get_point(current, c);
-        core.get_point(prev, p);
-
-        const double dx = c[0] - p[0];
-        const double dy = c[1] - p[1];
-        const double dz = c[2] - p[2];
-        total_euclidean += std::sqrt(dx*dx + dy*dy + dz*dz);
-      }
-
-      current = prev;
+      double c[3], p[3];
+      core.get_point(i, c);
+      core.get_point(prev, p);
+      const double dx = c[0]-p[0], dy = c[1]-p[1], dz = c[2]-p[2];
+      edge_euclidean[i] = static_cast<float>(std::sqrt(dx*dx + dy*dy + dz*dz));
     }
+  }
 
-    euclidean_distance_to_root[i] = total_euclidean;
+  // 2. Accumulate along the tree using memoization
+  // Process in topological order (by graph_distances = BFS/Dijkstra order)
+  std::vector<size_t> order(num_points);
+  std::iota(order.begin(), order.end(), 0);
+  std::sort(order.begin(), order.end(), [&](size_t a, size_t b)
+  {
+    return graph_distances[a] < graph_distances[b];
+  });
+
+  for (size_t idx : order)
+  {
+    if (graph_distances[idx] == std::numeric_limits<Graph::Cost>::infinity()) continue;
+    auto it = predecessors.find(static_cast<Graph::NodeId>(idx));
+    if (it == predecessors.end())
+    {
+      euclidean_distance_to_root[idx] = 0.0; // root itself
+      continue;
+    }
+    Graph::NodeId prev = it->second;
+    double parent_dist = (prev < static_cast<Graph::NodeId>(num_points)) ? euclidean_distance_to_root[prev] : 0.0;
+    euclidean_distance_to_root[idx] = parent_dist + edge_euclidean[idx];
   }
 
   delete graph;

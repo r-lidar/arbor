@@ -366,7 +366,6 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 
     if (valid)
     {
-      printf("Refined %.2lf to %.2lf\n", ed.radius, res.radius);
       ed.radius = res.radius;
       einfo.data.quality = EdgeQuality::REFINED;
       /*auto& node = graph.nodes()[einfo.source];
