@@ -182,7 +182,6 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }
 
-
 std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
 {
   if (core.size() == 0) throw std::runtime_error("dist2root(): point cloud is empty.");
@@ -202,14 +201,14 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
   const size_t num_gnd    = dtm.size();
   const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_gnd);
 
-  // Run Dijkstra from master seed
   ServiceLocator::logger()("Computing shortest paths to ground");
   const Graph::GraphCache cache = graph->compute_distances(master_id);
-  const auto& [graph_distances, predecessors] = cache;
+  const auto& [graph_distances, predecessors] = cache; // predecessors is now PredecessorVector
 
-  // For each core point, walk the predecessor chain and accumulate Euclidean distance
+  // Sanity check: the predecessor vector must cover every node (core + ground + master).
+  const Graph::NodeId total_nodes = static_cast<Graph::NodeId>(predecessors.size());
+
   std::vector<double> euclidean_distance_to_root(num_points, -1.0);
-
   for (size_t i = 0; i < num_points; ++i)
   {
     if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())
@@ -220,19 +219,22 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
 
     while (true)
     {
-      auto it = predecessors.find(current);
-      if (it == predecessors.end()) break; // reached master or disconnected
+      // With a vector, bounds-check with size() and use -1 as the "no predecessor" sentinel.
+      if (current < 0 || current >= total_nodes)
+        break; // out of range — should not happen on a well-formed graph
 
-      Graph::NodeId prev = it->second;
+      const Graph::NodeId prev = predecessors[current]; // O(1) direct index, no map lookup
+      if (prev == static_cast<Graph::NodeId>(-1))
+        break; // reached a root node (master seed or disconnected)
 
-      // Only accumulate Euclidean distance between two core nodes.
-      // Seed and master nodes are virtual (no real 3D coords) and have 0-cost edges.
-      if (prev < static_cast<Graph::NodeId>(num_points) && current < static_cast<Graph::NodeId>(num_points))
+      // Only accumulate Euclidean distance between two real core nodes.
+      // Edges touching seed or master nodes are virtual (zero-cost, no 3-D coords).
+      if (prev < static_cast<Graph::NodeId>(num_points) &&
+          current < static_cast<Graph::NodeId>(num_points))
       {
         double c[3], p[3];
         core.get_point(current, c);
-        core.get_point(prev, p);
-
+        core.get_point(prev,    p);
         const double dx = c[0] - p[0];
         const double dy = c[1] - p[1];
         const double dz = c[2] - p[2];
