@@ -18,12 +18,18 @@ void Graph::ensure_size(size_t n)
     adjacency_list.resize(n);
 }
 
-std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances(NodeId start) const
+void Graph::reserve_edges(NodeId node, size_t capacity)
+{
+  if (node >= 0 && node < static_cast<NodeId>(adjacency_list.size()))
+    adjacency_list[node].reserve(capacity);
+}
+
+std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
   distances[start] = 0.0f;
 
-  PredecessorMap predecessors;
+  PredecessorVector predecessors(adjacency_list.size(), -1);
 
   using QueueNode = std::pair<Cost, NodeId>;
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
@@ -52,7 +58,7 @@ std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances
 }
 
 // --- Path reconstruction ---
-std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const
+std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorVector>& precomputed_data) const
 {
   const auto& [distances, predecessors] = precomputed_data;
 
@@ -62,11 +68,10 @@ std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, c
   Path path;
   for (NodeId node = goal; node != start; )
   {
-    auto it = predecessors.find(node);
-    if (it == predecessors.end())
+    if (node < 0 || node >= static_cast<NodeId>(predecessors.size()) || predecessors[node] == -1)
       return {{}, -1.0f};
     path.push_back(node);
-    node = it->second;
+    node = predecessors[node];
   }
 
   path.push_back(start);

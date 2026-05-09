@@ -74,6 +74,68 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   // Num. threads used
   int n_threads = omp_get_max_threads();
 
+  // ======================================
+  // PHASE 1 OPTIMIZATION: Pre-count edges
+  // ======================================
+  std::vector<int> edge_counts(n_points, 0);
+
+  #pragma omp parallel
+  {
+    std::vector<size_t> idx(params.k);
+    std::vector<double> dist(params.k);
+    std::vector<int> local_counts(n_points, 0);
+
+    // First pass: count valid edges per node
+    #pragma omp for schedule(static)
+    for (int from = 0; from < n_points; ++from)
+    {
+      // Get the knn
+      nanoflann::KNNResultSet<double> result(params.k);
+      result.init(&idx[0], &dist[0]);
+      double q[3];
+      core.get_point(from, q);
+      index.findNeighbors(result, q, nanoflann::SearchParameters());
+
+      // Count valid edges
+      for (int j = 0; j < params.k; ++j)
+      {
+        int to = idx[j];
+        if (to == from) continue;
+        float cost = std::sqrt(dist[j]);
+        if (cost > params.max_gap) continue;
+
+        double coord_from[3];
+        double coord_to[3];
+        core.get_point(from, coord_from);
+        core.get_point(to, coord_to);
+
+        float dx = coord_from[0] - coord_to[0];
+        float dy = coord_from[1] - coord_to[1];
+        float dz = coord_from[2] - coord_to[2];
+        float magnitude = std::sqrt(dx*dx + dy*dy + dz*dz);
+        if (magnitude < 1e-12) continue;
+
+        local_counts[from]++;
+      }
+    }
+
+    // Merge counts
+    #pragma omp critical
+    {
+      for (int i = 0; i < n_points; ++i)
+        edge_counts[i] += local_counts[i];
+    }
+  }
+
+  // Pre-allocate capacity for each node
+  for (int i = 0; i < n_points; ++i)
+  {
+    graph->reserve_edges(i, edge_counts[i]);
+  }
+
+  // ======================================
+  // PHASE 2: Add edges (no reallocation)
+  // ======================================
   #pragma omp parallel
   {
     std::vector<size_t> idx(params.k);
@@ -81,6 +143,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
 
     // Thread-local storage for edges
     std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> local_edges;
+    local_edges.reserve(params.k * 100);  // Reserve space for efficiency
 
     // For each point we connect to its knn. The current point is 'from'
     #pragma omp for schedule(static)
@@ -135,10 +198,10 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
       }
     }
 
-    // Parallel reduction
+    // Parallel reduction with smaller critical section
     #pragma omp critical
     {
-      for (auto& e : local_edges)
+      for (const auto& e : local_edges)
         graph->add_edge(std::get<0>(e), std::get<1>(e), std::get<2>(e));
     }
   }
