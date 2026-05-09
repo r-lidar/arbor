@@ -19,7 +19,7 @@
 
 // Type aliases for clarity
 using GraphPtr = Rcpp::XPtr<arbor::segment::Graph>;
-using GraphCache = std::pair<arbor::segment::Graph::DistanceVector, arbor::segment::Graph::PredecessorMap>;
+using GraphCache = arbor::segment::Graph::GraphCache;  // Use the typedef from Graph.h
 using DF = Rcpp::DataFrame;
 
 namespace arbor::segment
