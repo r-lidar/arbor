@@ -227,7 +227,8 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   // Run Dijkstra from master seed
   ServiceLocator::logger()(" Dijkstra");
   Graph::GraphCache cache = graph->compute_distances(master_id);
-  const auto& [graph_distances, predecessors] = cache;
+  const auto& graph_distances = cache.first;
+  const auto& predecessors = cache.second;
 
   // Identify reachable and isolated sets
   ServiceLocator::logger()(" Identifying isolated sub-graph");

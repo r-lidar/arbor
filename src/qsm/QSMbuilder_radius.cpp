@@ -187,8 +187,8 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
 {
   if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM. Please report.");
 
-  // Prepare centroids for KD-Tree
   SimpleAdaptor centroids_cloud;
+  // Prepare centroids for KD-Tree
   centroids_cloud.points.reserve(graph.edge_count());
 
   std::vector<int> index_to_eid;
