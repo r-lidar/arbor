@@ -220,10 +220,10 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
 
     while (true)
     {
-      auto it = predecessors.find(current);
-      if (it == predecessors.end()) break; // reached master or disconnected
+      if (current < 0 || current >= static_cast<Graph::NodeId>(predecessors.size()) || predecessors[current] == -1)
+        break; // reached master or disconnected
 
-      Graph::NodeId prev = it->second;
+      Graph::NodeId prev = predecessors[current];
 
       // Only accumulate Euclidean distance between two core nodes.
       // Seed and master nodes are virtual (no real 3D coords) and have 0-cost edges.
