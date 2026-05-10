@@ -52,6 +52,7 @@ public:
   Graph() = default;
   void ensure_size(size_t n);
   void add_edge(NodeId source, NodeId destination, Cost cost);
+  void clear_adjacency_list();
   std::pair<DistanceVector, PredecessorMap> compute_distances(NodeId start) const;
   std::pair<Path, Cost> findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const;
   void shortest_paths_from_node(const NodeIDs& ground_nodes, std::vector<double>& distances, NodeIDs& closest_ground) const;

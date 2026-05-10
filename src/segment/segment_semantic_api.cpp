@@ -114,6 +114,11 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     }
   }
 
+  // Release graph cache memory as it's no longer needed
+  cache.first.clear();
+  cache.first.shrink_to_fit();
+  cache.second.clear();
+
   // Transfer passage values from dec back to core
   // Points not in dec get value 0
   std::vector<int> core_passage(num_raw_points, 0);
@@ -128,6 +133,8 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     }
   }
 
+  // Release adjacency list memory as it's no longer needed
+  graph->clear_adjacency_list();
   delete graph;
 
   return core_passage;

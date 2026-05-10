@@ -148,6 +148,9 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   std::vector<double> distances;
   Graph::NodeIDs closest_nodeids;
   graph->shortest_paths_from_node(seeds_ids, distances, closest_nodeids);
+  
+  // Release adjacency list memory as it's no longer needed
+  graph->clear_adjacency_list();
   delete graph;
 
   if (closest_nodeids.size() != num_points+num_seeds+1) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
@@ -319,6 +322,8 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
     euclidean_distance_to_root[idx] = parent_dist + edge_euclidean[idx];
   }
 
+  // Release adjacency list memory as it's no longer needed
+  graph->clear_adjacency_list();
   delete graph;
   return euclidean_distance_to_root;
 }

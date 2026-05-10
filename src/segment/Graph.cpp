@@ -38,6 +38,11 @@ void Graph::ensure_size(size_t n)
     adjacency_list.resize(n);
 }
 
+void Graph::clear_adjacency_list()
+{
+  AdjacencyList().swap(adjacency_list);
+}
+
 std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances(NodeId start) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
