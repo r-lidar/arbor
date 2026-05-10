@@ -28,6 +28,7 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include <queue>
 
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
@@ -223,6 +224,52 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   const size_t num_points = core.size();
   const size_t num_gnd    = dtm.size();
   const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_gnd);
+
+
+  // Force-connect the highest core point to its nearest neighbors
+  // The graph is directed and distance-limited, so the apex can end up isolated.
+  // We guarantee it has edges regardless of builder constraints.
+  {
+    constexpr size_t K = 10;
+
+    // Find the apex (max Z).
+    size_t apex_id = 0;
+    double apex_z  = -std::numeric_limits<double>::max();
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      double p[3];
+      core.get_point(i, p);
+      if (p[2] > apex_z) { apex_z = p[2]; apex_id = i; }
+    }
+
+    // Collect the K nearest neighbours with a max-heap of size K.
+    using Entry = std::pair<double, size_t>;
+    std::priority_queue<Entry> heap;
+    double ac[3];
+    core.get_point(apex_id, ac);
+
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      if (i == apex_id) continue;
+      double p[3];
+      core.get_point(i, p);
+      const double dx = ac[0]-p[0], dy = ac[1]-p[1], dz = ac[2]-p[2];
+      double d  = std::pow(std::sqrt(dx*dx + dy*dy + dz*dz), params.power);
+      d = std::pow(d, params.power);
+
+      heap.push({d, i});
+      if (heap.size() > K) heap.pop(); // evict the farthest
+    }
+
+    // Add bidirectional edges for each neighbour.
+    while (!heap.empty())
+    {
+      const auto [d, nb_id] = heap.top(); heap.pop();
+      graph->add_edge(static_cast<Graph::NodeId>(nb_id), static_cast<Graph::NodeId>(apex_id), d);
+      graph->add_edge(static_cast<Graph::NodeId>(apex_id), static_cast<Graph::NodeId>(nb_id), d);
+    }
+  }
+
 
   // Run Dijkstra from master seed
   ServiceLocator::logger()(" Dijkstra");
