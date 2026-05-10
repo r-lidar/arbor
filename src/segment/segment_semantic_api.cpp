@@ -1,19 +1,19 @@
 /**
  * @file segment_semantic_api.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -23,6 +23,7 @@
 #include "nanoflann.h"
 #include "GraphBuilder.h"
 #include "Grid3D.h"
+#include "MemoryUtils.h"
 
 #include <numeric>
 
@@ -64,6 +65,9 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
+  auto s = MemoryUtils::print_graph_memory(graph);
+  std::cout << s << std::endl;
+
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
   ServiceLocator::logger()("Accumulating passages (4/9)");
@@ -85,6 +89,9 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
 
   // Precompute distances for fast access
   Graph::GraphCache cache = graph->compute_distances(master_id);
+
+  s = MemoryUtils::print_cache_memory(cache);
+  std::cout << s << std::endl;
 
   // Parallel loop over goal nodes
   #pragma omp parallel

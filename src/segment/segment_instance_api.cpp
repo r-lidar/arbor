@@ -23,6 +23,7 @@
 #include "nanoflann.h"
 #include "Grid3D.h"
 #include "GraphBuilder.h"
+#include "MemoryUtils.h"
 
 #include <chrono>
 #include <numeric>
@@ -136,6 +137,9 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   // Build graph
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
+  auto s = MemoryUtils::print_graph_memory(graph);
+  std::cout << s << std::endl;
+
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
   // Indexes of the seeds in the graph
@@ -148,9 +152,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   std::vector<double> distances;
   Graph::NodeIDs closest_nodeids;
   graph->shortest_paths_from_node(seeds_ids, distances, closest_nodeids);
-  
-  // Release adjacency list memory as it's no longer needed
-  graph->clear_adjacency_list();
+
   delete graph;
 
   if (closest_nodeids.size() != num_points+num_seeds+1) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
