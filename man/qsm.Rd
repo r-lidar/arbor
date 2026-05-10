@@ -7,16 +7,14 @@
 qsm(tree, params = arbor_parameters_default)
 }
 \arguments{
-\item{tree}{A `LAS` object from lidR containing a single tree point cloud. Only
-the point labelled as wood will be used for QSM. Can alternatively be a string to a file}
+\item{tree}{A \code{LAS} object from lidR containing a single tree point cloud. Only
+the point labelled as wood will be used for QSM.}
 
 \item{params}{list See \link{parameters}.}
 }
 \description{
-This function processes a tree point cloud to generate a Quantitative Structure Model (QSM) using
-the bottom to top approach to build the skeleton. Then if fits a radius to each edge of the skeleton
-with a ransac circle fitting. Last it applies a allometric model to correct irrelevant cylinder
-and compute a more organic tree. See the [Arbor book] for mode details.
+This function processes a tree point cloud to generate a Quantitative Structure Model (QSM)
+See the \href{placeholder}{Arbor book} for mode details.
 }
 \examples{
 f <- system.file("extdata", "tree_qsm.laz", package="arbor")

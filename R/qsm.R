@@ -1,12 +1,28 @@
+# @file qsm.R
+# Project: Arbor
+# 
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #' Generate a QSM from a single tree point cloud
 #'
-#' This function processes a tree point cloud to generate a Quantitative Structure Model (QSM) using
-#' the bottom to top approach to build the skeleton. Then if fits a radius to each edge of the skeleton
-#' with a ransac circle fitting. Last it applies a allometric model to correct irrelevant cylinder
-#' and compute a more organic tree. See the [Arbor book] for mode details.
+#' This function processes a tree point cloud to generate a Quantitative Structure Model (QSM)
+#' See the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param tree A `LAS` object from lidR containing a single tree point cloud. Only
-#' the point labelled as wood will be used for QSM. Can alternatively be a string to a file
+#' the point labelled as wood will be used for QSM.
 #' @param params list See \link{parameters}.
 #' @examples
 #' f <- system.file("extdata", "tree_qsm.laz", package="arbor")
@@ -17,6 +33,7 @@
 #' plot_qsm(qsm, add = x, color = "branch_order", cylinder = TRUE)
 #' }
 #' @export
+#' @md
 #' @seealso \link{qsm_write} \link{qsm_read} \link{qsm_dbh} \link{qsm_stats}
 qsm =  function(tree, params = arbor_parameters_default)
 {

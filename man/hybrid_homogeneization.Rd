@@ -13,5 +13,6 @@ hybrid_homogeneization(las, res = 0.02)
 }
 \description{
 Homogenization of the point cloud using a hybrid approach that includes
-Barycentric Voxel Decimation and reinjection of random points. See the [Arbor book].
+Barycentric Voxel Decimation and reinjection of random points. See
+the \href{placeholder}{Arbor book} for mode details.
 }

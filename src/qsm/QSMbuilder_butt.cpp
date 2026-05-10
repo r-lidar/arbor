@@ -1,3 +1,23 @@
+/**
+ * @file QSMbuilder_butt.cpp
+ * Project: Arbor
+ *
+ * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <vector>
 #include <algorithm>
 #include <map>
@@ -77,8 +97,9 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
 
   if (main_axis_eids.size() < 5) return;
 
-  // Sort root→tip (descending subtree_length)
-  std::sort(main_axis_eids.begin(), main_axis_eids.end(), [this](int a, int b) {
+  // Sort root -> tip (descending subtree_length)
+  std::sort(main_axis_eids.begin(), main_axis_eids.end(), [this](int a, int b)
+  {
     return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
   });
 
@@ -109,7 +130,7 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
     i++;
   }
 
-  if (i > 0)
+  if (i > 0 & i < main_axis_eids.size())
   {
     int new_root_eid = (i < main_axis_eids.size()) ? main_axis_eids[i] : -1;
 

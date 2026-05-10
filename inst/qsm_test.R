@@ -9,9 +9,9 @@ files = list.files("~/Téléchargements/QSM St Vero/Pall_registered/", full.name
 
 file = "~/Téléchargements/QSM St Vero/Pall_registered/33BOJ.las"
 file = "~/Téléchargements/QSM St Vero/Pall_registered/84ERS.las" # Vstem 2.3 m³
-file = "~/Téléchargements/QSM St Vero/Pall_registered/34BOJ.las" # Error branches plus grosses que parents
-file = "~/Téléchargements/QSM St Vero/Pall_registered/36BOJ.las" # Vstem 2.6 m³  Error branches plus grosses que parents
-file = "~/Téléchargements/QSM St Vero/Pall_registered/45BOJ.las" # Vstem 2.5 m³
+file = "~/Téléchargements/QSM St Vero/Pall_registered/34BOJ.las"
+file = "~/Téléchargements/QSM St Vero/Pall_registered/36BOJ.las" # Vstem 2.6 m³
+file = "~/Téléchargements/QSM St Vero/Pall_registered/45BOJ.las" # Vstem 2.5 m³ !!
 
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_65.las"
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_130.las"
@@ -24,9 +24,18 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
 
+# gap
+file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
+
+# mini
+file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/mini/1464.las"
+
 # Conifer
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
+
+# Zambia
+file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree_236.las" # !!
 
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
@@ -46,26 +55,34 @@ i = sample(seq_along(files), 1)
 file <- files[i]
 files = files[-i]
 file
-tree <- lidR::readLAS(file)
-plot_semantic(tree)
+#tree <- lidR::readLAS(file)
+#plot_semantic(tree)
 
 {
 tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
 
 t0 = Sys.time()
-params= default_arbor_parameters
-params$path_finder$k_neighborhood_connectivity = 30
-params$path_finder$max_gap = 1
-params$path_finder$distance_power = 2
-params$qsm$cl_dist = 0.2
+params= arbor_parameters_default
 qsm = qsm(tree, params)
 tf = Sys.time()
-difftime(tf, t0)
-qsm_write(qsm, "/home/jr/Blender/QSM/QSM5/QSM5.obj")
-writeLAS(tree, "/home/jr/Blender/QSM/QSM5/QSM5.las")
-writeLines(as.character(round(difftime(tf, t0),2)), "/home/jr/Blender/QSM/QSM5/QSM5.time")
+print(difftime(tf, t0))
+
+x = plot_semantic(tree)
+plot_qsm(qsm, add = x, cylinder = T)
 }
+
+qsm = qsm(tree, params)
+plot(qsm)
+as.data.frame(qsm)
+
+x = plot_semantic(tree)
+plot(qsm, add = x, color = "quality")
+
+x = plot_semantic(tree)
+plot_qsm(qsm, add = x, cylinder = T)
+plot_qsm(qsm, cylinder = T)
+p
 
 d = 10
 qsm$startX = qsm$startX - d
@@ -150,11 +167,7 @@ wood = arbor:::filter_tree(tree)
 mhag = min(wood$hag)
 gnd = wood[wood$hag < mhag + 0.1]
 
-p = default_arbor_parameters
-p$path_finder$k_neighborhood_connectivity = 50
-p$path_finder$max_gap = 1
-p$path_finder$distance_power = 2
-p$qsm$step = 0.2
+p = arbor_parameters_default
 
 wood@data$dist2root = arbor:::dist2root(wood@data, gnd@data, p)
 wood@data$dgroup = as.integer(cut(wood$dist2root, seq(floor(min(wood$dist2root)), ceiling(max(wood$dist2root)), by = 0.1)))
@@ -173,7 +186,9 @@ wood@data[, dbcl := clust(X,Y,Z), by = dgroup]
 wood@data[, cl := as.integer(as.factor(paste0("g", dgroup, "_c", dbcl)))]
 wood@data$cluster = wood@data$cl
 
+neg = lidR::filter_poi(wood, dist2root < 0)
 x = lidR::plot(wood, color = "dist2root")
+lidR::plot(neg, add = x, pal = "pink", size = 6)
 lidR::plot(gnd, add = x, size = 6)
 lidR::plot(wood, color = "dgroup", pal = pastel.colors(2500))
 lidR::plot(wood, color = "cl", pal = pastel.colors(2500))

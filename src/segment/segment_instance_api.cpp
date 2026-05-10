@@ -1,3 +1,23 @@
+/**
+ * @file segment_instance_api.cpp
+ * Project: Arbor
+ *
+ * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "arbor.h"
 #include "myomp.h"
 #include "nanoflann.h"
@@ -8,6 +28,7 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include <queue>
 
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
@@ -45,7 +66,7 @@ void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min
     if (!las.is_wood(i))        continue;
     if (las.get_hag(i) >= 3.0)  continue;
     int id = las.get_treeid(i);
-    if (id < 0)                 continue; // NA from R or -1
+    if (id <= 0)                continue; // NA from R or -1
     tree_to_indices[id].push_back(static_cast<int>(i));
   }
 
@@ -182,12 +203,15 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }
 
-std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
+
+std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params)
 {
+  ServiceLocator::logger()("Computing shortest paths to ground");
+
   if (core.size() == 0) throw std::runtime_error("dist2root(): point cloud is empty.");
   if (dtm.size() == 0)  throw std::runtime_error("dist2root(): seeds point cloud is empty.");
 
-  ServiceLocator::logger()("Constructing the graph");
+  ServiceLocator::logger()(" Constructing the graph");
   GraphBuilder builder(params);
   builder.add_core_layer(core);
   builder.add_seed_layer(core, dtm);
@@ -196,60 +220,153 @@ std::vector<double> dist2root(const PointCloud& core, const PointCloud& dtm, con
   Graph* graph = builder.get_graph();
   if (graph == nullptr) throw std::runtime_error("dist2root(): failed to build graph (null pointer).");
 
-  // Node ID layout: [0, num_points) = core, [num_points, num_points+num_gnd) = ground, master_id last
   const size_t num_points = core.size();
   const size_t num_gnd    = dtm.size();
   const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_gnd);
 
-  ServiceLocator::logger()("Computing shortest paths to ground");
-  const Graph::GraphCache cache = graph->compute_distances(master_id);
-  const auto& [graph_distances, predecessors] = cache; // predecessors is now PredecessorVector
+  // Force-connect the highest core point to its nearest neighbors
+  // The graph is directed and distance-limited, so the apex can end up isolated.
+  // We guarantee it has edges regardless of builder constraints.
+  {
+    constexpr size_t K = 10;
 
-  // Sanity check: the predecessor vector must cover every node (core + ground + master).
-  const Graph::NodeId total_nodes = static_cast<Graph::NodeId>(predecessors.size());
+    // Find the apex (max Z).
+    size_t apex_id = 0;
+    double apex_z  = -std::numeric_limits<double>::max();
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      double p[3];
+      core.get_point(i, p);
+      if (p[2] > apex_z) { apex_z = p[2]; apex_id = i; }
+    }
 
-  std::vector<double> euclidean_distance_to_root(num_points, -1.0);
+    // Collect the K nearest neighbours with a max-heap of size K.
+    using Entry = std::pair<double, size_t>;
+    std::priority_queue<Entry> heap;
+    double ac[3];
+    core.get_point(apex_id, ac);
+
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      if (i == apex_id) continue;
+      double p[3];
+      core.get_point(i, p);
+      const double dx = ac[0]-p[0], dy = ac[1]-p[1], dz = ac[2]-p[2];
+      double d  = std::pow(std::sqrt(dx*dx + dy*dy + dz*dz), params.power);
+      d = std::pow(d, params.power);
+
+      heap.push({d, i});
+      if (heap.size() > K) heap.pop(); // evict the farthest
+    }
+
+    // Add directional edges for each neighbor.
+    while (!heap.empty())
+    {
+      const auto [d, nb_id] = heap.top(); heap.pop();
+      graph->add_edge(static_cast<Graph::NodeId>(nb_id), static_cast<Graph::NodeId>(apex_id), d);
+      //graph->add_edge(static_cast<Graph::NodeId>(apex_id), static_cast<Graph::NodeId>(nb_id), d);
+    }
+  }
+
+
+  // Run Dijkstra from master seed
+  ServiceLocator::logger()(" Dijkstra");
+  Graph::GraphCache cache = graph->compute_distances(master_id);
+  const auto& graph_distances = cache.first;
+  const auto& predecessors = cache.second;
+
+  // Identify reachable and isolated sets
+  ServiceLocator::logger()(" Identifying isolated sub-graph");
+  std::vector<Graph::NodeId> reachable, isolated;
+
   for (size_t i = 0; i < num_points; ++i)
   {
     if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())
-      continue; // unreachable
+      isolated.push_back(static_cast<Graph::NodeId>(i));
+    else
+      reachable.push_back(static_cast<Graph::NodeId>(i));
+  }
 
-    double total_euclidean = 0.0;
-    Graph::NodeId current = static_cast<Graph::NodeId>(i);
-
-    while (true)
+  // Add fallback edges: isolated -> nearest reachable core point
+  if (isolated.size() > 100 && !reachable.empty())
+  {
+    ServiceLocator::logger()("\033[33m " + std::to_string(isolated.size()) + " isolated points detected: restart and expand.\033[0m");
+    for (size_t ii = 0; ii < isolated.size(); ii += 2)
     {
-      // With a vector, bounds-check with size() and use -1 as the "no predecessor" sentinel.
-      if (current < 0 || current >= total_nodes)
-        break; // out of range — should not happen on a well-formed graph
+      Graph::NodeId iso = isolated[ii];
+      double ci[3];
+      core.get_point(iso, ci);
 
-      const Graph::NodeId prev = predecessors[current]; // O(1) direct index, no map lookup
-      if (prev == static_cast<Graph::NodeId>(-1))
-        break; // reached a root node (master seed or disconnected)
+      double best_dist = std::numeric_limits<double>::max();
+      Graph::NodeId best_node = reachable[0];
 
-      // Only accumulate Euclidean distance between two real core nodes.
-      // Edges touching seed or master nodes are virtual (zero-cost, no 3-D coords).
-      if (prev < static_cast<Graph::NodeId>(num_points) &&
-          current < static_cast<Graph::NodeId>(num_points))
+      for (size_t k = 0; k < reachable.size(); k += 2)
       {
-        double c[3], p[3];
-        core.get_point(current, c);
-        core.get_point(prev,    p);
-        const double dx = c[0] - p[0];
-        const double dy = c[1] - p[1];
-        const double dz = c[2] - p[2];
-        total_euclidean += std::sqrt(dx*dx + dy*dy + dz*dz);
+        Graph::NodeId reach = reachable[k];
+        double cr[3];
+        core.get_point(reach, cr);
+        double dx = ci[0]-cr[0], dy = ci[1]-cr[1], dz = ci[2]-cr[2];
+        double d  = std::sqrt(dx*dx + dy*dy + dz*dz);
+        d = std::pow(d, params.power);
+        if (d < best_dist) { best_dist = d; best_node = reach; }
       }
 
-      current = prev;
+      graph->add_edge(best_node, iso, best_dist);
     }
 
-    euclidean_distance_to_root[i] = total_euclidean;
+    // Second Dijkstra run on augmented graph
+    cache = graph->compute_distances(master_id);
   }
 
   delete graph;
+
+  // For each core point, walk the predecessor chain and accumulate Euclidean distance
+  ServiceLocator::logger()(" Computing euclidian distance to ground");
+  std::vector<float> euclidean_distance_to_root(num_points, -1.0);
+
+  const Graph::NodeId NO_PRED = -1;
+
+  // Precompute per-node euclidean contribution (from node -> its predecessor)
+  // O(N) point fetches total
+  std::vector<float> edge_euclidean(num_points, 0.0);
+  for (size_t i = 0; i < num_points; ++i)
+  {
+    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity()) continue;
+    if (i >= predecessors.size()) continue;
+    Graph::NodeId prev = predecessors[i];
+    if (prev == NO_PRED) continue;
+    if (prev < static_cast<Graph::NodeId>(num_points))
+    {
+      double c[3], p[3];
+      core.get_point(i, c);
+      core.get_point(prev, p);
+      const double dx = c[0]-p[0], dy = c[1]-p[1], dz = c[2]-p[2];
+      edge_euclidean[i] = static_cast<float>(std::sqrt(dx*dx + dy*dy + dz*dz));
+    }
+  }
+
+  // Accumulate along the tree using memoization
+  // Process in topological order (by graph_distances = BFS/Dijkstra order)
+  std::vector<size_t> order(num_points);
+  std::iota(order.begin(), order.end(), 0);
+  std::sort(order.begin(), order.end(), [&](size_t a, size_t b)
+  {
+    return graph_distances[a] < graph_distances[b];
+  });
+  for (size_t idx : order)
+  {
+    if (graph_distances[idx] == std::numeric_limits<Graph::Cost>::infinity()) continue;
+    Graph::NodeId prev = (idx < predecessors.size()) ? predecessors[idx] : NO_PRED;
+    if (prev == NO_PRED)
+    {
+      euclidean_distance_to_root[idx] = 0.0; // root itself
+      continue;
+    }
+    double parent_dist = (prev < static_cast<Graph::NodeId>(num_points)) ? euclidean_distance_to_root[prev] : 0.0;
+    euclidean_distance_to_root[idx] = parent_dist + edge_euclidean[idx];
+  }
+
   return euclidean_distance_to_root;
 }
-
 
 }

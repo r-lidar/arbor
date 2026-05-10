@@ -24,53 +24,7 @@ This function performs individual tree instance segmentation by constructing a p
 and computing the least-cost path for each point to predefined seed points. The goal is to assign
 each point in the point cloud a \code{treeID} corresponding to its nearest seed, based on the least-cost
 path computed through the network. The process incorporates both spatial and heuristic constraints
-to segment trees effectively.\cr\cr
-The segmentation algorithm operates as follows:
-\enumerate{
-\item \strong{Network Construction}: A k-nearest neighbor (k-NN) graph is built where points are connected
-to their \code{k} closest neighbors. The cost to move in the graph between two points is explained in
-next section and is calculated based on criteria such as euclidean distance, foliage type, and
-movement direction
-\item \strong{Pathfinding}: Using the constructed graph, the function computes the least-cost path from
-every point to each seed.
-\item \strong{Tree ID Assignment}: Each point is assigned the \code{treeID} of the seed with the least-cost
-path.
-}
-Key Features of the Cost Function:
-\itemize{
-\item \strong{Proximity Penalty}: Close points are favored with lower movement costs by using the cube of
-the euclidean distance
-\item \strong{Foliage Type Penalty}: Foliage to foliage movement or foliage to wood movement incur
-substantial additional costs.
-\item \strong{Directional Penalty}: Movements against gravity (upward) are penalized more to prioritize
-paths leading downward to seeds.
-}
-}
-\details{
-Internal Processing Steps:
-\enumerate{
-\item \strong{Preprocessing}:
-\itemize{
-\item Decimate the point cloud based on the specified resolution (\code{res}).
-\item Transform and scale coordinates for network construction and pathfinding.
-}
-\item \strong{Network Construction}:
-\itemize{
-\item Points are connected to their \code{k} nearest neighbors with a distance threshold (\code{max_gap}).
-\item The cost on each edge is the cube of the euclidean distance
-\item Additional cost penalties are applied based on movement direction and wood/foliage transitions.
-}
-\item \strong{Pathfinding}:
-\itemize{
-\item A graph is built combining point and seed networks.
-\item The shortest path (least-cost) from each point to all seeds is calculated.
-}
-\item \strong{Tree Assignment}:
-\itemize{
-\item Points are assigned the \code{treeID} of the nearest seed based on path costs.
-\item IDs are propagated back to the original dense point cloud.
-}
-}
+to segment trees effectively. See the \href{placeholder}{Arbor book} for mode details.
 }
 \seealso{
 \link{find_seeds}, \link{segment_semantic}

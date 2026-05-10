@@ -1,3 +1,21 @@
+# @file segment_semantic.R
+# Project: Arbor
+# 
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #' Wood-Foliage Semantic Segmentation
 #'
 #' This function performs wood-foliage semantic segmentation by constructing a network of points
@@ -6,10 +24,13 @@
 #' is classified as wood or foliage based on two main criteria: (1) Proximity to the detected skeleton and
 #' (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 #' first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
-#' Finally, a connected component step removes small clusters incorrectly classified as wood.
+#' Finally, a connected component step removes small clusters incorrectly classified as wood. See
+#' the [Arbor book](<placeholder>) for mode details.
 #'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
+#'
+#' @return A `LAS` object with an additional attribute `foliage`. 0 - wood, 1 and 2 foliage.
 #' @md
 #' @rdname segment_semantic
 #' @name segment_semantic

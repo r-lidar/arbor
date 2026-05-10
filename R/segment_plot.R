@@ -1,3 +1,21 @@
+# @file segment_plot.R
+# Project: Arbor
+# 
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #' Plot function
 #'
 #' Various useful plot functions. Colorize tree does not plot be assigns a RGB value per tree
@@ -30,6 +48,7 @@ plot_semantic = function(las, dtm = NULL, ...)
 plot_instance = function(las, dtm = NULL, ...)
 {
   set.seed(42)
+  las@data$treeID[las$treeID < 0] = NA_integer_
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))

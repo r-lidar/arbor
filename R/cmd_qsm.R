@@ -1,3 +1,21 @@
+# @file cmd_qsm.R
+# Project: Arbor
+# 
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 cmd_qsm <- function(args) {
 
   # --- QSM Usage ---
@@ -7,18 +25,17 @@ Usage:
   arbor qsm <input> [options]
 
 Mandatory:
-  <input>           Input folder or file
+  <input>           Input file
 
 Options:
   -o, --output <dir> Output directory [default: input directory]
-  -ncores <int>      Number of cores [default: half of available]
   -overwrite         Overwrite existing files
   -csv               Export CSV [default: on if nothing provided]
   -obj               Export OBJ [default: on if nothing provided]
   -ply               Export PLY
 
 Example:
-  arbor qsm ./its/ -csv -obj --ncores 4
+  arbor qsm tree.laz -csv -obj
 ")
     quit(save = "no", status = 0)
   }
@@ -59,25 +76,12 @@ Example:
 
   overwrite <- has_flag(args, "-overwrite")
 
-  # Cores
-  ncores_arg <- get_arg(args, "-ncores")
-  if (is.null(ncores_arg)) ncores_arg <- get_arg(args, "-ncores")
-
-  if (!is.null(ncores_arg)) {
-    ncores <- as.integer(ncores_arg)
-  } else {
-    ncores <- floor(parallel::detectCores() / 2)
-  }
-
-  if (is.na(ncores) || ncores < 1) fail("--ncores must be a positive integer")
-
   cat("
 ================= Arbor QSM module =================
 Input       :", paste(ifiles, collapse = ", "), "
 Output      :", odir, "
 Settings
   Formats   :", paste(formats, collapse = ", "), "
-  Cores     :", ncores, "
 =====================================================
 ")
 

@@ -1,23 +1,66 @@
-#' Remove Small Trees and Clean Understory
+# @file segment_post_prod.R
+# Project: Arbor
+#
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#' Flag Trees for Exclusion
 #'
-#' This function removes small trees that are likely to be poorly segmented and filters out
-#' low understory vegetation based on height.
+#' Utilities to flag trees that should be excluded from downstream processing.
+#' These functions do not remove points from the point cloud. Instead, tree IDs are
+#' made negative. Negative tree IDs are ignored by \link{qsf} and can be restored
+#' by rerunning the function with different parameters.
 #'
-#' @param las A LAS object from lidR.
-#' @param max_height Trees with a height less than this threshold (in meters) will be removed.
+#' `flag_small_trees()` flags trees below a given height threshold, which are often
+#' poorly segmented or correspond to understory vegetation.\cr\cr
+#' `flag_buffer()` flags trees located near the edges of a point cloud by clipping
+#' trees whose seed points fall outside a buffered polygon.\cr\cr
+#' See the [Arbor book](<placeholder>) for more details.
+#'
+#' @param las A LAS object from lidR containing segmented trees.
+#' @param max_height Numeric. Trees with a height lower than this threshold (in meters)
+#'   are flagged.
+#' @param seeds A LAS object containing tree seeds, typically generated with
+#'   \link{find_seeds}. If missing, an internal routine estimates seed positions
+#'   from the lowest point of each tree.
+#' @param buffer Numeric value (in meters) used to shrink the convex hull before
+#'   filtering trees. Default is `-5`, which excludes trees within 5 meters of the
+#'   boundary. Can also be an `sf` polygon object for custom clipping.
+#'
+#' @return A modified LAS object with flagged trees assigned negative `treeID` values.
+#'
+#' @seealso \link{qsf}, \link{find_seeds}
+#'
+#' @name flagging
+#' @md
 #' @export
-remove_small_trees = function(las, max_height = 2)
+flag_small_trees = function(las, max_height = 2)
 {
   treeID <- hag <- hag_max <- hag_min <- NULL
 
   attributes <- names(las)
-  stopifnot("treeID" %in% attributes)
-  stopifnot("hag" %in% attributes)
+  if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
+  if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
-  ans   <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
-  ans   <- ans[hag_max > max_height & hag_min < max_height]
+  ans <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
+  ans <- ans[hag_max > max_height & hag_min < max_height]
 
-  las$treeID[!las$treeID %in% ans$treeID] = NA_integer_
+  # Keep trees whose seeds are inside
+  las@data$treeID = data.table::copy(las@data$treeID)
+  las@data[treeID < 0, treeID := treeID * -1] # revert previous
+  las@data[!treeID %in% ans$treeID, treeID := treeID * -1]
   las
 }
 
@@ -38,66 +81,85 @@ keep_small_trees = function(las, max_height = 2)
 }
 
 
-#' Post production tool
-#'
-#' Apply this function to fix some issue in the instance segmentation. If you have no issue but apply
-#' this function this should not have any effect. This function look at the wood part of each trees
-#' an test with a connected component algorithm if there are more than one big cluster. This can
-#' happen when a seed is missing with \link{find_seeds}. In this case a few wood point may be assigned
-#' to the wrong tree because this was the best seed to reach. Those points are reasigned to foliage class
-#' in order to do not mess-up QSM software
-#'
-#' @param las LAS object from lidR with semantic and instance segmentation
-#' @noRd
-# fix_small_isolated_low_clusters <- function(las)
-# {
-#   if (!interactive())
-#   {
-#     options(progressr.enable = TRUE)
-#   }
-#
-#   treeID <- clusterID <- foliage <- hag <- NULL
-#
-#   las@data$pointID <- 1:lidR::npoints(las)
-#   sub <- lidR::filter_poi(las, foliage == FALSE, hag < 3)
-#
-#   tree_ids <- unique(las$treeID)
-#   n_trees <- length(tree_ids)
-#
-#   progressr::handlers(
-#     progressr::handler_progress(
-#       format = ":spin :current/:total [:bar] :percent in :elapsed ETA: :eta",
-#       width = 50,
-#       complete = "="
-#     ))
-#
-#   progressr::with_progress(
-#     {
-#       p <- progressr::progressor(steps = n_trees)
-#
-#       for (id in tree_ids)
-#       {
-#         tt <- lidR::filter_poi(sub, treeID == id)
-#         if (!lidR::is.empty(tt)) {
-#           tt$Z <- tt$Z * 0.1
-#           tt <- connected_components(tt, 0.05, 200)
-#           tt$Z <- tt$Z * 10
-#
-#           n <- length(unique(tt$clusterID))
-#           if (n > 1) {
-#             ids <- table(tt$clusterID)
-#             ids <- as.numeric(names(ids[which.max(ids)]))
-#             pid <- tt$pointID[tt$clusterID != ids]
-#             las$foliage[pid] <- TRUE
-#           }
-#         }
-#
-#         p()  # update progress
-#       }
-#     })
-#
-#   las@data$pointID <- NULL
-#   return(las)
-# }
+#' @rdname flagging
+#' @export
+#' @importFrom data.table :=
+flag_buffer = function(las, seeds, buffer = -5)
+{
+  if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
+  if (!missing(seeds))
+  {
+    if (!"treeID" %in% names(seeds)) stop("Input seeds must have an attribute 'treeID'")
+  }
 
+  # Avoid NOTES
+  X <- Y <- Z <- treeID <- NULL
+
+  # Compute roots per tree (drop unsegmented)
+  if (missing(seeds))
+  {
+    # Make root robust to small groups
+    root <- function(x, y, z)
+    {
+      i <- order(z)
+      n <- min(100L, length(i))            # Use available points (<=100)
+      if (n < 10L) {                       # Guard against tiny groups
+        return(list(X = NA_real_, Y = NA_real_, Z = NA_real_))
+      }
+      x <- x[i][seq_len(n)]
+      y <- y[i][seq_len(n)]
+      z <- z[i][seq_len(n)]
+      x <- mean(x)
+      y <- mean(y)
+      z <- mean(z)
+      return(list(X = x, Y = y, Z = z))
+    }
+
+    roots <- las@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
+    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+  }
+  else
+  {
+    # Make root robust to small groups
+    root <- function(x, y, z)
+    {
+      x <- mean(x)
+      y <- mean(y)
+      z <- mean(z)
+      return(list(X = x, Y = y, Z = z))
+    }
+
+    roots <- seeds@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
+    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+  }
+
+  # Build buffered convex hull
+  if (is.numeric(buffer))
+  {
+    bb <- suppressWarnings(sf::st_convex_hull(las))
+    bb <- suppressWarnings(sf::st_buffer(bb, dist = buffer))
+    if (any(sf::st_is_empty(bb))) return(las[0])    # Early exit if buffer kills hull
+  }
+
+  if (inherits(buffer, "sf") || inherits(buffer, "sfc"))
+  {
+    if (!any(sf::st_geometry_type(buffer) %in% c("POLYGON", "MULTIPOLYGON")))
+      stop("buffer must be a polygon or multipolygon")
+
+    bb <- buffer
+  }
+
+  # Convert roots to sf (safe: no NA)
+  seeds <- sf::st_as_sf(roots, coords = c("X", "Y"), crs = sf::st_crs(las))
+  valid_seeds <- suppressWarnings(sf::st_filter(seeds, bb))
+  if (!nrow(valid_seeds)) return(las[0])
+
+  # Keep trees whose seeds are inside
+  las@data$treeID = data.table::copy(las@data$treeID)
+  las@data[treeID < 0, treeID := treeID * -1] # revert previous
+  las@data[!treeID %in% valid_seeds$treeID, treeID := treeID * -1]
+  return(las)
+}
 

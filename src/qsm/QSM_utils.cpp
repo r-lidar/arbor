@@ -1,3 +1,23 @@
+/**
+ * @file QSM_utils.cpp
+ * Project: Arbor
+ *
+ * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "QSM.h"
 
 #include <unordered_set>
@@ -142,7 +162,7 @@ QSM QSM::merchantable(double min_radius) const
       const auto& edge_info = edge(parent_edge_id);
 
       // Check if this edge meets the radius threshold
-      if (edge_info.data.radius >= min_radius)
+      if (edge_info.data.radius > min_radius)
       {
         // This edge is valid - keep it and all edges back to root
         NodeID node_on_path = current;
