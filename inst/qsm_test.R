@@ -27,6 +27,9 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
 # gap
 file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
 
+# mini
+file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/mini/1464.las"
+
 # Conifer
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
@@ -66,9 +69,25 @@ tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
+z <- 1.2
+X = mean(tree$X)
+Y = mean(tree$Y)
+Z = min(tree$Z[tree$hag > z])+min(tree$hag)
+rgl::quads3d(
+  x = c(X-1, X+1, X+1, X-1)-x[1],
+  y = c(Y-1,Y-1, Y+1, Y+1)-x[2],
+  z = rep(Z, 4),
+  color = "lightblue",
+  alpha = 0.5
+)
 plot_qsm(qsm, add = x, cylinder = T)
+as.data.frame(qsm)
 plot_qsm(qsm, add = x, cylinder = F)
 }
+
+qsm = qsm(tree, params)
+plot(qsm)
+as.data.frame(qsm)
 
 x = plot_semantic(tree)
 plot(qsm, add = x, color = "quality")
@@ -162,10 +181,6 @@ mhag = min(wood$hag)
 gnd = wood[wood$hag < mhag + 0.1]
 
 p = arbor_parameters_default
-p$path_finder$k_neighborhood_connectivity = 50
-p$path_finder$max_gap = 1
-p$path_finder$distance_power = 2
-p$qsm$step = 0.2
 
 wood@data$dist2root = arbor:::dist2root(wood@data, gnd@data, p)
 wood@data$dgroup = as.integer(cut(wood$dist2root, seq(floor(min(wood$dist2root)), ceiling(max(wood$dist2root)), by = 0.1)))

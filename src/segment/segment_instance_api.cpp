@@ -189,7 +189,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
     }
   }
 
-  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]+1); // +1 ensure no 0 treeID. 0 is interpreted as NA.
+  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]);
 
   const auto t1 = std::chrono::steady_clock::now();
   const std::chrono::duration<double> elapsed = t1 - t0;

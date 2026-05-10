@@ -87,7 +87,10 @@ keep_small_trees = function(las, max_height = 2)
 flag_buffer = function(las, seeds, buffer = -5)
 {
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
-  if (!"treeID" %in% names(seeds)) stop("Input seeds must have an attribute 'treeID'")
+  if (!missing(seeds))
+  {
+    if (!"treeID" %in% names(seeds)) stop("Input seeds must have an attribute 'treeID'")
+  }
 
   # Avoid NOTES
   X <- Y <- Z <- treeID <- NULL
