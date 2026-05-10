@@ -69,20 +69,7 @@ tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
-z <- 1.2
-X = mean(tree$X)
-Y = mean(tree$Y)
-Z = min(tree$Z[tree$hag > z])+min(tree$hag)
-rgl::quads3d(
-  x = c(X-1, X+1, X+1, X-1)-x[1],
-  y = c(Y-1,Y-1, Y+1, Y+1)-x[2],
-  z = rep(Z, 4),
-  color = "lightblue",
-  alpha = 0.5
-)
 plot_qsm(qsm, add = x, cylinder = T)
-as.data.frame(qsm)
-plot_qsm(qsm, add = x, cylinder = F)
 }
 
 qsm = qsm(tree, params)

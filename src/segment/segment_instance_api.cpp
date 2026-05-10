@@ -261,12 +261,12 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
       if (heap.size() > K) heap.pop(); // evict the farthest
     }
 
-    // Add bidirectional edges for each neighbour.
+    // Add directional edges for each neighbor.
     while (!heap.empty())
     {
       const auto [d, nb_id] = heap.top(); heap.pop();
       graph->add_edge(static_cast<Graph::NodeId>(nb_id), static_cast<Graph::NodeId>(apex_id), d);
-      graph->add_edge(static_cast<Graph::NodeId>(apex_id), static_cast<Graph::NodeId>(nb_id), d);
+      //graph->add_edge(static_cast<Graph::NodeId>(apex_id), static_cast<Graph::NodeId>(nb_id), d);
     }
   }
 
