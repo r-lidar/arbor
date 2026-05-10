@@ -1,19 +1,19 @@
 /**
  * @file Graph.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -43,12 +43,21 @@ void Graph::clear_adjacency_list()
   AdjacencyList().swap(adjacency_list);
 }
 
-std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances(NodeId start) const
+void Graph::reserve_edges(size_t capacity)
+{
+  for (auto& e : adjacency_list)
+  {
+    if (e.capacity() == 0)
+      e.reserve(capacity);
+  }
+}
+
+std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
   distances[start] = 0.0f;
 
-  PredecessorMap predecessors;
+  PredecessorVector predecessors(adjacency_list.size(), -1);
 
   using QueueNode = std::pair<Cost, NodeId>;
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
@@ -77,7 +86,7 @@ std::pair<Graph::DistanceVector, Graph::PredecessorMap> Graph::compute_distances
 }
 
 // --- Path reconstruction ---
-std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorMap>& precomputed_data) const
+std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorVector>& precomputed_data) const
 {
   const auto& [distances, predecessors] = precomputed_data;
 
@@ -87,11 +96,10 @@ std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, c
   Path path;
   for (NodeId node = goal; node != start; )
   {
-    auto it = predecessors.find(node);
-    if (it == predecessors.end())
+    if (node < 0 || node >= static_cast<NodeId>(predecessors.size()) || predecessors[node] == -1)
       return {{}, -1.0f};
     path.push_back(node);
-    node = it->second;
+    node = predecessors[node];
   }
 
   path.push_back(start);

@@ -3,6 +3,8 @@
 - Change: `flag_buffer()` replaces `clip_buffer()`
 - Change: `flag_small_trees()` replaces `remove_small_trees()`
 - Fix: edge case connections in `qsm()`
+- Fix: `find_seed()` erroneous seed ID assignment
+- Fix: `segment_instance()` erroneous seed ID transfer
 - New: attribute `quality` in the QSM (`qsm$quality`). See new section in the book.
 
 # arbor 0.10.0

@@ -1,19 +1,19 @@
 /**
  * @file GraphBuilder.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -86,6 +86,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   total_nodes = n_points;
 
   graph->ensure_size(total_nodes);
+  graph->reserve_edges(params.k);
 
   // Build the KD-tree index
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
@@ -185,6 +186,7 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
   total_nodes += n_target;
 
   graph->ensure_size(total_nodes);
+  graph->reserve_edges(params.k);
 
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
@@ -229,6 +231,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seed
   total_nodes += n_points;
 
   graph->ensure_size(total_nodes);
+  graph->reserve_edges(k);
 
   KDTree index(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   index.buildIndex();
@@ -272,6 +275,7 @@ void GraphBuilder::add_master_seed_layer()
   total_nodes += 1;
 
   graph->ensure_size(total_nodes);
+  graph->reserve_edges(total_seed_nodes);
 
   for (int i = 0; i < total_seed_nodes; ++i)
   {

@@ -23,12 +23,12 @@
 #include "nanoflann.h"
 #include "Grid3D.h"
 #include "GraphBuilder.h"
-#include "MemoryUtils.h"
 
 #include <chrono>
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include <queue>
 
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
 using index_t = nanoflann::KNNResultSet<double>::IndexType;
@@ -137,8 +137,8 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   // Build graph
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
-  auto s = MemoryUtils::print_graph_memory(graph);
-  std::cout << s << std::endl;
+  ServiceLocator::logger()("  Graph size: " + Graph::format_bytes(graph->mem()));
+  ServiceLocator::logger()("  Graph nodes: " + std::to_string(graph->adjacency_list.size()));
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
@@ -193,7 +193,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
     }
   }
 
-  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]+1); // +1 ensure no 0 treeID. 0 is interpreted as NA.
+  for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]);
 
   const auto t1 = std::chrono::steady_clock::now();
   const std::chrono::duration<double> elapsed = t1 - t0;
@@ -224,10 +224,54 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   Graph* graph = builder.get_graph();
   if (graph == nullptr) throw std::runtime_error("dist2root(): failed to build graph (null pointer).");
 
-  // Node ID layout: [0, num_points) = core, [num_points, num_points+num_gnd) = ground, master_id last
   const size_t num_points = core.size();
   const size_t num_gnd    = dtm.size();
   const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_gnd);
+
+  // Force-connect the highest core point to its nearest neighbors
+  // The graph is directed and distance-limited, so the apex can end up isolated.
+  // We guarantee it has edges regardless of builder constraints.
+  {
+    constexpr size_t K = 10;
+
+    // Find the apex (max Z).
+    size_t apex_id = 0;
+    double apex_z  = -std::numeric_limits<double>::max();
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      double p[3];
+      core.get_point(i, p);
+      if (p[2] > apex_z) { apex_z = p[2]; apex_id = i; }
+    }
+
+    // Collect the K nearest neighbours with a max-heap of size K.
+    using Entry = std::pair<double, size_t>;
+    std::priority_queue<Entry> heap;
+    double ac[3];
+    core.get_point(apex_id, ac);
+
+    for (size_t i = 0; i < num_points; ++i)
+    {
+      if (i == apex_id) continue;
+      double p[3];
+      core.get_point(i, p);
+      const double dx = ac[0]-p[0], dy = ac[1]-p[1], dz = ac[2]-p[2];
+      double d  = std::pow(std::sqrt(dx*dx + dy*dy + dz*dz), params.power);
+      d = std::pow(d, params.power);
+
+      heap.push({d, i});
+      if (heap.size() > K) heap.pop(); // evict the farthest
+    }
+
+    // Add directional edges for each neighbor.
+    while (!heap.empty())
+    {
+      const auto [d, nb_id] = heap.top(); heap.pop();
+      graph->add_edge(static_cast<Graph::NodeId>(nb_id), static_cast<Graph::NodeId>(apex_id), d);
+      //graph->add_edge(static_cast<Graph::NodeId>(apex_id), static_cast<Graph::NodeId>(nb_id), d);
+    }
+  }
+
 
   // Run Dijkstra from master seed
   ServiceLocator::logger()(" Dijkstra");
@@ -238,6 +282,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   // Identify reachable and isolated sets
   ServiceLocator::logger()(" Identifying isolated sub-graph");
   std::vector<Graph::NodeId> reachable, isolated;
+
   for (size_t i = 0; i < num_points; ++i)
   {
     if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())
@@ -277,20 +322,25 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
     cache = graph->compute_distances(master_id);
   }
 
+  delete graph;
+
+  ServiceLocator::logger()("  Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
+
   // For each core point, walk the predecessor chain and accumulate Euclidean distance
   ServiceLocator::logger()(" Computing euclidian distance to ground");
   std::vector<float> euclidean_distance_to_root(num_points, -1.0);
 
-  // 1. Precompute per-node euclidean contribution (from node -> its predecessor)
+  const Graph::NodeId NO_PRED = -1;
+
+  // Precompute per-node euclidean contribution (from node -> its predecessor)
   // O(N) point fetches total
   std::vector<float> edge_euclidean(num_points, 0.0);
   for (size_t i = 0; i < num_points; ++i)
   {
-    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity())   continue;
-
-    auto it = predecessors.find(static_cast<Graph::NodeId>(i));
-    if (it == predecessors.end()) continue;
-    Graph::NodeId prev = it->second;
+    if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity()) continue;
+    if (i >= predecessors.size()) continue;
+    Graph::NodeId prev = predecessors[i];
+    if (prev == NO_PRED) continue;
     if (prev < static_cast<Graph::NodeId>(num_points))
     {
       double c[3], p[3];
@@ -301,7 +351,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
     }
   }
 
-  // 2. Accumulate along the tree using memoization
+  // Accumulate along the tree using memoization
   // Process in topological order (by graph_distances = BFS/Dijkstra order)
   std::vector<size_t> order(num_points);
   std::iota(order.begin(), order.end(), 0);
@@ -309,26 +359,20 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   {
     return graph_distances[a] < graph_distances[b];
   });
-
   for (size_t idx : order)
   {
     if (graph_distances[idx] == std::numeric_limits<Graph::Cost>::infinity()) continue;
-    auto it = predecessors.find(static_cast<Graph::NodeId>(idx));
-    if (it == predecessors.end())
+    Graph::NodeId prev = (idx < predecessors.size()) ? predecessors[idx] : NO_PRED;
+    if (prev == NO_PRED)
     {
       euclidean_distance_to_root[idx] = 0.0; // root itself
       continue;
     }
-    Graph::NodeId prev = it->second;
     double parent_dist = (prev < static_cast<Graph::NodeId>(num_points)) ? euclidean_distance_to_root[prev] : 0.0;
     euclidean_distance_to_root[idx] = parent_dist + edge_euclidean[idx];
   }
 
-  // Release adjacency list memory as it's no longer needed
-  graph->clear_adjacency_list();
-  delete graph;
   return euclidean_distance_to_root;
 }
-
 
 }

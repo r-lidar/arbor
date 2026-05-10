@@ -1,19 +1,19 @@
 /**
  * @file SeedDetector.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -61,7 +61,7 @@ void SeedDetector::run(const PointCloud& scene)
   log("Find secondary seeds");
   find_secondary_seeds();
 
-  seeds = primary_seeds + secondary_seeds;
+  seeds = primary_seeds;// + secondary_seeds;
 
   log("Seed detection completed");
 }
@@ -230,7 +230,7 @@ void SeedDetector::find_primary_seeds()
 void SeedDetector::merge_short_passages()
 {
   if (short_passages.size() == 0) return;
-  
+
   // Force short passage to be wood to avoid wood/foliage penalties in pathfinder
   for (size_t i = 0; i < short_passages.size(); i++) short_passages.set_foliage(i, 0);
 
@@ -245,13 +245,18 @@ void SeedDetector::merge_short_passages()
 
   arbor::segment::segment_instance(short_passages, primary_seeds, p);
 
+  // segment_instance adds 1 to tree IDs (to avoid 0 which is NA)
+  // We need to subtract 1 to align with primary_seeds tree IDs
   std::vector<bool> has_id_mask(short_passages.size(), false);
   for (size_t i = 0; i < short_passages.size(); i++)
   {
     int tree_id = short_passages.get_treeid(i);
-    has_id_mask[i] = (tree_id >= 0); // -1 or negative means NA
+    if (tree_id > 0) // segment_instance returns ID+1, so >0 means valid ID
+    {
+      short_passages.set_treeid(i, tree_id - 1); // Remap to original primary_seeds IDs
+      has_id_mask[i] = true;
+    }
   }
-
   primary_seeds += short_passages.subset(has_id_mask);
 }
 
