@@ -1,19 +1,19 @@
 /**
  * @file segment_semantic_api.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -48,25 +48,26 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   if (core.size() == 0) throw std::runtime_error("accumulate_passages(): point cloud is empty.");
   if (dtm.size() == 0)  throw std::runtime_error("accumulate_passages(): seeds point cloud is empty.");
 
-  ServiceLocator::logger()("Decimating the point cloud (1/9)");
+  ServiceLocator::logger()("Decimating the point cloud (1/10)");
 
   // Decimation
   std::vector<bool> keep1 = arbor::utils::homogeneization(core, params.decimation, true);
   PointCloud dec = core.subset(keep1, true);
 
-  ServiceLocator::logger()("Discretizing scene space (2/9)");
+  ServiceLocator::logger()("Discretizing scene space (2/10)");
 
   std::vector<bool> keep2 = arbor::utils::homogeneization(core, params.space_res, false);
   PointCloud targets = core.subset(keep2, true);
 
-  ServiceLocator::logger()("Constructing the graph (3/9)");
+  ServiceLocator::logger()("Constructing the graph (3/10)");
 
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
-  if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
+  ServiceLocator::logger()("  Graph size: " + Graph::format_bytes(graph->mem()));
+  ServiceLocator::logger()("  Graph nodes: " + std::to_string(graph->adjacency_list.size()));
 
-  ServiceLocator::logger()("Accumulating passages (4/9)");
+  if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
   size_t num_raw_points = core.size();
   size_t num_points = dec.size();
@@ -83,8 +84,16 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   // Global count vector
   std::vector<int> passage(num_points, 0);
 
+  ServiceLocator::logger()("Graph resolution (4/10)");
+
   // Precompute distances for fast access
   Graph::GraphCache cache = graph->compute_distances(master_id);
+
+  delete graph;
+
+  ServiceLocator::logger()("  Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
+
+  ServiceLocator::logger()("Accumulating passages (5/10)");
 
   // Parallel loop over goal nodes
   #pragma omp parallel
@@ -114,6 +123,11 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     }
   }
 
+  // Release graph cache memory as it's no longer needed
+  cache.first.clear();
+  cache.first.shrink_to_fit();
+  cache.second.clear();
+
   // Transfer passage values from dec back to core
   // Points not in dec get value 0
   std::vector<int> core_passage(num_raw_points, 0);
@@ -128,8 +142,6 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     }
   }
 
-  delete graph;
-
   return core_passage;
 }
 
@@ -138,7 +150,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
   if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_passage(): point cloud is empty.");
   if (!pc.has_passage())  throw std::runtime_error("assign_wood_from_passage(): point cloud is missing required 'passage' attribute.");
 
-  ServiceLocator::logger()("Pathfinder-based wood segmentation (5/9)");
+  ServiceLocator::logger()("Pathfinder-based wood segmentation (6/10)");
 
   // Filter pseudo-skeleton: points with passage > min_passage
   std::vector<bool> skeleton_mask(pc.size(), false);
@@ -199,7 +211,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_high_likelihood(): point cloud is missing required 'foliage' attribute.");
   if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_high_likelihood(): point cloud is missing required 'pwood' attribute.");
 
-  ServiceLocator::logger()("High likelihood based wood segmentation (6/9)");
+  ServiceLocator::logger()("High likelihood based wood segmentation (7/10)");
 
   // Extract only high likelihood + already wood in previous step (assign_wood_from_passage)
   std::vector<bool> mask(pc.size(), false);
@@ -255,7 +267,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
   if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood(): point cloud is missing required 'foliage' attribute.");
   if (!pc.has_pwood())    throw std::runtime_error("assign_wood_from_medium_likelihood(): point cloud is missing required 'pwood' attribute.");
 
-  ServiceLocator::logger()("Medium likelihood based wood segmentation (7/9)");
+  ServiceLocator::logger()("Medium likelihood based wood segmentation (8/10)");
 
   // Extract only medium likelihood + already wood in previous steps
   std::vector<bool> mask(pc.size(), false);
@@ -330,7 +342,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
   // are wood points too. This assigns extra wood point is the branches and remove
   // some false negatives
 
-  ServiceLocator::logger()("Dilatation based wood segmentation... (8/9)");
+  ServiceLocator::logger()("Dilatation based wood segmentation... (9/10)");
 
   // Extract wood points
   std::vector<bool> is_wood(pc.size(), false);
@@ -408,7 +420,7 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   std::vector<bool> is_wood = assign_wood_from_wood_dilatation(scene, par.semantic);
   for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!is_wood[i]);
 
-  ServiceLocator::logger()("Extra class 2 foliage re-assignation... (9/10)");
+  ServiceLocator::logger()("Extra class 2 foliage re-assignation... (10/10)");
   for (size_t i = 0 ; i < n ; i++)
   {
     if (!scene.is_wood(i) && scene.get_pwood(i) > par.semantic.high_pwood_threshold)

@@ -81,16 +81,22 @@ public:
 void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
   distance_to_root();
-  double H = 0.0;
+  float L = 0.0f;
   for (const auto& [edge_id, edge_info] : graph.edges())
   {
     const float dist = edge_info.data.distance_to_root;
 
-    if (dist != arbor::qsm::DISTANCE_TO_ROOT_UNSET && dist > H)
+    if (dist != arbor::qsm::DISTANCE_TO_ROOT_UNSET && dist > L)
     {
-      H = dist;
+      L = dist;
     }
   }
+
+  float H = 0.0f;
+  for (size_t i = 0 ; i < tree.size() ; i++)
+    if (tree.get_hag(i) > H) H = tree.get_hag(i);
+
+  H = std::max(L, H);
 
   // Estimation of an expected radius based on broad allometry
   double R0 = Allometry::DBH_vs_H(H) / 2.0;
