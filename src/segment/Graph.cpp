@@ -73,6 +73,9 @@ void Graph::finalize() const
     row_ptr_[i] += row_ptr_[i - 1];
 
   // 3. Fill adj_data_ using a temporary position array (a copy of row_ptr_).
+  //    This array tracks the next free slot for each node during the scatter
+  //    step of the counting sort.  The ~(num_nodes_+1) × 8 B allocation is
+  //    transient and freed when the block exits.
   adj_data_.resize(E);
   {
     std::vector<size_t> pos(row_ptr_.begin(), row_ptr_.end());
@@ -84,8 +87,8 @@ void Graph::finalize() const
   } // pos freed here
 
   // 4. Release the (now redundant) COO buffers.
-  coo_src_   = std::vector<NodeId>();
-  coo_edges_ = std::vector<Node>();
+  coo_src_.clear();   coo_src_.shrink_to_fit();
+  coo_edges_.clear(); coo_edges_.shrink_to_fit();
 
   csr_valid_ = true;
 }

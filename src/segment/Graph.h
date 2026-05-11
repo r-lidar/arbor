@@ -67,6 +67,10 @@ private:
   size_t num_nodes_ = 0;
 
   // COO build buffers — populated by add_edge(), freed by finalize().
+  // Marked mutable to support the lazy-initialisation pattern: compute_distances()
+  // and shortest_paths_from_node() are logically const (they do not change the
+  // observable graph) but must trigger finalize() on the first call to convert
+  // the COO buffers to CSR format.  This is the standard "mutable cache" idiom.
   mutable std::vector<NodeId> coo_src_;
   mutable std::vector<Node>   coo_edges_;
 
