@@ -29,29 +29,9 @@
 
 #include "QSMbuilder.h"
 #include "PointCloud.h"
-#include "nanoflann.h"
 #include "fitting.h"
 
 namespace arbor::qsm {
-
-class SimpleAdaptor
-{
-public:
-  struct Point { double x, y, z; int id; };
-  std::vector<Point> points;
-  inline size_t kdtree_get_point_count() const { return points.size(); }
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const
-  {
-    if (dim == 0) return points[idx].x;
-    if (dim == 1) return points[idx].y;
-    return points[idx].z;
-  }
-  template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
-  inline size_t point_count() const { return points.size(); }
-  inline size_t size() const { return points.size(); }
-};
-
-typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, SimpleAdaptor>, SimpleAdaptor, 3> CentroidKDTree;
 
 // Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
 // tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
@@ -191,106 +171,36 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
 void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
 {
-  if (graph.edge_count() == 0) throw std::runtime_error("Internal error: no cylinder in this QSM. Please report.");
+  auto points_by_edge = group_points_by_edge(graph, tree);
+  if (points_by_edge.empty()) throw std::runtime_error("Internal error: no cylinders found.");
 
-  SimpleAdaptor centroids_cloud;
-  // Prepare centroids for KD-Tree
-  centroids_cloud.points.reserve(graph.edge_count());
-
-  std::vector<int> index_to_eid;
-  index_to_eid.reserve(graph.edge_count());
-
-  for (auto& [eid, einfo] : graph.edges())
+  for (auto& [eid, point_indices] : points_by_edge)
   {
-    einfo.data.radius = RADIUS_UNSET;
-
-    const QSMNode& src = graph.node(einfo.source);
-    const QSMNode& tgt = graph.node(einfo.target);
-
-    double cx = (src.x + tgt.x) / 2.0;
-    double cy = (src.y + tgt.y) / 2.0;
-    double cz = (src.z + tgt.z) / 2.0;
-
-    centroids_cloud.points.push_back({cx, cy, cz, eid});
-    index_to_eid.push_back(eid);
-  }
-
-  CentroidKDTree index(3, centroids_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  index.buildIndex();
-
-  // Assign tree points to nearest edge (cylinder)
-  std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
-  size_t num_points = tree.size();
-
-  for (size_t i = 0; i < num_points; ++i)
-  {
-    double query_pt[3];
-    query_pt[0] = tree.get_x(i);
-    query_pt[1] = tree.get_y(i);
-    query_pt[2] = tree.get_z(i);
-
-    size_t ret_index;
-    double out_dist_sqr;
-
-    nanoflann::KNNResultSet<double> resultSet(1);
-    resultSet.init(&ret_index, &out_dist_sqr);
-    index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
-
-    points_per_edge[ret_index].push_back(i);
-  }
-
-  for (size_t i = 0; i < points_per_edge.size(); ++i)
-  {
-    const auto& point_indices = points_per_edge[i];
-    int eid = index_to_eid[i];
     auto& einfo = graph.edge(eid);
     QSMEdge& ed = einfo.data;
+    ed.radius = RADIUS_UNSET;
 
-    if (ed.cyl_ID < 1)             continue;  // cyl_ID < 1 means it is a prolongation
-    if (point_indices.empty())     continue;
-    if (ed.conic_allometry < 0.03) continue;  // TODO: control parameter
-    if (point_indices.size() < 50) continue;
+    // Filtration logic
+    if (ed.cyl_ID < 1 || point_indices.size() < 50 || ed.conic_allometry < 0.03)
+      continue;
 
-    const QSMNode& src = graph.node(einfo.source);
-    const QSMNode& tgt = graph.node(einfo.target);
-
-    utils::fitting::Vec3 axis_start = {src.x, src.y, src.z};
-    utils::fitting::Vec3 axis_end   = {tgt.x, tgt.y, tgt.z};
+    const auto& src = graph.node(einfo.source);
+    const auto& tgt = graph.node(einfo.target);
 
     utils::fitting::FittingCircloid fitter;
-    fitter.set_axe(axis_start, axis_end);
+    fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
     for (size_t pt_idx : point_indices)
-    {
-      double x = tree.get_x(pt_idx);
-      double y = tree.get_y(pt_idx);
-      double z = tree.get_z(pt_idx);
-      fitter.add_point(x, y, z);
-    }
+      fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    utils::fitting::FittingResult res = fitter.fit(0.03);
+    auto res = fitter.fit(0.03);
 
-    double r_meas    = res.radius;
-    double p_inside  = 0;
-    double arc       = res.arc_coverage_deg;
-    double p_inlier  = res.inlier_percentage;
-    bool valid = true;
-    if (r_meas < srmeas) valid = false;
-    else if (p_inside > sins) valid = false;
-    else if (!(arc > sarc && p_inlier > sinl)) valid = false;
+    bool valid = (res.radius >= srmeas) && (res.arc_coverage_deg > sarc) && (res.inlier_percentage > sinl);
 
-    // We fitted a valid circloid:
-    //  - update the radius
-    //  - update the position of the node for more accuracy
     if (valid)
     {
-      ed.radius = r_meas;
+      ed.radius = res.radius;
       ed.quality = EdgeQuality::MEASURED;
-      /*auto nodeid = einfo.source;
-      auto& node = graph.nodes()[nodeid];
-      node.x = res.center.x;
-      node.y = res.center.y;
-      node.z = res.center.z;*/
     }
   }
 }
@@ -299,85 +209,31 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 {
   ServiceLocator::logger()("Refine radii");
 
-    if (graph.edge_count() == 0) return;
+  auto points_by_edge = group_points_by_edge(graph, tree);
 
-  // Prepare centroids for KD-Tree
-  SimpleAdaptor centroids_cloud;
-  centroids_cloud.points.reserve(graph.edge_count());
-  std::vector<int> index_to_eid;
-  index_to_eid.reserve(graph.edge_count());
-
-  for (auto& [eid, einfo] : graph.edges())
+  for (auto& [eid, point_indices] : points_by_edge)
   {
-    const QSMNode& src = graph.node(einfo.source);
-    const QSMNode& tgt = graph.node(einfo.target);
-    double cx = (src.x + tgt.x) / 2.0;
-    double cy = (src.y + tgt.y) / 2.0;
-    double cz = (src.z + tgt.z) / 2.0;
-    centroids_cloud.points.push_back({cx, cy, cz, eid});
-    index_to_eid.push_back(eid);
-  }
-
-  CentroidKDTree index(3, centroids_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  index.buildIndex();
-
-  // Assign tree points to nearest edge (cylinder)
-  std::vector<std::vector<size_t>> points_per_edge(centroids_cloud.points.size());
-  size_t num_points = tree.size();
-  for (size_t i = 0; i < num_points; ++i)
-  {
-    double query_pt[3] = { tree.get_x(i), tree.get_y(i), tree.get_z(i) };
-    size_t ret_index;
-    double out_dist_sqr;
-    nanoflann::KNNResultSet<double> resultSet(1);
-    resultSet.init(&ret_index, &out_dist_sqr);
-    index.findNeighbors(resultSet, query_pt, nanoflann::SearchParameters());
-    points_per_edge[ret_index].push_back(i);
-  }
-
-  for (size_t i = 0; i < points_per_edge.size(); ++i)
-  {
-    const auto& point_indices = points_per_edge[i];
-    int eid = index_to_eid[i];
     auto& einfo = graph.edge(eid);
-    QSMEdge& ed = einfo.data;
+    if (einfo.data.radius < 0.03 || point_indices.empty()) continue;
 
-    // Skip too small radii. They are unlikely to be robust enough
-    if (ed.radius < 0.03)      continue;
-    if (point_indices.empty()) continue;
+    const auto& src = graph.node(einfo.source);
+    const auto& tgt = graph.node(einfo.target);
 
-    // Get the orientation of the edge by gathering its nodes
-    const QSMNode& src = graph.node(einfo.source);
-    const QSMNode& tgt = graph.node(einfo.target);
-    utils::fitting::Vec3 axis_start = {src.x, src.y, src.z};
-    utils::fitting::Vec3 axis_end   = {tgt.x, tgt.y, tgt.z};
-
-    // Fitting
     utils::fitting::FittingCircloid fitter;
-    fitter.set_axe(axis_start, axis_end);
+    fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
+
     for (size_t pt_idx : point_indices)
-    {
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
-    }
 
-    utils::fitting::FittingResult res = fitter.fit(0.04);
+    auto res = fitter.fit(0.04);
+    float ratio = (res.radius - einfo.data.radius) / einfo.data.radius;
 
-    float ratio = (res.radius - ed.radius) / ed.radius;
-    // Very strict validation: we only accept a near-perfect measurement
-    bool valid =
-      res.arc_coverage_deg > 300.0 &&   // Close to full closed loop
-      res.inlier_percentage > 70.0 &&   // Lot of inliers
-      ed.radius >= 0.04 &&              // At least 4 cm radius
-      ratio > -0.1;                     // Not smaller than -10% than reference
+    bool valid = res.arc_coverage_deg > 300.0 && res.inlier_percentage > 70.0 && einfo.data.radius >= 0.04 && ratio > -0.1;
 
     if (valid)
     {
-      ed.radius = res.radius;
+      einfo.data.radius = res.radius;
       einfo.data.quality = EdgeQuality::REFINED;
-      /*auto& node = graph.nodes()[einfo.source];
-      node.x = res.center.x;
-      node.y = res.center.y;
-      node.z = res.center.z;*/
     }
   }
 }

@@ -1,19 +1,19 @@
 /**
  * @file RcppApi_qsm.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -506,6 +506,24 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
     Rcpp::Named("parent_ID") = new_parent_ID,
     Rcpp::Named("original_row") = new_original_row  // <-- added column
   );
+}
+
+Rcpp::IntegerVector qsm_get_cylID(Rcpp::DataFrame qsmdf, Rcpp::DataFrame pcdf)
+{
+  QSM qsm = as_qsm(qsmdf);
+  PointCloud pc(pcdf);
+  auto map = QSMbuilder::group_points_by_edge(qsm, pc);
+
+  Rcpp::IntegerVector res(pc.size());
+  for (const auto& e : map)
+  {
+    for (auto i : e.second)
+    {
+      res[i] = e.first;
+    }
+  }
+
+  return res;
 }
 
 #endif

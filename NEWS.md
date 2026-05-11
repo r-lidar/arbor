@@ -5,6 +5,7 @@
 - Fix: edge case connections in `qsm()`
 - Fix: `find_seed()` erroneous seed ID assignment
 - Fix: `segment_instance()` erroneous seed ID transfer
+- Fix: various QSM stuff especially for small trees
 - New: attribute `quality` in the QSM (`qsm$quality`). See new section in the book.
 
 # arbor 0.10.0
