@@ -160,7 +160,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     }
   }
 
-  /*if (Rroot > 3*R0)
+  if (Rroot > 3*R0)
   {
     std::ostringstream oss;
     oss << "[WARN 3] Measured root diameter is "
@@ -169,15 +169,15 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
         << std::fixed << std::setprecision(1) << 2 * Rroot
         << " vs. "
         << std::fixed << std::setprecision(2) << 2 * R0
-        << ").  Fall back to pure reconstruction based on allometry";
+        << ").";
 
     std::string msg = oss.str();
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
 
-    conic_allometry(2.0 * R0, tip_radius);
-    return;
-  }*/
+    //conic_allometry(2.0 * R0, tip_radius);
+    //return;
+  }
 
   ServiceLocator::logger()("Reconstruction");
   reconstruct_missing_radii(tip_radius);
