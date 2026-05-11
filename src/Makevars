@@ -70,6 +70,7 @@ OBJECTS = api/PointCloud.o \
   qsm/QSMbuilder.o \
   qsm/QSMbuilder_butt.o \
   qsm/QSMbuilder_utils.o \
+  qsm/QSMbuilder_qsm2cloud.o \
   qsm/qsm_api.o \
   qsm/QSM_mesh.o \
   qsm/QSM_utils.o \

@@ -125,6 +125,10 @@ qsm_mesh_cpp <- function(df, resolution) {
     .Call(`_arbor_qsm_mesh_cpp`, df, resolution)
 }
 
+qsm_get_cylID <- function(qsmdf, pcdf) {
+    .Call(`_arbor_qsm_get_cylID`, qsmdf, pcdf)
+}
+
 qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
 }
