@@ -1,18 +1,18 @@
 # @file segment_plot.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -48,7 +48,7 @@ plot_semantic = function(las, dtm = NULL, ...)
 plot_instance = function(las, dtm = NULL, ...)
 {
   set.seed(42)
-  las@data$treeID[las$treeID < 0] = NA_integer_
+  if ("UserData" %in% names(las)) las@data$treeID[las$UserData > ARBORTREE] = NA_integer_
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
@@ -110,11 +110,18 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 #' one rendering.
 colorize_trees = function(las, darken_foliage = TRUE)
 {
+  tid = las$treeID
   R = rep(150L, lidR::npoints(las))
   G = rep(150L, lidR::npoints(las))
   B = rep(150L, lidR::npoints(las))
   las = lidR::add_lasrgb(las, R, G, B)
+  if ("UserData" %in% names(las))
+  {
+    las@data$treeID = data.table::copy(las@data$treeID)
+    las@data[UserData > 0, treeID := treeID * -1] # negative values for treeID such as C++ colorization skips them.
+  }
   colorize_trees_cpp(las@data, darken_foliage)
+  las$treeID = tid
   return(las)
 }
 

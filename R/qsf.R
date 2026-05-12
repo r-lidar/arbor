@@ -1,18 +1,18 @@
 # @file qsf.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -30,8 +30,13 @@
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
   #params <- evaluate_penalty(params)
+  if ("UserData" %in% names(las))
+  {
+    las@data$treeID = data.table::copy(las@data$treeID)
+    las@data[UserData > 0, treeID := treeID * -1] # negative values for treeID such as C++ qsf skips them.
+  }
   res <- qsf_cpp(las@data, min_height, params)
-  for(i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
+  for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]
   res <- as_qsf(res)
   res

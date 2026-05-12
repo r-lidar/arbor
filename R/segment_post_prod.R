@@ -58,9 +58,9 @@ flag_small_trees = function(las, max_height = 2)
   ans <- ans[hag_max > max_height & hag_min < max_height]
 
   # Keep trees whose seeds are inside
-  las@data$treeID = data.table::copy(las@data$treeID)
-  las@data[treeID < 0, treeID := treeID * -1] # revert previous
-  las@data[!treeID %in% ans$treeID, treeID := treeID * -1]
+  if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
+  las@data[UserData == ARBORUNDERSTORY, UserData := ARBORTREE] # revert previous
+  las@data[!treeID %in% ans$treeID, UserData := ARBORUNDERSTORY]
   las
 }
 
@@ -157,9 +157,9 @@ flag_buffer = function(las, seeds, buffer = -5)
   if (!nrow(valid_seeds)) return(las[0])
 
   # Keep trees whose seeds are inside
-  las@data$treeID = data.table::copy(las@data$treeID)
-  las@data[treeID < 0, treeID := treeID * -1] # revert previous
-  las@data[!treeID %in% valid_seeds$treeID, treeID := treeID * -1]
+  if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
+  las@data[UserData == ARBORBUFFER, UserData := ARBORTREE] # revert previous
+  las@data[!treeID %in% valid_seeds$treeID, UserData := ARBORBUFFER]
   return(las)
 }
 

@@ -5,16 +5,31 @@
 \alias{parameters}
 \alias{arbor_parameters_default}
 \alias{arbor_parameters_occlusion}
+\alias{ARBORTREE}
+\alias{ARBORUNDERSTORY}
+\alias{ARBORBUFFER}
 \title{Parameters}
 \format{
 An object of class \code{list} of length 7.
 
 An object of class \code{list} of length 7.
+
+An object of class \code{integer} of length 1.
+
+An object of class \code{integer} of length 1.
+
+An object of class \code{integer} of length 1.
 }
 \usage{
 arbor_parameters_default
 
 arbor_parameters_occlusion
+
+ARBORTREE
+
+ARBORUNDERSTORY
+
+ARBORBUFFER
 }
 \description{
 Default is suitable for most dataset. Occlusion is suitable for lower quality datasets
