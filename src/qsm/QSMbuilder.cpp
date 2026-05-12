@@ -57,11 +57,20 @@ void QSMbuilder::build(const PointCloud& tree)
 
   // Filter wood only
   // Cut below the 1% threshold to clean the bottom of the tree
+  int count = 0;
   std::vector<bool> wood_mask(n, false);
   for (std::size_t i = 0; i < n; ++i)
   {
-    wood_mask[i] = tree.is_wood(i) && (tree.get_z(i) >= z_threshold);
+    bool b = tree.is_wood(i) && (tree.get_z(i) >= z_threshold);
+    if (b) count++;
+    wood_mask[i] = b;
     if (i == index) wood_mask[i] = true; // The highest point is enforced to be wood.
+  }
+
+  if (count == 0)
+  {
+    graph.messages.push_back("[WARN 4] This tree has no point labelled as wood");
+    return;
   }
 
   PointCloud wood = tree.subset(wood_mask);
@@ -105,13 +114,13 @@ void QSMbuilder::build(const PointCloud& tree)
   while (gnd.size() == 0)
   {
     std::vector<bool> gnd_mask(n);
-    for (size_t i = 0 ; i < n ; i++)
+    for (size_t i = 0; i < n; i++)
     {
       if (wood.get_z(i) < th)
         gnd_mask[i] = true;
     }
-    th += 0.05;
     gnd = wood.subset(gnd_mask);
+    th += 0.05;
   }
 
   if (gnd.size() == wood.size())

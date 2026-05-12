@@ -1,3 +1,7 @@
+# arbor 0.11.1
+ 
+ - Fix: `qsm()` no longer failing with instances with 0 wood point.
+
 # arbor 0.11.0
 
 - Change: `flag_buffer()` replaces `clip_buffer()`
