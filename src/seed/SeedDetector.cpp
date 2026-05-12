@@ -61,7 +61,8 @@ void SeedDetector::run(const PointCloud& scene)
   log("Find secondary seeds");
   find_secondary_seeds();
 
-  seeds = primary_seeds;// + secondary_seeds;
+  seeds = primary_seeds;
+  seeds += secondary_seeds;
 
   log("Seed detection completed");
 }
@@ -224,9 +225,12 @@ void SeedDetector::find_primary_seeds()
   std::vector<bool> long_seed_mask(temp.size(), false);
   for (size_t i = 0; i < temp.size(); i++) long_seed_mask[i] = (temp.get_passage(i) > 0);
 
+  // primary seeds are assigned IDs in [0, n]
   primary_seeds = temp.subset(long_seed_mask);
 }
 
+// Merge some short passage with primary seeds. To merge we use a pathfinder to see if we can find a passage
+// between primary seeds and short passage seeds.
 void SeedDetector::merge_short_passages()
 {
   if (short_passages.size() == 0) return;
@@ -245,32 +249,34 @@ void SeedDetector::merge_short_passages()
 
   arbor::segment::segment_instance(short_passages, primary_seeds, p);
 
-  // segment_instance adds 1 to tree IDs (to avoid 0 which is NA)
-  // We need to subtract 1 to align with primary_seeds tree IDs
   std::vector<bool> has_id_mask(short_passages.size(), false);
   for (size_t i = 0; i < short_passages.size(); i++)
   {
     int tree_id = short_passages.get_treeid(i);
     if (tree_id > 0) // segment_instance returns ID+1, so >0 means valid ID
     {
-      short_passages.set_treeid(i, tree_id - 1); // Remap to original primary_seeds IDs
+      short_passages.set_treeid(i, tree_id); // Remap to original primary_seeds IDs
       has_id_mask[i] = true;
     }
   }
+
+  // primary seeds is augmented with short passage seeds that have now and ID
   primary_seeds += short_passages.subset(has_id_mask);
 }
 
 void SeedDetector::find_secondary_seeds()
 {
+  // Short passage contains points with an ID computed in merge_short_passages().
+  // We want the remaining set of points with no ID.
   std::vector<bool> no_id_mask(short_passages.size(), false);
   for (size_t i = 0; i < short_passages.size(); i++)
   {
     int tree_id = short_passages.get_treeid(i);
     no_id_mask[i] = (tree_id < 0); // Assuming -1 or negative means NA
   }
-
   PointCloud short_passages_noid = short_passages.subset(no_id_mask);
 
+  // Find the biggest ID assigned so far. New seeds will be assigned ID from this number.
   int max_id = primary_seeds.get_treeid(0);
   for (size_t i = 1 ; i < primary_seeds.size() ; i++)
   {
@@ -278,6 +284,7 @@ void SeedDetector::find_secondary_seeds()
       max_id = primary_seeds.get_treeid(i);
   }
 
+  // Connected component in short passages with no ID
   if (short_passages_noid.size() > 0)
   {
     Grid3D grid(short_passages_noid, 0.1);

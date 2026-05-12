@@ -1,6 +1,7 @@
 # arbor 0.11.1
  
  - Fix: `qsm()` no longer failing with instances with 0 wood point.
+ - Fix: invalid IDs assignments in `find_seeds()` 
 
 # arbor 0.11.0
 
