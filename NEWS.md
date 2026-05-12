@@ -1,3 +1,7 @@
+# arbor 0.11.2
+
+- Change: `flag_*` now assigns the values `ARBORTREE`, `ARBORUNDERSTORY` and `ARBORBUFFER` is `UserData`. No longer any negative `treeID`
+
 # arbor 0.11.1
  
  - Fix: `qsm()` no longer failing with instances with 0 wood point.
