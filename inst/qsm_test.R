@@ -72,6 +72,12 @@ x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)
 }
 
+microbenchmark::microbenchmark(qsm = qsm_write(qsm, "~/Téléchargements/test.qsm"),
+                               csv = qsm_write(qsm, "~/Téléchargements/test.csv"))
+
+microbenchmark::microbenchmark(qsm = qsm_read("~/Téléchargements/test.qsm"),
+                               csv = qsm_read("~/Téléchargements/test.csv"))
+
 qsm = qsm(tree, params)
 plot(qsm)
 as.data.frame(qsm)

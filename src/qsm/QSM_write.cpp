@@ -1,19 +1,19 @@
 /**
- * @file QSM_write.cpp
+ * @file QSM_io.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstring> // std::memset
 #include <cstdint>
+#include <ctime>   // std::time, std::strftime, std::gmtime
 #include <array>
 
 namespace arbor::qsm {
@@ -62,7 +63,9 @@ void QSM::write(const std::string& filename, bool binary) const
   // Normalize extension
   std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
-  if (ext == "obj")
+  if (ext == "qsm")
+    write_qsm(filename);
+  else if (ext == "obj")
     write_obj(filename);
   else if (ext == "stl")
     write_stl(filename, binary);
@@ -71,8 +74,122 @@ void QSM::write(const std::string& filename, bool binary) const
   else if (ext == "csv" || ext == "txt")
     write_csv(filename);
   else
-    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: .obj, .ply, .stl, .csv, .txt");
+    throw std::runtime_error("Unknown file extension: " + ext + ". Supported: .qbf, .obj, .ply, .stl, .csv, .txt");
 }
+
+// ---------------------------------------------------------------------------
+// QSM::write_qbf  (private)
+//
+// Writes the QSM to a QBF (QSM Binary Format) file.
+//
+// Binary record layouts (little-endian, no padding):
+//
+//   Node record (28 bytes):
+//     int32_t  node_id
+//     double   x, y, z
+//
+//   Edge record (30 bytes):
+//     int32_t  edge_id
+//     int32_t  source
+//     int32_t  target
+//     float    radius
+//     float    subtree_length
+//     float    distance_to_root
+//     int32_t  axis_ID
+//     uint8_t  branch_order
+//     uint8_t  quality           (EdgeQuality enum)
+//
+// Fields intentionally omitted:
+//   cyl_ID, parent_ID    — redundant with edge_id and graph topology
+//   conic_allometry, subtree_max_endZ, subtree_volume  — runtime-only scratch
+// ---------------------------------------------------------------------------
+void QSM::write_qsm(const std::string& filename) const
+{
+  std::ofstream out(filename, std::ios::binary);
+  if (!out.is_open())
+    throw std::runtime_error("Cannot open file: " + filename);
+
+  // ---- Geographic origin: use the root node position ----------------------
+  // Storing coordinates relative to the root keeps float values near zero,
+  // giving sub-millimetre precision over the extent of any real tree.
+  double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
+  {
+    const NodeID root = find_root_node();
+    if (root != -1)
+    {
+      const QSMNode& r = node(root);
+      xoffset = r.x;
+      yoffset = r.y;
+      zoffset = r.z;
+    }
+  }
+
+  // ---- UTC timestamp -------------------------------------------------------
+  char timestamp[32] = "unknown";
+  {
+    const std::time_t t   = std::time(nullptr);
+    std::tm* const    gmt = std::gmtime(&t);
+    if (gmt) std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmt);
+  }
+
+  // ---- ASCII header --------------------------------------------------------
+  out << "# QSM Binary Format by Arbor\n";
+  out << "VERSION 1.0\n";
+  out << "SOFTWARE Arbor\n";
+  out << "CREATED "   << timestamp          << "\n";
+  out << "NODES "     << nodes().size()     << "\n";
+  out << "EDGES "     << edges().size()     << "\n";
+  out << "NODE_SIZE 16\n";
+  out << "EDGE_SIZE 30\n";
+  out << std::fixed << std::setprecision(4);
+  out << "X_OFFSET "  << xoffset            << "\n";
+  out << "Y_OFFSET "  << yoffset            << "\n";
+  out << "Z_OFFSET "  << zoffset            << "\n";
+
+  for (const std::string& msg : messages)
+  {
+    out << "MESSAGE ";
+    for (const char c : msg)
+      out << (c == '\n' ? "\\n" : std::string(1, c));
+    out << "\n";
+  }
+
+  out << "DATA binary\n";
+
+  // ---- Binary node records (16 bytes each) ---------------------------------
+  for (const auto& [nid, n] : nodes())
+  {
+    const int32_t id = static_cast<int32_t>(nid);
+    const float   fx = static_cast<float>(n.x - xoffset);
+    const float   fy = static_cast<float>(n.y - yoffset);
+    const float   fz = static_cast<float>(n.z - zoffset);
+    out.write(reinterpret_cast<const char*>(&id), sizeof(int32_t));
+    out.write(reinterpret_cast<const char*>(&fx), sizeof(float));
+    out.write(reinterpret_cast<const char*>(&fy), sizeof(float));
+    out.write(reinterpret_cast<const char*>(&fz), sizeof(float));
+  }
+
+  // ---- Binary edge records (30 bytes each) ---------------------------------
+  for (const auto& [eid, einfo] : edges())
+  {
+    const QSMEdge& e   = einfo.data;
+    const int32_t  id  = static_cast<int32_t>(eid);
+    const int32_t  src = static_cast<int32_t>(einfo.source);
+    const int32_t  tgt = static_cast<int32_t>(einfo.target);
+    const uint8_t  bo  = static_cast<uint8_t>(e.branch_order);
+    const uint8_t  q   = static_cast<uint8_t>(e.quality);
+    out.write(reinterpret_cast<const char*>(&id),                 sizeof(int32_t));
+    out.write(reinterpret_cast<const char*>(&src),                sizeof(int32_t));
+    out.write(reinterpret_cast<const char*>(&tgt),                sizeof(int32_t));
+    out.write(reinterpret_cast<const char*>(&e.radius),           sizeof(float));
+    out.write(reinterpret_cast<const char*>(&e.subtree_length),   sizeof(float));
+    out.write(reinterpret_cast<const char*>(&e.distance_to_root), sizeof(float));
+    out.write(reinterpret_cast<const char*>(&e.axis_ID),          sizeof(int32_t));
+    out.write(reinterpret_cast<const char*>(&bo),                 sizeof(uint8_t));
+    out.write(reinterpret_cast<const char*>(&q),                  sizeof(uint8_t));
+  }
+}
+
 
 void QSM::write_ply(const std::string& filename, bool binary) const
 {
@@ -301,40 +418,4 @@ void QSM::write_csv(const std::string& filename) const
   }
 }
 
-/*void QSM::dump(std::ostream& os, bool detailed) const
-{
-  os << "=== QSM Graph Debug Info ===\n";
-
-  // NOTE: You may need to change `num_nodes()` and `num_edges()` to match
-  // the exact method names in your DirectedGraph base class (e.g., node_count(), edges.size()).
-  os << "Total Nodes: " << this->nodes().size() << "\n";
-  os << "Total Edges: " << this->edges().size() << "\n";
-
-  if (detailed) {
-    os << "\n--- Edge (Cylinder) Details ---\n";
-
-    // NOTE: Adjust this loop to match your DirectedGraph iterator/container.
-    // If your graph stores edges in a std::vector<QSMEdge> called `edges_`,
-    // this loop would just be `for (const auto& edge : this->edges_)`
-    for (const auto e  : edges()) {
-
-      // Assuming your iterator gives you an edge ID, and you fetch the data:
-      const QSMEdge& edge = e.second.data;
-
-      // If you also want to print length/volume, fetch the source and target nodes:
-      // const QSMNode& src = this->get_node_data(this->source(*it));
-      // const QSMNode& tgt = this->get_node_data(this->target(*it));
-
-      os << "Cyl ID: "   << std::setw(4) << edge.cyl_ID
-         << " | Parent ID: " << std::setw(4) << edge.parent_ID
-         << " | Axis ID: "   << std::setw(2) << edge.axis_ID
-         << " | Order: "     << std::setw(2) << edge.branch_order
-         << " | Radius: "    << edge.radius
-      // << " | Length: "  << edge.length(src, tgt)
-         << "\n";
-    }
-  }
-  os << "============================\n";
-}*/
-
-}
+} // namespace arbor::qsm

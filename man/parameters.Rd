@@ -6,6 +6,7 @@
 \alias{arbor_parameters_default}
 \alias{arbor_parameters_occlusion}
 \alias{ARBORTREE}
+\alias{ARBORLOW}
 \alias{ARBORUNDERSTORY}
 \alias{ARBORBUFFER}
 \title{Parameters}
@@ -19,6 +20,8 @@ An object of class \code{integer} of length 1.
 An object of class \code{integer} of length 1.
 
 An object of class \code{integer} of length 1.
+
+An object of class \code{integer} of length 1.
 }
 \usage{
 arbor_parameters_default
@@ -26,6 +29,8 @@ arbor_parameters_default
 arbor_parameters_occlusion
 
 ARBORTREE
+
+ARBORLOW
 
 ARBORUNDERSTORY
 

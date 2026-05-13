@@ -13,6 +13,5 @@ qsm_read(x)
 A data frame of QSM segment data.
 }
 \description{
-Loads QSM segment data from a CSV file and unify naming convention. So the function reads Computree
-TreeQSM, arbor in the same format.
+Loads QSM segment data from a CSV or QSM files.
 }

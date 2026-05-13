@@ -37,11 +37,11 @@ static constexpr float Z_EPS                   = 1e-9;
 enum class EdgeQuality
 {
   UNKNOWN    = 0,
-  PROLONG    = 1,
-  CONICALLOM = 2,
-  POLYNOMIAL = 3,
-  MEASURED   = 4,
-  REFINED    = 5,
+    PROLONG    = 1,
+    CONICALLOM = 2,
+    POLYNOMIAL = 3,
+    MEASURED   = 4,
+    REFINED    = 5,
 };
 
 // A node in the QSM graph: a 3-D junction point in the tree structure.
@@ -136,6 +136,7 @@ class QSM : public DirectedGraph<QSMNode, QSMEdge>
 public:
   void tmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,3>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
   void qmesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int sides = 16) const;
+  void read(const std::string& filename);
   void write(const std::string& filename, bool binary = true) const;
   void validate() const;
   NodeID find_root_node() const;
@@ -149,10 +150,12 @@ public:
 
 private:
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;
+  void read_qsm (const std::string& filename);
   void write_ply(const std::string& filename, bool binary) const;
   void write_stl(const std::string& filename, bool binary) const;
   void write_obj(const std::string& filename) const;
   void write_csv(const std::string& filename) const;
+  void write_qsm(const std::string& filename) const;
 };
 
 } // namespace arbor::qsm

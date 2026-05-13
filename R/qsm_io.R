@@ -1,18 +1,18 @@
 # @file qsm_io.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -22,6 +22,7 @@
 #' based on the file extension.
 #'
 #' Supported formats:
+#' * `.qsm`: writes the QSM as native binary format
 #' * `.ply` or `.obj` or `.stl`: writes the QSM as a mesh file
 #' * `.csv` or `.txt`: writes the QSM as a table
 #'
@@ -34,7 +35,8 @@
 #'
 #' @examples
 #' \dontrun{
-#' qsm_write(qsm, "tree.ply")
+#' qsm_write(qsm, "tree.qsm")
+#' qsm_write(qsm, "tree.obj")
 #' qsm_write(qsm, "tree.csv")
 #' }
 #' @export
@@ -48,8 +50,7 @@ qsm_write = function(qsm, file, binary = TRUE)
 
 #' Read QSM Data from File
 #'
-#' Loads QSM segment data from a CSV file and unify naming convention. So the function reads Computree
-#' TreeQSM, arbor in the same format.
+#' Loads QSM segment data from a CSV or QSM files.
 #'
 #' @param x A character string specifying the file path.
 #' @return A data frame of QSM segment data.
@@ -57,12 +58,22 @@ qsm_write = function(qsm, file, binary = TRUE)
 #' @md
 qsm_read = function(x)
 {
-  qsm = data.table::fread(x)
-  qsm = unify_names(qsm)
-  name = tools::file_path_sans_ext(basename(x))
-  attr(qsm, "ID") = name
-  qsm = as_qsm(qsm)
-  return(qsm)
+  x = normalizePath(x, mustWork = TRUE)
+
+  if (tools::file_ext(x) == "csv")
+  {
+    qsm = data.table::fread(x)
+    qsm = unify_names(qsm)
+    name = tools::file_path_sans_ext(basename(x))
+    attr(qsm, "ID") = name
+    return(qsm)
+  }
+  else
+  {
+    qsm = qsm_read_cpp(x)
+  }
+
+  return(suppressWarnings(qsm_finalize(qsm)))
 }
 
 unify_names <- function(qsm)

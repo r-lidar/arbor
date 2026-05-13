@@ -21,13 +21,15 @@ based on the file extension.
 \details{
 Supported formats:
 \itemize{
+\item \code{.qsm}: writes the QSM as native binary format
 \item \code{.ply} or \code{.obj} or \code{.stl}: writes the QSM as a mesh file
 \item \code{.csv} or \code{.txt}: writes the QSM as a table
 }
 }
 \examples{
 \dontrun{
-qsm_write(qsm, "tree.ply")
+qsm_write(qsm, "tree.qsm")
+qsm_write(qsm, "tree.obj")
 qsm_write(qsm, "tree.csv")
 }
 }

@@ -1,5 +1,6 @@
-# arbor 0.11.2
+# arbor 0.12.0
 
+- New: native `.qsm` file format supported.
 - Change: `flag_*` now assigns the values `ARBORTREE`, `ARBORUNDERSTORY` and `ARBORBUFFER` is `UserData`. No longer any negative `treeID`
 
 # arbor 0.11.1

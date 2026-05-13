@@ -65,6 +65,13 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary)
   qsm.write(filename, binary);
 }
 
+Rcpp::DataFrame qsm_read_cpp(std::string filename)
+{
+  QSM qsm;
+  qsm.read(filename);
+  return as_dataframe(qsm);
+}
+
 
 Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3)
 {

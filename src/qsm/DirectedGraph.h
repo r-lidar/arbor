@@ -1,19 +1,19 @@
 /**
  * @file DirectedGraph.h
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -53,6 +53,20 @@ public:
     return id;
   }
 
+  // Insert a node with a caller-supplied id.
+  // Intended for deserialisation: preserves the original NodeID from a file
+  // so that edge source/target references remain consistent.
+  // Keeps next_node_id_ above any inserted id so that subsequent add_node()
+  // calls cannot collide with the restored graph.
+  NodeID insert_node(NodeID id, const NodeData& data)
+  {
+    nodes_[id] = data;
+    outgoing_[id] = {};
+    incoming_[id] = {};
+    if (id >= next_node_id_) next_node_id_ = id + 1;
+    return id;
+  }
+
   bool has_node(NodeID id) const { return nodes_.count(id) > 0; }
   size_t node_count() const { return nodes_.size(); }
 
@@ -74,6 +88,18 @@ public:
     edges_[id] = {source, target, data};
     outgoing_[source].push_back(id);
     incoming_[target].push_back(id);
+    return id;
+  }
+
+  // Insert an edge with a caller-supplied id.
+  // Intended for deserialisation: mirrors insert_node() semantics.
+  // The source and target nodes must already be present in the graph.
+  EdgeID insert_edge(EdgeID id, NodeID source, NodeID target, const EdgeData& data)
+  {
+    edges_[id] = {source, target, data};
+    outgoing_[source].push_back(id);
+    incoming_[target].push_back(id);
+    if (id >= next_edge_id_) next_edge_id_ = id + 1;
     return id;
   }
 
