@@ -49,6 +49,7 @@ plot_instance = function(las, dtm = NULL, ...)
 {
   set.seed(42)
   if ("UserData" %in% names(las)) las@data$treeID[las$UserData != ARBORTREE] = NA_integer_
+  las@data$treeID[las@data$treeID == 0] = NA_integer_
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
