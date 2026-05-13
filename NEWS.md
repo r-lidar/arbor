@@ -1,3 +1,7 @@
+# arbor 0.12.1
+
+- Enhance `plot_qsm()` colors
+
 # arbor 0.12.0
 
 - New: native `.qsm` file format supported.
