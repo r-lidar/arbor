@@ -59,8 +59,9 @@ flag_small_trees = function(las, max_height = 2)
 
   # Keep trees whose seeds are inside
   if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
+  las@data$UserData = data.table::copy(las@data$UserData)
   las@data[UserData == ARBORUNDERSTORY, UserData := ARBORTREE] # revert previous
-  las@data[!treeID %in% ans$treeID, UserData := ARBORUNDERSTORY]
+  las@data[!treeID %in% ans$treeID & UserData != ARBORLOW, UserData := ARBORUNDERSTORY]
   las
 }
 
@@ -115,7 +116,7 @@ flag_buffer = function(las, seeds, buffer = -5)
       return(list(X = x, Y = y, Z = z))
     }
 
-    roots <- las@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- las@data[treeID > 0, root(X, Y, Z), by = treeID]
     roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
     if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
   }
@@ -130,7 +131,7 @@ flag_buffer = function(las, seeds, buffer = -5)
       return(list(X = x, Y = y, Z = z))
     }
 
-    roots <- seeds@data[!is.na(treeID), root(X, Y, Z), by = treeID]
+    roots <- seeds@data[treeID > 0, root(X, Y, Z), by = treeID]
     roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
     if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
   }
@@ -158,8 +159,9 @@ flag_buffer = function(las, seeds, buffer = -5)
 
   # Keep trees whose seeds are inside
   if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
+  las@data$UserData = data.table::copy(las@data$UserData)
   las@data[UserData == ARBORBUFFER, UserData := ARBORTREE] # revert previous
-  las@data[!treeID %in% valid_seeds$treeID, UserData := ARBORBUFFER]
+  las@data[!treeID %in% valid_seeds$treeID & UserData != ARBORLOW, UserData := ARBORBUFFER]
   return(las)
 }
 

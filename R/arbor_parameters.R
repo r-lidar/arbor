@@ -29,13 +29,15 @@ arbor_parameters_default = list()
 #' @name parameters
 arbor_parameters_occlusion = list()
 
-
 #' @export
 #' @rdname parameters
 ARBORTREE <- 0L
 #' @export
 #' @rdname parameters
-ARBORUNDERSTORY <- 1L
+ARBORLOW <- 1L
 #' @export
 #' @rdname parameters
-ARBORBUFFER <- 2L
+ARBORUNDERSTORY <- 2L
+#' @export
+#' @rdname parameters
+ARBORBUFFER <- 3L

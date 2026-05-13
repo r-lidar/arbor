@@ -48,7 +48,7 @@ plot_semantic = function(las, dtm = NULL, ...)
 plot_instance = function(las, dtm = NULL, ...)
 {
   set.seed(42)
-  if ("UserData" %in% names(las)) las@data$treeID[las$UserData > ARBORTREE] = NA_integer_
+  if ("UserData" %in% names(las)) las@data$treeID[las$UserData != ARBORTREE] = NA_integer_
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
@@ -118,7 +118,7 @@ colorize_trees = function(las, darken_foliage = TRUE)
   if ("UserData" %in% names(las))
   {
     las@data$treeID = data.table::copy(las@data$treeID)
-    las@data[UserData > 0, treeID := treeID * -1] # negative values for treeID such as C++ colorization skips them.
+    las@data[UserData != ARBORTREE, treeID := treeID * -1] # negative values for treeID such as C++ colorization skips them.
   }
   colorize_trees_cpp(las@data, darken_foliage)
   las$treeID = tid

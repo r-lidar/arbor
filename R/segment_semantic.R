@@ -1,18 +1,18 @@
 # @file segment_semantic.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -38,11 +38,15 @@
 segment_semantic = function(las, params = arbor_parameters_default)
 {
   #params <- evaluate_penalty(params)
-  las@data$passage <- NA_integer_
-  las@data$foliage <- NA_integer_
+  las@data$passage <- 0L
+  las@data$foliage <- 1L
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
   las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
   segment_semantic_cpp(las@data, params)
+
+  las@data$UserData = ARBORTREE
+  las@data$UserData[las@data$hag < params$global$cut_above_ground] = ARBORLOW
+
   return(las)
 }
 
