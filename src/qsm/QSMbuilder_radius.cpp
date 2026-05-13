@@ -83,7 +83,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   // TODO: control parameter
   // If the estimated radius is too small we don't even try to measure the tree
-  if (R0 < 0.03)
+  if (R0 < 0.03 & m_valid_ring_counter < 10)
   {
     conic_allometry(R0, tip_radius);
 
@@ -181,7 +181,10 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     ed.radius = RADIUS_UNSET;
 
     // Filtration logic
-    if (ed.cyl_ID < 1 || point_indices.size() < 50 || ed.conic_allometry < 0.03)
+    if (ed.cyl_ID < 1 || point_indices.size() < 50)
+      continue;
+
+    if (ed.tmp_radius == RADIUS_UNSET && ed.conic_allometry < 0.03)
       continue;
 
     const auto& src = graph.node(einfo.source);

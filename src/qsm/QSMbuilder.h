@@ -75,6 +75,7 @@ public:
 
   arbor::settings::ArborParameters params;
   QSM& graph;
+  int m_valid_ring_counter = 0;
 };
 
 }
