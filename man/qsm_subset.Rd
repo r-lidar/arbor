@@ -24,7 +24,7 @@ is the standard in Canada.}
 
 \item{qsf}{A QSF}
 
-\item{stump_height}{The height to remove from the root. Default 25 cm}
+\item{stump_height}{The height to remove from the root. Default 15 cm}
 }
 \description{
 Subset a QSM or QSF retaining only the stem, the merchantable or other options.\cr\cr
