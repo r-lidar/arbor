@@ -1,22 +1,24 @@
 # @file cmd_blender.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmd_blender <- function(args) {
+
+  UserData <- NULL
 
   # --- Segment Usage ---
   usage_blender <- function() {
@@ -133,8 +135,8 @@ Settings
   if (buffer > 0)
   {
     treeID <- NULL
-    las <- remove_buffer(las, seeds, -buffer)
-    las <- lidR::filter_poi(las, treeID > 0)
+    las <- flag_buffer(las, seeds, -buffer)
+    las <- lidR::filter_poi(las, UserData != ARBORBUFFER)
   }
 
   cat("Colorization\n")
@@ -161,7 +163,8 @@ Settings
 
   cat("Export las\n")
   foliage <- NULL
-  high = remove_small_trees(las, 2)
+  high = flag_small_trees(las, 2)
+  high = lidR::filter_poi(las, UserData != ARBORUNDERSTORY)
   low = keep_small_trees(las, 2)
   rm(las) ; gc()
   high_f = lidR::filter_poi(high, foliage > 0)

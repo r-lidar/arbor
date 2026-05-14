@@ -10,7 +10,7 @@
 \usage{
 qsm_stem(qs)
 
-qsm_merchantable(qs, merchantable_radius = 0.045)
+qsm_merchantable(qs, merchantable_radius = 0.045, merchantable_length = 1)
 
 qsf_merchantable(qsf, merchantable_radius = 0.045)
 
@@ -21,6 +21,8 @@ qsm_nostump(qs, stump_height = 0.15)
 
 \item{merchantable_radius}{The radius considered merchantable. Default 4.5 cm (9 cm diameter) which
 is the standard in Canada.}
+
+\item{merchantable_length}{The length considered merchantable. Default 1 m which is the standard in Canada.}
 
 \item{qsf}{A QSF}
 

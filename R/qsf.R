@@ -29,6 +29,8 @@
 #' @seealso  \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
+  UserData <- treeID <- NULL
+
   #params <- evaluate_penalty(params)
   if ("UserData" %in% names(las))
   {
@@ -78,7 +80,7 @@ qsf_log = function(qsf)
     sub(".*\\[(.*?)\\].*", "\\1", x)
   })
   # 4. Create the structured list
-  unique_tags <- unique(na.omit(warn_tags))
+  unique_tags <- unique(warn_tags)
 
   final_output <- lapply(unique_tags, function(tag)
   {

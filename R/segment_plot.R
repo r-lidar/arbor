@@ -111,6 +111,8 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 #' one rendering.
 colorize_trees = function(las, darken_foliage = TRUE)
 {
+  UserData <- treeID <- NULL
+
   tid = las$treeID
   R = rep(150L, lidR::npoints(las))
   G = rep(150L, lidR::npoints(las))

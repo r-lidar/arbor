@@ -59,7 +59,7 @@ qsm_stem.qsf = function(qs)
 #' @export
 #' @param merchantable_radius The radius considered merchantable. Default 4.5 cm (9 cm diameter) which
 #' is the standard in Canada.
-#' @param merchantable_lengh The length considered merchantable. Default 1 m which is the standard in Canada.
+#' @param merchantable_length The length considered merchantable. Default 1 m which is the standard in Canada.
 #' @rdname qsm_subset
 qsm_merchantable = function(qs, merchantable_radius = 0.045, merchantable_length = 1)
 {

@@ -1,24 +1,24 @@
 # @file cmd_segment.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 cmd_segment <- function(args) {
 
-  treeID <- NULL
+  treeID <- UserData <- NULL
 
   # --- Segment Usage ---
   usage_segment <- function() {
@@ -163,13 +163,13 @@ Exports
   las <- segment_instance(las, see, params)
 
   cat("Cleaning segmentation\n")
-  las <- remove_small_trees(las, max_height = min_tree_height)
-  las <- remove_buffer(trees, las, -buffer)
+  las <- flag_small_trees(las, max_height = min_tree_height)
+  las <- flag_buffer(trees, las, -buffer)
 
   cat("Colorization\n")
   las <- colorize_trees(las)
 
-  trees <- lidR::filter_poi(las, treeID > 0)
+  trees <- lidR::filter_poi(las, UserData == ARBORTREE)
 
   # --- Exports ---
   cat("Exports\n")
