@@ -87,9 +87,11 @@ void QSM::validate() const
 NodeID QSM::find_root_node() const
 {
   for (const auto& [nid, _] : nodes())
+  {
     if (incoming_edges(nid).empty())
       return nid;
-    return -1;
+  }
+  return static_cast<NodeID>(-1);
 }
 
 // Returns a new QSM containing only the edges (and their endpoint nodes)
