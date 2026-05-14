@@ -3,6 +3,7 @@
 - Enhance `plot_qsm()` colors
 - Change default color scheme for `plot()`
 - `qsm_merchantable()` gained an argument `merchantable_length`
+- Fix: mesh rendering of no stump trees.
 
 # arbor 0.12.0
 

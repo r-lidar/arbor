@@ -1,19 +1,19 @@
 /**
  * @file QSM_mesh.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -334,6 +334,12 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
 
       prev_dir = dir; // Store for next iteration
 
+      if (radius <= 1e-9) // Using a small epsilon instead of 0 for stability
+      {
+        ring_starts[idx] = -1; // Mark this ring as skipped
+        continue;
+      }
+
       int vstart = vertices.size();
       ring_starts[idx] = vstart;
       ring_offset[{axis_id, nid}] = vstart;
@@ -359,6 +365,9 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
     {
       int a_start = ring_starts[idx];
       int b_start = ring_starts[idx+1];
+
+      if (a_start == -1 || b_start == -1) continue;
+
       for(int j = 0; j < resolution; ++j)
       {
         int a0 = a_start + j;
