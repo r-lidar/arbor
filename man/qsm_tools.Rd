@@ -7,7 +7,7 @@
 \usage{
 qsm_volume(qsm)
 
-qsm_message(qsm)
+qsm_message(qsm, short = FALSE)
 }
 \arguments{
 \item{qsm}{A QSM}
