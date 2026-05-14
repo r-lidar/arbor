@@ -2,6 +2,7 @@
 
 - Enhance `plot_qsm()` colors
 - Change default color scheme for `plot()`
+- `qsm_merchantable()` gained an argument `merchantable_length`
 
 # arbor 0.12.0
 

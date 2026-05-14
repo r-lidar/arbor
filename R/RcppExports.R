@@ -117,8 +117,8 @@ qsm_stem_cpp <- function(df) {
     .Call(`_arbor_qsm_stem_cpp`, df)
 }
 
-qsm_merchantable_cpp <- function(df, merchandable_radius) {
-    .Call(`_arbor_qsm_merchantable_cpp`, df, merchandable_radius)
+qsm_merchantable_cpp <- function(df, merchantable_radius, merchantable_length) {
+    .Call(`_arbor_qsm_merchantable_cpp`, df, merchantable_radius, merchantable_length)
 }
 
 read_adtree_skeleton <- function(filename) {

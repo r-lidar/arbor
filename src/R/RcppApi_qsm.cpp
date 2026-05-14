@@ -99,10 +99,10 @@ Rcpp::DataFrame qsm_stem_cpp(Rcpp::DataFrame df)
   return(as_dataframe(stem));
 }
 
-Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchandable_radius)
+Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_radius, double merchantable_length)
 {
   QSM qsm = as_qsm(df);
-  QSM stem = qsm.merchantable(merchandable_radius);
+  QSM stem = qsm.merchantable(merchantable_radius, merchantable_length);
   return(as_dataframe(stem));
 }
 
