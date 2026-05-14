@@ -89,7 +89,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
-    oss << "[WARN 1] H = " << H
+    oss << "[Small tree allometry] H = " << H
         << std::fixed << std::setprecision(1)
         << " m: estimated DBH = " << (2 * R0 * 100)
         << " cm. Too small to be measured. "
@@ -127,7 +127,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    std::string msg = "[WARN 2] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
+    std::string msg = "[No valid measure] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
     conic_allometry(R0, tip_radius);
@@ -149,7 +149,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   if (Rroot > 3*R0)
   {
     std::ostringstream oss;
-    oss << "[WARN 3] Measured root diameter is "
+    oss << "[Diameter anomaly] Measured root diameter is "
         << static_cast<int>(Rroot / R0)
         << " times greater than the expected DBH ("
         << std::fixed << std::setprecision(1) << 2 * Rroot

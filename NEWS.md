@@ -1,6 +1,7 @@
 # arbor 0.12.1
 
 - Enhance `plot_qsm()` colors
+- Change default color scheme for `plot()`
 
 # arbor 0.12.0
 

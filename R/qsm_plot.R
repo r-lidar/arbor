@@ -65,7 +65,8 @@ map_qsm_colors <- function(colattr, pal, is_categorical) {
 
 #' @export
 #' @rdname plot
-plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = "auto", ...) {
+plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = "auto", ...)
+{
   default_pal = c("blue", "green", "yellow", "orange", "red")
   branch_order_pal <- c("#552203","#ad3a01","#e59b16","#fdd63b","#9acd56", "#59ad4b","#1e490e")
   quality_pal = c("blue", "green", "yellow", "orange", "red")
@@ -116,7 +117,8 @@ plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cy
   return(invisible(c(tx, ty)))
 }
 
-as_mesh <- function(qsm, color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"), precomputed_colors = NULL) {
+as_mesh <- function(qsm, color = "cyl_ID", pal = "auto", precomputed_colors = NULL)
+{
   if (nrow(qsm) == 0) return(NULL)
 
   # Use precomputed colors if provided, otherwise compute using the same logic
