@@ -35,7 +35,6 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
-#include <iostream>   // std::cerr (version mismatch warnings)
 
 
 namespace libqsm {
@@ -70,9 +69,9 @@ namespace v1_0
 {
   QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
   {
-    int32_t src = 0, tgt = 0, axis = 0;
-    float   r   = 0.0f, sl = 0.0f, dtr = 0.0f;
-    uint8_t bo  = 0, q = 0;
+    uint32_t src = 0, tgt = 0;
+    float   r = 0.0f;
+    uint8_t q = 0;
 
     in.read(reinterpret_cast<char*>(&src),  sizeof(int32_t));
     in.read(reinterpret_cast<char*>(&tgt),  sizeof(int32_t));
@@ -83,7 +82,6 @@ namespace v1_0
     e.source           = src;
     e.target           = tgt;
     e.radius           = r;
-    e.axis_id          = axis;
     return e;
   }
 
@@ -102,8 +100,8 @@ namespace v1_1
 {
   QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
   {
-    int32_t src = 0, tgt = 0, axis = 0;
-    float   r   = 0.0f, sl = 0.0f, dtr = 0.0f;
+    uint32_t src = 0, tgt = 0, axis = 0;
+    float   r   = 0.0f;
     uint8_t bo  = 0, q = 0;
 
     in.read(reinterpret_cast<char*>(&src),  sizeof(int32_t));
@@ -224,8 +222,6 @@ const QSMversionSpec& resolve_version(uint8_t major, uint8_t minor,  std::string
 
     if (warning_out)
       *warning_out = std::move(warn);
-    else
-      std::cerr << warn << "\n";
 
     return *best;
   }

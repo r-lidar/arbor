@@ -11,6 +11,8 @@ qsm_message(qsm, short = FALSE)
 }
 \arguments{
 \item{qsm}{A QSM}
+
+\item{short}{bool. Shorter message.}
 }
 \description{
 Simple tools for QSM.

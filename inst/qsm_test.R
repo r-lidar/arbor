@@ -320,7 +320,7 @@ spt_graph <- subgraph_from_edges(g, eids = spt_edge_ids, delete.vertices = FALSE
 spt_df = as_data_frame(spt_graph, what = "edges")
 spt_df$from = as.integer(spt_df$from)
 spt_df$to = as.integer(spt_df$to)
-
+qsm_message
 # 9. Map coordinates back to the SPT edges
 startX = nodes$X[spt_df$from]
 startY = nodes$Y[spt_df$from]

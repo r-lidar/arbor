@@ -33,6 +33,7 @@ qsm_volume = function(qsm)
 }
 
 #' @rdname qsm_tools
+#' @param short bool. Shorter message.
 #' @export
 qsm_message = function(qsm, short = FALSE)
 {
