@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder_architecture.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -31,19 +31,19 @@ void QSMbuilder::compute_topology()
 {
   ServiceLocator::logger()("Connecting nodes");
 
-  // For each edge, set parent_ID based on graph structure:
-  //   - If the edge's source node has no incoming edges -> parent_ID = 0 (root)
-  //   - Otherwise -> parent_ID = cyl_ID of the (first) incoming edge to source
+  // For each edge, set source based on graph structure:
+  //   - If the edge's source node has no incoming edges -> source = 0 (root)
+  //   - Otherwise -> source = id of the (first) incoming edge to source
   for (auto& [eid, einfo] : graph.edges())
   {
     const auto& inc = graph.incoming_edges(einfo.source);
     if (inc.empty())
     {
-      einfo.data.parent_ID = 0;
+      einfo.data.source = 0;
     }
     else
     {
-      einfo.data.parent_ID = graph.edge_data(inc[0]).cyl_ID;
+      einfo.data.source = graph.edge_data(inc[0]).id;
     }
   }
 }
@@ -58,7 +58,7 @@ void QSMbuilder::compute_architecture(bool use_volume)
     einfo.data.subtree_length   = SUBTREE_LENGTH_UNSET;
     einfo.data.subtree_max_endZ = SUBTREE_MAXZ_UNSET;
     einfo.data.subtree_volume   = SUBTREE_VOLUME_UNSET;
-    einfo.data.axis_ID          = 0;
+    einfo.data.axis_id          = 0;
     einfo.data.branch_order     = 0;
   }
 
@@ -157,7 +157,7 @@ double QSMbuilder::compute_subtree_volume(int edge_id)
 void QSMbuilder::assign_subtree_ids(int edge_id, int current_axis_id, int current_branch_order, int& next_axis_id, bool use_volume)
 {
   auto& ed = graph.edge_data(edge_id);
-  ed.axis_ID      = current_axis_id;
+  ed.axis_id      = current_axis_id;
   ed.branch_order = current_branch_order;
 
   const auto& child_eids = graph.outgoing_edges(graph.edge(edge_id).target);

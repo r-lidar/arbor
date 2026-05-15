@@ -95,7 +95,7 @@ NodeID QSM::find_root_node() const
 }
 
 // Returns a new QSM containing only the edges (and their endpoint nodes)
-// whose axis_ID == 1 (i.e. the main trunk axis).
+// whose axis_id == 1 (i.e. the main trunk axis).
 // Node IDs are remapped; distance_to_root values are preserved as-is.
 QSM QSM::stem() const
 {
@@ -177,14 +177,14 @@ QSM QSM::merchantable(double min_radius, double min_axis_length) const
   {
     const auto& e_info = edge(eid);
     double len = e_info.data.length(node(e_info.source), node(e_info.target));
-    axis_total_lengths[e_info.data.axis_ID] += len;
+    axis_total_lengths[e_info.data.axis_id] += len;
   }
 
   // Filter out edges belonging to axes that are too short
   for (auto it = edges_to_keep.begin(); it != edges_to_keep.end(); )
   {
     const auto& e_info = edge(*it);
-    if (axis_total_lengths[e_info.data.axis_ID] < min_axis_length)
+    if (axis_total_lengths[e_info.data.axis_id] < min_axis_length)
     {
       it = edges_to_keep.erase(it);
     }
@@ -235,13 +235,13 @@ double QSM::dbh(double d, double* xyz, double* n) const
   // Collect trunk edges
   for (const auto& [eid, einfo] : edges())
   {
-    if (einfo.data.axis_ID != 1) continue;
+    if (einfo.data.axis_id != 1) continue;
     if (einfo.data.distance_to_root == DISTANCE_TO_ROOT_UNSET) throw std::runtime_error("'Distance to root' attribute not populated");
     if (einfo.data.distance_to_root == RADIUS_UNSET) throw std::runtime_error("'Radius' attribute not populated");
     trunk_edges.push_back({einfo.data.distance_to_root, einfo.data.radius, einfo.source, einfo.target});
   }
 
-  if (trunk_edges.empty()) throw std::runtime_error("Internal error: no axis_ID = 1 in this QSM");
+  if (trunk_edges.empty()) throw std::runtime_error("Internal error: no axis_id = 1 in this QSM");
 
   // Sort by distance to root
   std::sort(trunk_edges.begin(), trunk_edges.end(), [](const TrunkEdge& a, const TrunkEdge& b) { return a.distance_to_root < b.distance_to_root; });

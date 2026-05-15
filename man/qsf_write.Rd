@@ -4,14 +4,14 @@
 \alias{qsf_write}
 \title{Write a QSF to Files}
 \usage{
-qsf_write(qsf, dir, formats = c("csv", "obj"), binary = TRUE)
+qsf_write(qsf, dir, formats = c("qsm", "obj"), binary = TRUE)
 }
 \arguments{
 \item{qsf}{A QSF object to be written.}
 
 \item{dir}{A string giving the director to the output files.}
 
-\item{formats}{the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").}
+\item{formats}{the format (e.g. "qsm", "ply", "obj", "csv", "txt", "stl").}
 
 \item{binary}{Boolean. Used if the format supports ASCII or binary}
 }
@@ -22,7 +22,8 @@ based on the file extension. Each QSM is written in its own file.
 \details{
 Supported formats:
 \itemize{
+\item \code{.qsm} native binary format
 \item \code{.ply} or \code{.obj} or \code{.stl}: writes the QSM as a mesh file
-\item \code{.csv} or \code{.txt}: writes the QSM as a table
+\item \code{.csv} or \code{.txt}: writes the QSM as a ASCII table
 }
 }

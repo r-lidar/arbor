@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder_prolongation.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -33,11 +33,11 @@ void QSMbuilder::prolongate(double d, double L)
 
   ServiceLocator::logger()("Prolongation to the ground");
 
-  // Collect main axis edges (axis_ID == 1), ordered root → tip (descending subtree_length)
+  // Collect main axis edges (axis_id == 1), ordered root → tip (descending subtree_length)
   std::vector<int> axis_eids;
   for (const auto& [eid, einfo] : graph.edges())
   {
-    if (einfo.data.axis_ID == 1)
+    if (einfo.data.axis_id == 1)
         axis_eids.push_back(eid);
   }
 
@@ -48,7 +48,7 @@ void QSMbuilder::prolongate(double d, double L)
       return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
     });
 
-    // Find root edge: axis_ID==1 edge with the maximum subtree_length
+    // Find root edge: axis_id==1 edge with the maximum subtree_length
     // (the root of the main axis always has the highest subtree_length)
     int root_eid = axis_eids[0];  // already sorted descending by subtree_length
     double root_radius = graph.edge_data(root_eid).radius;
@@ -105,7 +105,7 @@ void QSMbuilder::prolongate(double d, double L)
 
     // Start with the most negative ID for the deepest (new root) segment
     int next_id  = -nseg;
-    int prev_cyl_id = 0;  // The deepest segment has no parent (it's the new root)
+    int prev_id = 0;  // The deepest segment has no parent (it's the new root)
 
     // We'll build from the deepest point upward, then connect to the former root
     NodeID prev_node_id = -1;  // Will be set in the loop
@@ -151,23 +151,23 @@ void QSMbuilder::prolongate(double d, double L)
       }
 
       QSMEdge ed;
-      ed.cyl_ID        = next_id;
-      ed.parent_ID     = prev_cyl_id;
-      ed.axis_ID       = 1;
+      ed.id            = next_id;
+      ed.source        = prev_id;
+      ed.axis_id       = 1;
       ed.branch_order  = 1;
       ed.subtree_length = root_subtree + d_adj - (d_adj / nseg) * (i - 1);
       ed.radius = root_radius * std::pow(1.01, i);
 
       graph.add_edge(node_id_1, node_id_2, ed);
 
-      prev_cyl_id   = next_id;
+      prev_id   = next_id;
       prev_node_id  = node_id_2;
       next_id++;
     }
 
     // Update the former root edge to connect it to the prolongation chain
-    // The former root edge should now have parent_ID pointing to the last prolongation segment
-    graph.edge_data(root_eid).parent_ID = prev_cyl_id;  // prev_cyl_id is now -1 (the last segment before root)
+    // The former root edge should now have source pointing to the last prolongation segment
+    graph.edge_data(root_eid).source = prev_id;  // prev_id is now -1 (the last segment before root)
 }
 
 void QSMbuilder::estimate_prolongation(const PointCloud& tree)

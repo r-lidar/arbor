@@ -21,10 +21,11 @@
 #ifndef DIRECTED_GRAPH_H
 #define DIRECTED_GRAPH_H
 
-#include <unordered_map>
+#include <map>
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 using NodeID = int;
 using EdgeID = int;
@@ -53,20 +54,6 @@ public:
     return id;
   }
 
-  // Insert a node with a caller-supplied id.
-  // Intended for deserialisation: preserves the original NodeID from a file
-  // so that edge source/target references remain consistent.
-  // Keeps next_node_id_ above any inserted id so that subsequent add_node()
-  // calls cannot collide with the restored graph.
-  NodeID insert_node(NodeID id, const NodeData& data)
-  {
-    nodes_[id] = data;
-    outgoing_[id] = {};
-    incoming_[id] = {};
-    if (id >= next_node_id_) next_node_id_ = id + 1;
-    return id;
-  }
-
   bool has_node(NodeID id) const { return nodes_.count(id) > 0; }
   size_t node_count() const { return nodes_.size(); }
 
@@ -88,18 +75,6 @@ public:
     edges_[id] = {source, target, data};
     outgoing_[source].push_back(id);
     incoming_[target].push_back(id);
-    return id;
-  }
-
-  // Insert an edge with a caller-supplied id.
-  // Intended for deserialisation: mirrors insert_node() semantics.
-  // The source and target nodes must already be present in the graph.
-  EdgeID insert_edge(EdgeID id, NodeID source, NodeID target, const EdgeData& data)
-  {
-    edges_[id] = {source, target, data};
-    outgoing_[source].push_back(id);
-    incoming_[target].push_back(id);
-    if (id >= next_edge_id_) next_edge_id_ = id + 1;
     return id;
   }
 
@@ -163,11 +138,11 @@ public:
 
   // ---- Storage access ----
 
-  const std::unordered_map<NodeID, NodeData>& nodes() const { return nodes_; }
-  std::unordered_map<NodeID, NodeData>&       nodes()       { return nodes_; }
+  const std::map<NodeID, NodeData>& nodes() const { return nodes_; }
+  std::map<NodeID, NodeData>& nodes() { return nodes_; }
 
-  const std::unordered_map<EdgeID, EdgeInfo>& edges() const { return edges_; }
-  std::unordered_map<EdgeID, EdgeInfo>&       edges()       { return edges_; }
+  const std::map<EdgeID, EdgeInfo>& edges() const { return edges_; }
+  std::map<EdgeID, EdgeInfo>& edges() { return edges_; }
 
   void clear()
   {
@@ -179,11 +154,54 @@ public:
     next_edge_id_ = 1;
   }
 
+  friend std::ostream& operator<<(std::ostream& os, const DirectedGraph& g)
+  {
+    os << "DirectedGraph\n";
+    os << "Nodes (" << g.node_count() << "):\n";
+
+    for (const auto& kv : g.nodes_)
+    {
+      NodeID id = kv.first;
+      os << "  [" << id << "]";
+
+      // requires NodeData to support operator<<
+      os << " data=" << kv.second;
+
+      NodeID parent = g.parent_node(id);
+      if (parent != -1)
+        os << " parent=" << parent;
+
+      auto children = g.children(id);
+      os << " children={";
+      for (size_t i = 0; i < children.size(); ++i)
+      {
+        if (i > 0) os << ", ";
+        os << children[i];
+      }
+      os << "}";
+
+      os << "\n";
+    }
+
+    os << "Edges (" << g.edge_count() << "):\n";
+    for (const auto& kv : g.edges_)
+    {
+      EdgeID id = kv.first;
+      const EdgeInfo& e = kv.second;
+
+      os << "  [" << id << "] "
+         << e.source << " -> " << e.target
+         << " data=" << e.data << "\n"; // requires EdgeData operator<<
+    }
+
+    return os;
+  }
+
 private:
-  std::unordered_map<NodeID, NodeData>              nodes_;
-  std::unordered_map<EdgeID, EdgeInfo>              edges_;
-  std::unordered_map<NodeID, std::vector<EdgeID>>   outgoing_;
-  std::unordered_map<NodeID, std::vector<EdgeID>>   incoming_;
+  std::map<NodeID, NodeData>              nodes_;
+  std::map<EdgeID, EdgeInfo>              edges_;
+  std::map<NodeID, std::vector<EdgeID>>   outgoing_;
+  std::map<NodeID, std::vector<EdgeID>>   incoming_;
 
   NodeID next_node_id_ = 1;
   EdgeID next_edge_id_ = 1;

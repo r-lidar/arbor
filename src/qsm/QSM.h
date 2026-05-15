@@ -23,6 +23,7 @@
 
 #include <cmath>
 
+#include "libqsm.h"
 #include "DirectedGraph.h"
 
 namespace arbor::qsm {
@@ -34,47 +35,33 @@ static constexpr float RADIUS_UNSET            = -1.0;
 static constexpr float DISTANCE_TO_ROOT_UNSET  = -1.0;
 static constexpr float Z_EPS                   = 1e-9;
 
-enum class EdgeQuality
-{
-  UNKNOWN    = 0,
-    PROLONG    = 1,
-    CONICALLOM = 2,
-    POLYNOMIAL = 3,
-    MEASURED   = 4,
-    REFINED    = 5,
-};
+static constexpr uint8_t UNKNOWN    = 0;
+static constexpr uint8_t PROLONG    = 1;
+static constexpr uint8_t CONICALLOM = 2;
+static constexpr uint8_t POLYNOMIAL = 3;
+static constexpr uint8_t MEASURED   = 4;
+static constexpr uint8_t REFINED    = 5;
 
 // A node in the QSM graph: a 3-D junction point in the tree structure.
-struct QSMNode
-{
-  double x = 0.0;
-  double y = 0.0;
-  double z = 0.0;
-};
+using QSMNode = libqsm::QSMnode;
 
 // An edge in the QSM graph: a cylinder connecting two junction points.
 // Legacy fields (cyl_ID, parent_ID) are retained for backward-compatible
 // conversion to and from the flat QSM / QSMcylinder representation.
-struct QSMEdge
+struct QSMEdge : public libqsm::QSMedge
 {
-  // Core geometric / structural properties
-  float radius           = RADIUS_UNSET;
-  float subtree_length   = SUBTREE_LENGTH_UNSET;
-  float distance_to_root = DISTANCE_TO_ROOT_UNSET;
-  int   axis_ID          = 0;
-  int   cyl_ID           = 0;
-  int   parent_ID        = 0;
-  int   branch_order     = 0;
-  EdgeQuality quality    = EdgeQuality::UNKNOWN;
-
-
   // Temporary properties needed only while building the QSM
   float conic_allometry  = RADIUS_UNSET;
   float subtree_max_endZ = SUBTREE_MAXZ_UNSET;
   float subtree_volume   = SUBTREE_VOLUME_UNSET;
 
-  // ---- Computed geometry (requires source/target node positions) ----
+  // Backward compatibility
+  int32_t id;
 
+  QSMEdge() = default;
+  explicit QSMEdge(const libqsm::QSMedge& e) : libqsm::QSMedge(e) {}
+
+  // ---- Computed geometry (requires source/target node positions) ----
   inline double length(const QSMNode& src, const QSMNode& tgt) const noexcept
   {
     double dx = tgt.x - src.x;

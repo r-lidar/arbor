@@ -160,51 +160,51 @@ Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
 
  Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame df)
  {
-   QSM qsm = as_qsm(df);
+ /*  QSM qsm = as_qsm(df);
    QSMbuilder b(qsm);
    b.compute_topology();
 
-   // Extract parent_ID for each cylinder (ordered by cyl_ID)
+   // Extract source for each cylinder (ordered by id)
    int n = (int)qsm.edges().size();
-   Rcpp::IntegerVector parent_ID(n);
+   Rcpp::IntegerVector source(n);
    for (const auto& [eid, einfo] : qsm.edges())
    {
-     int cid = einfo.data.cyl_ID;
+     int cid = einfo.data.id;
      if (cid >= 1 && cid <= n)
-       parent_ID[cid - 1] = einfo.data.parent_ID;
+       source[cid - 1] = einfo.data.source;
    }
 
-   df["parent_ID"] = parent_ID;
+   df["source"] = source;*/
    return df;
  }
 
 
 Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame df, bool use_volume = false)
 {
-  QSM qsm = as_qsm(df);
+/*  QSM qsm = as_qsm(df);
   QSMbuilder b(qsm);
   b.compute_architecture(use_volume);
 
   int n = (int)qsm.edges().size();
   Rcpp::NumericVector subtree_length(n);
-  Rcpp::IntegerVector axis_ID(n);
+  Rcpp::IntegerVector axis_id(n);
   Rcpp::IntegerVector branching_order(n);
 
   for (const auto& [eid, einfo] : qsm.edges())
   {
-    int cid = einfo.data.cyl_ID;
+    int cid = einfo.data.id;
     if (cid >= 1 && cid <= n)
     {
       int idx = cid - 1;
       subtree_length[idx]   = einfo.data.subtree_length;
-      axis_ID[idx]          = einfo.data.axis_ID;
+      axis_id[idx]          = einfo.data.axis_id;
       branching_order[idx]  = einfo.data.branch_order;
     }
   }
 
-  df["axis_ID"]        = axis_ID;
+  df["axis_id"]        = axis_id;
   df["branch_order"]   = branching_order;
-  df["subtree_length"] = subtree_length;
+  df["subtree_length"] = subtree_length;*/
 
   return df;
 }
@@ -360,8 +360,8 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
 
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
 {
-  Rcpp::IntegerVector cyl_ID = qsm["cyl_ID"];
-  Rcpp::IntegerVector parent_ID = qsm["parent_ID"];
+  Rcpp::IntegerVector id = qsm["id"];
+  Rcpp::IntegerVector source = qsm["source"];
   Rcpp::NumericVector startX = qsm["startX"];
   Rcpp::NumericVector startY = qsm["startY"];
   Rcpp::NumericVector startZ = qsm["startZ"];
@@ -371,19 +371,19 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
   Rcpp::NumericVector radius = qsm["radius"];
   Rcpp::NumericVector cyl_length = qsm["cyl_length"];
 
-  int n = cyl_ID.size();
+  int n = id.size();
 
-  // Build parent-to-children map and cyl_ID -> row index
+  // Build parent-to-children map and id -> row index
   std::unordered_map<int, std::vector<int>> children;
   std::unordered_map<int, int> id_to_row;
   std::unordered_map<int, int> child_count;
 
   for (int i = 0; i < n; ++i)
   {
-    id_to_row[cyl_ID[i]] = i;
-    children[parent_ID[i]].push_back(cyl_ID[i]);
-    if (parent_ID[i] != 0)
-      child_count[parent_ID[i]]++;
+    id_to_row[id[i]] = i;
+    children[source[i]].push_back(id[i]);
+    if (source[i] != 0)
+      child_count[source[i]]++;
   }
 
   // Identify branching points and tips
@@ -395,19 +395,19 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
 
   for (int i = 0; i < n; ++i)
   {
-    if (children.find(cyl_ID[i]) == children.end())
-      tips.insert(cyl_ID[i]);
+    if (children.find(id[i]) == children.end())
+      tips.insert(id[i]);
   }
 
   std::unordered_set<int> important;
   for (int i = 0; i < n; ++i)
   {
-    if (branching.count(cyl_ID[i]) || branching.count(parent_ID[i]) || tips.count(cyl_ID[i]))
-      important.insert(cyl_ID[i]);
+    if (branching.count(id[i]) || branching.count(source[i]) || tips.count(id[i]))
+      important.insert(id[i]);
   }
 
   std::vector<bool> visited(n, false);
-  std::vector<int> new_cyl_ID, new_parent_ID, new_original_row;
+  std::vector<int> new_id, new_source, new_original_row;
   std::vector<double> new_startX, new_startY, new_startZ, new_endX, new_endY, new_endZ, new_radius, new_length;
 
   std::unordered_map<int, int> old_to_new_id;
@@ -422,7 +422,7 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
     visited[row] = true;
 
     // Grow forward
-    int current = cyl_ID[row];
+    int current = id[row];
     while (children[current].size() == 1)
     {
       int child = children[current][0];
@@ -462,10 +462,10 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
 
       double len = std::sqrt((ex - sx) * (ex - sx) + (ey - sy) * (ey - sy) + (ez - sz) * (ez - sz));
 
-      new_cyl_ID.push_back(next_id);
-      old_to_new_id[cyl_ID[chain[last]]] = next_id;
+      new_id.push_back(next_id);
+      old_to_new_id[id[chain[last]]] = next_id;
 
-      new_parent_ID.push_back(0);  // temp, fix later
+      new_source.push_back(0);  // temp, fix later
       new_startX.push_back(sx);
       new_startY.push_back(sy);
       new_startZ.push_back(sz);
@@ -483,21 +483,21 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
     }
   }
 
-  // Fix parent_IDs
-  for (size_t i = 0; i < new_cyl_ID.size(); ++i)
+  // Fix sources
+  for (size_t i = 0; i < new_id.size(); ++i)
   {
     int old_idx = -1;
     for (int j = 0; j < n; ++j)
     {
-      if (old_to_new_id[cyl_ID[j]] == new_cyl_ID[i])
+      if (old_to_new_id[id[j]] == new_id[i])
         old_idx = j;
     }
-    if (old_idx >= 0 && parent_ID[old_idx] != 0)
+    if (old_idx >= 0 && source[old_idx] != 0)
     {
-      int old_pid = parent_ID[old_idx];
+      int old_pid = source[old_idx];
       auto it = old_to_new_id.find(old_pid);
       if (it != old_to_new_id.end())
-        new_parent_ID[i] = it->second;
+        new_source[i] = it->second;
     }
   }
 
@@ -509,8 +509,8 @@ Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
     Rcpp::Named("endY") = new_endY,
     Rcpp::Named("endZ") = new_endZ,
     Rcpp::Named("radius") = new_radius,
-    Rcpp::Named("cyl_ID") = new_cyl_ID,
-    Rcpp::Named("parent_ID") = new_parent_ID,
+    Rcpp::Named("id") = new_id,
+    Rcpp::Named("source") = new_source,
     Rcpp::Named("original_row") = new_original_row  // <-- added column
   );
 }
