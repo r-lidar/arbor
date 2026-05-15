@@ -82,7 +82,7 @@ void QSM::write_qsm(const std::string& filename) const
 {
   libqsm::QSMwriter writer(filename);
   writer.set_software("Arbor");
-  writer.set_version_minor(2);
+  writer.set_format(2);
 
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
   {

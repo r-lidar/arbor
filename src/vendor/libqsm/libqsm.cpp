@@ -39,197 +39,203 @@
 
 namespace libqsm {
 
+// ===========================================================================
+// Node reader / writer  (identical for all formats)
+// ===========================================================================
+
 QSMnode read_node(std::ifstream& in, const QSMheader& hdr)
 {
-  float fx  = 0.0f, fy = 0.0f, fz = 0.0f;
+  float fx = 0.0f, fy = 0.0f, fz = 0.0f;
 
-  in.read(reinterpret_cast<char*>(&fx),  sizeof(float));
-  in.read(reinterpret_cast<char*>(&fy),  sizeof(float));
-  in.read(reinterpret_cast<char*>(&fz),  sizeof(float));
+  in.read(reinterpret_cast<char*>(&fx), sizeof(float));
+  in.read(reinterpret_cast<char*>(&fy), sizeof(float));
+  in.read(reinterpret_cast<char*>(&fz), sizeof(float));
 
   QSMnode n;
-  n.x  = static_cast<double>(fx) + hdr.x_offset;
-  n.y  = static_cast<double>(fy) + hdr.y_offset;
-  n.z  = static_cast<double>(fz) + hdr.z_offset;
+  n.x = static_cast<double>(fx) + hdr.x_offset;
+  n.y = static_cast<double>(fy) + hdr.y_offset;
+  n.z = static_cast<double>(fz) + hdr.z_offset;
   return n;
 }
 
 void write_node(std::ofstream& out, const QSMnode& n, const QSMheader& hdr)
 {
-  const float   fx = static_cast<float>(n.x - hdr.x_offset);
-  const float   fy = static_cast<float>(n.y - hdr.y_offset);
-  const float   fz = static_cast<float>(n.z - hdr.z_offset);
+  const float fx = static_cast<float>(n.x - hdr.x_offset);
+  const float fy = static_cast<float>(n.y - hdr.y_offset);
+  const float fz = static_cast<float>(n.z - hdr.z_offset);
 
   out.write(reinterpret_cast<const char*>(&fx), sizeof(float));
   out.write(reinterpret_cast<const char*>(&fy), sizeof(float));
   out.write(reinterpret_cast<const char*>(&fz), sizeof(float));
 }
 
-namespace v1_0
+// ===========================================================================
+// Edge readers / writers, one namespace per format level
+//
+// Binary layout per spec (all formats are cumulative):
+//
+//  Format 0  (13 bytes):
+//    offset  0  uint32_t  source_id
+//    offset  4  uint32_t  target_id
+//    offset  8  float     radius
+//    offset 12  uint8_t   quality_level
+//
+//  Format 1  (+5 bytes = 18 total):
+//    offset 13  uint32_t  axis_id
+//    offset 17  uint8_t   branch_order
+//
+//  Format 2  (+8 bytes = 26 total):
+//    offset 18  float     subtree_length
+//    offset 22  float     distance_to_root
+// ===========================================================================
+
+namespace fmt0
 {
-  QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
-  {
-    uint32_t src = 0, tgt = 0;
-    float   r = 0.0f;
-    uint8_t q = 0;
-
-    in.read(reinterpret_cast<char*>(&src),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&tgt),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&r),    sizeof(float));
-    in.read(reinterpret_cast<char*>(&q),    sizeof(uint8_t));
-
-    QSMedge e;
-    e.source           = src;
-    e.target           = tgt;
-    e.radius           = r;
-    return e;
-  }
-
-  void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
-  {
-    const uint32_t src = e.source;
-    const uint32_t tgt = e.target;
-
-    out.write(reinterpret_cast<const char*>(&src),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&tgt),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.quality),        sizeof(uint8_t));
-  }
-} // namespace v1_1
-
-namespace v1_1
+QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
 {
-  QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
-  {
-    uint32_t src = 0, tgt = 0, axis = 0;
-    float   r   = 0.0f;
-    uint8_t bo  = 0, q = 0;
+  uint32_t src = 0, tgt = 0;
+  float    r   = 0.0f;
+  uint8_t  q   = 0;
 
-    in.read(reinterpret_cast<char*>(&src),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&tgt),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&r),    sizeof(float));
-    in.read(reinterpret_cast<char*>(&q),    sizeof(uint8_t));
-    in.read(reinterpret_cast<char*>(&axis), sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&bo),   sizeof(uint8_t));
+  in.read(reinterpret_cast<char*>(&src), sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&tgt), sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&r),   sizeof(float));
+  in.read(reinterpret_cast<char*>(&q),   sizeof(uint8_t));
 
-    QSMedge e;
-    e.source           = src;
-    e.target           = tgt;
-    e.radius           = r;
-    e.axis_id          = axis;
-    e.branch_order     = bo;
-    e.quality          = q;
-    return e;
-  }
+  QSMedge e;
+  e.source  = src;
+  e.target  = tgt;
+  e.radius  = r;
+  e.quality = q;
+  // format 1+ fields left at sentinel defaults
+  return e;
+}
 
-  void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
-  {
-    const uint32_t src = e.source;
-    const uint32_t tgt = e.target;
-
-    out.write(reinterpret_cast<const char*>(&src),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&tgt),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.quality),        sizeof(uint8_t));
-    out.write(reinterpret_cast<const char*>(&e.axis_id),        sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.branch_order),   sizeof(uint8_t));
-  }
-} // namespace v1_1
-
-
-namespace v1_2
+void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
 {
-  QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
-  {
-    uint32_t src = 0, tgt = 0, axis = 0;
-    float   r   = 0.0f, sl = 0.0f, dtr = 0.0f;
-    uint8_t bo  = 0, q = 0;
+  out.write(reinterpret_cast<const char*>(&e.source),  sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.target),  sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.radius),  sizeof(float));
+  out.write(reinterpret_cast<const char*>(&e.quality), sizeof(uint8_t));
+}
+} // namespace fmt0
 
-    in.read(reinterpret_cast<char*>(&src),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&tgt),  sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&r),    sizeof(float));
-    in.read(reinterpret_cast<char*>(&sl),   sizeof(float));
-    in.read(reinterpret_cast<char*>(&dtr),  sizeof(float));
-    in.read(reinterpret_cast<char*>(&axis), sizeof(int32_t));
-    in.read(reinterpret_cast<char*>(&bo),   sizeof(uint8_t));
-    in.read(reinterpret_cast<char*>(&q),    sizeof(uint8_t));
-
-    QSMedge e;
-    e.source           = src;
-    e.target           = tgt;
-    e.radius           = r;
-    e.subtree_length   = sl;
-    e.distance_to_root = dtr;
-    e.axis_id          = axis;
-    e.branch_order     = bo;
-    e.quality          = q;
-    // Fields added in future versions are left at their sentinel defaults.
-    return e;
-  }
-
-  void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
-  {
-    const int32_t src = e.source;
-    const int32_t tgt = e.target;
-
-    out.write(reinterpret_cast<const char*>(&src),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&tgt),              sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.radius),         sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.subtree_length), sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.distance_to_root), sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.axis_id),        sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.branch_order),   sizeof(uint8_t));
-    out.write(reinterpret_cast<const char*>(&e.quality),        sizeof(uint8_t));
-  }
-} // namespace v1_2
-
-const std::vector<QSMversionSpec>& version_registry()
+namespace fmt1
 {
-  static const std::vector<QSMversionSpec> reg = {
-    {1, 0, 12, 13, { read_node,  v1_0::read_edge, write_node, v1_0::write_edge }},
-    {1, 1, 12, 18, { read_node,  v1_1::read_edge, write_node, v1_1::write_edge }},
-    {1, 2, 12, 26, { read_node,  v1_2::read_edge, write_node, v1_2::write_edge }}
+QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
+{
+  uint32_t src = 0, tgt = 0, axis = 0;
+  float    r   = 0.0f;
+  uint8_t  q   = 0, bo = 0;
+
+  in.read(reinterpret_cast<char*>(&src),  sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&tgt),  sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&r),    sizeof(float));
+  in.read(reinterpret_cast<char*>(&q),    sizeof(uint8_t));
+  in.read(reinterpret_cast<char*>(&axis), sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&bo),   sizeof(uint8_t));
+
+  QSMedge e;
+  e.source       = src;
+  e.target       = tgt;
+  e.radius       = r;
+  e.quality      = q;
+  e.axis_id      = axis;
+  e.branch_order = bo;
+  // format 2+ fields left at sentinel defaults
+  return e;
+}
+
+void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
+{
+  out.write(reinterpret_cast<const char*>(&e.source),       sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.target),       sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.radius),       sizeof(float));
+  out.write(reinterpret_cast<const char*>(&e.quality),      sizeof(uint8_t));
+  out.write(reinterpret_cast<const char*>(&e.axis_id),      sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.branch_order), sizeof(uint8_t));
+}
+} // namespace fmt1
+
+namespace fmt2
+{
+QSMedge read_edge(std::ifstream& in, const QSMheader& /*hdr*/)
+{
+  uint32_t src = 0, tgt = 0, axis = 0;
+  float    r   = 0.0f, sl = 0.0f, dtr = 0.0f;
+  uint8_t  q   = 0, bo = 0;
+
+  in.read(reinterpret_cast<char*>(&src),  sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&tgt),  sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&r),    sizeof(float));
+  in.read(reinterpret_cast<char*>(&q),    sizeof(uint8_t));
+  in.read(reinterpret_cast<char*>(&axis), sizeof(uint32_t));
+  in.read(reinterpret_cast<char*>(&bo),   sizeof(uint8_t));
+  in.read(reinterpret_cast<char*>(&sl),   sizeof(float));
+  in.read(reinterpret_cast<char*>(&dtr),  sizeof(float));
+
+  QSMedge e;
+  e.source           = src;
+  e.target           = tgt;
+  e.radius           = r;
+  e.quality          = q;
+  e.axis_id          = axis;
+  e.branch_order     = bo;
+  e.subtree_length   = sl;
+  e.distance_to_root = dtr;
+  // Fields added in future formats are left at their sentinel defaults.
+  return e;
+}
+
+void write_edge(std::ofstream& out, const QSMedge& e, const QSMheader& /*hdr*/)
+{
+  out.write(reinterpret_cast<const char*>(&e.source),           sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.target),           sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.radius),           sizeof(float));
+  out.write(reinterpret_cast<const char*>(&e.quality),          sizeof(uint8_t));
+  out.write(reinterpret_cast<const char*>(&e.axis_id),          sizeof(uint32_t));
+  out.write(reinterpret_cast<const char*>(&e.branch_order),     sizeof(uint8_t));
+  out.write(reinterpret_cast<const char*>(&e.subtree_length),   sizeof(float));
+  out.write(reinterpret_cast<const char*>(&e.distance_to_root), sizeof(float));
+}
+} // namespace fmt2
+
+// ===========================================================================
+// Format registry
+// ===========================================================================
+
+const std::vector<QSMformatSpec>& format_registry()
+{
+  static const std::vector<QSMformatSpec> reg = {
+    { 0, 12, 13, { read_node, fmt0::read_edge, write_node, fmt0::write_edge } },
+    { 1, 12, 18, { read_node, fmt1::read_edge, write_node, fmt1::write_edge } },
+    { 2, 12, 26, { read_node, fmt2::read_edge, write_node, fmt2::write_edge } },
   };
   return reg;
 }
 
-const QSMversionSpec& resolve_version(uint8_t major, uint8_t minor,  std::string* warning_out)
+const QSMformatSpec& resolve_format(uint8_t format, std::string* warning_out)
 {
-  const auto& reg = version_registry();
+  const auto& reg = format_registry();
 
   for (const auto& spec : reg)
   {
-    if (spec.major == major && spec.minor == minor)
+    if (spec.format == format)
       return spec;
   }
 
-  // Known major, unknown minor -> use highest known minor, emit warning
-  const QSMversionSpec* best = nullptr;
-  for (const auto& spec : reg)
-  {
-    if (spec.major == major)
-    {
-      if (!best || spec.minor > best->minor)
-        best = &spec;
-    }
-  }
+  // Unknown format  fall back to the highest known one and emit a warning.
+  const QSMformatSpec& best = reg.back();
 
-  if (best)
+  if (warning_out)
   {
-    std::string warn =
-      "libqsm: file VERSION " + std::to_string(major) + "." + std::to_string(minor) +
-      " is ahead of the highest known minor version " +
-      std::to_string(best->major) + "." + std::to_string(best->minor) +
+    *warning_out =
+      "libqsm: FORMAT " + std::to_string(format) +
+      " is ahead of the highest known format " + std::to_string(best.format) +
       ". Extra fields will be skipped. Consider upgrading libqsm.";
-
-    if (warning_out)
-      *warning_out = std::move(warn);
-
-    return *best;
   }
 
-  // Unknown major - cannot interpret safely
-  throw std::runtime_error(
-      "libqsm: file VERSION " + std::to_string(major) + "." + std::to_string(minor) +
-        " uses an unknown major version. This reader supports major version(s): 1.");
+  return best;
 }
 
 
@@ -251,7 +257,9 @@ static std::string utc_timestamp()
 static QSMheader parse_header(std::ifstream& in)
 {
   QSMheader   hdr;
-  bool        data_seen = false;
+  bool        data_seen      = false;
+  bool        signature_seen = false;
+  bool        format_seen    = false;
   std::string line;
 
   while (std::getline(in, line))
@@ -270,6 +278,12 @@ static QSMheader parse_header(std::ifstream& in)
       data_seen = true;
       break;
     }
+    else if (key == "SIGNATURE")
+    {
+      if (val != "QSMF")
+        throw std::runtime_error("libqsm: invalid SIGNATURE '" + val + "', expected 'QSMF'.");
+      signature_seen = true;
+    }
     else if (key == "VERSION")
     {
       const std::size_t dot = val.find('.');
@@ -281,6 +295,19 @@ static QSMheader parse_header(std::ifstream& in)
       } catch (const std::exception&) {
         throw std::runtime_error("libqsm: invalid VERSION number: " + val);
       }
+      if (hdr.version_major != 1)
+        throw std::runtime_error(
+            "libqsm: unsupported major VERSION " + std::to_string(hdr.version_major) +
+              ". This reader supports major version 1 only.");
+    }
+    else if (key == "FORMAT")
+    {
+      try {
+        hdr.format = static_cast<uint8_t>(std::stoul(val));
+      } catch (const std::exception&) {
+        throw std::runtime_error("libqsm: invalid FORMAT value: " + val);
+      }
+      format_seen = true;
     }
     else if (key == "NODES")     { hdr.n_nodes   = std::stoull(val); }
     else if (key == "EDGES")     { hdr.n_edges   = std::stoull(val); }
@@ -311,29 +338,44 @@ static QSMheader parse_header(std::ifstream& in)
   if (!data_seen)
     throw std::runtime_error("libqsm: 'DATA binary' sentinel not found in header.");
 
+  if (!signature_seen)
+    throw std::runtime_error("libqsm: mandatory SIGNATURE key not found in header.");
+
+  if (!format_seen)
+    throw std::runtime_error("libqsm: mandatory FORMAT key not found in header.");
+
   if (hdr.node_size == 0)
     throw std::runtime_error("libqsm: NODE_SIZE not specified in header.");
 
   if (hdr.edge_size == 0)
     throw std::runtime_error("libqsm: EDGE_SIZE not specified in header.");
 
-  // Validate against the version-specific minimums from the registry.
-  // resolve_version() will warn (not throw) on an unknown minor version.
-  const QSMversionSpec& spec = resolve_version(hdr.version_major, hdr.version_minor);
+  // Validate record sizes against the format-specific minimums.
+  // resolve_format() will warn (not throw) for an unrecognized format value.
+  const QSMformatSpec& spec = resolve_format(hdr.format);
 
   if (hdr.node_size < spec.min_node_size)
     throw std::runtime_error(
         "libqsm: NODE_SIZE " + std::to_string(hdr.node_size) +
           " is below the minimum of " + std::to_string(spec.min_node_size) +
-          " bytes for version " +
-          std::to_string(hdr.version_major) + "." + std::to_string(hdr.version_minor) + ".");
+          " bytes for FORMAT " + std::to_string(hdr.format) + ".");
 
   if (hdr.edge_size < spec.min_edge_size)
     throw std::runtime_error(
         "libqsm: EDGE_SIZE " + std::to_string(hdr.edge_size) +
           " is below the minimum of " + std::to_string(spec.min_edge_size) +
-          " bytes for version " +
-          std::to_string(hdr.version_major) + "." + std::to_string(hdr.version_minor) + ".");
+          " bytes for FORMAT " + std::to_string(hdr.format) + ".");
+
+  // Hard lower bounds from the spec regardless of format.
+  if (hdr.node_size < 12)
+    throw std::runtime_error(
+        "libqsm: NODE_SIZE " + std::to_string(hdr.node_size) +
+          " is below the absolute minimum of 12 bytes. File is non-conforming.");
+
+  if (hdr.edge_size < 13)
+    throw std::runtime_error(
+        "libqsm: EDGE_SIZE " + std::to_string(hdr.edge_size) +
+          " is below the absolute minimum of 13 bytes. File is non-conforming.");
 
   return hdr;
 }
@@ -345,7 +387,7 @@ static void read_binary(
       const std::function<void(const QSMnode&)>& on_node,
       const std::function<void(const QSMedge&)>& on_edge)
 {
-  const QSMversionSpec& spec = resolve_version(hdr.version_major, hdr.version_minor);
+  const QSMformatSpec& spec = resolve_format(hdr.format);
 
   const uint32_t node_extra = hdr.node_size - spec.min_node_size;
   const uint32_t edge_extra = hdr.edge_size - spec.min_edge_size;
@@ -356,7 +398,9 @@ static void read_binary(
     if (node_extra > 0) in.ignore(node_extra);
 
     if (!in)
-      throw std::runtime_error("libqsm: unexpected EOF reading node record " + std::to_string(i) + " of " + std::to_string(hdr.n_nodes) + ".");
+      throw std::runtime_error(
+          "libqsm: unexpected EOF reading node record " + std::to_string(i) +
+            " of " + std::to_string(hdr.n_nodes) + ".");
 
     if (on_node) on_node(n);
   }
@@ -367,7 +411,9 @@ static void read_binary(
     if (edge_extra > 0) in.ignore(edge_extra);
 
     if (!in)
-      throw std::runtime_error("libqsm: unexpected EOF reading edge record " + std::to_string(i) + " of " + std::to_string(hdr.n_edges) + ".");
+      throw std::runtime_error(
+          "libqsm: unexpected EOF reading edge record " + std::to_string(i) +
+            " of " + std::to_string(hdr.n_edges) + ".");
 
     if (on_edge) on_edge(e);
   }
@@ -397,13 +443,19 @@ void QSMreader::parse()
   nodes_.reserve(static_cast<std::size_t>(header.n_nodes));
   edges_.reserve(static_cast<std::size_t>(header.n_edges));
 
-  read_binary(in, header, [this](const QSMnode& n) { nodes_.push_back(n); }, [this](const QSMedge& e) { edges_.push_back(e); });
+  read_binary(in, header,
+              [this](const QSMnode& n) { nodes_.push_back(n); },
+              [this](const QSMedge& e) { edges_.push_back(e); });
 
   if (nodes_.size() != header.n_nodes)
-    throw std::runtime_error("libqsm: node count mismatch: header declared " + std::to_string(header.n_nodes) + ", read " + std::to_string(nodes_.size()) + ".");
+    throw std::runtime_error(
+        "libqsm: node count mismatch: header declared " + std::to_string(header.n_nodes) +
+          ", read " + std::to_string(nodes_.size()) + ".");
 
   if (edges_.size() != header.n_edges)
-    throw std::runtime_error("libqsm: edge count mismatch: header declared " + std::to_string(header.n_edges) + ", read " + std::to_string(edges_.size()) + ".");
+    throw std::runtime_error(
+        "libqsm: edge count mismatch: header declared " + std::to_string(header.n_edges) +
+          ", read " + std::to_string(edges_.size()) + ".");
 }
 
 
@@ -420,7 +472,7 @@ void QSMwriter::write()
   header.n_nodes = nodes_.size();
   header.n_edges = edges_.size();
 
-  const QSMversionSpec& spec = resolve_version(header.version_major, header.version_minor);
+  const QSMformatSpec& spec = resolve_format(header.format);
 
   std::ofstream out(filename_, std::ios::binary);
   if (!out.is_open())
@@ -434,18 +486,20 @@ void QSMwriter::write()
     throw std::runtime_error("libqsm: I/O error while writing: " + filename_);
 }
 
-void QSMwriter::write_header(std::ofstream& out, const QSMversionSpec& spec) const
+void QSMwriter::write_header(std::ofstream& out, const QSMformatSpec& spec) const
 {
   const std::string created = header.created.empty() ? utc_timestamp() : header.created;
 
   out << "# QSM Binary Format\n";
+  out << "SIGNATURE QSMF\n";
   out << "VERSION "   << std::to_string(header.version_major) << "." << std::to_string(header.version_minor) << "\n";
+  out << "FORMAT "    << std::to_string(header.format)        << "\n";
   if (!header.software.empty())
     out << "SOFTWARE " << header.software << "\n";
   out << "CREATED "   << created          << "\n";
   out << "NODES "     << header.n_nodes   << "\n";
   out << "EDGES "     << header.n_edges   << "\n";
-  // Use the version-registry minimum sizes, not magic constants.
+  // Use the format-registry minimum sizes, not magic constants.
   out << "NODE_SIZE " << spec.min_node_size << "\n";
   out << "EDGE_SIZE " << spec.min_edge_size << "\n";
   out << std::fixed << std::setprecision(4);
@@ -467,13 +521,13 @@ void QSMwriter::write_header(std::ofstream& out, const QSMversionSpec& spec) con
   out << "DATA binary\n";
 }
 
-void QSMwriter::write_nodes(std::ofstream& out, const QSMversionSpec& spec) const
+void QSMwriter::write_nodes(std::ofstream& out, const QSMformatSpec& spec) const
 {
   for (const QSMnode& n : nodes_)
     spec.dispatch.write_node(out, n, header);
 }
 
-void QSMwriter::write_edges(std::ofstream& out, const QSMversionSpec& spec) const
+void QSMwriter::write_edges(std::ofstream& out, const QSMformatSpec& spec) const
 {
   for (const QSMedge& e : edges_)
     spec.dispatch.write_edge(out, e, header);

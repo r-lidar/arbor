@@ -37,6 +37,7 @@
  *   libqsm::QSMwriter w("out.qsm");
  *   w.set_software("MyApp 1.0");
  *   w.set_origin(448231.0, 5412087.0, 312.5);
+ *   w.set_format(2);           // 0 = minimal, 1 = + architecture, 2 = + distances
  *   w.add_nodes(qn.begin(), qn.end());
  *   w.add_edges(qe.begin(), qe.end());
  *   w.write();
@@ -75,13 +76,14 @@ static constexpr float   UNSET_FLOAT = -1.0f;
 // In-memory record structs
 //
 // These structs are the canonical in-memory representation and carry the
-// UNION of all fields across every spec version.
+// UNION of all fields across every format level.
 //
-// Fields introduced in versions later than 1.0 carry a sentinel default so
-// that code reading a v1.0 file always sees a well-defined, detectable value.
+// Fields introduced in format levels higher than 0 carry a sentinel default
+// so that code reading a Format 0 file always sees a well-defined, detectable
+// value.
 //
-// When adding a new field, annotate it with the minimum version tag:
-//   float my_new_field = UNSET_FLOAT;   // [v1.1+]
+// When adding a new field, annotate it with the minimum format tag:
+//   float my_new_field = UNSET_FLOAT;   // [format 2+]
 // ---------------------------------------------------------------------------
 
 struct QSMnode
@@ -93,19 +95,19 @@ struct QSMnode
 
 struct QSMedge
 {
-  // v1.0
-  uint32_t source = 0;
-  uint32_t target = 0;
-  float    radius = UNSET_FLOAT;
-  uint8_t quality = 0;
+  // format 0  (offsets 0-12, 13 bytes total)
+  uint32_t source  = 0;
+  uint32_t target  = 0;
+  float    radius  = UNSET_FLOAT;
+  uint8_t  quality = 0;
 
-  // v1.1
+  // format 1+  (offsets 13-17, +5 bytes)
+  uint32_t axis_id      = 0;
+  uint8_t  branch_order = 0;
+
+  // format 2+  (offsets 18-25, +8 bytes)
   float subtree_length   = UNSET_FLOAT;
   float distance_to_root = UNSET_FLOAT;
-
-  // v1.2
-  int32_t axis_id      = 0;
-  uint8_t branch_order = 0;
 };
 
 // ---------------------------------------------------------------------------
@@ -116,13 +118,14 @@ struct QSMheader
 {
   uint8_t  version_major = LIBQSM_VERSION_MAJOR;
   uint8_t  version_minor = LIBQSM_VERSION_MINOR;
+  uint8_t  format        = 2;   // edge record layout: 0 = minimal, 1 = + arch, 2 = + distances
   std::string software;
   std::string created;
   std::string crs;
   uint64_t    n_nodes   = 0;
   uint64_t    n_edges   = 0;
-  uint32_t    node_size = 16;
-  uint32_t    edge_size = 30;
+  uint32_t    node_size = 12;   // actual bytes per node record in this file
+  uint32_t    edge_size = 26;   // actual bytes per edge record in this file
   double      x_offset  = 0.0;
   double      y_offset  = 0.0;
   double      z_offset  = 0.0;
@@ -144,23 +147,24 @@ inline std::ostream& operator<<(std::ostream& os, const QSMedge& e)
   os << "{ source=" << e.source
      << ", target=" << e.target
      << ", radius=" << e.radius
-     << ", subtree_length=" << e.subtree_length
-     << ", distance_to_root=" << e.distance_to_root
      << ", axis_id=" << e.axis_id
      << ", branch_order=" << static_cast<int>(e.branch_order)
+     << ", subtree_length=" << e.subtree_length
+     << ", distance_to_root=" << e.distance_to_root
      << ", quality=" << static_cast<int>(e.quality)
      << "}";
   return os;
 }
+
 // ---------------------------------------------------------------------------
-// Version dispatch table
+// Format dispatch table
 //
-// Each spec version owns four functions that speak *only* that version's
+// Each format level owns four functions that speak *only* that format's
 // binary layout.
 //
 //   read_*  reads exactly min_*_size mandatory bytes from the stream and
 //           returns a fully-populated in-memory record; absent fields (those
-//           not yet defined in that version) are left at their sentinel.
+//           not yet defined in that format) are left at their sentinel.
 //
 //   write_* writes exactly min_*_size bytes to the stream.
 //
@@ -169,7 +173,7 @@ inline std::ostream& operator<<(std::ostream& os, const QSMedge& e)
 // compatibility with a newer writer's extension fields).
 // ---------------------------------------------------------------------------
 
-struct VersionDispatch
+struct FormatDispatch
 {
   using NodeReader = QSMnode (*)(std::ifstream&,  const QSMheader&);
   using EdgeReader = QSMedge (*)(std::ifstream&,  const QSMheader&);
@@ -182,30 +186,27 @@ struct VersionDispatch
   EdgeWriter write_edge = nullptr;
 };
 
-struct QSMversionSpec
+struct QSMformatSpec
 {
-  uint8_t  major;
-  uint8_t  minor;
-  uint32_t min_node_size;    // mandatory bytes per node record for this version
-  uint32_t min_edge_size;    // mandatory bytes per edge record for this version
-  VersionDispatch dispatch;  // reader/writer functors for this version
+  uint8_t  format;
+  uint32_t min_node_size;    // mandatory bytes per node record for this format
+  uint32_t min_edge_size;    // mandatory bytes per edge record for this format
+  FormatDispatch dispatch;   // reader/writer functors for this format
 };
 
 // ---------------------------------------------------------------------------
 // Registry and resolver - defined in libqsm.cpp
 //
-// version_registry() returns the ordered table of known versions (lowest
-// first).  Adding a new version means appending one row here; nothing else
+// format_registry() returns the ordered table of known formats (lowest
+// first).  Adding a new format means appending one row here; nothing else
 // changes in the library core.
 //
-// resolve_version() selects the best-matching entry:
-//   - exact match               -> return that entry
-//   - known major/unknown minor -> return the highest known minor, emit warning
-//   - unknown major             -> throw (breaking change; cannot interpret safely)
+// resolve_format() selects the matching entry, or the highest known format
+// when the file's FORMAT value is unrecognized (emitting a warning).
 // ---------------------------------------------------------------------------
 
-const std::vector<QSMversionSpec>& version_registry();
-const QSMversionSpec& resolve_version(uint8_t major, uint8_t minor, std::string* warning_out = nullptr);
+const std::vector<QSMformatSpec>& format_registry();
+const QSMformatSpec& resolve_format(uint8_t format, std::string* warning_out = nullptr);
 
 // ---------------------------------------------------------------------------
 // QSMreader
@@ -219,6 +220,7 @@ public:
   // Header metadata
   uint8_t            get_version_major() const noexcept { return header.version_major; }
   uint8_t            get_version_minor() const noexcept { return header.version_minor; }
+  uint8_t            get_format()        const noexcept { return header.format;        }
   const std::string& get_software()      const noexcept { return header.software;  }
   const std::string& get_created()       const noexcept { return header.created;   }
   const std::string& get_crs()           const noexcept { return header.crs;       }
@@ -264,8 +266,9 @@ public:
 
   void set_version_major(uint8_t v) noexcept             { header.version_major = v; }
   void set_version_minor(uint8_t v) noexcept             { header.version_minor = v; }
-  void set_software     (const std::string& s) noexcept  { header.software = s; }
-  void set_crs          (const std::string& c) noexcept  { header.crs      = c; }
+  void set_format       (uint8_t f) noexcept             { header.format   = f;  }
+  void set_software     (const std::string& s) noexcept  { header.software = s;  }
+  void set_crs          (const std::string& c) noexcept  { header.crs      = c;  }
   void add_message      (const std::string& m) noexcept  { header.messages.push_back(m); }
   void set_origin(double x, double y, double z) noexcept { header.x_offset = x; header.y_offset = y; header.z_offset = z; }
 
@@ -283,9 +286,9 @@ public:
   void write();
 
 private:
-  void write_header(std::ofstream& out, const QSMversionSpec& spec) const;
-  void write_nodes (std::ofstream& out, const QSMversionSpec& spec) const;
-  void write_edges (std::ofstream& out, const QSMversionSpec& spec) const;
+  void write_header(std::ofstream& out, const QSMformatSpec& spec) const;
+  void write_nodes (std::ofstream& out, const QSMformatSpec& spec) const;
+  void write_edges (std::ofstream& out, const QSMformatSpec& spec) const;
 
   std::string filename_;
 
