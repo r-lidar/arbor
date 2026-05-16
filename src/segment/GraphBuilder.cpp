@@ -27,7 +27,8 @@
 #include <unordered_map>
 #include <cmath>
 
-using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
+using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
+using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
@@ -166,7 +167,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
 }
 
 // ---------------------------------------------------------
-// 2. Target Layer (point → target)
+// 2. Target Layer (point -> target)
 // ---------------------------------------------------------
 
 // Each target point is connected to its 1-nn core point
@@ -214,7 +215,7 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
 }
 
 // ---------------------------------------------------------
-// 3. Ground or seed Layer (ground → point)
+// 3. Ground or seed Layer (ground -> point)
 // ---------------------------------------------------------
 
 void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seeds)
@@ -259,7 +260,7 @@ void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seed
 }
 
 // ---------------------------------------------------------
-// 4. Master Seed Layer (master → all ground)
+// 4. Master Seed Layer (master -> all ground)
 // ---------------------------------------------------------
 
 // A master seed is connected to all ground points with cost 0
@@ -283,6 +284,138 @@ void GraphBuilder::add_master_seed_layer()
   }
 }
 
+void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
+{
+  ServiceLocator::logger()("Test directed reachability");
+
+  const Graph::NodeId source = get_range_master().second;
+  const size_t N = static_cast<size_t>(total_core_nodes);
+  if (N < 2) return;
+
+  //  Reusable DFS: returns core node IDs unreachable from source
+  auto find_isolated = [&]() -> std::vector<Graph::NodeId>
+  {
+    const size_t total = graph->adjacency_list.size();
+    std::vector<bool> reachable(total, false);
+    std::vector<Graph::NodeId> stack;
+    stack.reserve(total);
+    stack.push_back(source);
+    reachable[source] = true;
+
+    while (!stack.empty())
+    {
+      Graph::NodeId u = stack.back(); stack.pop_back();
+      for (const auto& e : graph->adjacency_list[u])
+        if (e.destination >= 0 && !reachable[e.destination])
+        { reachable[e.destination] = true; stack.push_back(e.destination); }
+    }
+
+    std::vector<Graph::NodeId> isolated;
+    for (size_t i = 0; i < N; ++i)
+      if (!reachable[i]) isolated.push_back(static_cast<Graph::NodeId>(i));
+      return isolated;
+  };
+
+  std::vector<Graph::NodeId> isolated_ids = find_isolated();
+  if (isolated_ids.empty()) return;
+
+  ServiceLocator::logger()("\033[33m " + std::to_string(isolated_ids.size()) + " isolated nodes: rebuilding bidirectionnal edges with relaxed params\033[0m");
+
+  //  Relaxed parameters
+  const int   k_retry   = params.k * 4;
+  const float gap_retry = params.max_gap * 4.0f;
+  const bool  use_wood  = !wood.empty();
+
+  //  KD-tree over the full core cloud
+  KDTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  index.buildIndex();
+
+  std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> new_edges;
+  new_edges.reserve(isolated_ids.size() * k_retry * 2);
+
+  std::vector<size_t> idx(k_retry);
+  std::vector<double> sq_dist(k_retry);
+
+  for (Graph::NodeId from : isolated_ids)
+  {
+    // Wipe old edges, they were confined within the isolated sub-graph
+    graph->adjacency_list[from].clear();
+
+    double q[3];
+    cloud.get_point(from, q);
+
+    nanoflann::KNNResultSet<double> result(k_retry);
+    result.init(idx.data(), sq_dist.data());
+    index.findNeighbors(result, q, nanoflann::SearchParameters());
+
+    for (int j = 0; j < k_retry; ++j)
+    {
+      int to = static_cast<int>(idx[j]);
+      if (to == from) continue;
+
+      float eucl = std::sqrt(sq_dist[j]);
+      if (eucl > gap_retry) continue;
+
+      double coord_from[3], coord_to[3];
+      cloud.get_point(from, coord_from);
+      cloud.get_point(to,   coord_to);
+
+      float dx        = coord_from[0] - coord_to[0];
+      float dy        = coord_from[1] - coord_to[1];
+      float dz        = coord_from[2] - coord_to[2];
+      float magnitude = std::sqrt(dx*dx + dy*dy + dz*dz);
+      if (magnitude < 1e-12f) continue;
+
+      float base_cost = std::pow(eucl, params.power);
+
+      //  Forward edge: from -> to
+      {
+        float cos_theta = -dz / magnitude;
+        if (params.downward) cos_theta = -cos_theta;
+        int angle = std::round(std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI);
+        float cost = base_cost * params.angle_penalty[angle];
+
+        if (use_wood)
+        {
+          bool w1 = wood[from], w2 = wood[to];
+          if      ( w1 &&  w2) cost *= params.wood2wood;
+          else if (!w1 && !w2) cost *= params.leaf2leaf;
+          else if ( w1 && !w2) cost *= params.wood2leaf;
+        }
+
+        new_edges.emplace_back(from, to, cost);
+      }
+
+      //  Reverse edge: to-> from (direction flipped, so dz and wood roles swap)
+      {
+        float cos_theta = dz / magnitude;   // +dz because direction is reversed
+        if (params.downward) cos_theta = -cos_theta;
+        int angle = std::round(std::acos(std::clamp(cos_theta, -1.0f, 1.0f)) * 180.0f / M_PI);
+        float cost = base_cost * params.angle_penalty[angle];
+
+        if (use_wood)
+        {
+          bool w1 = wood[to], w2 = wood[from];   // roles swapped
+          if      ( w1 &&  w2) cost *= params.wood2wood;
+          else if (!w1 && !w2) cost *= params.leaf2leaf;
+          else if ( w1 && !w2) cost *= params.wood2leaf;
+        }
+
+        new_edges.emplace_back(to, from, cost);
+      }
+    }
+  }
+
+  for (auto& [a, b, c] : new_edges)
+    graph->add_edge(a, b, c);
+
+  // Verify
+  std::vector<Graph::NodeId> still_isolated = find_isolated();
+  if (still_isolated.empty())
+    ServiceLocator::logger()(" All isolated nodes resolved");
+  else
+    ServiceLocator::logger()(" " + std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine spatial gaps)");
+}
 
 int GraphBuilder::get_num_cores() const { return total_core_nodes; }
 int GraphBuilder::get_num_targets() const { return total_target_nodes; }

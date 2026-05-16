@@ -2,7 +2,7 @@
 CXX_STD = CXX17
 
 # Compilation flags
-PKG_CPPFLAGS = -DUSING_R \
+PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I. \
   -I./utils \
   -I./qsm \

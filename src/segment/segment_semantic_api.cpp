@@ -40,6 +40,8 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
   builder.add_seed_layer(core, dtm);
   builder.add_master_seed_layer();
 
+  builder.fix_directed_reachability(core);
+
   return builder.get_graph();
 }
 
@@ -64,8 +66,8 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
-  ServiceLocator::logger()("  Graph size: " + Graph::format_bytes(graph->mem()));
-  ServiceLocator::logger()("  Graph nodes: " + std::to_string(graph->adjacency_list.size()));
+  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
+  ServiceLocator::logger()(" Graph nodes: " + std::to_string(graph->adjacency_list.size()));
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
