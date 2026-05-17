@@ -19,6 +19,7 @@
  */
 
 #include "QSM.h"
+#include "libqsm.h"
 
 #include <fstream>
 #include <iomanip> // std::setprecision
@@ -77,41 +78,12 @@ void QSM::write(const std::string& filename, bool binary) const
     throw std::runtime_error("Unknown file extension: " + ext + ". Supported: .qbf, .obj, .ply, .stl, .csv, .txt");
 }
 
-// ---------------------------------------------------------------------------
-// QSM::write_qbf  (private)
-//
-// Writes the QSM to a QBF (QSM Binary Format) file.
-//
-// Binary record layouts (little-endian, no padding):
-//
-//   Node record (28 bytes):
-//     int32_t  node_id
-//     double   x, y, z
-//
-//   Edge record (30 bytes):
-//     int32_t  edge_id
-//     int32_t  source
-//     int32_t  target
-//     float    radius
-//     float    subtree_length
-//     float    distance_to_root
-//     int32_t  axis_ID
-//     uint8_t  branch_order
-//     uint8_t  quality           (EdgeQuality enum)
-//
-// Fields intentionally omitted:
-//   cyl_ID, parent_ID    — redundant with edge_id and graph topology
-//   conic_allometry, subtree_max_endZ, subtree_volume  — runtime-only scratch
-// ---------------------------------------------------------------------------
 void QSM::write_qsm(const std::string& filename) const
 {
-  std::ofstream out(filename, std::ios::binary);
-  if (!out.is_open())
-    throw std::runtime_error("Cannot open file: " + filename);
+  libqsm::QSMwriter writer(filename);
+  writer.set_software("Arbor");
+  writer.set_format(2);
 
-  // ---- Geographic origin: use the root node position ----------------------
-  // Storing coordinates relative to the root keeps float values near zero,
-  // giving sub-millimetre precision over the extent of any real tree.
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
   {
     const NodeID root = find_root_node();
@@ -123,71 +95,10 @@ void QSM::write_qsm(const std::string& filename) const
       zoffset = r.z;
     }
   }
-
-  // ---- UTC timestamp -------------------------------------------------------
-  char timestamp[32] = "unknown";
-  {
-    const std::time_t t   = std::time(nullptr);
-    std::tm* const    gmt = std::gmtime(&t);
-    if (gmt) std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", gmt);
-  }
-
-  // ---- ASCII header --------------------------------------------------------
-  out << "# QSM Binary Format by Arbor\n";
-  out << "VERSION 1.0\n";
-  out << "SOFTWARE Arbor\n";
-  out << "CREATED "   << timestamp          << "\n";
-  out << "NODES "     << nodes().size()     << "\n";
-  out << "EDGES "     << edges().size()     << "\n";
-  out << "NODE_SIZE 16\n";
-  out << "EDGE_SIZE 30\n";
-  out << std::fixed << std::setprecision(4);
-  out << "X_OFFSET "  << xoffset            << "\n";
-  out << "Y_OFFSET "  << yoffset            << "\n";
-  out << "Z_OFFSET "  << zoffset            << "\n";
-
-  for (const std::string& msg : messages)
-  {
-    out << "MESSAGE ";
-    for (const char c : msg)
-      out << (c == '\n' ? "\\n" : std::string(1, c));
-    out << "\n";
-  }
-
-  out << "DATA binary\n";
-
-  // ---- Binary node records (16 bytes each) ---------------------------------
-  for (const auto& [nid, n] : nodes())
-  {
-    const int32_t id = static_cast<int32_t>(nid);
-    const float   fx = static_cast<float>(n.x - xoffset);
-    const float   fy = static_cast<float>(n.y - yoffset);
-    const float   fz = static_cast<float>(n.z - zoffset);
-    out.write(reinterpret_cast<const char*>(&id), sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&fx), sizeof(float));
-    out.write(reinterpret_cast<const char*>(&fy), sizeof(float));
-    out.write(reinterpret_cast<const char*>(&fz), sizeof(float));
-  }
-
-  // ---- Binary edge records (30 bytes each) ---------------------------------
-  for (const auto& [eid, einfo] : edges())
-  {
-    const QSMEdge& e   = einfo.data;
-    const int32_t  id  = static_cast<int32_t>(eid);
-    const int32_t  src = static_cast<int32_t>(einfo.source);
-    const int32_t  tgt = static_cast<int32_t>(einfo.target);
-    const uint8_t  bo  = static_cast<uint8_t>(e.branch_order);
-    const uint8_t  q   = static_cast<uint8_t>(e.quality);
-    out.write(reinterpret_cast<const char*>(&id),                 sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&src),                sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&tgt),                sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&e.radius),           sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.subtree_length),   sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.distance_to_root), sizeof(float));
-    out.write(reinterpret_cast<const char*>(&e.axis_ID),          sizeof(int32_t));
-    out.write(reinterpret_cast<const char*>(&bo),                 sizeof(uint8_t));
-    out.write(reinterpret_cast<const char*>(&q),                  sizeof(uint8_t));
-  }
+  writer.set_origin(xoffset, yoffset, zoffset);
+  for (const auto& elem : nodes()) writer.add_node(elem.second);
+  for (const auto& elem : edges()) writer.add_edge(elem.second.data);
+  writer.write();
 }
 
 
@@ -373,12 +284,12 @@ void QSM::write_csv(const std::string& filename) const
     throw std::runtime_error("Cannot open CSV file: " + filename);
 
   // Header
-  out << "startX,startY,startZ,endX,endY,endZ,cyl_ID,parent_ID,axis_ID,branch_order,radius,length,volume,subtree_length";
+  out << "startX,startY,startZ,endX,endY,endZ,id,source,axis_id,branch_order,radius,length,volume,subtree_length";
   out << std::endl;
 
   out << std::fixed << std::setprecision(3);
 
-  // ---- SORT EDGES BY cyl_ID ----
+  // ---- SORT EDGES BY id ----
   std::vector<const EdgeInfo*> sorted;
   sorted.reserve(edges().size());
 
@@ -388,7 +299,7 @@ void QSM::write_csv(const std::string& filename) const
   std::sort(sorted.begin(), sorted.end(),
             [](const EdgeInfo* a, const EdgeInfo* b)
             {
-              return a->data.cyl_ID < b->data.cyl_ID;
+              return a->data.id < b->data.id;
             });
 
   // ---- WRITE DATA IN ORDER ----
@@ -404,9 +315,9 @@ void QSM::write_csv(const std::string& filename) const
         << tgt.x           << ","
         << tgt.y           << ","
         << tgt.z           << ","
-        << c.cyl_ID        << ","
-        << c.parent_ID     << ","
-        << c.axis_ID       << ","
+        << c.id            << ","
+        << c.source        << ","
+        << c.axis_id       << ","
         << c.branch_order  << ","
         << c.radius        << ","
         << c.length(src,tgt) << ","

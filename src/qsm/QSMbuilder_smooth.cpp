@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder_smooth.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -31,11 +31,11 @@ void QSMbuilder::smooth_skeleton(int steps, double lambda, double mu)
 
   ServiceLocator::logger()("Smoothing skeleton");
 
-  // Build axis map: axis_ID -> ordered list of edge IDs (sorted by subtree_length for root->tip order)
+  // Build axis map: axis_id -> ordered list of edge IDs (sorted by subtree_length for root->tip order)
   std::map<int, std::vector<int>> axis_map;
   for (const auto& [eid, einfo] : graph.edges())
   {
-    axis_map[einfo.data.axis_ID].push_back(eid);
+    axis_map[einfo.data.axis_id].push_back(eid);
   }
 
   // Sort each axis by subtree_length (descending = root to tip)
@@ -140,10 +140,10 @@ void QSMbuilder::smooth_radii(int steps, double lambda, double mu)
   if (graph.edge_count() == 0) return;
   ServiceLocator::logger()("Smoothing radii");
 
-  // Build axis map: axis_ID -> edge IDs sorted root->tip (descending subtree_length)
+  // Build axis map: axis_id -> edge IDs sorted root->tip (descending subtree_length)
   std::map<int, std::vector<int>> axis_map;
   for (const auto& [eid, einfo] : graph.edges())
-    axis_map[einfo.data.axis_ID].push_back(eid);
+    axis_map[einfo.data.axis_id].push_back(eid);
 
   for (auto& [axis, vec] : axis_map)
   {

@@ -24,11 +24,11 @@
 #' Supported formats:
 #' * `.qsm`: writes the QSM as native binary format
 #' * `.ply` or `.obj` or `.stl`: writes the QSM as a mesh file
-#' * `.csv` or `.txt`: writes the QSM as a table
+#' * `.csv` or `.txt`: writes the QSM as ASCII table
 #'
 #' @param qsm A QSM object to be written.
 #' @param file A string giving the path to the output file. The file extension determines
-#'   the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").
+#'   the format (e.g., ".qsm", ".ply", "obj", ".csv", ".txt", ".stl").
 #' @param binary Boolean. Used if the format supports ASCII or binary
 #'
 #' @export

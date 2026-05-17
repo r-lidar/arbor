@@ -89,7 +89,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
-    oss << "[WARN 1] H = " << H
+    oss << "[Small tree allometry] H = " << H
         << std::fixed << std::setprecision(1)
         << " m: estimated DBH = " << (2 * R0 * 100)
         << " cm. Too small to be measured. "
@@ -100,6 +100,22 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     graph.messages.push_back(msg);
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     return;
+  }
+
+  if (R0 < 0.03 & m_valid_ring_counter >= 10)
+  {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2);
+    oss << "[Broken tree] H = " << H
+        << std::fixed << std::setprecision(1)
+        << " m: estimated DBH = " << (2 * R0 * 100)
+        << " cm. Too small to be measured but with good measurement anyway. "
+        << "The QSM is likely a dead tree.";
+
+    std::string msg = oss.str();
+
+    graph.messages.push_back(msg);
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
   }
 
   ServiceLocator::logger()("Pre-allometry");
@@ -118,7 +134,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   bool has_na = false;
   for (auto& [eid, einfo] : graph.edges())
   {
-    if (einfo.data.axis_ID == 1 && einfo.data.radius == RADIUS_UNSET)
+    if (einfo.data.axis_id == 1 && einfo.data.radius == RADIUS_UNSET)
     {
       has_na = true;
       break;
@@ -127,7 +143,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    std::string msg = "[WARN 2] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
+    std::string msg = "[No valid measure] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
     conic_allometry(R0, tip_radius);
@@ -139,7 +155,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   double Rroot;
   for (auto& [eid, einfo] : graph.edges())
   {
-    if (einfo.data.axis_ID == 1 && einfo.data.parent_ID == 0)
+    if (einfo.data.axis_id == 1 && einfo.data.source == 0)
     {
       Rroot = einfo.data.radius;
       break;
@@ -149,7 +165,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   if (Rroot > 3*R0)
   {
     std::ostringstream oss;
-    oss << "[WARN 3] Measured root diameter is "
+    oss << "[Diameter anomaly] Measured root diameter is "
         << static_cast<int>(Rroot / R0)
         << " times greater than the expected DBH ("
         << std::fixed << std::setprecision(1) << 2 * Rroot
@@ -181,10 +197,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     ed.radius = RADIUS_UNSET;
 
     // Filtration logic
-    if (ed.cyl_ID < 1 || point_indices.size() < 50)
-      continue;
-
-    if (ed.tmp_radius == RADIUS_UNSET && ed.conic_allometry < 0.03)
+    if (point_indices.size() < 50 || ed.conic_allometry < 0.03)
       continue;
 
     const auto& src = graph.node(einfo.source);
@@ -203,7 +216,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     if (valid)
     {
       ed.radius = res.radius;
-      ed.quality = EdgeQuality::MEASURED;
+      ed.quality = MEASURED;
     }
   }
 }
@@ -236,17 +249,17 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     if (valid)
     {
       einfo.data.radius = res.radius;
-      einfo.data.quality = EdgeQuality::REFINED;
+      einfo.data.quality = REFINED;
     }
   }
 }
 
 void QSMbuilder::polynomial_fitting(double tip_radius)
 {
-  // Group edges by axis_ID
-  std::map<int, std::vector<int>> axes;   // axis_ID -> edge IDs
+  // Group edges by axis_id
+  std::map<int, std::vector<int>> axes;   // axis_id -> edge IDs
   for (const auto& [eid, einfo] : graph.edges())
-    axes[einfo.data.axis_ID].push_back(eid);
+    axes[einfo.data.axis_id].push_back(eid);
 
   for (auto& [axis_id, eids] : axes)
   {
@@ -339,7 +352,7 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       if (should_update)
       {
         ed.radius = pred_radius;
-        ed.quality = EdgeQuality::POLYNOMIAL;
+        ed.quality = POLYNOMIAL;
       }
     }
   }
@@ -356,9 +369,9 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
   {
     if (branch_order == 1) continue;
 
-    // Group by axis_ID
+    // Group by axis_id
     std::unordered_map<int, std::vector<int>> axes;
-    for (int eid : eids) axes[graph.edge_data(eid).axis_ID].push_back(eid);
+    for (int eid : eids) axes[graph.edge_data(eid).axis_id].push_back(eid);
 
     for (auto& [axis_id, axe_eids] : axes)
     {
@@ -370,14 +383,14 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
       });
 
       // The first edge is the root of the branch; find its parent edge
-      int first_eid  = axe_eids[0];
-      int parent_cyl_id = graph.edge_data(first_eid).parent_ID;
+      int first_eid = axe_eids[0];
+      int parent_id = graph.edge_data(first_eid).source;
 
-      // Find parent edge by cyl_ID
+      // Find parent edge by id
       int parent_eid = -1;
       for (const auto& [eid, einfo] : graph.edges())
       {
-        if (einfo.data.cyl_ID == parent_cyl_id) { parent_eid = eid; break; }
+        if (einfo.data.id == parent_id) { parent_eid = eid; break; }
       }
       if (parent_eid < 0) continue;
 
@@ -396,7 +409,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
         {
           QSMEdge& ed = graph.edge_data(eid);
           ed.radius = conic_allometry(tip_radius, ed.subtree_length, w0, r0);
-          ed.quality = EdgeQuality::CONICALLOM;
+          ed.quality = CONICALLOM;
         }
       }
       /*else
@@ -427,7 +440,7 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
     for (auto& [eid, einfo] : graph.edges())
     {
       einfo.data.radius = R0;
-      einfo.data.quality = EdgeQuality::CONICALLOM;
+      einfo.data.quality = CONICALLOM;
     }
 
     return;
@@ -436,7 +449,7 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
   double w0 = 0;
   for (const auto& [eid, einfo] : graph.edges())
   {
-    if (einfo.data.parent_ID == 0)
+    if (einfo.data.source == 0)
     {
       w0 = einfo.data.subtree_length;
       break;
@@ -455,7 +468,7 @@ void QSMbuilder::conic_allometry(double R0, double tip_radius)
     double wi = ed.subtree_length;
     ed.radius          = conic_allometry(tip_radius, wi, w0, R0);
     ed.conic_allometry = ed.radius;
-    ed.quality = EdgeQuality::CONICALLOM;
+    ed.quality = CONICALLOM;
   }
 }
 

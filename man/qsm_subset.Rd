@@ -10,7 +10,7 @@
 \usage{
 qsm_stem(qs)
 
-qsm_merchantable(qs, merchantable_radius = 0.045)
+qsm_merchantable(qs, merchantable_radius = 0.045, merchantable_length = 1)
 
 qsf_merchantable(qsf, merchantable_radius = 0.045)
 
@@ -22,9 +22,11 @@ qsm_nostump(qs, stump_height = 0.15)
 \item{merchantable_radius}{The radius considered merchantable. Default 4.5 cm (9 cm diameter) which
 is the standard in Canada.}
 
+\item{merchantable_length}{The length considered merchantable. Default 1 m which is the standard in Canada.}
+
 \item{qsf}{A QSF}
 
-\item{stump_height}{The height to remove from the root. Default 25 cm}
+\item{stump_height}{The height to remove from the root. Default 15 cm}
 }
 \description{
 Subset a QSM or QSF retaining only the stem, the merchantable or other options.\cr\cr

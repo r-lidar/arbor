@@ -1,19 +1,19 @@
 /**
  * @file QSM_mesh.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -135,16 +135,16 @@ static inline void propagate_frame(const std::array<double,3>& old_dir, const st
 /**
  * Build a continuous mesh along each axis by connecting rings of vertices at each node.
  */
-void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& cyl_ids, int resolution) const
+void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& ids, int resolution) const
 {
   vertices.clear();
   faces.clear();
-  cyl_ids.clear();
+  ids.clear();
 
-  // 1. Group edges by axis_ID
+  // 1. Group edges by axis_id
   std::map<int, std::vector<EdgeID>> axis_map;
   for (const auto& kv : edges())
-    axis_map[kv.second.data.axis_ID].push_back(kv.first);
+    axis_map[kv.second.data.axis_id].push_back(kv.first);
 
   // Global: for a given (axis_id, node_index) a ring index
   using AxisNode = std::pair<int, NodeID>;
@@ -245,7 +245,7 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
       // Local direction for this node
       std::array<double,3> dir{0,0,1};
       double radius = RADIUS_UNSET;
-      int cyl_id = 0;
+      int id = 0;
 
       if (idx==0 && edge_path.size() >= 1)
       {
@@ -260,7 +260,7 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
         double dlen = std::sqrt(dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2]);
         for(int i=0;i<3;++i) dir[i] /= (dlen>1e-12? dlen : 1.0);
         radius = edges().at(eid).data.radius;
-        cyl_id = edges().at(eid).data.cyl_ID;
+        id = edges().at(eid).data.id;
 
         // Initialize frame for first node
         make_frame(dir, ortho1, ortho2);
@@ -278,7 +278,7 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
         double dlen = std::sqrt(dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2]);
         for(int i = 0; i < 3;++i) dir[i] /= (dlen>1e-12? dlen : 1.0);
         radius = edges().at(eid).data.radius;
-        cyl_id = edges().at(eid).data.cyl_ID;
+        id = edges().at(eid).data.id;
 
         // Propagate frame from previous node
         propagate_frame(prev_dir, dir, ortho1, ortho2);
@@ -318,8 +318,8 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
         double r1 = edges().at(eid_next).data.radius;
         radius = 0.5*(r0+r1);
 
-        // Use the cyl_ID from the incoming edge (eid_prev) for this node's ring
-        cyl_id = edges().at(eid_prev).data.cyl_ID;
+        // Use the id from the incoming edge (eid_prev) for this node's ring
+        id = edges().at(eid_prev).data.id;
 
         // Propagate frame from previous node
         propagate_frame(prev_dir, dir, ortho1, ortho2);
@@ -328,11 +328,17 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
       {
         // Single node in axis (edge case)
         radius = 0.1;
-        cyl_id = 0;
+        id = 0;
         make_frame(dir, ortho1, ortho2);
       }
 
       prev_dir = dir; // Store for next iteration
+
+      if (radius <= 1e-9) // Using a small epsilon instead of 0 for stability
+      {
+        ring_starts[idx] = -1; // Mark this ring as skipped
+        continue;
+      }
 
       int vstart = vertices.size();
       ring_starts[idx] = vstart;
@@ -350,7 +356,7 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
           qn.z + radius * (ct*ortho1[2] + st*ortho2[2])
         };
         vertices.push_back(p);
-        cyl_ids.push_back(cyl_id);  // Each vertex in the ring gets the same cyl_ID
+        ids.push_back(id);  // Each vertex in the ring gets the same id
       }
     }
 
@@ -359,6 +365,9 @@ void QSM::mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::arr
     {
       int a_start = ring_starts[idx];
       int b_start = ring_starts[idx+1];
+
+      if (a_start == -1 || b_start == -1) continue;
+
       for(int j = 0; j < resolution; ++j)
       {
         int a0 = a_start + j;

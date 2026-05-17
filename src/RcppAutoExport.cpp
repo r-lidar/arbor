@@ -130,7 +130,7 @@ Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3);
 Rcpp::DataFrame qsm_stem_cpp(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchandable_radius);
+Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_radius, double merchantable_length);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

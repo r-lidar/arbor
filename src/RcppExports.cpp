@@ -338,13 +338,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsm_merchantable_cpp
-Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchandable_radius);
-RcppExport SEXP _arbor_qsm_merchantable_cpp(SEXP dfSEXP, SEXP merchandable_radiusSEXP) {
+Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_radius, double merchantable_length);
+RcppExport SEXP _arbor_qsm_merchantable_cpp(SEXP dfSEXP, SEXP merchantable_radiusSEXP, SEXP merchantable_lengthSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type merchandable_radius(merchandable_radiusSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_merchantable_cpp(df, merchandable_radius));
+    Rcpp::traits::input_parameter< double >::type merchantable_radius(merchantable_radiusSEXP);
+    Rcpp::traits::input_parameter< double >::type merchantable_length(merchantable_lengthSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_merchantable_cpp(df, merchantable_radius, merchantable_length));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -527,7 +528,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_read_cpp", (DL_FUNC) &_arbor_qsm_read_cpp, 1},
     {"_arbor_qsm_dbh_cpp", (DL_FUNC) &_arbor_qsm_dbh_cpp, 2},
     {"_arbor_qsm_stem_cpp", (DL_FUNC) &_arbor_qsm_stem_cpp, 1},
-    {"_arbor_qsm_merchantable_cpp", (DL_FUNC) &_arbor_qsm_merchantable_cpp, 2},
+    {"_arbor_qsm_merchantable_cpp", (DL_FUNC) &_arbor_qsm_merchantable_cpp, 3},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsm_get_cylID", (DL_FUNC) &_arbor_qsm_get_cylID, 2},

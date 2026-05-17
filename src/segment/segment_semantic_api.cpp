@@ -39,7 +39,7 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
   builder.add_target_layer(core, targets);
   builder.add_seed_layer(core, dtm);
   builder.add_master_seed_layer();
-
+  builder.fix_directed_reachability(core);
   return builder.get_graph();
 }
 
@@ -64,38 +64,37 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
-  ServiceLocator::logger()("  Graph size: " + Graph::format_bytes(graph->mem()));
-  ServiceLocator::logger()("  Graph nodes: " + std::to_string(graph->adjacency_list.size()));
+  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
+  ServiceLocator::logger()(" Graph nodes: " + std::to_string(graph->adjacency_list.size()));
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
   size_t num_raw_points = core.size();
   size_t num_points = dec.size();
   size_t num_target = targets.size();
-  size_t num_gnd    = dtm.size();
 
   std::vector<int> target_ids(num_target);
-  std::vector<int> ground_ids(num_gnd);
-  int master_id = num_points + num_target + num_gnd;
+  int master_id = num_points + num_target + dtm.size();
 
   std::iota(target_ids.begin(), target_ids.end(), num_points);
-  std::iota(ground_ids.begin(), ground_ids.end(), num_points + num_target);
 
   // Global count vector
   std::vector<int> passage(num_points, 0);
 
   ServiceLocator::logger()("Graph resolution (4/10)");
 
-  // Precompute distances for fast access
+  // Precompute Dijkstra distances from the master seed
   Graph::GraphCache cache = graph->compute_distances(master_id);
 
+  // The graph's adjacency list is no longer needed, free it before the
+  // parallel path-reconstruction loop to reduce peak memory.
   delete graph;
 
   ServiceLocator::logger()("  Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
 
   ServiceLocator::logger()("Accumulating passages (5/10)");
 
-  // Parallel loop over goal nodes
+  // Parallel loop over goal nodes.
   #pragma omp parallel
   {
     std::vector<int> local_passage(num_points, 0);  // thread-local counts
@@ -103,9 +102,9 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     #pragma omp for schedule(dynamic, 100)
     for (size_t i = 0; i < num_target; ++i)
     {
-      Graph::NodeId goal  = target_ids[i];
+      Graph::NodeId goal = target_ids[i];
 
-      auto [path, cost] = graph->findPath(master_id, goal, cache);
+      auto [path, cost] = Graph::findPath(master_id, goal, cache);
 
       for (size_t j = 0; j < path.size(); ++j)
       {
@@ -123,13 +122,15 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
     }
   }
 
-  // Release graph cache memory as it's no longer needed
+  // Release the cache: both vectors need clear + shrink_to_fit to actually
+  // return heap memory.
   cache.first.clear();
   cache.first.shrink_to_fit();
   cache.second.clear();
+  cache.second.shrink_to_fit();
 
-  // Transfer passage values from dec back to core
-  // Points not in dec get value 0
+  // Transfer passage values from dec back to core.
+  // Points not in dec keep the default value of 0.
   std::vector<int> core_passage(num_raw_points, 0);
 
   size_t dec_idx = 0;
@@ -152,20 +153,23 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
 
   ServiceLocator::logger()("Pathfinder-based wood segmentation (6/10)");
 
-  // Filter pseudo-skeleton: points with passage > min_passage
+  // Build a boolean mask of passage points and verify at least one exists.
   std::vector<bool> skeleton_mask(pc.size(), false);
+  size_t passage_count = 0;
   for (size_t i = 0; i < pc.size(); ++i)
   {
     if (pc.get_passage(i) > params.min_passage)
+    {
       skeleton_mask[i] = true;
+      ++passage_count;
+    }
   }
-  PointCloud passages = pc.subset(skeleton_mask, true);
 
-  if (passages.size() == 0) throw std::runtime_error("assign_wood_from_passage: no passage points found (no points with passage > min_passage)");
+  if (passage_count == 0) throw std::runtime_error("assign_wood_from_passage: no passage points found (no points with passage > min_passage)");
 
   ServiceLocator::logger()("  Building KDtree");
 
-  // Spatial index of the skeleton
+  // KDTree over the full cloud; queried from passage points, results index into pc.
   KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   tree.buildIndex();
   nanoflann::SearchParameters nanoparams;
@@ -173,28 +177,30 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
 
   ServiceLocator::logger()("  k-nn search");
 
-  // Each point close enough from a passage is assigned wood
   std::vector<bool> is_wood(pc.size(), false);
 
-  // Precompute squared distance threshold to avoid repeated multiplication or sqrt
   const double dist_threshold_sq = params.wood_assignation_dist * params.wood_assignation_dist;
   const int k = params.wood_assignation_k;
 
+  // Iterate directly over the skeleton mask, no need to copy passage points
+  // into a separate PointCloud.
   #pragma omp parallel
   {
     std::vector<index_t> idx(k);
-    std::vector<double> dist(k);
+    std::vector<double>  dist(k);
     double q[3];
 
     #pragma omp for schedule(static)
-    for (size_t i = 0; i < passages.size(); ++i)
+    for (size_t i = 0; i < pc.size(); ++i)
     {
-      passages.get_point(i, q);
+      if (!skeleton_mask[i]) continue;
+
+      pc.get_point(i, q);
       nanoflann::KNNResultSet<double> resultSet(k);
       resultSet.init(idx.data(), dist.data());
       tree.findNeighbors(resultSet, q, nanoparams);
 
-      for (int j = 0 ; j < 10 ; j++)
+      for (int j = 0; j < k; ++j)
       {
         if (dist[j] < dist_threshold_sq)
           is_wood[idx[j]] = true;
@@ -241,14 +247,12 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
       id = 0;
   }
 
-  // Assign original point cloud with wood/foliage
+  // Map surviving cluster points back to the original point cloud
   std::vector<bool> is_wood(pc.size(), false);
   size_t j = 0;
   for (size_t i = 0; i < pc.size(); ++i)
   {
     if (mask[i]) {
-      // In R, a point only survives if its cluster_id > 0
-      // AND its count >= min.
       int cid = cluster_ids[j];
       if (cid > 0 && counts[cid] >= params.connected_components_min) {
         is_wood[i] = true;
@@ -307,26 +311,24 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
       id = 0;
   }
 
-  // Assign original point cloud with wood/foliage
+  // Map surviving cluster points back to the original point cloud.
+  // j: index into the first subset (mask); k: index into the SOR-filtered subset.
   std::vector<bool> is_wood(pc.size(), false);
-  size_t j = 0; // Index for wood_subset (mask)
-  size_t k = 0; // Index for clustered_subset (survival_mask)
+  size_t j = 0;
+  size_t k = 0;
 
   for (size_t i = 0; i < pc.size(); ++i)
   {
     if (mask[i])
     {
-      // Point was in the first subset. Did it survive SOR?
       if (!is_noise[j])
       {
-        // Point was in the second subset. Did it survive Cluster Filtering?
         int cid = cluster_ids[k];
-        if (cid > 0 && counts[cid] >= params.connected_components_min) {
+        if (cid > 0 && counts[cid] >= params.connected_components_min)
           is_wood[i] = true;
-        }
-        k++; // Increment k only if the point survived SOR
+        k++;
       }
-      j++; // Increment j every time mask[i] is true
+      j++;
     }
   }
 
@@ -335,32 +337,30 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
 
 std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const settings::SemanticParameters& params)
 {
-  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is empty.");
-  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_medium_likelihood: point cloud is missing required 'foliage' attribute.");
+  if (pc.size() == 0)     throw std::runtime_error("assign_wood_from_wood_dilatation: point cloud is empty.");
+  if (!pc.has_foliage())  throw std::runtime_error("assign_wood_from_wood_dilatation: point cloud is missing required 'foliage' attribute.");
 
-  // We look at the neighboring points of the wood.  Points close to the wood
-  // are wood points too. This assigns extra wood point is the branches and remove
-  // some false negatives
+  // Dilate the current wood mask: neighbours of wood points within a radius
+  // are also assigned as wood.  This recovers false negatives on thin branches.
 
   ServiceLocator::logger()("Dilatation based wood segmentation... (9/10)");
 
-  // Extract wood points
+  // Extract current wood points as a sub-cloud to iterate query coordinates
   std::vector<bool> is_wood(pc.size(), false);
-  for (size_t i = 0; i < pc.size(); ++i) {
+  for (size_t i = 0; i < pc.size(); ++i)
+  {
     if (pc.is_wood(i))
       is_wood[i] = true;
   }
   PointCloud wood = pc.subset(is_wood, true);
 
-
   ServiceLocator::logger()("  Building KDtree");
 
-  // Build KDTree on wood points
+  // KDTree over the full cloud; queried from wood points, results index into pc.
   KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   tree.buildIndex();
   nanoflann::SearchParameters nanoparams;
   nanoparams.sorted = false;
-
 
   ServiceLocator::logger()("  knn search");
 
@@ -370,7 +370,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
   #pragma omp parallel
   {
     std::vector<index_t> idx(k);
-    std::vector<double> dist(k);
+    std::vector<double>  dist(k);
     double q[3];
 
     #pragma omp for schedule(static)
@@ -381,10 +381,11 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
       resultSet.init(idx.data(), dist.data());
       tree.findNeighbors(resultSet, q, nanoparams);
 
-      // If nearest wood point is within threshold distance, assign as wood
-      for (int j = 0 ; j < 10 ; j++)
+      for (int j = 0; j < k; ++j)
+      {
         if (dist[j] <= max_dist_sq)
           is_wood[idx[j]] = true;
+      }
     }
   }
 
@@ -409,7 +410,7 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   std::vector<bool> path_finder_based_wood = assign_wood_from_passage(scene, par.semantic);
   for (size_t i = 0 ; i < n ; i++) scene.set_foliage(i, (int)!path_finder_based_wood[i]);
 
-  std::vector<bool> high_likelihood_based_wood = assign_wood_from_high_likelihood(scene, par.semantic);
+  std::vector<bool> high_likelihood_based_wood   = assign_wood_from_high_likelihood(scene, par.semantic);
   std::vector<bool> medium_likelihood_based_wood = assign_wood_from_medium_likelihood(scene, par.semantic);
 
   for (size_t i = 0 ; i < n ; i++) {
@@ -429,4 +430,3 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
 }
 
 }
-

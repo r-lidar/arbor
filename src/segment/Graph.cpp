@@ -18,10 +18,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <iomanip>
 #include <limits>
 #include <algorithm>
-#include <iostream>
 #include <queue>
+#include <sstream>
 
 #include "Graph.h"
 
@@ -85,8 +86,7 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
   return {distances, predecessors};
 }
 
-// --- Path reconstruction ---
-std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const std::pair<DistanceVector, PredecessorVector>& precomputed_data) const
+std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const GraphCache& precomputed_data)
 {
   const auto& [distances, predecessors] = precomputed_data;
 
@@ -113,12 +113,11 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
   size_t N = adjacency_list.size();
 
   distances.assign(N, INF);
-  closest_nodeids.assign(N, -1); // invalid default
+  closest_nodeids.assign(N, -1);
 
   using PQElement = std::pair<double, NodeId>;
   std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;
 
-  // Initialize ground nodes
   for (NodeId g : nodes)
   {
     distances[g] = 0.0;
@@ -126,25 +125,12 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
     pq.push({0.0, g});
   }
 
-  size_t processed = 0;
-  size_t next_report = N / 20; // report every 5%
-  if (next_report == 0) next_report = 1; // avoid division by zero
-
   while (!pq.empty())
   {
     auto [dist_u, u] = pq.top();
     pq.pop();
 
-    if (dist_u > distances[u]) continue; // outdated entry
-
-    // Progress tracking
-    ++processed;
-    if (processed % next_report == 0)
-    {
-      //double pct = 100.0 * processed / N;
-      //std::cout << "Progress: " << static_cast<int>(pct) << "% (" << processed << "/" << N << " nodes processed)\r";
-      //std::cout.flush();
-    }
+    if (dist_u > distances[u]) continue;
 
     for (const auto& e : adjacency_list[u])
     {
@@ -158,9 +144,42 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
       }
     }
   }
+}
 
-  //std::cout << "\nDone. Processed " << processed << " nodes.\n";
+size_t Graph::mem() const
+{
+  size_t total = sizeof(*this);
+  for (const auto& neighbors : adjacency_list)
+  {
+    total += sizeof(neighbors);
+    total += neighbors.capacity() * sizeof(Node);
+  }
+  return total;
+}
+
+size_t Graph::cache_mem(const GraphCache& cache)
+{
+  const auto& [distances, predecessors] = cache;
+  size_t total = sizeof(distances) + distances.capacity() * sizeof(Cost);
+  total += predecessors.size() * sizeof(NodeId);
+  return total;
+}
+
+std::string Graph::format_bytes(size_t bytes)
+{
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(2);
+
+  if (bytes < 1024)
+    oss << bytes << " B";
+  else if (bytes < 1024 * 1024)
+    oss << (bytes / 1024.0) << " KB";
+  else if (bytes < 1024 * 1024 * 1024)
+    oss << (bytes / (1024.0 * 1024.0)) << " MB";
+  else
+    oss << (bytes / (1024.0 * 1024.0 * 1024.0)) << " GB";
+
+  return oss.str();
 }
 
 }
-

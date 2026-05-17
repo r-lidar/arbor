@@ -1,18 +1,18 @@
 # @file qsm_stat.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -126,12 +126,15 @@ qsm_stats.qsm <- function(qs, ..., display = FALSE)
                             V = V,
                             H = H)
 
+  msg = qsm_message(qs, TRUE)
+
   if (display) .plot_stats(stats_by_radius, stats_by_order, stats_global, stem_profile, NULL)
 
   return(list(stats_by_order = stats_by_order,
               stats_by_radius = stats_by_radius,
               stats_global = stats_global,
-              stem_taper = stem_profile))
+              stem_taper = stem_profile,
+              note = msg))
 
 }
 
@@ -144,7 +147,10 @@ qsm_stats.qsf <- function(qs, ..., display = FALSE)
   {
     out <- qsm_stats(x, ..., display = FALSE)
     if (is.null(out)) return(NULL)
-    out$stats_global
+    ans = out$stats_global
+    msg = paste0(out$note, collapse = " + ")
+    ans$note = msg
+    ans
   })
 
   res <- Filter(Negate(is.null), res)

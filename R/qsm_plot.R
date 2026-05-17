@@ -1,18 +1,18 @@
 # @file qsm_plot.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -36,138 +36,106 @@ plot.qsm = function(x, ...)
   plot_qsm(x, ...)
 }
 
+
+# Helper function to ensure identical color mapping in both functions
+map_qsm_colors <- function(colattr, pal, is_categorical) {
+  if (is_categorical) {
+    # Categorical logic: Direct indexing with modulo wrap-around
+    colattr[is.na(colattr)] <- 1
+    colattr[colattr < 1] <- 1
+    idx <- pmin(as.integer(colattr), length(pal))
+    return(pal[idx])
+  } else {
+    # Continuous logic: Fixed-bin gradient mapping
+    mn <- min(colattr, na.rm = TRUE)
+    mx <- max(colattr, na.rm = TRUE)
+
+    if (mn == mx) {
+      bins <- rep(1, length(colattr))
+      n_bins <- 1
+    } else {
+      n_bins <- 100 # Use a fixed resolution for the ramp
+      bins <- findInterval(colattr, seq(mn, mx, length.out = n_bins))
+    }
+
+    color_palette <- grDevices::colorRampPalette(pal)
+    return(color_palette(n_bins)[bins])
+  }
+}
+
 #' @export
 #' @rdname plot
-plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = c("blue", "green", "yellow", "orange", "red"), ...)
+plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = "auto", ...)
 {
-  # --- Input Validation ---
-  if (!is.data.frame(qsm)) {
-    stop("Input must be a data.frame")
+  default_pal = c("blue", "green", "yellow", "orange", "red")
+  branch_order_pal <- c("#552203","#ad3a01","#e59b16","#fdd63b","#9acd56", "#59ad4b","#1e490e")
+  quality_pal = c("blue", "green", "yellow", "orange", "red")
+
+  if (!is.data.frame(qsm)) stop("Input must be a data.frame")
+
+  if (identical(pal, "auto")) {
+    pal <- switch(color, branch_order = branch_order_pal, quality = quality_pal, default_pal)
   }
 
-  if (all(is.na(qsm$radius)))
-    cylinder = FALSE
-  else if (anyNA(qsm$radius))
-    qsm$radius[is.na(qsm$radius)] = 0
-
-  # --- Global Translation Logic ---
-  # translateXYZ is for compatibility with computree
   if (!is.null(add)) {
     tx = add[1]; ty = add[2]; tz = 0
   } else {
-    if (!"translateX" %in% names(qsm)) tx = min(qsm$startX) else tx = qsm$translateX[1]
-    if (!"translateY" %in% names(qsm)) ty = min(qsm$startY) else ty = qsm$translateY[1]
-    if (!"translateZ" %in% names(qsm)) tz = 0 else tz = qsm$translateZ[1]
-
+    tx = min(qsm$startX); ty = min(qsm$startY); tz = 0
     rgl::open3d()
   }
 
-  # --- Check Cylinder Capability ---
-  local_cylinder <- cylinder
-  if (!"radius" %in% names(qsm)) local_cylinder <- FALSE
+  # Apply Translation
+  qsm$startX <- qsm$startX - tx; qsm$startY <- qsm$startY - ty; qsm$startZ <- qsm$startZ - tz
+  qsm$endX   <- qsm$endX - tx;   qsm$endY   <- qsm$endY - ty;   qsm$endZ   <- qsm$endZ - tz
 
-  # --- Apply Translation ---
-  qsm$startX <- qsm$startX - tx
-  qsm$startY <- qsm$startY - ty
-  qsm$startZ <- qsm$startZ - tz
-  qsm$endX   <- qsm$endX - tx
-  qsm$endY   <- qsm$endY - ty
-  qsm$endZ   <- qsm$endZ - tz
+  # Generate Colors (Centralized Logic)
+  if (color %in% names(qsm)) {
+    is_cat <- color %in% c("branch_order", "quality")
+    colors_mapped <- map_qsm_colors(qsm[[color]], pal, is_cat)
+  } else {
+    colors_mapped <- rep("black", nrow(qsm))
+  }
 
-  # Update bounds for axes
-  z_min_glob <- min(qsm$startZ, qsm$endZ)
-  z_max_glob <- max(qsm$startZ, qsm$endZ)
-
-  # --- Generate and Render Mesh ---
-  if (local_cylinder) {
-    mesh <- as_mesh(qsm, color, pal)
+  # Render Mesh
+  if (cylinder && "radius" %in% names(qsm)) {
+    # Pass the already computed colors to avoid re-calculation mismatch
+    mesh <- as_mesh(qsm, color, pal, precomputed_colors = colors_mapped)
     rgl::shade3d(mesh)
   }
 
-  # --- Render Skeleton ---
-  if (skeleton) {
+  # Render Skeleton
+  if (skeleton && nrow(qsm) > 0) {
+    pts <- matrix(NA, nrow = nrow(qsm) * 2, ncol = 3)
+    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm[, c("startX", "startY", "startZ")])
+    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm[, c("endX", "endY", "endZ")])
 
-    color_palette <- grDevices::colorRampPalette(pal)
-
-    if (nrow(qsm) == 0) return(NULL)
-    # --- Color Logic ---
-    colattr = qsm[[color]]
-    if (color %in% names(qsm)) {
-      if (color == "branch_order") {
-        colattr = colattr
-      } else if (is.logical(colattr)) {
-        colattr = colattr + 1
-      } else {
-        # Handle case where min == max to avoid seq error
-        mn <- min(colattr, na.rm = TRUE)
-        mx <- max(colattr, na.rm = TRUE)
-        if (mn == mx) {
-          colattr <- rep(1, length(colattr))
-        } else {
-          colattr = findInterval(colattr, seq(mn, mx, length.out = 20))
-        }
-      }
-      colattr[colattr < 1] <- 1
-      colors_mapped <- color_palette(max(colattr, na.rm=TRUE))[colattr]
-    } else {
-      colors_mapped = rep("black", nrow(qsm))
-    }
-
-    # Interleave Start and End for segments
-    pts <- matrix(NA, nrow=nrow(qsm)*2, ncol=3)
-    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm[, c("startX","startY","startZ")])
-    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm[, c("endX","endY","endZ")])
-
-    line_cols <- rep(colors_mapped, each=2)
-
-    rgl::segments3d(pts, col = line_cols)
-    rgl::points3d(as.matrix(qsm[, c("startX","startY","startZ")]), col = colors_mapped)
+    rgl::segments3d(pts, col = rep(colors_mapped, each = 2))
+    rgl::points3d(as.matrix(qsm[, c("startX", "startY", "startZ")]), col = colors_mapped)
   }
 
-  # --- Axes ---
-  #z_ticks <- seq(floor(z_min_glob), ceiling(z_max_glob), by = 0.5)
-  #rgl::axis3d("z", at = z_ticks, labels = as.character(z_ticks), col = "black")
-  #rgl::axis3d("x", col = "black")
-  #rgl::axis3d("y", col = "black")
-
   lidR:::.pan3d(2)
-
   return(invisible(c(tx, ty)))
 }
 
-as_mesh <- function(qsm, color = "cyl_ID", pal = c("blue", "green", "yellow", "orange", "red"))
+as_mesh <- function(qsm, color = "cyl_ID", pal = "auto", precomputed_colors = NULL)
 {
-  color_palette <- grDevices::colorRampPalette(pal)
-
   if (nrow(qsm) == 0) return(NULL)
-  # --- Color Logic ---
-  colattr = qsm[[color]]
-  if (color %in% names(qsm)) {
-    if (color == "branch_order") {
-      colattr = colattr
-    } else if (is.logical(colattr)) {
-      colattr = colattr + 1
-    } else {
-      # Handle case where min == max to avoid seq error
-      mn <- min(colattr, na.rm = TRUE)
-      mx <- max(colattr, na.rm = TRUE)
-      if (mn == mx) {
-        colattr <- rep(1, length(colattr))
-      } else {
-        colattr = findInterval(colattr, seq(mn, mx, length.out = 20))
-      }
-    }
-    colattr[colattr < 1] <- 1
-    colors_mapped <- color_palette(max(colattr, na.rm=TRUE))[colattr]
+
+  # Use precomputed colors if provided, otherwise compute using the same logic
+  if (!is.null(precomputed_colors)) {
+    colors_mapped <- precomputed_colors
   } else {
-    colors_mapped = rep("black", nrow(qsm))
+    if (color %in% names(qsm)) {
+      is_cat <- color %in% c("branch_order", "quality")
+      colors_mapped <- map_qsm_colors(qsm[[color]], pal, is_cat)
+    } else {
+      colors_mapped <- rep("black", nrow(qsm))
+    }
   }
 
   mesh_data <- qsm_mesh_cpp(qsm, 16)
 
-  n_cyl <- nrow(qsm)
-  n_verts_total <- ncol(mesh_data$vertices)
-
+  # Align colors with mesh vertices using NodeID (CylID)
   id = match(mesh_data$NodeID, qsm$cyl_ID)
   Final_Colors = colors_mapped[id]
 

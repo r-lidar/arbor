@@ -93,7 +93,7 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
   // Collect main axis edge IDs
   std::vector<int> main_axis_eids;
   for (const auto& [eid, einfo] : graph.edges())
-    if (einfo.data.axis_ID == 1) main_axis_eids.push_back(eid);
+    if (einfo.data.axis_id == 1) main_axis_eids.push_back(eid);
 
   if (main_axis_eids.size() < 5) return;
 
@@ -140,9 +140,9 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
 
     remove_disconnected_branches();
 
-    // Set new root's parent_ID to 0
+    // Set new root's source to 0
     if (new_root_eid >= 0 && graph.has_edge(new_root_eid))
-      graph.edge_data(new_root_eid).parent_ID = 0;
+      graph.edge_data(new_root_eid).source = 0;
   }
 }
 
@@ -155,7 +155,7 @@ void QSMbuilder::remove_disconnected_branches()
   // Seed BFS with all main axis edges
   for (const auto& [eid, einfo] : graph.edges())
   {
-    if (einfo.data.axis_ID == 1)
+    if (einfo.data.axis_id == 1)
     {
       keep_eids.insert(eid);
       bfs.push(eid);

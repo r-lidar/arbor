@@ -69,7 +69,7 @@ void QSMbuilder::build(const PointCloud& tree)
 
   if (count == 0)
   {
-    graph.messages.push_back("[WARN 4] This tree has no point labelled as wood");
+    graph.messages.push_back("[No wood point] This tree has no point labelled as wood");
     return;
   }
 

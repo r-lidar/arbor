@@ -29,6 +29,8 @@
 #' @seealso  \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
+  UserData <- treeID <- NULL
+
   #params <- evaluate_penalty(params)
   if ("UserData" %in% names(las))
   {
@@ -64,43 +66,42 @@ as_qsf <- function(x)
 #' @export
 qsf_log = function(qsf)
 {
+  # 1. Extract messages from attributes
   messages = lapply(qsf, function(x) attr(x, "message"))
 
-  # Identify which elements are NOT empty
+  # 2. Identify and subset non-empty messages
   keep_idx <- which(sapply(messages, length) > 0)
+  clean_list <- unlist(messages[keep_idx])
 
-  # Subset messages and store their original positions
-  clean_list <- messages[keep_idx]
-
-  # Extract the tags to use as grouping keys
+  # 3. Extract tags: catches everything between the first []
+  # We use a simple sapply to ensure we get a vector of the same length as clean_list
   warn_tags <- sapply(clean_list, function(x) {
-    regmatches(x, regexpr("\\[WARN \\d+\\]", x))
+    if (!grepl("\\[.*?\\]", x)) return(NA)
+    sub(".*\\[(.*?)\\].*", "\\1", x)
   })
-
-  # Create the structured list
-  unique_tags <- unique(unlist(warn_tags))
+  # 4. Create the structured list
+  unique_tags <- unique(warn_tags)
 
   final_output <- lapply(unique_tags, function(tag)
   {
-    match_mask <- warn_tags == tag
+    # Find which messages belong to this tag
+    match_mask <- !is.na(warn_tags) & (warn_tags == tag)
 
     matches <- clean_list[match_mask]
     original_indices <- keep_idx[match_mask]
 
-    # Get the first message and "templatize" it
-    # This replaces digits/decimals with 'x' to make it generic
-    raw_msg <- matches[[1]]
-    generic_msg <- gsub("\\d+\\.\\d+|\\d+", "x", raw_msg)
-    generic_msg <- trimws(gsub("\\[WARN x]", "", generic_msg))
+    # 5. SIMPLIFIED MESSAGE: No regex escaping needed!
+    # Using fixed = TRUE treats 'tag' as plain text, not a regex pattern.
+    raw_msg <- matches[1]
+    generic_msg <- trimws(gsub(tag, "", raw_msg, fixed = TRUE))
 
     list(
-      message = generic_msg,
+      type = tag,
       index = unname(original_indices),
       treeID = as.integer(names(matches))
     )
   })
 
-  # Name the list elements by their tag
-  names(final_output) <- unique_tags
+  # Name the list elements by their tag (e.g., "[No valid measure]")
   final_output
 }

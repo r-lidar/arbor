@@ -162,7 +162,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   center_to_node[root->id] = graph.add_node({root->x, root->y, root->z});
 
   int remaining = (int)centers.size() - 1;
-  int cyl_ID    = 1;
+  id = 1;
 
   nanoflann::SearchParameters search_params;
   search_params.sorted = false;
@@ -212,8 +212,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       if (!center_to_node.count(newRoot->id))
         center_to_node[newRoot->id] = graph.add_node({newRoot->x, newRoot->y, newRoot->z});
 
-      QSMEdge ed;
-      ed.cyl_ID = cyl_ID++;
+      QSMEdge ed; ed.id = id++;
       ed.tmp_radius = get_edge_radius(*root, *newRoot);
 
       graph.add_edge(center_to_node[root->id], center_to_node[newRoot->id], ed);
@@ -253,8 +252,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       if (!center_to_node.count(orphan->id))
         center_to_node[orphan->id] = graph.add_node({orphan->x, orphan->y, orphan->z});
 
-      QSMEdge ed;
-      ed.cyl_ID = cyl_ID++;
+      QSMEdge ed; ed.id = id++;
       ed.tmp_radius = get_edge_radius(*nearestDone, *orphan);
 
       graph.add_edge(center_to_node[nearestDone->id], center_to_node[orphan->id], ed);
@@ -289,7 +287,7 @@ void QSMbuilder::fix_multiple_root()
 
   // Connect them
   QSMEdge new_edge_data;
-  new_edge_data.cyl_ID = static_cast<int>(graph.edge_count()) + 1;
+  new_edge_data.id = static_cast<int>(graph.edge_count()) + 1;
 
   graph.add_edge(new_root_id, old_root_id, new_edge_data);
 
@@ -314,7 +312,7 @@ void QSMbuilder::prune_spurious_branches()
   for (const auto& [eid, einfo] : graph.edges())
   {
     if (einfo.data.branch_order == 2)
-      axis_edges[einfo.data.axis_ID].push_back(eid);
+      axis_edges[einfo.data.axis_id].push_back(eid);
   }
 
   std::vector<EdgeID> edges_to_remove;

@@ -48,13 +48,13 @@
 #' @export
 flag_small_trees = function(las, max_height = 2)
 {
-  treeID <- hag <- hag_max <- hag_min <- NULL
+  UserData <- treeID <- hag <- hag_max <- hag_min <- NULL
 
   attributes <- names(las)
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
   if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
-  ans <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
+  ans <- las@data[treeID > 0, list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
   ans <- ans[hag_max > max_height & hag_min < max_height]
 
   # Keep trees whose seeds are inside
@@ -67,7 +67,7 @@ flag_small_trees = function(las, max_height = 2)
 
 keep_small_trees = function(las, max_height = 2)
 {
-  treeID <- hag <- hag_max <- hag_min <- NULL
+  UserData <- treeID <- hag <- hag_max <- hag_min <- NULL
 
   attributes <- names(las)
   stopifnot("treeID" %in% attributes)
@@ -87,6 +87,8 @@ keep_small_trees = function(las, max_height = 2)
 #' @importFrom data.table :=
 flag_buffer = function(las, seeds, buffer = -5)
 {
+  UserData <- NULL
+
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
   if (!missing(seeds))
   {

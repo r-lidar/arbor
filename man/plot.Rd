@@ -12,13 +12,7 @@
 \alias{colorize_trees}
 \title{Plot QSM Data in 3D}
 \usage{
-\method{plot}{qsf}(
-  x,
-  ...,
-  color = "cyl_ID",
-  pal = c("blue", "green", "yellow", "orange", "red"),
-  add = NULL
-)
+\method{plot}{qsf}(x, ..., color = "branch_order", pal = "auto", add = NULL)
 
 \method{plot}{qsm}(x, ...)
 
@@ -28,7 +22,7 @@ plot_qsm(
   color = "branch_order",
   skeleton = TRUE,
   cylinder = TRUE,
-  pal = c("blue", "green", "yellow", "orange", "red"),
+  pal = "auto",
   ...
 )
 

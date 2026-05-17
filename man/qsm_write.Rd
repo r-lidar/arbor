@@ -10,7 +10,7 @@ qsm_write(qsm, file, binary = TRUE)
 \item{qsm}{A QSM object to be written.}
 
 \item{file}{A string giving the path to the output file. The file extension determines
-the format (e.g., ".ply", "obj", ".csv", ".txt", ".stl").}
+the format (e.g., ".qsm", ".ply", "obj", ".csv", ".txt", ".stl").}
 
 \item{binary}{Boolean. Used if the format supports ASCII or binary}
 }
@@ -23,7 +23,7 @@ Supported formats:
 \itemize{
 \item \code{.qsm}: writes the QSM as native binary format
 \item \code{.ply} or \code{.obj} or \code{.stl}: writes the QSM as a mesh file
-\item \code{.csv} or \code{.txt}: writes the QSM as a table
+\item \code{.csv} or \code{.txt}: writes the QSM as ASCII table
 }
 }
 \examples{

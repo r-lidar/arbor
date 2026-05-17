@@ -75,7 +75,7 @@ file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark_3
 
 # ===== PROCESSING PARAMETERS =====
 
-params = default_arbor_parameters
+params = arbor_parameters_default
 
 # ====== READ POINT CLOUD =======
 
@@ -198,7 +198,7 @@ if (display)
 # The goal is to retain the main trees and clean up the understory. It also
 # remove blob of points with no ID
 
-trees <- remove_small_trees(las, max_height = 2)
+trees <- flag_small_trees(las, max_height = 2)
 
 if (display)
 {
@@ -220,36 +220,10 @@ if (display)
   plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
 }
 
-# ==== VARIOUS EXPORTS ====
 
-o <- tools::file_path_sans_ext(file)
-t <- paste0(o, "_trees.laz")
-v <- paste0(o, "_validtrees.laz")
-o <- paste0(o, "_segmented.laz")
-r <- paste0(o, "_dtm.tif")
-
-las = colorize_trees(las, darken_foliage = F)
-trees = colorize_trees(trees, darken_foliage = F)
-valid_trees = colorize_trees(valid_trees)
-
-
-writeLAS(las, o)
-writeLAS(trees, t)
-writeLAS(valid_trees, v)
-terra::writeRaster(dtm, r)
-
-plot(valid_trees, color = "treeID", legend = TRUE, size = 2) |> add_dtm3d(dtm)
-for (i in unique(valid_trees$treeID))
-{
-  print(i)
-
-  tree <- filter_poi(valid_trees, treeID == i)
-  olas <- paste0(dirname(o), "/ITS/tree_", i, ".las")
-  writeLAS(tree, olas)
-}
 # ==== QSF ======
 
 qsf = qsf(las)
 
 x = plot_instance(las)
-plot(qsf, add = x, pal = "gray")
+plot(qsf, add = x, pal = "chocolate4")

@@ -2,7 +2,7 @@
 CXX_STD = CXX17
 
 # Compilation flags
-PKG_CPPFLAGS = -DUSING_R \
+PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I. \
   -I./utils \
   -I./qsm \
@@ -15,6 +15,7 @@ PKG_CPPFLAGS = -DUSING_R \
   -I./nanoflann \
   -I./vendor \
   -I./vendor/ptd \
+  -I./vendor/libqsm \
   -I./R \
   -I/usr/include/eigen3
 
@@ -30,6 +31,7 @@ OBJECTS = api/PointCloud.o \
   vendor/hporro/delaunay.o \
   vendor/hporro/index.o \
   vendor/dbscan/dbscan.o \
+  vendor/libqsm/libqsm.o \
   experimental/qsm_distance.o \
   experimental/extrat_context.o \
   qsf/QSF.o \

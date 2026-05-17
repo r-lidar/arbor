@@ -72,15 +72,25 @@ x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)
 }
 
-microbenchmark::microbenchmark(qsm = qsm_write(qsm, "~/Téléchargements/test.qsm"),
-                               csv = qsm_write(qsm, "~/Téléchargements/test.csv"))
+as.data.frame(qsm)
 
-microbenchmark::microbenchmark(qsm = qsm_read("~/Téléchargements/test.qsm"),
-                               csv = qsm_read("~/Téléchargements/test.csv"))
+merch = qsm_merchantable(qsm)
+merch = merch[merch$dist_to_root < 2.5,]
+plot(merch)
+
+qsm_write(qsm, "~/Téléchargements/test.csv")
+qsm_write(qsm, "~/Téléchargements/test.qsm")
+v = qsm_read( "~/Téléchargements/test.qsm")
+plot(v)
+
+as.data.frame(merch)
+as.data.frame(v)
 
 qsm = qsm(tree, params)
 plot(qsm)
 as.data.frame(qsm)
+
+qsf_write()
 
 x = plot_semantic(tree)
 plot(qsm, add = x, color = "quality")
@@ -310,7 +320,7 @@ spt_graph <- subgraph_from_edges(g, eids = spt_edge_ids, delete.vertices = FALSE
 spt_df = as_data_frame(spt_graph, what = "edges")
 spt_df$from = as.integer(spt_df$from)
 spt_df$to = as.integer(spt_df$to)
-
+qsm_message
 # 9. Map coordinates back to the SPT edges
 startX = nodes$X[spt_df$from]
 startY = nodes$Y[spt_df$from]
