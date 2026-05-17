@@ -54,7 +54,7 @@ flag_small_trees = function(las, max_height = 2)
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
   if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
-  ans <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
+  ans <- las@data[treeID > 0, list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
   ans <- ans[hag_max > max_height & hag_min < max_height]
 
   # Keep trees whose seeds are inside
