@@ -42,22 +42,15 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   if (!core.has_foliage())  throw std::runtime_error("build_instance_graph: core point cloud is missing required 'foliage' attribute.");
   if (!seeds.has_treeid())  throw std::runtime_error("build_instance_graph: seed point cloud is missing required 'treeid' attribute.");
 
-  const size_t num_points = core.size();
-  const size_t num_seeds  = seeds.size();
-  const Graph::NodeId master_id = static_cast<Graph::NodeId>(num_points + num_seeds);
-
   std::vector<bool> wood; wood.reserve(core.size());
   for (size_t i = 0; i < core.size(); ++i) wood.push_back(core.is_wood(i));
 
   GraphBuilder builder(params);
   builder.set_wood(wood);
-
   builder.add_core_layer(core);
   builder.add_seed_layer(core, seeds);
   builder.add_master_seed_layer();
-
   builder.fix_directed_reachability(core);
-
   return builder.get_graph();
 }
 
