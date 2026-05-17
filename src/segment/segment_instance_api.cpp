@@ -137,7 +137,6 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
   ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
-  ServiceLocator::logger()(" Graph nodes: " + std::to_string(graph->adjacency_list.size()));
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
@@ -222,7 +221,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   builder.add_core_layer(core);
   builder.add_seed_layer(core, dtm);
   builder.add_master_seed_layer();
-  builder.fix_directed_reachability(core);
+  builder.fix_directed_reachability2(core);
 
   Graph* graph = builder.get_graph();
   if (graph == nullptr)

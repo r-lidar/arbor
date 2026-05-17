@@ -83,8 +83,12 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
 
   // Build the KD-tree once; it is reused by add_target_layer, add_seed_layer,
   // and fix_directed_reachability, then released at the end of that last call.
-  core_index = std::make_unique<KDTreeType>(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  auto start = std::chrono::high_resolution_clock::now();
+  core_index = std::make_unique<KDTree>(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   core_index->buildIndex();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  ServiceLocator::logger()(" KDTree creation : " + std::to_string(duration.count()) + " s");
 
   #pragma omp parallel
   {
@@ -105,7 +109,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
       result.init(&idx[0], &dist[0]);
       core_index->findNeighbors(result, q, nanoflann::SearchParameters());
 
-      // For each neighbour, compute the cost to connect 'from' → 'to'
+      // For each neighbour, compute the cost to connect from -> to
       for (int j = 0; j < params.k; ++j)
       {
         int to = idx[j];
@@ -264,7 +268,7 @@ void GraphBuilder::add_master_seed_layer()
 
 void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 {
-  ServiceLocator::logger()("Test directed reachability");
+  ServiceLocator::logger()(" Test directed reachability");
 
   const Graph::NodeId source = get_range_master().second;
   const size_t N = static_cast<size_t>(total_core_nodes);
@@ -298,8 +302,12 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 
     std::vector<Graph::NodeId> isolated;
     for (size_t i = 0; i < N; ++i)
-      if (!reachable[i]) isolated.push_back(static_cast<Graph::NodeId>(i));
-      return isolated;
+    {
+      if (!reachable[i])
+        isolated.push_back(static_cast<Graph::NodeId>(i));
+    }
+
+    return isolated;
   };
 
   std::vector<Graph::NodeId> isolated_ids = find_isolated();
@@ -309,7 +317,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
     return;
   }
 
-  ServiceLocator::logger()("\033[33m " + std::to_string(isolated_ids.size()) + " isolated nodes: rebuilding bidirectionnal edges with relaxed params\033[0m");
+  ServiceLocator::logger()(" " + std::to_string(isolated_ids.size()) + " isolated nodes: rebuilding bidirectionnal edges with relaxed params");
 
   // Relaxed parameters for the retry pass
   const int   k_retry   = params.k * 4;
@@ -355,7 +363,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 
       float base_cost = std::pow(eucl, params.power);
 
-      // Forward edge: from → to
+      // Forward edge: from -> to
       {
         float cos_theta = -dz / magnitude;
         if (params.downward) cos_theta = -cos_theta;
@@ -373,7 +381,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
         new_edges.emplace_back(from, to, cost);
       }
 
-      // Reverse edge: to → from (direction flipped, so dz and wood roles swap)
+      // Reverse edge: to -> from (direction flipped, so dz and wood roles swap)
       {
         float cos_theta = dz / magnitude;   // +dz because direction is reversed
         if (params.downward) cos_theta = -cos_theta;
@@ -401,10 +409,203 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   if (still_isolated.empty())
     ServiceLocator::logger()(" All isolated nodes resolved");
   else
-    ServiceLocator::logger()(" " + std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine spatial gaps)");
+    ServiceLocator::logger()(" " + std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine gaps)");
 
   // KD-tree is no longer needed ,  release its memory before returning
   core_index.reset();
+}
+
+void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
+{
+  ServiceLocator::logger()(" Test directed reachability");
+
+  core_index.reset();
+
+  const Graph::NodeId source = get_range_master().second;
+  const size_t N = static_cast<size_t>(total_core_nodes);
+  if (N < 2) return;
+
+  // ---------------------------------------------------------------
+  // Step 1: BFS from source following directed edges.
+  //         Mark every node reachable from the master seed.
+  // ---------------------------------------------------------------
+  const size_t total = graph->adjacency_list.size();
+  std::vector<bool> reachable(total, false);
+  {
+    std::vector<Graph::NodeId> stack;
+    stack.reserve(total);
+    stack.push_back(source);
+    reachable[source] = true;
+    while (!stack.empty())
+    {
+      Graph::NodeId u = stack.back(); stack.pop_back();
+      for (const auto& e : graph->adjacency_list[u])
+        if (e.destination >= 0 && !reachable[e.destination])
+        { reachable[e.destination] = true; stack.push_back(e.destination); }
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Step 2: Partition core nodes into reachable vs. isolated.
+  // ---------------------------------------------------------------
+  std::vector<Graph::NodeId> isolated_ids;
+  std::vector<Graph::NodeId> reachable_ids;
+  isolated_ids.reserve(N);
+  reachable_ids.reserve(N);
+
+  for (size_t i = 0; i < N; ++i)
+  {
+    if (reachable[i])
+      reachable_ids.push_back(static_cast<Graph::NodeId>(i));
+    else
+      isolated_ids.push_back(static_cast<Graph::NodeId>(i));
+  }
+
+  if (isolated_ids.empty()) return;
+
+  // ---------------------------------------------------------------
+  // Step 3: Find connected components within the isolated subgraph.
+  //
+  // We do BFS/DFS following only edges whose *destination* is also
+  // isolated.  Because fix_directed_reachability() may have already added
+  // bidirectional edges inside isolated sub-graphs, following
+  // outgoing edges is sufficient to discover all cluster members.
+  //
+  // iso_component[node_id] = cluster index, or -1 when not isolated.
+  // This gives O(1) neighbour lookup without a hash map.
+  // ---------------------------------------------------------------
+  std::vector<int> iso_component(N, -1);   // -1 = reachable (not isolated)
+  for (Graph::NodeId id : isolated_ids)
+    iso_component[id] = INT_MAX;           // isolated but unvisited sentinel
+
+  int num_clusters = 0;
+
+  for (Graph::NodeId seed : isolated_ids)
+  {
+    if (iso_component[seed] != INT_MAX) continue;  // already labelled
+
+    // BFS over the isolated subgraph
+    std::vector<Graph::NodeId> queue = { seed };
+    iso_component[seed] = num_clusters;
+
+    for (size_t qi = 0; qi < queue.size(); ++qi)
+    {
+      Graph::NodeId u = queue[qi];
+      for (const auto& e : graph->adjacency_list[u])
+      {
+        Graph::NodeId v = e.destination;
+        if (v >= 0 && v < static_cast<Graph::NodeId>(N) &&
+            iso_component[v] == INT_MAX)
+        {
+          iso_component[v] = num_clusters;
+          queue.push_back(v);
+        }
+      }
+    }
+
+    ++num_clusters;
+  }
+
+  ServiceLocator::logger()(" " +
+    std::to_string(isolated_ids.size()) +
+    " isolated nodes grouped into " +
+    std::to_string(num_clusters) +
+    " clusters -> bridging");
+
+  // ---------------------------------------------------------------
+  // Step 4: Build a KD-tree over the reachable core points only.
+  // ---------------------------------------------------------------
+  PointCloud reachable_cloud = cloud.subset(reachable_ids, true);
+  KDTree tree(3, reachable_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  tree.buildIndex();
+  nanoflann::SearchParameters search_params;
+  search_params.sorted = true;
+
+  // ---------------------------------------------------------------
+  // Step 5: For every isolated node, find its nearest reachable
+  //         neighbour and track the best (shortest) bridge per
+  //         cluster.  One bridge edge is all that is needed: once
+  //         the entry point is reachable, BFS propagates through
+  //         the cluster's own internal edges.
+  // ---------------------------------------------------------------
+  struct Bridge
+  {
+    Graph::NodeId iso_node   = -1;
+    Graph::NodeId reach_node = -1;
+    double        sq_dist    = std::numeric_limits<double>::infinity();
+  };
+  std::vector<Bridge> best(num_clusters);
+
+  std::vector<size_t> idx(1);
+  std::vector<double> sq_dists(1);
+
+  for (Graph::NodeId iso : isolated_ids)
+  {
+    double q[3];
+    cloud.get_point(iso, q);
+
+    nanoflann::KNNResultSet<double> result_set(1);
+    result_set.init(idx.data(), sq_dists.data());
+    tree.findNeighbors(result_set, q, search_params);
+
+    int comp = iso_component[iso];
+    if (sq_dists[0] < best[comp].sq_dist)
+    {
+      best[comp].sq_dist    = sq_dists[0];
+      best[comp].iso_node   = iso;
+      best[comp].reach_node = reachable_ids[idx[0]];
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Step 6: Commit one bidirectional bridge per cluster.
+  //         No max_gap guard here: we unconditionally connect
+  //         because the first pass already tried relaxed params
+  //         and failed. The graph must be connected.
+  // ---------------------------------------------------------------
+  int bridges_added = 0;
+  for (const Bridge& b : best)
+  {
+    if (b.iso_node == -1) continue;
+    double d = std::sqrt(b.sq_dist);
+    const Graph::Cost cost = static_cast<Graph::Cost>(std::pow(d, params.power));
+    graph->add_edge(b.reach_node, b.iso_node, cost);
+    graph->add_edge(b.iso_node,   b.reach_node, cost);
+    ++bridges_added;
+  }
+
+  // ---------------------------------------------------------------
+  // Step 7: Verify, one final reachability scan.
+  // ---------------------------------------------------------------
+  {
+    std::fill(reachable.begin(), reachable.end(), false);
+    std::vector<Graph::NodeId> stack;
+    stack.push_back(source);
+    reachable[source] = true;
+    while (!stack.empty())
+    {
+      Graph::NodeId u = stack.back(); stack.pop_back();
+      for (const auto& e : graph->adjacency_list[u])
+      {
+        if (e.destination >= 0 && !reachable[e.destination])
+        {
+          reachable[e.destination] = true; stack.push_back(e.destination);
+        }
+      }
+    }
+
+    size_t still_isolated = 0;
+    for (size_t i = 0; i < N; ++i)
+    {
+      if (!reachable[i])
+        ++still_isolated;
+    }
+
+    if (still_isolated == 0)
+      ServiceLocator::logger()(" All isolated clusters resolved (" +  std::to_string(bridges_added) + " bridge edges added)");
+    else
+      ServiceLocator::logger()(" " + std::to_string(still_isolated) + " nodes still unreachable after pass 2 (genuine gaps)");
+  }
 }
 
 int GraphBuilder::get_num_cores()   const { return total_core_nodes; }
