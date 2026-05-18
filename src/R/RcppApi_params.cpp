@@ -1,19 +1,19 @@
 /**
  * @file RcppApi_params.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -178,7 +178,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
   assert_exists(p, "smooth_steps");
   assert_exists(p, "smooth_lambda");
   assert_exists(p, "smooth_mu");
-
+  assert_exists(p, "broken_detection_enabled");
 
   arbor::settings::QsmParameters s;
   s.step   = Rcpp::as<double>(p["step"]);
@@ -188,6 +188,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
   s.smooth_steps = Rcpp::as<int>(p["smooth_steps"]);
   s.smooth_lambda = Rcpp::as<double>(p["smooth_lambda"]);
   s.smooth_mu = Rcpp::as<double>(p["smooth_mu"]);
+  s.broken_detection_enabled = Rcpp::as<bool>(p["broken_detection_enabled"]);
 
   return s;
 }
@@ -286,7 +287,8 @@ Rcpp::List qsm_to_list(const arbor::settings::QsmParameters& s)
     Rcpp::Named("apex")          = s.apex,
     Rcpp::Named("smooth_steps")  = s.smooth_steps,
     Rcpp::Named("smooth_lambda") = s.smooth_lambda,
-    Rcpp::Named("smooth_mu")     = s.smooth_mu
+    Rcpp::Named("smooth_mu")     = s.smooth_mu,
+    Rcpp::Named("broken_detection_enabled") = s.broken_detection_enabled
   );
 }
 

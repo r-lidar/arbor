@@ -199,7 +199,7 @@ void QSMbuilder::build(const PointCloud& tree)
   compute_architecture(true);
   smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
 
-  if (!likely_broken)
+  if (!likely_broken || !params.qsm.broken_detection_enabled)
   {
     refine_radii(wood);
   }
