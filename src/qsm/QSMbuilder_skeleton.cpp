@@ -38,7 +38,6 @@ struct ClusterCenter
 {
   double x, y, z;
   int iter, id;
-  float radius = RADIUS_UNSET;
   bool done = false;
 };
 
@@ -110,10 +109,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         c.z = ans.center.z;
 
         if (ans.radius > 0.06 && ans.arc_coverage_deg > 300.0 && ans.inlier_percentage > 70.0)
-        {
-          c.radius = ans.radius;
           valid_ring_counter++;
-        }
       }
       else
         compute_mean();
@@ -173,22 +169,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
   // Step 5: greedy chain growing loop
   // ---------------------------------
-
-  auto get_edge_radius = [](const ClusterCenter& c1, const ClusterCenter& c2) -> float
-  {
-    bool r1_valid = (c1.radius != RADIUS_UNSET);
-    bool r2_valid = (c2.radius != RADIUS_UNSET);
-
-    if (r1_valid && r2_valid) {
-      return (c1.radius + c2.radius) * 0.5f; // Average if both valid
-    } else if (r1_valid) {
-      return c1.radius; // Only first is valid
-    } else if (r2_valid) {
-      return c2.radius; // Only second is valid
-    }
-    return RADIUS_UNSET; // Neither valid
-  };
-
   while (remaining > 0)
   {
     // Hot path: radius search around root, filter by iter and done
@@ -217,7 +197,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         center_to_node[newRoot->id] = graph.add_node({newRoot->x, newRoot->y, newRoot->z});
 
       QSMEdge ed; ed.id = id++;
-      ed.tmp_radius = get_edge_radius(*root, *newRoot);
 
       graph.add_edge(center_to_node[root->id], center_to_node[newRoot->id], ed);
 
@@ -257,7 +236,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         center_to_node[orphan->id] = graph.add_node({orphan->x, orphan->y, orphan->z});
 
       QSMEdge ed; ed.id = id++;
-      ed.tmp_radius = get_edge_radius(*nearestDone, *orphan);
 
       graph.add_edge(center_to_node[nearestDone->id], center_to_node[orphan->id], ed);
 
