@@ -102,6 +102,7 @@ namespace arbor
       int smooth_steps = 15;
       double smooth_lambda = 0.5;
       double smooth_mu = -0.53;
+      bool broken_detection_enabled = true;
     };
 
     struct ArborParameters

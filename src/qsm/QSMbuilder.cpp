@@ -191,11 +191,25 @@ void QSMbuilder::build(const PointCloud& tree)
   compute_architecture(false);
   prune_spurious_branches();
   smooth_skeleton(params.qsm.smooth_steps, params.qsm.smooth_lambda, params.qsm.smooth_mu);
+
+  if (likely_broken)  ServiceLocator::logger()("Detection of likely broken tree");
+
   detect_weird_butt();
   construct_radii(wood, params.qsm.apex);
   compute_architecture(true);
   smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
-  refine_radii(wood);
+
+  if (!likely_broken || !params.qsm.broken_detection_enabled)
+  {
+    refine_radii(wood);
+  }
+  else
+  {
+    refine_radii_broken(wood);
+    compute_architecture(true);
+    smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
+  }
+
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
   smooth_radii(15, 0.5, -0.7);

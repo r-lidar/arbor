@@ -1,19 +1,19 @@
 /**
  * @file fitting_ellipse.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -106,12 +106,15 @@ FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::v
   int min_col = 0;
   double min_val = std::fabs(A[0][0]);
   for (int i = 1; i < N; ++i)
-    if (std::fabs(A[i][i]) < min_val) { min_val = std::fabs(A[i][i]); min_col = i; }
+  {
+    if (std::fabs(A[i][i]) < min_val)
+      min_val = std::fabs(A[i][i]); min_col = i;
+  }
 
-    res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];
-    res.d = V[3][min_col]; res.e = V[4][min_col]; res.f = V[5][min_col];
-    res.valid = (res.b*res.b - 4*res.a*res.c < 0);
-    return res;
+  res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];
+  res.d = V[3][min_col]; res.e = V[4][min_col]; res.f = V[5][min_col];
+  res.valid = (res.b*res.b - 4*res.a*res.c < 0);
+  return res;
 }
 
 std::vector<double> FittingEllipse::calculate_distances(const std::vector<Vec3>& pts, const EllipseParams& p) const
