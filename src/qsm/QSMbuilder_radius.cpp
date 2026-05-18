@@ -52,6 +52,8 @@ public:
       DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
     }
     else {
+      // Arbitrary because original method stops growing after 50 cm. This is more relevant
+      // and anyway not really important in pratice.
       DBH_cm = 4.0 * H - 75.0;
     }
     return DBH_cm / 100.0;
@@ -156,7 +158,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
 
   // Check root radius
-  double Rroot;
+  double Rroot = 0;
   for (auto& [eid, einfo] : graph.edges())
   {
     if (einfo.data.axis_id == 1 && einfo.data.source == 0)

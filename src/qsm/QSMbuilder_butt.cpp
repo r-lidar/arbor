@@ -130,7 +130,7 @@ void QSMbuilder::detect_weird_butt(double thresh, int window)
     i++;
   }
 
-  if (i > 0 & i < main_axis_eids.size())
+  if (i > 0 && i < main_axis_eids.size())
   {
     int new_root_eid = (i < main_axis_eids.size()) ? main_axis_eids[i] : -1;
 
