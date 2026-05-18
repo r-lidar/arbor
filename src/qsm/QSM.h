@@ -54,7 +54,6 @@ struct QSMEdge : public libqsm::QSMedge
   float conic_allometry  = RADIUS_UNSET;
   float subtree_max_endZ = SUBTREE_MAXZ_UNSET;
   float subtree_volume   = SUBTREE_VOLUME_UNSET;
-  float tmp_radius       = RADIUS_UNSET;
 
   // Backward compatibility
   int32_t id;

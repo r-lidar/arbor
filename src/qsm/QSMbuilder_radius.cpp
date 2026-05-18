@@ -117,6 +117,10 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     graph.messages.push_back(msg);
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
   }
+  else
+  {
+    likely_broken = false;
+  }
 
   ServiceLocator::logger()("Pre-allometry");
   conic_allometry(2.0 * R0, tip_radius);
