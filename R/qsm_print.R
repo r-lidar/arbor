@@ -1,18 +1,18 @@
 # @file qsm_print.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -29,13 +29,12 @@
 print.qsm <- function(x, ...)
 {
   n_cyl <- nrow(x)
-  total_volume <- 0
+  volume <- 0
   height <- 0
   dbh <- 0
   if (n_cyl > 0)
   {
-    volume <- with(x, sqrt((startX - endX)^2 + (startY - endY)^2 + (startZ - endZ)^2))
-    total_volume <- sum(volume, na.rm = TRUE)
+    volume <- qsm_volume(x)
     zmin <- min(c(x$startZ, x$endZ), na.rm = TRUE)
     zmax <- max(c(x$startZ, x$endZ), na.rm = TRUE)
     height <- zmax - zmin
@@ -50,7 +49,7 @@ print.qsm <- function(x, ...)
   cat(sprintf("Cylinders   : %d\n", n_cyl))
   cat(sprintf("Diameter    : %.1f cm\n", dbh*100))
   cat(sprintf("Height      : %.1f m\n", height))
-  cat(sprintf("Volume      : %.2f m\u00b3\n", total_volume))
+  cat(sprintf("Volume      : %.2f m\u00b3\n", volume))
   #cat("Coord. ref. :", crs$Name, "\n")
   if (length(msg) > 0) cat("Message     :", msg, "\n")
 
