@@ -48,7 +48,7 @@ void QSM::read_qsm(const std::string& filename)
 {
   libqsm::QSMreader reader(filename);
 
-  for (size_t i = 0 ; i < reader.get_message_count() ; i++)
+  for (int i = 0 ; i < reader.get_message_count() ; i++)
     messages.push_back(reader.get_message(i));
 
   for (const auto& node : reader.nodes())
