@@ -52,6 +52,8 @@ public:
       DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
     }
     else {
+      // Arbitrary because original method stops growing after 50 cm. This is more relevant
+      // and anyway not really important in pratice.
       DBH_cm = 4.0 * H - 75.0;
     }
     return DBH_cm / 100.0;
@@ -83,7 +85,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   // TODO: control parameter
   // If the estimated radius is too small we don't even try to measure the tree
-  if (R0 < 0.03)
+  if (R0 < 0.03 && !likely_broken)
   {
     conic_allometry(R0, tip_radius);
 
@@ -100,6 +102,26 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     graph.messages.push_back(msg);
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     return;
+  }
+
+  if (R0 < 0.03 && likely_broken)
+  {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2);
+    oss << "[Broken tree] H = " << H
+        << std::fixed << std::setprecision(1)
+        << " m: estimated DBH = " << (2 * R0 * 100)
+        << " cm. Too small to be measured but with good measurement anyway. "
+        << "The QSM is likely a dead tree.";
+
+    std::string msg = oss.str();
+
+    graph.messages.push_back(msg);
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+  }
+  else
+  {
+    likely_broken = false;
   }
 
   ServiceLocator::logger()("Pre-allometry");
@@ -136,7 +158,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
 
   // Check root radius
-  double Rroot;
+  double Rroot = 0;
   for (auto& [eid, einfo] : graph.edges())
   {
     if (einfo.data.axis_id == 1 && einfo.data.source == 0)
@@ -146,7 +168,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     }
   }
 
-  if (Rroot > 3*R0)
+  if (Rroot > 3*R0 && !likely_broken)
   {
     std::ostringstream oss;
     oss << "[Diameter anomaly] Measured root diameter is "
@@ -201,6 +223,76 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     {
       ed.radius = res.radius;
       ed.quality = MEASURED;
+    }
+  }
+}
+
+void QSMbuilder::refine_radii_broken(const PointCloud& tree)
+{
+  ServiceLocator::logger()("Refine radii (broken tree)");
+
+  auto points_by_edge = group_points_by_edge(graph, tree);
+
+  // Group edges by axis_id, then process each axis root→tip
+  std::map<int, std::vector<int>> axes;
+  for (const auto& [eid, einfo] : graph.edges())
+    axes[einfo.data.axis_id].push_back(eid);
+
+  for (auto& [axis_id, eids] : axes)
+  {
+    // Sort root->tip by decreasing subtree_length
+    std::sort(eids.begin(), eids.end(), [this](int a, int b) {
+      return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+    });
+
+    // Stop processing an axis once 5 consecutive edges fail to reach MEASURED quality
+    int consecutive_below_measured = 0;
+
+    for (int eid : eids)
+    {
+      if (consecutive_below_measured >= 5) break;
+
+      auto& einfo = graph.edge(eid);
+      auto it = points_by_edge.find(eid);
+
+      if (it == points_by_edge.end() || it->second.empty())
+      {
+        if (einfo.data.quality < MEASURED)
+          consecutive_below_measured++;
+        else
+          consecutive_below_measured = 0;
+
+        continue;
+      }
+
+      const auto& point_indices = it->second;
+      const auto& src = graph.node(einfo.source);
+      const auto& tgt = graph.node(einfo.target);
+
+      utils::fitting::FittingCircloid fitter;
+      fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
+
+      for (size_t pt_idx : point_indices)
+        fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
+
+      auto res = fitter.fit(0.04);
+
+      const float current_radius = einfo.data.radius;
+      float ratio = (current_radius > 0.0f) ? (res.radius - current_radius) / current_radius : 0.0f;
+
+      bool valid = res.arc_coverage_deg > 300.0 && res.inlier_percentage > 70.0 /*&& current_radius >= 0.04*/ && ratio > -0.1;
+
+      if (valid)
+      {
+        einfo.data.radius  = res.radius;
+        einfo.data.quality = REFINED;
+        consecutive_below_measured = 0;
+      }
+      else
+      {
+        if (einfo.data.quality < MEASURED) consecutive_below_measured++;
+        else                               consecutive_below_measured = 0;
+      }
     }
   }
 }

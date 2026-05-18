@@ -53,7 +53,7 @@ namespace arbor
       int k_seed = 100;
       double decimation = 0.05;
       double space_res = 0.2;
-      double max_gap = 0.5;
+      double max_gap = 1.0;
       double power = 3.0;
       double wood2wood = 0.1;
       double leaf2leaf = 20.0;
@@ -102,6 +102,7 @@ namespace arbor
       int smooth_steps = 15;
       double smooth_lambda = 0.5;
       double smooth_mu = -0.53;
+      bool broken_detection_enabled = true;
     };
 
     struct ArborParameters
