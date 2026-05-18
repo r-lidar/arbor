@@ -74,7 +74,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   std::vector<ClusterCenter> centers;
   centers.reserve(cluster_indices.size());
   int id = 1;
-  m_valid_ring_counter = 0;
+  int valid_ring_counter = 0;
 
   for (auto& [key, indices_binding] : cluster_indices)
   {
@@ -109,10 +109,10 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         c.y = ans.center.y;
         c.z = ans.center.z;
 
-        if (ans.radius > 0.04)
+        if (ans.radius > 0.06 && ans.arc_coverage_deg > 300.0 && ans.inlier_percentage > 70.0)
         {
           c.radius = ans.radius;
-          m_valid_ring_counter++;
+          valid_ring_counter++;
         }
       }
       else
@@ -126,7 +126,11 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     centers.push_back(c);
   }
 
-  printf("Valid rings %d\n", m_valid_ring_counter);
+  if (valid_ring_counter > 20)
+  {
+    likely_broken = true;
+  }
+
 
   if (centers.empty()) return;
 
