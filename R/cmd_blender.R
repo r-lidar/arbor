@@ -121,15 +121,19 @@ Settings
 
   cat("Wood likelihood\n")
   las <- wood_likelihood(las, params)
+  gc()
 
   cat("Semantic segmentation\n")
   las <- segment_semantic(las, params)
+  gc()
 
   cat("Seeds\n")
   seeds <- find_seeds(las, params)
+  gc()
 
   cat("Instance segmentation\n")
   las <- segment_instance(las, seeds, params)
+  gc()
 
   cat("Cleaning segmentation\n")
   if (buffer > 0)
@@ -141,6 +145,7 @@ Settings
 
   cat("Colorization\n")
   las <- colorize_trees(las)
+  gc()
 
   cat("Computing qsf\n")
   qsf = qsf(las)
