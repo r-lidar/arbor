@@ -46,7 +46,7 @@ public:
   void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);
   void construct_radii(const PointCloud& tree, double tip_radius = 0.0025);
-  void measure_radii(const PointCloud& tree, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
+  void measure_radii(const PointCloud& tree);
   void refine_radii(const PointCloud& tree);
   void refine_radii_broken(const PointCloud& tree);
   void polynomial_fitting(double tip_radius = 0.0025);

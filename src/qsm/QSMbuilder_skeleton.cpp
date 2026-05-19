@@ -29,7 +29,10 @@
 
 #include "arbor.h"
 #include "QSMbuilder.h"
+
 #include "fitting.h"
+#include "fitting_quality.h"
+
 #include "nanoflann.h"
 
 namespace arbor::qsm {
@@ -75,6 +78,8 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   int id = 1;
   int valid_ring_counter = 0;
 
+  constexpr utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::low_preset();
+
   for (auto& [key, indices_binding] : cluster_indices)
   {
     // Re-assign to a standard reference for clang
@@ -95,14 +100,14 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
     if (indices.size() >= 100)
     {
-      utils::fitting::FittingCircloid rc;
+      utils::fitting::FittingOrbicular rc;
       for (int idx : indices)
-      {
         rc.add_point(pc.get_x(idx), pc.get_y(idx), pc.get_z(idx));
-      }
 
-      utils::fitting::FittingResult ans = rc.fit(0.03);
-      if (ans.is_valid(50, 30, 120.0))
+
+      utils::fitting::FittingResult ans = rc.fit(fit_quality.ransac_tolerance);
+
+      if (fit_quality.accept(ans))
       {
         c.x = ans.center.x;
         c.y = ans.center.y;

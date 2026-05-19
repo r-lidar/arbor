@@ -1,19 +1,19 @@
 /**
  * @file fitting_circloid.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -67,7 +67,7 @@ double IFittingStrategy::calculate_arc_coverage(const std::vector<Vec3>& points,
   return consecutive_count * bin_size;
 }
 
-FittingCircloid::FittingCircloid()
+FittingOrbicular::FittingOrbicular()
 {
   R = {{
     {1.0, 0.0, 0.0},
@@ -80,7 +80,7 @@ FittingCircloid::FittingCircloid()
       R_inv[i][j] = R[j][i];
 }
 
-void FittingCircloid::add_point(double x, double y, double z)
+void FittingOrbicular::add_point(double x, double y, double z)
 {
   Vec3 p = {x, y, z};
 
@@ -92,9 +92,9 @@ void FittingCircloid::add_point(double x, double y, double z)
   m_points.push_back(p);
 }
 
-void FittingCircloid::clear() { m_points.clear(); }
+void FittingOrbicular::clear() { m_points.clear(); }
 
-void FittingCircloid::set_axe(const Vec3& from, const Vec3& to)
+void FittingOrbicular::set_axe(const Vec3& from, const Vec3& to)
 {
   // 1. Store 'from' as our local origin to translate points later
   m_origin = from;
@@ -109,7 +109,7 @@ void FittingCircloid::set_axe(const Vec3& from, const Vec3& to)
   compute_rotation_matrix(axis_dir, z_axis);
 }
 
-FittingResult FittingCircloid::fit(double tolerance)
+FittingResult FittingOrbicular::fit(double tolerance)
 {
   FittingResult best_result;
   std::vector<std::unique_ptr<IFittingStrategy>> strategies;
@@ -146,7 +146,7 @@ FittingResult FittingCircloid::fit(double tolerance)
 }
 
 // --- Compute rotation matrix between two vectors ---
-void FittingCircloid::compute_rotation_matrix(const Vec3& from, const Vec3& to)
+void FittingOrbicular::compute_rotation_matrix(const Vec3& from, const Vec3& to)
 {
   Vec3 a = from.normalized();
   Vec3 b = to.normalized();
@@ -210,7 +210,7 @@ void FittingCircloid::compute_rotation_matrix(const Vec3& from, const Vec3& to)
 }
 
 
-void FittingCircloid::apply_rotation(Vec3& p)
+void FittingOrbicular::apply_rotation(Vec3& p)
 {
   double x, y, z;
   x = R[0][0]*p.x + R[0][1]*p.y + R[0][2]*p.z;
@@ -221,7 +221,7 @@ void FittingCircloid::apply_rotation(Vec3& p)
   p.z = z;
 }
 
-void FittingCircloid::reverse_rotation(Vec3& p)
+void FittingOrbicular::reverse_rotation(Vec3& p)
 {
   double x, y, z;
   x = R_inv[0][0]*p.x + R_inv[0][1]*p.y + R_inv[0][2]*p.z;

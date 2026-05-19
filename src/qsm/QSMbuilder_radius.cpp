@@ -20,16 +20,18 @@
 
 #include <map>
 #include <cmath>
-#include <algorithm>
-#include <stdexcept>
 #include <vector>
-#include <unordered_map>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
+#include <stdexcept>
+#include <unordered_map>
 
 #include "QSMbuilder.h"
 #include "PointCloud.h"
+
 #include "fitting.h"
+#include "fitting_quality.h"
 
 namespace arbor::qsm {
 
@@ -128,7 +130,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   conic_allometry(2.0 * R0, tip_radius);
 
   ServiceLocator::logger()("Measuring diameters");
-  measure_radii(tree, 180.0, 0.2, 0.3, 0.03);
+  measure_radii(tree);
 
   compute_architecture(true);
 
@@ -191,7 +193,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   reconstruct_missing_radii(tip_radius);
 }
 
-void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, float sinl, float srmeas)
+void QSMbuilder::measure_radii(const PointCloud& tree)
 {
   auto points_by_edge = group_points_by_edge(graph, tree);
   if (points_by_edge.empty()) throw std::runtime_error("Internal error: no cylinders found.");
@@ -209,17 +211,17 @@ void QSMbuilder::measure_radii(const PointCloud& tree, float sarc, float sins, f
     const auto& src = graph.node(einfo.source);
     const auto& tgt = graph.node(einfo.target);
 
-    utils::fitting::FittingCircloid fitter;
+    utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::standard_preset();
+
+    utils::fitting::FittingOrbicular fitter;
     fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    auto res = fitter.fit(0.03);
+    auto res = fitter.fit(fit_quality.ransac_tolerance);
 
-    bool valid = (res.radius >= srmeas) && (res.arc_coverage_deg > sarc) && (res.inlier_percentage > sinl);
-
-    if (valid)
+    if (fit_quality.accept(res))
     {
       ed.radius = res.radius;
       ed.quality = MEASURED;
@@ -233,15 +235,18 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
 
   auto points_by_edge = group_points_by_edge(graph, tree);
 
-  // Group edges by axis_id, then process each axis root→tip
+  // Group edges by axis_id, then process each axis root->tip
   std::map<int, std::vector<int>> axes;
   for (const auto& [eid, einfo] : graph.edges())
     axes[einfo.data.axis_id].push_back(eid);
 
+  constexpr utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::accurate_and_large_preset();
+
   for (auto& [axis_id, eids] : axes)
   {
     // Sort root->tip by decreasing subtree_length
-    std::sort(eids.begin(), eids.end(), [this](int a, int b) {
+    std::sort(eids.begin(), eids.end(), [this](int a, int b)
+    {
       return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
     });
 
@@ -269,20 +274,17 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
       const auto& src = graph.node(einfo.source);
       const auto& tgt = graph.node(einfo.target);
 
-      utils::fitting::FittingCircloid fitter;
+      utils::fitting::FittingOrbicular fitter;
       fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
       for (size_t pt_idx : point_indices)
         fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-      auto res = fitter.fit(0.04);
+      auto res = fitter.fit(fit_quality.ransac_tolerance);
 
       const float current_radius = einfo.data.radius;
-      float ratio = (current_radius > 0.0f) ? (res.radius - current_radius) / current_radius : 0.0f;
 
-      bool valid = res.arc_coverage_deg > 300.0 && res.inlier_percentage > 70.0 /*&& current_radius >= 0.04*/ && ratio > -0.1;
-
-      if (valid)
+      if (fit_quality.accept(res, current_radius))
       {
         einfo.data.radius  = res.radius;
         einfo.data.quality = REFINED;
@@ -290,8 +292,10 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
       }
       else
       {
-        if (einfo.data.quality < MEASURED) consecutive_below_measured++;
-        else                               consecutive_below_measured = 0;
+        if (einfo.data.quality < MEASURED)
+          consecutive_below_measured++;
+        else
+          consecutive_below_measured = 0;
       }
     }
   }
@@ -303,6 +307,8 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 
   auto points_by_edge = group_points_by_edge(graph, tree);
 
+  constexpr utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::accurate_preset();
+
   for (auto& [eid, point_indices] : points_by_edge)
   {
     auto& einfo = graph.edge(eid);
@@ -311,18 +317,15 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     const auto& src = graph.node(einfo.source);
     const auto& tgt = graph.node(einfo.target);
 
-    utils::fitting::FittingCircloid fitter;
+    utils::fitting::FittingOrbicular fitter;
     fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    auto res = fitter.fit(0.04);
-    float ratio = (res.radius - einfo.data.radius) / einfo.data.radius;
+    auto res = fitter.fit(fit_quality.ransac_tolerance);
 
-    bool valid = res.arc_coverage_deg > 300.0 && res.inlier_percentage > 70.0 && einfo.data.radius >= 0.04 && ratio > -0.1;
-
-    if (valid)
+    if (fit_quality.accept(res, einfo.data.radius))
     {
       einfo.data.radius = res.radius;
       einfo.data.quality = REFINED;

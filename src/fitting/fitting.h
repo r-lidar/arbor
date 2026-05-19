@@ -1,19 +1,19 @@
 /**
  * @file fitting.h
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -50,10 +50,10 @@ struct Vec3
 struct FittingResult
 {
   bool success = false;
-  double radius = 0;
-  double inlier_percentage = 0.0;
-  double insider_percentage = 0.0;
-  double arc_coverage_deg = 0.0;
+  float radius = 0;
+  float inlier_percentage = 0.0;
+  float insider_percentage = 0.0;
+  float arc_coverage_deg = 0.0;
   Vec3 center = {0.0, 0.0, 0.0};
   std::vector<int> inlier_indices;
   std::string shape_type;
@@ -162,10 +162,10 @@ private:
 };
 
 // --- Master Orchestrator ---
-class FittingCircloid
+class FittingOrbicular
 {
 public:
-  FittingCircloid();
+  FittingOrbicular();
   void set_axe(const Vec3& from, const Vec3& to);
   void add_point(double x, double y, double z);
   void clear();

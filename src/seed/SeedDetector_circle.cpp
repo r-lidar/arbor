@@ -27,8 +27,8 @@
 #include <map>
 
 #include "SeedDetector.h"
-#include "fitting.h"
 #include "Grid3D.h"
+#include "fitting.h"
 
 namespace arbor::seeds {
 
@@ -58,7 +58,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
 
   if (cluster.indices.size() < 20) return nullptr;
 
-  utils::fitting::FittingCircloid fitter;
+  utils::fitting::FittingOrbicular fitter;
   for (size_t idx : cluster.indices)
   {
     double x = point_cloud.get_x(idx);
@@ -66,6 +66,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
     double z = point_cloud.get_z(idx);
     fitter.add_point(x, y, z);
   }
+
   utils::fitting::FittingResult res = fitter.fit(0.03);
 
   double radius = res.radius;

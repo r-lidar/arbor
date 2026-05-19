@@ -81,4 +81,4 @@ OBJECTS = api/PointCloud.o \
   fitting/fitting_fourrier.o \
   fitting/fitting_ellipse.o \
   fitting/fitting_circle.o \
-  fitting/fitting_circloid.o
+  fitting/fitting_orbicular.o

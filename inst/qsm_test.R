@@ -34,6 +34,11 @@ file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/mini/1464.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO11.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
 
+# Broken
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_119.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_217.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las"
+
 # Zambia
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree_236.las" # !!
 
@@ -69,7 +74,8 @@ tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = T)
+plot_qsm(qsm, add = x+2, cylinder = T)
+rgl::bg3d("white")
 }
 
 as.data.frame(qsm)
