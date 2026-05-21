@@ -1,25 +1,24 @@
 /**
  * @file qsf_api.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "arbor.h"
-#include "QSF.h"
 #include "myomp.h"
 
 #include <map>
@@ -45,7 +44,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
   for (size_t i = 0; i < scene.size(); ++i)
   {
     int id = scene.get_treeid(i);
-    if (id <= 0) continue; // NA from R or negative (removed) or 0 from arbor
+    if (id <= 0 || id == std::numeric_limits<int>::max()) continue; // NA from R or negative (removed) or 0 from arbor
     double hag = scene.get_hag(i);
 
     tree_indices[id].push_back(i);

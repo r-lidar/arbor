@@ -74,8 +74,7 @@ tf = Sys.time()
 print(difftime(tf, t0))
 
 x = plot_semantic(tree)
-plot_qsm(qsm, add = x+2, cylinder = T)
-rgl::bg3d("white")
+plot_qsm(qsm, add = x, cylinder = T)
 }
 
 as.data.frame(qsm)

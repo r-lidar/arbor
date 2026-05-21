@@ -169,7 +169,7 @@ Settings
   cat("Export las\n")
   foliage <- NULL
   high = flag_small_trees(las, 2)
-  high = lidR::filter_poi(las, UserData != ARBORUNDERSTORY)
+  high = lidR::filter_poi(las, UserData == ARBORTREE)
   low = keep_small_trees(las, 2)
   rm(las) ; gc()
   high_f = lidR::filter_poi(high, foliage > 0)
