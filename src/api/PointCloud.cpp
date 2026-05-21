@@ -641,6 +641,33 @@ PointCloudDefault PointCloudDefault::subset(const std::vector<bool>& keep, bool 
 }
 
 // ------------------------------------------------------------
+// Subset (by treeID)
+// ------------------------------------------------------------
+std::vector<unsigned int> PointCloudDefault::find_points_by_treeid(int tid) const
+{
+  std::vector<unsigned int> keep;
+  for (size_t i = 0 ; i < size() ; i++)
+  {
+    if (get_treeid(i) == tid)
+      keep.push_back(i);
+  }
+
+  return keep;
+}
+
+PointCloudDefault PointCloudDefault::subset_by_treeid(int tid) const
+{
+  std::vector<int> keep;
+  for (size_t i = 0 ; i < size() ; i++)
+  {
+    if (get_treeid(i) == tid)
+      keep.push_back(i);
+  }
+
+  return subset(keep);
+}
+
+// ------------------------------------------------------------
 // Merge operator (creates a new point cloud)
 // ------------------------------------------------------------
 PointCloudDefault PointCloudDefault::operator+(const PointCloudDefault& other) const
