@@ -108,7 +108,9 @@ FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::v
   for (int i = 1; i < N; ++i)
   {
     if (std::fabs(A[i][i]) < min_val)
-      min_val = std::fabs(A[i][i]); min_col = i;
+      min_val = std::fabs(A[i][i]);
+
+    min_col = i;
   }
 
   res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];

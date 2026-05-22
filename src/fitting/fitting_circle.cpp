@@ -63,7 +63,7 @@ FittingResult FittingCircle::fit(const std::vector<Vec3>& points, double toleran
   }
 
   // Calculate 3D center
-  Vec3 center_3d = calculate_3d_center(circle, points);
+  Vec3 center_3d = calculate_3d_center(circle);
 
   // Calculate insider percentage (points strictly inside the circle)
   int insiders = 0;
@@ -224,7 +224,7 @@ std::vector<int> FittingCircle::find_inliers(const std::vector<Vec3>& points, co
   return inliers;
 }
 
-Vec3 FittingCircle::calculate_3d_center(const CircleParams& circle, const std::vector<Vec3>& points) const
+Vec3 FittingCircle::calculate_3d_center(const CircleParams& circle) const
 {
   // Use the 2D circle center directly, with average Z
   return {circle.cx, circle.cy, m_zmean};

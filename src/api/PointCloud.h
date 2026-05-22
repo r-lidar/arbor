@@ -91,7 +91,7 @@ protected:
  * @brief Blueprint for a custom PointCloud implementation.
  * Users can copy-paste this and fill in their specific memory logic.
  */
-class MinimalPointCloud : public BasePointCloud
+/*class MinimalPointCloud : public BasePointCloud
 {
 public:
   // Constructors / destructor
@@ -161,8 +161,7 @@ public:
 private:
   // Custom memory layout
   void swap_points(size_t i, size_t j) { return; }
-};
-
+};*/
 
 #ifdef USING_R
 

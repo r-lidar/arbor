@@ -125,7 +125,7 @@ private:
   CircleParams fit_circle_on_3_points(double x1, double y1, double x2, double y2, double x3, double y3) const;
   double point_to_circle_distance(double px, double py, const CircleParams& circle) const;
   std::vector<int> find_inliers(const std::vector<Vec3>& points, const CircleParams& circle, double tolerance) const;
-  Vec3 calculate_3d_center(const CircleParams& circle, const std::vector<Vec3>& points) const;
+  Vec3 calculate_3d_center(const CircleParams& circle) const;
 
   int m_max_iterations;
   double m_early_exit_ratio;
