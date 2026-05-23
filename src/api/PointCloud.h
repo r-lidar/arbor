@@ -369,17 +369,17 @@ public:
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const
   {
-    q[0] = coords[idx].x;
-    q[1] = coords[idx].y;
-    q[2] = coords[idx].z;
+    q[0] = static_cast<double>(coords[idx].x);
+    q[1] = static_cast<double>(coords[idx].y);
+    q[2] = static_cast<double>(coords[idx].z);
   }
 
   inline double get_x(const size_t idx) const { return static_cast<double>(coords[idx].x); }
   inline double get_y(const size_t idx) const { return static_cast<double>(coords[idx].y); }
   inline double get_z(const size_t idx) const { return static_cast<double>(coords[idx].z); }
-  inline void   set_x(const size_t idx, double v) { coords[idx].x = v; }
-  inline void   set_y(const size_t idx, double v) { coords[idx].y = v; }
-  inline void   set_z(const size_t idx, double v) { coords[idx].z = v; }
+  inline void   set_x(const size_t idx, double v) { coords[idx].x = static_cast<float>(v); }
+  inline void   set_y(const size_t idx, double v) { coords[idx].y = static_cast<float>(v); }
+  inline void   set_z(const size_t idx, double v) { coords[idx].z = static_cast<float>(v); }
 
   // --- Optional attribute access ---
   inline bool has_rgb()     const { return !rgb.empty(); }
