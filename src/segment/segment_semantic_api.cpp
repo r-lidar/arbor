@@ -20,14 +20,10 @@
 
 #include "arbor.h"
 #include "myomp.h"
-#include "nanoflann.h"
 #include "GraphBuilder.h"
 #include "Grid3D.h"
 
 #include <numeric>
-
-using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
-using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
@@ -169,11 +165,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
 
   ServiceLocator::logger()("  Building KDtree");
 
-  // KDTree over the full cloud; queried from passage points, results index into pc.
-  KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  tree.buildIndex();
-  nanoflann::SearchParameters nanoparams;
-  nanoparams.sorted = false;
+  pc.build_index();
 
   ServiceLocator::logger()("  k-nn search");
 
@@ -186,7 +178,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
   // into a separate PointCloud.
   #pragma omp parallel
   {
-    std::vector<index_t> idx(k);
+    std::vector<unsigned int> idx(k);
     std::vector<double>  dist(k);
     double q[3];
 
@@ -196,9 +188,7 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const settings:
       if (!skeleton_mask[i]) continue;
 
       pc.get_point(i, q);
-      nanoflann::KNNResultSet<double> resultSet(k);
-      resultSet.init(idx.data(), dist.data());
-      tree.findNeighbors(resultSet, q, nanoparams);
+      pc.knn(q, k, idx, dist);
 
       for (int j = 0; j < k; ++j)
       {
@@ -356,11 +346,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
 
   ServiceLocator::logger()("  Building KDtree");
 
-  // KDTree over the full cloud; queried from wood points, results index into pc.
-  KDTree tree(3, pc, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  tree.buildIndex();
-  nanoflann::SearchParameters nanoparams;
-  nanoparams.sorted = false;
+  pc.build_index();
 
   ServiceLocator::logger()("  knn search");
 
@@ -369,7 +355,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
 
   #pragma omp parallel
   {
-    std::vector<index_t> idx(k);
+    std::vector<unsigned int> idx(k);
     std::vector<double>  dist(k);
     double q[3];
 
@@ -377,9 +363,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
     for (size_t i = 0; i < wood.size(); ++i)
     {
       wood.get_point(i, q);
-      nanoflann::KNNResultSet<double> resultSet(k);
-      resultSet.init(idx.data(), dist.data());
-      tree.findNeighbors(resultSet, q, nanoparams);
+      pc.knn(q, k, idx, dist);
 
       for (int j = 0; j < k; ++j)
       {

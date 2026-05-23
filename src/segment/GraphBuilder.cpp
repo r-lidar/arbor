@@ -81,18 +81,11 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   graph->ensure_size(total_nodes);
   graph->reserve_edges(params.k);
 
-  // Build the KD-tree once; it is reused by add_target_layer, add_seed_layer,
-  // and fix_directed_reachability, then released at the end of that last call.
-  auto start = std::chrono::high_resolution_clock::now();
-  core_index = std::make_unique<KDTree>(3, core, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  core_index->buildIndex();
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
-  ServiceLocator::logger()(" KDTree creation : " + std::to_string(duration.count()) + " s");
+  core.build_index(); // no op if already built
 
   #pragma omp parallel
   {
-    std::vector<size_t> idx(params.k);
+    std::vector<unsigned int> idx(params.k);
     std::vector<double> dist(params.k);
 
     // Thread-local storage for edges
@@ -104,10 +97,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
     {
       double q[3];
       core.get_point(from, q);
-
-      nanoflann::KNNResultSet<double> result(params.k);
-      result.init(&idx[0], &dist[0]);
-      core_index->findNeighbors(result, q, nanoflann::SearchParameters());
+      core.knn(q, params.k, idx, dist);
 
       // For each neighbour, compute the cost to connect from -> to
       for (int j = 0; j < params.k; ++j)
@@ -179,17 +169,17 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
   graph->ensure_size(total_nodes);
   graph->reserve_edges(params.k);
 
+  core.build_index(); // no op if already built
+
   // Reuse the KD-tree built in add_core_layer
-  std::vector<size_t> idx(params.k);
+  std::vector<unsigned int> idx(params.k);
   std::vector<double> dist(params.k);
 
   for (int i = 0; i < n_target; ++i)
   {
     double q[3];
     target.get_point(i, q);
-    nanoflann::KNNResultSet<double> result(params.k);
-    result.init(&idx[0], &dist[0]);
-    core_index->findNeighbors(result, q, nanoflann::SearchParameters());
+    core.knn(q, params.k, idx, dist);
 
     // Zero-cost edge from the nearest core point to this target node
     int from = idx[0];
@@ -218,17 +208,17 @@ void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seed
   graph->ensure_size(total_nodes);
   graph->reserve_edges(k);
 
+  core.build_index(); // no op if already built
+
   // Reuse the KD-tree built in add_core_layer
-  std::vector<size_t> idx(k);
+  std::vector<unsigned int> idx(k);
   std::vector<double> dist(k);
 
   for (int i = 0; i < n_points; ++i)
   {
     double q[3];
     seeds.get_point(i, q);
-    nanoflann::KNNResultSet<double> result(k);
-    result.init(&idx[0], &dist[0]);
-    core_index->findNeighbors(result, q, nanoflann::SearchParameters());
+    core.knn(q, k, idx, dist);
 
     for (int j = 0; j < k; ++j)
     {
@@ -272,11 +262,8 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 
   const Graph::NodeId source = get_range_master().second;
   const size_t N = static_cast<size_t>(total_core_nodes);
-  if (N < 2)
-  {
-    core_index.reset();
-    return;
-  }
+
+  if (N < 2) return;
 
   // DFS from master seed: returns core node IDs unreachable from source
   auto find_isolated = [&]() -> std::vector<Graph::NodeId>
@@ -313,7 +300,6 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   std::vector<Graph::NodeId> isolated_ids = find_isolated();
   if (isolated_ids.empty())
   {
-    core_index.reset();  // no isolated nodes, free tree memory early
     return;
   }
 
@@ -328,7 +314,9 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> new_edges;
   new_edges.reserve(isolated_ids.size() * k_retry * 2);
 
-  std::vector<size_t> idx(k_retry);
+  cloud.build_index();
+
+  std::vector<unsigned int> idx(k_retry);
   std::vector<double> sq_dist(k_retry);
 
   for (Graph::NodeId from : isolated_ids)
@@ -338,10 +326,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 
     double q[3];
     cloud.get_point(from, q);
-
-    nanoflann::KNNResultSet<double> result(k_retry);
-    result.init(idx.data(), sq_dist.data());
-    core_index->findNeighbors(result, q, nanoflann::SearchParameters());
+    cloud.knn(q, k_retry, idx, sq_dist);
 
     for (int j = 0; j < k_retry; ++j)
     {
@@ -410,16 +395,11 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
     ServiceLocator::logger()(" All isolated nodes resolved");
   else
     ServiceLocator::logger()(" " + std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine gaps)");
-
-  // KD-tree is no longer needed ,  release its memory before returning
-  core_index.reset();
 }
 
 void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
 {
   ServiceLocator::logger()(" Test directed reachability");
-
-  core_index.reset();
 
   const Graph::NodeId source = get_range_master().second;
   const size_t N = static_cast<size_t>(total_core_nodes);
@@ -516,10 +496,7 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   // Step 4: Build a KD-tree over the reachable core points only.
   // ---------------------------------------------------------------
   PointCloud reachable_cloud = cloud.subset(reachable_ids, true);
-  KDTree tree(3, reachable_cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  tree.buildIndex();
-  nanoflann::SearchParameters search_params;
-  search_params.sorted = true;
+  reachable_cloud.build_index();
 
   // ---------------------------------------------------------------
   // Step 5: For every isolated node, find its nearest reachable
@@ -536,17 +513,14 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   };
   std::vector<Bridge> best(num_clusters);
 
-  std::vector<size_t> idx(1);
+  std::vector<unsigned int> idx(1);
   std::vector<double> sq_dists(1);
 
   for (Graph::NodeId iso : isolated_ids)
   {
     double q[3];
     cloud.get_point(iso, q);
-
-    nanoflann::KNNResultSet<double> result_set(1);
-    result_set.init(idx.data(), sq_dists.data());
-    tree.findNeighbors(result_set, q, search_params);
+    reachable_cloud.knn(q, 1, idx, sq_dists);
 
     int comp = iso_component[iso];
     if (sq_dists[0] < best[comp].sq_dist)

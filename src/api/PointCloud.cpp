@@ -138,6 +138,7 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
   init();
   n_points = other.n_points;
   owns_memory = true; // A copy ALWAYS owns its new memory
+  kdtree = nullptr;
 
   try
   {
@@ -236,6 +237,8 @@ void PointCloudDataFrame::cleanup()
   coords[0] = coords[1] = coords[2] = nullptr;
   treeid = foliage = classif = nullptr;
   pwood = hag = nullptr;
+
+  kdtree.reset();
 }
 
 // ------------------------------------------------------------
@@ -482,6 +485,70 @@ void PointCloudDataFrame::colorize_trees(bool darken_foliage)
     set_red(i, static_cast<int>(color.r)*255);
     set_green(i, static_cast<int>(color.g)*255);
     set_blue(i, static_cast<int>(color.b)*255);
+  }
+}
+
+void PointCloudDataFrame::build_index() const
+{
+  if (kdtree != nullptr) return;
+  auto start = std::chrono::high_resolution_clock::now();
+  kdtree = std::make_unique<KDTree>(3, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  kdtree->buildIndex();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  //ServiceLocator::logger()(" KDTree creation : " + std::to_string(duration.count()) + " s");
+}
+
+
+void PointCloudDataFrame::knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const
+{
+  if (!kdtree) build_index();
+
+  indices.clear();
+  sqdist.clear();
+
+  if (size() == 0 || k <= 0) return;
+
+  indices.resize(k);
+  sqdist.resize(k);
+
+  nanoflann::KNNResultSet<double, unsigned int> resultSet(k);
+  resultSet.init(indices.data(), sqdist.data());
+
+  nanoflann::SearchParameters params;
+  params.eps = 0.0f;
+  params.sorted = false;
+
+  kdtree->findNeighbors(resultSet, query, params);
+}
+
+void PointCloudDataFrame::radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const
+{
+  if (!kdtree) build_index();
+
+  indices.clear();
+  sqdist.clear();
+
+  if (size() == 0 || radius <= 0.0) return;
+
+  double radius_sq = radius*radius;
+
+  std::vector<nanoflann::ResultItem<unsigned int, double>> ret_matches;
+
+  nanoflann::SearchParameters params;
+  params.eps = 0.0f;
+  params.sorted = false;
+
+  // Note: nanoflann natively expects the squared search radius
+  const size_t nMatches = kdtree->radiusSearch(query, radius_sq, ret_matches, params);
+
+  indices.reserve(nMatches);
+  sqdist.reserve(nMatches);
+
+  for (size_t i = 0; i < nMatches; ++i)
+  {
+    indices.push_back(ret_matches[i].first);
+    sqdist.push_back(ret_matches[i].second);
   }
 }
 
@@ -845,4 +912,69 @@ void PointCloudDefault::colorize_trees(bool darken_foliage)
         rgb[i] = color;
     }
 }
+
+void PointCloudDefault::build_index() const
+{
+  if (kdtree != nullptr) return;
+  auto start = std::chrono::high_resolution_clock::now();
+  kdtree = std::make_unique<KDTree>(3, *this, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  kdtree->buildIndex();
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  //ServiceLocator::logger()(" KDTree creation : " + std::to_string(duration.count()) + " s");
+}
+
+
+void PointCloudDefault::knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const
+{
+  if (!kdtree) build_index();
+
+  indices.clear();
+  sqdist.clear();
+
+  if (size() == 0 || k <= 0) return;
+
+  indices.resize(k);
+  sqdist.resize(k);
+
+  nanoflann::KNNResultSet<double, unsigned int> resultSet(k);
+  resultSet.init(indices.data(), sqdist.data());
+
+  nanoflann::SearchParameters params;
+  params.eps = 0.0f;
+  params.sorted = false;
+
+  kdtree->findNeighbors(resultSet, query, params);
+}
+
+void PointCloudDefault::radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const
+{
+  if (!kdtree) build_index();
+
+  indices.clear();
+  sqdist.clear();
+
+  if (size() == 0 || radius <= 0.0) return;
+
+  double radius_sq = radius*radius;
+
+  std::vector<nanoflann::ResultItem<unsigned int, double>> ret_matches;
+
+  nanoflann::SearchParameters params;
+  params.eps = 0.0f;
+  params.sorted = false;
+
+  // Note: nanoflann natively expects the squared search radius
+  const size_t nMatches = kdtree->radiusSearch(query, radius_sq, ret_matches, params);
+
+  indices.reserve(nMatches);
+  sqdist.reserve(nMatches);
+
+  for (size_t i = 0; i < nMatches; ++i)
+  {
+    indices.push_back(ret_matches[i].first);
+    sqdist.push_back(ret_matches[i].second);
+  }
+}
+
 #endif

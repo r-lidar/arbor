@@ -1,19 +1,19 @@
 /**
  * @file anisotopy.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -21,12 +21,8 @@
 #include <vector>
 
 #include "myomp.h"
-#include "nanoflann.h"
 #include "PointCloud.h"
 #include "services.h"
-
-using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>,PointCloud, 3>;
-using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::utils {
 
@@ -73,26 +69,22 @@ inline void eigenvalues_sym_3x3(double a, double b, double c, double d, double e
   lmid = 3.0*m - lmax - lmin;
 }
 
-std::vector<float> anisotropy(const PointCloud& adaptor, int k)
+std::vector<float> anisotropy(const PointCloud& cloud, int k)
 {
-  const int n = adaptor.size();
+  const int n = cloud.size();
+
+  cloud.build_index();
 
   std::vector<float> out(n);
 
-  KDTree tree(3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(40));
-  tree.buildIndex();
-  nanoflann::SearchParameters params;
-  params.eps = 0.02;
-  params.sorted = false;
 
   auto pb = ServiceLocator::make_progress(n, "Anisotropy");
   std::atomic<bool> abort(false);
 
   #pragma omp parallel
   {
-    std::vector<index_t> idx(k);
+    std::vector<unsigned int> idx(k);
     std::vector<double> dist(k);
-    nanoflann::KNNResultSet<double> resultSet(k);
     double q[3];
 
     #pragma omp for schedule(static)
@@ -102,20 +94,16 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
       if(pb->check_interrupt()) abort = true;
       pb->tick();
 
-      q[0] = adaptor.get_x(i);
-      q[1] = adaptor.get_y(i);
-      q[2] = adaptor.get_z(i);
-
-      resultSet.init(idx.data(), dist.data());
-      tree.findNeighbors(resultSet, q, params);
+      cloud.get_point(i, q);
+      cloud.knn(q, k, idx, dist);
 
       // ---- mean ----
       double mx=0, my=0, mz=0;
       for (int j=0; j<k; ++j)
       {
-        mx += adaptor.get_x(idx[j]);
-        my += adaptor.get_y(idx[j]);
-        mz += adaptor.get_z(idx[j]);
+        mx += cloud.get_x(idx[j]);
+        my += cloud.get_y(idx[j]);
+        mz += cloud.get_z(idx[j]);
       }
       mx /= k; my /= k; mz /= k;
 
@@ -123,9 +111,9 @@ std::vector<float> anisotropy(const PointCloud& adaptor, int k)
       double cxx=0, cxy=0, cxz=0, cyy=0, cyz=0, czz=0;
       for (int j=0; j<k; ++j)
       {
-        double dx = adaptor.get_x(idx[j]) - mx;
-        double dy = adaptor.get_y(idx[j]) - my;
-        double dz = adaptor.get_z(idx[j]) - mz;
+        double dx = cloud.get_x(idx[j]) - mx;
+        double dy = cloud.get_y(idx[j]) - my;
+        double dz = cloud.get_z(idx[j]) - mz;
 
         cxx += dx*dx;
         cxy += dx*dy;

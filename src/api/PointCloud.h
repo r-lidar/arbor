@@ -21,10 +21,13 @@
 #ifndef ADAPTATOR_H
 #define ADAPTATOR_H
 
+#include <memory>
 #include <vector>
 #include <string>
 #include <stdexcept>
 #include <cstdint>
+
+#include "nanoflann.h"
 
 #ifdef USING_R
 #include <Rcpp.h>
@@ -177,6 +180,8 @@ inline void set_##name(const size_t idx, type v) {                   \
 
 class PointCloudDataFrame : public BasePointCloud
 {
+  using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloudDataFrame>, PointCloudDataFrame, 3>;
+
 public:
   // Constructors / destructor
   PointCloudDataFrame();
@@ -251,6 +256,12 @@ public:
   explicit PointCloudDataFrame(const Rcpp::DataFrame& df);
   bool linked_to_dataframe() const { return !owns_memory; }
 
+  // --- Spatial queries -------
+  void build_index() const;
+  void knn(const double* query, int k, std::vector<unsigned int>&idx, std::vector<double>& sqdist) const;
+  void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
+
+
 private:
   void cleanup();
   void swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept;
@@ -302,6 +313,8 @@ private:
   double* pwood   = nullptr;
 
   bool owns_memory = false;
+
+  mutable std::unique_ptr<KDTree> kdtree;
 };
 
 #else
@@ -334,8 +347,8 @@ public:
       n_points++;
       true_n_points++;
       coords.push_back({x,y,z});
-      treeid.push_back(-1);
-      foliage.push_back(-1);
+      treeid.push_back(0);
+      foliage.push_back(1);
       classif.push_back(0);
       passage.push_back(0);
       hag.push_back(0);
@@ -421,6 +434,11 @@ public:
 
   // --- Color ---
   void colorize_trees(bool darken_foliage = false);
+
+  // --- Spatial queries -------
+  void build_index() const;
+  void knn(const double* query, int k, std::vector<unsigned int>&idx, std::vector<double>& sqdist) const;
+  void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
 
   // --- View ----
   std::span<float> coord_view()

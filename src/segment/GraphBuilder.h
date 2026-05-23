@@ -24,9 +24,6 @@
 #include "PointCloud.h"
 #include "Graph.h"
 #include "arbor.h"
-#include "nanoflann.h"
-
-#include <memory>
 
 namespace arbor::segment {
 
@@ -55,13 +52,7 @@ public:
   std::pair<int, int> get_range_master() const;
 
 private:
-  // KD-tree built once over the core point cloud in add_core_layer and shared
-  // by add_target_layer, add_seed_layer, and fix_directed_reachability.
-  // Released at the end of fix_directed_reachability.
-  using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
-
   Graph* graph;
-  std::unique_ptr<KDTree> core_index;
 
   int offset_points  = -1;
   int offset_targets = -1;
