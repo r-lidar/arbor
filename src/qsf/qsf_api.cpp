@@ -38,7 +38,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
   QSF result;
 
   // Group indices and track max height per ID
-  std::unordered_map<int, std::vector<int>> tree_indices;
+  std::unordered_map<int, std::vector<unsigned int>> tree_indices;
   std::unordered_map<int, double> tree_heights;
 
   for (size_t i = 0; i < scene.size(); ++i)
@@ -78,7 +78,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
     if (error_occurred.load(std::memory_order_relaxed)) continue;
 
     int current_id = valid_tree_ids[i];
-    const std::vector<int>& indices = tree_indices[current_id];
+    const std::vector<unsigned int>& indices = tree_indices[current_id];
 
     try
     {

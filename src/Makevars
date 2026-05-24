@@ -1,10 +1,8 @@
-# Standard C++17 support
-CXX_STD = CXX17
-
 # Compilation flags
 PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I. \
   -I./utils \
+  -I./pointcloud \
   -I./qsm \
   -I./qsf \
   -I./api \
@@ -24,8 +22,9 @@ PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
 
 # Explicit list of object files (POSIX compliant)
-OBJECTS = api/PointCloud.o \
+OBJECTS = \
   RcppExports.o \
+  pointcloud/PointCloudDataFrame.o \
   vendor/ptd/PTD.o \
   vendor/hporro/pred3d.o \
   vendor/hporro/delaunay.o \

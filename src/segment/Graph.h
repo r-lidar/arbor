@@ -30,7 +30,7 @@ namespace arbor::segment {
 class Graph
 {
 public:
-  using NodeId = int;
+  using NodeId = unsigned int;
   using Cost = float;
   using DistanceVector = std::vector<Cost>;
   using PredecessorVector = std::vector<NodeId>;
