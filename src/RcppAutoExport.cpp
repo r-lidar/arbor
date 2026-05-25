@@ -115,7 +115,7 @@ Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resoluti
 Rcpp::DataFrame qsm_cpp(Rcpp::DataFrame tree, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);

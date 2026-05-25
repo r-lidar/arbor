@@ -284,7 +284,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // qsf_cpp
-Rcpp::DataFrame qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
+Rcpp::List qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params);
 RcppExport SEXP _arbor_qsf_cpp(SEXP sceneSEXP, SEXP min_heightSEXP, SEXP paramsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
