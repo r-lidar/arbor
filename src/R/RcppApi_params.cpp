@@ -175,6 +175,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
   assert_exists(p, "cl_dist");
   assert_exists(p, "max_d");
   assert_exists(p, "apex");
+  assert_exists(p, "min_measurable_radius");
   assert_exists(p, "smooth_steps");
   assert_exists(p, "smooth_lambda");
   assert_exists(p, "smooth_mu");
@@ -184,6 +185,7 @@ arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
   s.step   = Rcpp::as<double>(p["step"]);
   s.cl_dist = Rcpp::as<double>(p["cl_dist"]);
   s.max_d = Rcpp::as<double>(p["max_d"]);
+  s.min_measurable_radius = Rcpp::as<double>(p["min_measurable_radius"]);
   s.apex = Rcpp::as<double>(p["apex"]);
   s.smooth_steps = Rcpp::as<int>(p["smooth_steps"]);
   s.smooth_lambda = Rcpp::as<double>(p["smooth_lambda"]);
@@ -288,7 +290,8 @@ Rcpp::List qsm_to_list(const arbor::settings::QsmParameters& s)
     Rcpp::Named("smooth_steps")  = s.smooth_steps,
     Rcpp::Named("smooth_lambda") = s.smooth_lambda,
     Rcpp::Named("smooth_mu")     = s.smooth_mu,
-    Rcpp::Named("broken_detection_enabled") = s.broken_detection_enabled
+    Rcpp::Named("broken_detection_enabled") = s.broken_detection_enabled,
+    Rcpp::Named("min_measurable_radius")    = s.min_measurable_radius
   );
 }
 

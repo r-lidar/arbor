@@ -113,7 +113,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
         c.y = ans.center.y;
         c.z = ans.center.z;
 
-        if (ans.radius > 0.06 && ans.arc_coverage_deg > 300.0 && ans.inlier_percentage > 70.0)
+        if (ans.radius > 2*params.qsm.min_measurable_radius && ans.arc_coverage_deg > 300.0 && ans.inlier_percentage > 70.0)
           valid_ring_counter++;
       }
       else

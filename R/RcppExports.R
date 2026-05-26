@@ -133,6 +133,10 @@ qsm_get_cylID <- function(qsmdf, pcdf) {
     .Call(`_arbor_qsm_get_cylID`, qsmdf, pcdf)
 }
 
+allometry <- function(name) {
+    .Call(`_arbor_allometry`, name)
+}
+
 qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
 }

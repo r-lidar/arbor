@@ -30,37 +30,11 @@
 #include "QSMbuilder.h"
 #include "PointCloud.h"
 
+#include "allometry.h"
 #include "fitting.h"
 #include "fitting_quality.h"
 
 namespace arbor::qsm {
-
-// Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
-// tree graphs. Sci Data 12, 1953 (2025). https://doi.org/10.1038/s41597-025-06421-7
-class Allometry
-{
-public:
-  static double H_vs_DBH(double dbh)
-  {
-    return 36.03 * std::pow(1.0 - std::exp(-0.05 * dbh), 1.1);
-  }
-
-  static double DBH_vs_H(double H)
-  {
-    double DBH_cm;
-    if (H < 25.0)
-    {
-      double ratio = std::clamp(H / 36.03, 0.0, 1.0 - 1e-12);
-      DBH_cm = -1.0 / 0.05 * std::log(1.0 - std::pow(ratio, 1.0 / 1.1));
-    }
-    else {
-      // Arbitrary because original method stops growing after 50 cm. This is more relevant
-      // and anyway not really important in pratice.
-      DBH_cm = 4.0 * H - 75.0;
-    }
-    return DBH_cm / 100.0;
-  }
-};
 
 void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
@@ -83,11 +57,11 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   H = std::max(L, H);
 
   // Estimation of an expected radius based on broad allometry
-  double R0 = Allometry::DBH_vs_H(H) / 2.0;
+  auto model = AllometryDataBase::getAllometry("Griese2025");
+  double R0 = model->DBH_vs_H(H) / 2.0;
 
-  // TODO: control parameter
   // If the estimated radius is too small we don't even try to measure the tree
-  if (R0 < 0.03 && !likely_broken)
+  if (R0 < params.qsm.min_measurable_radius && !likely_broken)
   {
     conic_allometry(R0, tip_radius);
 
@@ -106,7 +80,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     return;
   }
 
-  if (R0 < 0.03 && likely_broken)
+  if (R0 < params.qsm.min_measurable_radius && likely_broken)
   {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
@@ -205,7 +179,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     ed.radius = RADIUS_UNSET;
 
     // Filtration logic
-    if (point_indices.size() < 50 || ed.conic_allometry < 0.03)
+    if (point_indices.size() < 50 || ed.conic_allometry < params.qsm.min_measurable_radius)
       continue;
 
     const auto& src = graph.node(einfo.source);
@@ -312,7 +286,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
   for (auto& [eid, point_indices] : points_by_edge)
   {
     auto& einfo = graph.edge(eid);
-    if (einfo.data.radius < 0.03 || point_indices.empty()) continue;
+    if (einfo.data.radius < params.qsm.min_measurable_radius || point_indices.empty()) continue;
 
     const auto& src = graph.node(einfo.source);
     const auto& tgt = graph.node(einfo.target);

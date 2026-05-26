@@ -24,7 +24,9 @@
 #include "Grid3D.h"
 #include "ransac.h"
 #include "fitting.h"
+#include "allometry.h"
 #include "arbor.h"
+
 
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
 {
@@ -102,6 +104,27 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
     Rcpp::Named("percentage_inlier") = inlier_pct,
     Rcpp::Named("percentage_inside") = inside_pct,
     Rcpp::Named("inliers") = r_inliers+1
+  );
+}
+
+Rcpp::DataFrame allometry(std::string name)
+{
+  auto model = AllometryDataBase::getAllometry(name);
+
+  std::vector<double> dbh;
+  std::vector<double> height;
+
+  for (double h = 0.0; h <= 40.0; h += 0.5)
+  {
+    double H = model->DBH_vs_H(h);
+
+    height.push_back(h);
+    dbh.push_back(H);
+  }
+
+  return Rcpp::DataFrame::create(
+    Rcpp::Named("DBH") = dbh,
+    Rcpp::Named("H") = height
   );
 }
 

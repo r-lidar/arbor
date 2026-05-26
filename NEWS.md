@@ -1,3 +1,7 @@
+# arbor 0.13.2
+
+- New parameters: `params$qsm$min_measurable_radius` to control the lower bound of what is assumed to be measurable or not.
+
 # arbor 0.13.0
 
 - Improvement of apex segmentation

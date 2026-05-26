@@ -60,6 +60,7 @@ OBJECTS = \
   utils/anisotopy.o \
   utils/ransac.o \
   utils/smooth3d.o \
+  utils/allometry.o \
   misc/read_adtree_skeleton.o \
   qsm/QSMbuilder_dist2root.o \
   qsm/QSMbuilder_radius.o \
