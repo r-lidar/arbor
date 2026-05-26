@@ -44,7 +44,7 @@ segment_instance = function(las, seeds, params)
   stop_if_not_tls(las)
   las@data$treeID = 0L
   segment_instance_cpp(las@data, seeds@data, params)
-  las <- lidR::add_lasattribute(las, name = "treeID", desc = "Unique ID per tree")
+  las <- lidR::add_lasattribute_manual(las, name = "treeID", desc = "Unique ID per tree", type = "int")
   return(las)
 }
 
