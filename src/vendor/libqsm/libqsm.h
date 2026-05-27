@@ -38,9 +38,12 @@
  *   w.set_software("MyApp 1.0");
  *   w.set_origin(448231.0, 5412087.0, 312.5);
  *   w.set_format(2);           // 0 = minimal, 1 = + architecture, 2 = + distances
+ *   w.add_node_extra_field(libqsm::ExtraFieldType::F32, "wood_density");
+ *   w.add_edge_extra_field(libqsm::ExtraFieldType::F32, "taper_rate");
  *   w.add_nodes(qn.begin(), qn.end());
  *   w.add_edges(qe.begin(), qe.end());
  *   w.write();
+ *   // Bounding box is computed automatically from nodes during write().
  *
  */
 
@@ -70,7 +73,7 @@ namespace libqsm {
 // Sentinel values
 // ---------------------------------------------------------------------------
 
-static constexpr float   UNSET_FLOAT = -1.0f;
+static constexpr float UNSET_FLOAT = -1.0f;
 
 // ---------------------------------------------------------------------------
 // In-memory record structs
@@ -111,6 +114,31 @@ struct QSMedge
 };
 
 // ---------------------------------------------------------------------------
+// Extra-field type tokens
+// ---------------------------------------------------------------------------
+
+enum class ExtraFieldType : uint8_t
+{
+  I8, U8, I16, U16, I32, U32, F32, I64, U64, F64
+};
+
+// Returns the byte size of the type token.
+uint32_t extra_field_type_size(ExtraFieldType t) noexcept;
+
+// Returns the canonical string token for a type (e.g. ExtraFieldType::F32 -> "F32").
+const char* extra_field_type_name(ExtraFieldType t) noexcept;
+
+// Parses a value string of the form "<TYPE> <name>" (e.g. "F32 wood_density").
+// Throws std::runtime_error on malformed input or unrecognised type token.
+// An unknown token is always a hard error: the reader cannot skip a field of unknown size.
+struct ExtraField
+{
+  ExtraFieldType type;
+  std::string    name;
+};
+ExtraField parse_extra_field(const std::string& value);
+
+// ---------------------------------------------------------------------------
 // Header
 // ---------------------------------------------------------------------------
 
@@ -122,14 +150,26 @@ struct QSMheader
   std::string software;
   std::string created;
   std::string crs;
-  uint64_t    n_nodes   = 0;
-  uint64_t    n_edges   = 0;
-  uint32_t    node_size = 12;   // actual bytes per node record in this file
-  uint32_t    edge_size = 26;   // actual bytes per edge record in this file
-  double      x_offset  = 0.0;
-  double      y_offset  = 0.0;
-  double      z_offset  = 0.0;
+  uint64_t    n_nodes = 0;
+  uint64_t    n_edges = 0;
+  double      x_offset = 0.0;
+  double      y_offset = 0.0;
+  double      z_offset = 0.0;
+
+  // Bounding box in global coordinates (mandatory; writer computes from nodes)
+  double xmin = 0.0,  ymin = 0.0,  zmin = 0.0;
+  double xmax = 0.0,  ymax = 0.0,  zmax = 0.0;
+
+  // Named extra fields appended after the format-mandated bytes of each record
+  std::vector<ExtraField> node_extra_fields;
+  std::vector<ExtraField> edge_extra_fields;
+
   std::vector<std::string> messages;
+
+  // Computed helpers: total extra bytes contributed by the declared fields.
+  // Callers use spec.min_node_size + hdr.computed_node_extra_bytes(), etc.
+  uint32_t computed_node_extra_bytes() const noexcept;
+  uint32_t computed_edge_extra_bytes() const noexcept;
 };
 
 
@@ -227,10 +267,20 @@ public:
   double             get_x_offset()      const noexcept { return header.x_offset;  }
   double             get_y_offset()      const noexcept { return header.y_offset;  }
   double             get_z_offset()      const noexcept { return header.z_offset;  }
-  uint32_t           get_node_size()     const noexcept { return header.node_size; }
-  uint32_t           get_edge_size()     const noexcept { return header.edge_size; }
+  double             get_xmin()          const noexcept { return header.xmin; }
+  double             get_ymin()          const noexcept { return header.ymin; }
+  double             get_zmin()          const noexcept { return header.zmin; }
+  double             get_xmax()          const noexcept { return header.xmax; }
+  double             get_ymax()          const noexcept { return header.ymax; }
+  double             get_zmax()          const noexcept { return header.zmax; }
   int                get_message_count() const noexcept { return static_cast<int>(header.messages.size()); }
   const std::string& get_message(int i)  const          { return header.messages.at(static_cast<std::size_t>(i)); }
+
+  // Extra field declarations
+  int               get_node_extra_count() const noexcept { return static_cast<int>(header.node_extra_fields.size()); }
+  int               get_edge_extra_count() const noexcept { return static_cast<int>(header.edge_extra_fields.size()); }
+  const ExtraField& get_node_extra_field(int i) const { return header.node_extra_fields.at(static_cast<std::size_t>(i)); }
+  const ExtraField& get_edge_extra_field(int i) const { return header.edge_extra_fields.at(static_cast<std::size_t>(i)); }
 
   // Record counts
   int node_count() const noexcept { return static_cast<int>(nodes_.size()); }
@@ -271,6 +321,12 @@ public:
   void set_crs          (const std::string& c) noexcept  { header.crs      = c;  }
   void add_message      (const std::string& m) noexcept  { header.messages.push_back(m); }
   void set_origin(double x, double y, double z) noexcept { header.x_offset = x; header.y_offset = y; header.z_offset = z; }
+
+  // Append an extra field declaration for node or edge records.
+  // Fields are appended in call order, which is the binary storage order.
+  // NOT supported in this implementation
+  //void add_node_extra_field(ExtraFieldType type, const std::string& name) { header.node_extra_fields.push_back({type, name}); }
+  //void add_edge_extra_field(ExtraFieldType type, const std::string& name) { header.edge_extra_fields.push_back({type, name}); }
 
   void add_node(const QSMnode& n) { nodes_.push_back(n); }
   void add_edge(const QSMedge& e) { edges_.push_back(e); }
