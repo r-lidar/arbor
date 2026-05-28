@@ -1,6 +1,8 @@
 # arbor 0.13.2
 
 - New parameters: `params$qsm$min_measurable_radius` to control the lower bound of what is assumed to be measurable or not.
+- New parameters: `params$qsm$allometry` to choose an alternative allometry
+- Fix `qsm_dbh()` was not using argument `bh`.
 
 # arbor 0.13.0
 
