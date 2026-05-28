@@ -4,9 +4,8 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
-
-#include <cmath>
-#include <algorithm>
+#include <functional>
+#include <unordered_map>
 
 // --- Griese2025Allometry Implementation ---
 double Griese2025Allometry::H_vs_DBH(double dbh) const
