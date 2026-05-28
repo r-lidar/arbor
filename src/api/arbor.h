@@ -39,27 +39,38 @@ namespace arbor
     struct GlobalParameters
     {
       double cut_above_ground = 0.25;
+
+      template<typename V> void visit(V& v)
+      {
+        v("cut_above_ground", cut_above_ground);
+      }
     };
 
     struct WoodlikelihoodParameters
     {
       int k = 80;
+
+      template<typename V> void visit(V& v)
+      {
+        v("k", k);
+      }
     };
 
     struct GraphParameters
     {
-      bool downward = false;
-      int k = 10;
-      int k_seed = 100;
+      bool   downward   = false;
+      int    k          = 10;
+      int    k_seed     = 100;
       double decimation = 0.05;
-      double space_res = 0.2;
-      double max_gap = 1.0;
-      double power = 3.0;
-      double wood2wood = 0.1;
-      double leaf2leaf = 20.0;
-      double wood2leaf = 1000.0;
+      double space_res  = 0.2;
+      double max_gap    = 1.0;
+      double power      = 3.0;
+      double wood2wood  = 0.1;
+      double leaf2leaf  = 20.0;
+      double wood2leaf  = 1000.0;
       std::vector<float> angle_penalty;
-      GraphParameters(): angle_penalty(181)
+
+      GraphParameters() : angle_penalty(181)
       {
         for (int x = 0; x <= 180; ++x)
         {
@@ -67,56 +78,112 @@ namespace arbor
           angle_penalty[x] = (x > 100) ? 100.0f : y;
         }
       }
+
+      template<typename V> void visit_pathfinder(V& v)
+      {
+        v("k_neighborhood_connectivity", k);
+        v("k_seed_connectivity",         k_seed);
+        v("decimation",                  decimation);
+        v("space_res",                   space_res);
+        v("max_gap",                     max_gap);
+        v("distance_power",              power);
+        v("downward",                    downward);
+      }
+
+      template<typename V> void visit_instance(V& v)
+      {
+        v("wood2leaf_factor", wood2leaf);
+        v("leaf2leaf_factor", leaf2leaf);
+        v("wood2wood_factor", wood2wood);
+      }
     };
 
     struct SemanticParameters
     {
-      int   min_passage = 3;
-      double high_pwood_threshold   = 0.9;
-      double medium_pwood_threshold = 0.75;
-      double connected_components_res = 0.05;
-      int    connected_components_min = 2000;
-      int    wood_assignation_k = 50;
-      double wood_assignation_dist = 0.05f;
-      int    wood_extra_reasignation_k = 10;
+      int    min_passage                  = 3;
+      double high_pwood_threshold         = 0.9;
+      double medium_pwood_threshold       = 0.75;
+      double connected_components_res     = 0.05;
+      int    connected_components_min     = 2000;
+      int    wood_assignation_k           = 50;
+      double wood_assignation_dist        = 0.05;
+      int    wood_extra_reasignation_k    = 10;
       double wood_extra_reasignation_dist = 0.03;
-      int    medium_pwood_sor_k = 50;
-      double medium_pwood_sor_m = 0.05;
-      double ground_res = 0.2;
+      int    medium_pwood_sor_k           = 50;
+      double medium_pwood_sor_m           = 0.05;
+      double ground_res                   = 0.2;
+
+      template<typename V> void visit(V& v)
+      {
+        v("min_passage",                  min_passage);
+        v("high_pwood_threshold",         high_pwood_threshold);
+        v("medium_pwood_threshold",       medium_pwood_threshold);
+        v("connected_components_res",     connected_components_res);
+        v("connected_components_min",     connected_components_min);
+        v("wood_assignation_k",           wood_assignation_k);
+        v("wood_assignation_dist",        wood_assignation_dist);
+        v("wood_extra_reasignation_k",    wood_extra_reasignation_k);
+        v("wood_extra_reasignation_dist", wood_extra_reasignation_dist);
+        v("medium_pwood_sor_k",           medium_pwood_sor_k);
+        v("medium_pwood_sor_m",           medium_pwood_sor_m);
+        v("ground_res",                   ground_res);
+      }
     };
 
     struct SeedParameters
     {
-      std::vector<double> slice_at = {0.7, 0.9};
-      double slice_thickness = 0.05;
-      int min_passage = 15;
-      double safe_zone = 0.2;
+      std::vector<double> slice_at       = {0.7, 0.9};
+      double              slice_thickness = 0.05;
+      int                 min_passage    = 15;
+      double              safe_zone      = 0.2;
+
+      template<typename V> void visit(V& v)
+      {
+        v("slice_thickness", slice_thickness);
+        v("min_passage",     min_passage);
+        v("safe_zone",       safe_zone);
+        // slice_at handled separately (vector needs Rcpp::wrap)
+      }
     };
 
     struct QsmParameters
     {
-      double step = 0.1;
-      double cl_dist = 0.1;
-      double max_d = 0.1;
-      double apex = 0.0025;
-      int smooth_steps = 15;
-      double smooth_lambda = 0.5;
-      double smooth_mu = -0.53;
-      double min_measurable_radius = 0.03;
-      bool broken_detection_enabled = true;
+      double      step                    = 0.1;
+      double      cl_dist                 = 0.1;
+      double      max_d                   = 0.1;
+      double      apex                    = 0.0025;
+      int         smooth_steps            = 15;
+      double      smooth_lambda           = 0.5;
+      double      smooth_mu               = -0.53;
+      double      min_measurable_radius   = 0.03;
+      bool        broken_detection_enabled = true;
+      std::string allometry               = "Griese2025";
+
+      template<typename V> void visit(V& v)
+      {
+        v("step",                     step);
+        v("cl_dist",                  cl_dist);
+        v("max_d",                    max_d);
+        v("apex",                     apex);
+        v("smooth_steps",             smooth_steps);
+        v("smooth_lambda",            smooth_lambda);
+        v("smooth_mu",                smooth_mu);
+        v("min_measurable_radius",    min_measurable_radius);
+        v("broken_detection_enabled", broken_detection_enabled);
+        v("allometry",                allometry);
+      }
     };
 
     struct ArborParameters
     {
-      GlobalParameters global;
+      GlobalParameters         global;
       WoodlikelihoodParameters woodlikelihood;
-      GraphParameters pathfinder;
-      SemanticParameters semantic;
-      SeedParameters seeds;
-      QsmParameters qsm;
+      GraphParameters          pathfinder;
+      SemanticParameters       semantic;
+      SeedParameters           seeds;
+      QsmParameters            qsm;
     };
   }
-
   namespace segment
   {
     void segment_ground  (PointCloud& core,                          const settings::ArborParameters& params);
