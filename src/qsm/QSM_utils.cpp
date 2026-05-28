@@ -330,6 +330,73 @@ double QSM::dbh(double d, double* xyz, double* n) const
   return radius*2;
 }
 
+double QSM::volume() const
+{
+  double total_volume = 0.0;
 
+  for (const auto& kv : edges())
+  {
+    const EdgeInfo& edge_info = kv.second;
+    const QSMEdge& edge_data  = edge_info.data;
+
+    if (edge_data.radius == libqsm::UNSET_FLOAT)
+      throw std::invalid_argument("Internal error: this QSM has unset values");
+
+
+    if (!has_node(edge_info.source) || !has_node(edge_info.target)) {
+      throw std::invalid_argument("Internal error: malformed QSM graph");
+    }
+
+    const QSMNode& src_node = node(edge_info.source);
+    const QSMNode& tgt_node = node(edge_info.target);
+
+    double dx = tgt_node.x - src_node.x;
+    double dy = tgt_node.y - src_node.y;
+    double dz = tgt_node.z - src_node.z;
+    double length = std::sqrt(dx * dx + dy * dy + dz * dz);
+    double r = static_cast<double>(edge_data.radius);
+    double cylinder_volume = M_PI * (r * r) * length;
+
+    total_volume += cylinder_volume;
+  }
+
+  return total_volume;
+}
+
+double QSM::height() const
+{
+  NodeID root_id = find_root_node();
+
+  // Fallback if graph is empty or root cannot be found safely
+  if (root_id == -1 || !has_node(root_id))
+  {
+    if (nodes().empty()) return 0.0;
+
+    // Alternative fallback: use the absolute Z range of the tree
+    double min_z = std::numeric_limits<double>::max();
+    double max_z = -std::numeric_limits<double>::max();
+    for (const auto& kv : nodes())
+    {
+      if (kv.second.z < min_z) min_z = kv.second.z;
+      if (kv.second.z > max_z) max_z = kv.second.z;
+    }
+    return max_z - min_z;
+  }
+
+  // Measure vertical height relative to the root node's Z coordinate
+  double root_z = node(root_id).z;
+  double max_height = 0.0;
+
+  for (const auto& kv : nodes())
+  {
+    double current_height = kv.second.z - root_z;
+    if (current_height > max_height)
+    {
+      max_height = current_height;
+    }
+  }
+
+  return max_height;
+}
 
 }

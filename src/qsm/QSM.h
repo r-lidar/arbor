@@ -130,6 +130,8 @@ public:
   QSM stem() const;
   QSM merchantable(double min_radius, double min_axis_length = 1.0) const;
   double dbh(double d, double* xyz = nullptr, double* n = nullptr) const;
+  double volume() const;
+  double height() const;
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 
 public:
