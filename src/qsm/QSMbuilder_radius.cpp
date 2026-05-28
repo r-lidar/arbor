@@ -57,7 +57,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   H = std::max(L, H);
 
   // Estimation of an expected radius based on broad allometry
-  auto model = AllometryDataBase::getAllometry("Griese2025");
+  auto model = AllometryDataBase::getAllometry(params.qsm.allometry);
   double R0 = model->DBH_vs_H(H) / 2.0;
 
   // If the estimated radius is too small we don't even try to measure the tree

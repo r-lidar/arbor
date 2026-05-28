@@ -2,7 +2,6 @@
 #define ALLOMETRY_H
 
 #include <memory>
-#include <string_view>
 
 class Allometry
 {
@@ -21,10 +20,17 @@ public:
   double DBH_vs_H(double H) const override;
 };
 
+class CacaoAllometry : public Allometry
+{
+public:
+  double H_vs_DBH(double dbh) const override;
+  double DBH_vs_H(double H) const override;
+};
+
 class AllometryDataBase
 {
 public:
-  static std::unique_ptr<Allometry> getAllometry(std::string_view name);
+  static std::unique_ptr<Allometry> getAllometry(const std::string& name);
 };
 
 #endif // ALLOMETRY_H
