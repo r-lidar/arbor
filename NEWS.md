@@ -7,7 +7,7 @@
 # arbor 0.13.0
 
 - Improvement of apex segmentation
-- Improvement of brokent tree QSM
+- Improvement of broken tree QSM
 
 # arbor 0.12.1
 
