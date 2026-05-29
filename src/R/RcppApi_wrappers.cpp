@@ -199,6 +199,8 @@ QSM as_qsm(Rcpp::DataFrame df)
     graph.add_edge(src, tgt, ed);
   }
 
+  graph.validate();
+
   return graph;
 }
 

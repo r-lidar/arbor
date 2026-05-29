@@ -1,7 +1,9 @@
 # arbor 0.13.2
 
-- New parameters: `params$qsm$min_measurable_radius` to control the lower bound of what is assumed to be measurable or not.
-- New parameters: `params$qsm$allometry` to choose an alternative allometry
+- New parameters: `params$qsm$min_measurable_dbh` to control the lower bound of what is assumed to be measurable or not.
+- New parameters: `params$qsm$allometry_name` to choose an alternative allometry
+- New parameters: `params$qsm$allometry_scale` to scale an allometry
+- Enhance: polynomial fitting now never fits increasing diameters.
 - Fix `qsm_dbh()` was not using argument `bh`.
 
 # arbor 0.13.0

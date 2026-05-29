@@ -158,8 +158,8 @@ void QSMbuilder::build(const PointCloud& tree)
   n = wood.size();
 
   // Now we can compute iter and clust
-  std::vector<int>    iter = cut(dist, params.qsm.step);
-  std::vector<int>   clust = cluster(wood, iter, params.qsm.cl_dist);
+  std::vector<int>    iter = cut(dist, params.qsm.skeleton_node_distance);
+  std::vector<int>   clust = cluster(wood, iter, params.qsm.dbscan_eps_distance);
 
   for (std::size_t i = 0; i < n; ++i)
   {
@@ -195,7 +195,7 @@ void QSMbuilder::build(const PointCloud& tree)
   if (likely_broken)  ServiceLocator::logger()("Detection of likely broken tree");
 
   detect_weird_butt();
-  construct_radii(wood, params.qsm.apex);
+  construct_radii(wood, params.qsm.apex_radius);
   compute_architecture(true);
   smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
 

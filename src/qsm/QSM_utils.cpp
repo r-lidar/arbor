@@ -29,30 +29,9 @@ namespace arbor::qsm {
 
 void QSM::validate() const
 {
-  // ------------------------------------------------------------------ //
-  // 1. Single-root check
-  // ------------------------------------------------------------------ //
-  NodeID root      = -1;
-  int    root_count = 0;
 
-  for (const auto& [id, _] : nodes())
-  {
-    if (incoming_edges(id).empty())
-    {
-      ++root_count;
-      root = id;
-    }
-  }
+  DirectedGraph::validate();
 
-  if (root_count == 0)
-    throw std::runtime_error("QSM::validate: graph has no root node.");
-
-  if (root_count > 1)
-    throw std::runtime_error("QSM::validate: graph has " + std::to_string(root_count) + " root nodes.");
-
-  // ------------------------------------------------------------------ //
-  // 2. Unset-radius check
-  // ------------------------------------------------------------------ //
   for (const auto& [eid, info] : edges())
   {
     if (info.data.radius == RADIUS_UNSET)
@@ -60,28 +39,6 @@ void QSM::validate() const
 
     if (std::isnan(info.data.radius))
       throw std::runtime_error("QSM::validate: edge " + std::to_string(eid) + " has NaN radius");
-  }
-
-  // ------------------------------------------------------------------ //
-  // 3. Connectivity check — BFS from root
-  // ------------------------------------------------------------------ //
-  std::unordered_set<NodeID> visited;
-  std::vector<NodeID>        stack = { root };
-
-  while (!stack.empty())
-  {
-    NodeID cur = stack.back();
-    stack.pop_back();
-    if (!visited.insert(cur).second) continue;
-
-    for (EdgeID eid : outgoing_edges(cur))
-      stack.push_back(edge(eid).target);
-  }
-
-  for (const auto& [id, _] : nodes())
-  {
-    if (visited.find(id) == visited.end())
-      throw std::runtime_error("QSM::validate: node " + std::to_string(id) + " is not reachable from the root.");
   }
 }
 

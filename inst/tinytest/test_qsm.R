@@ -19,3 +19,7 @@ v2 = qsm_volume(qsm2)
 expect_equal(v1, v2)
 expect_equal(qsm1$radius, qsm2$radius)
 expect_equal(qsm1$branch_order, qsm2$branch_order)
+
+hqsm = qsm[qsm$quality >3,]
+
+expect_error(qsm_write(hqsm, fqsm), "Graph is disconnected")

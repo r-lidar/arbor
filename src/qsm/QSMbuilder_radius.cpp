@@ -33,6 +33,7 @@
 #include "allometry.h"
 #include "fitting.h"
 #include "fitting_quality.h"
+#include "fitting_polynomial.h"
 
 namespace arbor::qsm {
 
@@ -57,11 +58,13 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   H = std::max(L, H);
 
   // Estimation of an expected radius based on broad allometry
-  auto model = AllometryDataBase::getAllometry(params.qsm.allometry);
-  double R0 = model->DBH_vs_H(H) / 2.0;
+  auto model = AllometryDataBase::getAllometry(params.qsm.allometry_name);
+  float D0 = model->DBH_vs_H(H);
+  D0 *= params.qsm.allometry_scale;
+  float R0 = D0/2.0f;
 
   // If the estimated radius is too small we don't even try to measure the tree
-  if (R0 < params.qsm.min_measurable_radius && !likely_broken)
+  if (D0 < params.qsm.min_measurable_dbh && !likely_broken)
   {
     conic_allometry(R0, tip_radius);
 
@@ -69,7 +72,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     oss << std::fixed << std::setprecision(2);
     oss << "[Small tree allometry] H = " << H
         << std::fixed << std::setprecision(1)
-        << " m: estimated DBH = " << (2 * R0 * 100)
+        << " m: estimated DBH = " << (D0 * 100)
         << " cm. Too small to be measured. "
         << "The QSM is the result of pure allometry without actual measurements.";
 
@@ -80,13 +83,13 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     return;
   }
 
-  if (R0 < params.qsm.min_measurable_radius && likely_broken)
+  if (D0 < params.qsm.min_measurable_dbh && likely_broken)
   {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
     oss << "[Broken tree] H = " << H
         << std::fixed << std::setprecision(1)
-        << " m: estimated DBH = " << (2 * R0 * 100)
+        << " m: estimated DBH = " << (D0 * 100)
         << " cm. Too small to be measured but with good measurement anyway. "
         << "The QSM is likely a dead tree.";
 
@@ -101,7 +104,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   }
 
   ServiceLocator::logger()("Pre-allometry");
-  conic_allometry(2.0 * R0, tip_radius);
+  conic_allometry(2.0*R0, tip_radius); // Overestimate the tree on purpose
 
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree);
@@ -309,102 +312,45 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 
 void QSMbuilder::polynomial_fitting(double tip_radius)
 {
-  // Group edges by axis_id
-  std::map<int, std::vector<int>> axes;   // axis_id -> edge IDs
+  std::map<int, std::vector<int>> axes;
   for (const auto& [eid, einfo] : graph.edges())
+  {
     axes[einfo.data.axis_id].push_back(eid);
+  }
 
   for (auto& [axis_id, eids] : axes)
   {
-    // Sort edges root→tip by subtree_length (descending)
-    std::sort(eids.begin(), eids.end(), [this](int a, int b) {
+    std::sort(eids.begin(), eids.end(), [this](int a, int b)
+    {
       return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
     });
 
-    // Collect valid measurements
-    std::vector<std::pair<double, double>> data_points;
+    std::vector<std::pair<float, float>> data_points;
     data_points.reserve(eids.size());
-
     for (int eid : eids)
     {
       const QSMEdge& ed = graph.edge_data(eid);
       if (ed.radius != RADIUS_UNSET && ed.subtree_length != SUBTREE_LENGTH_UNSET)
-      {
-        double y = ed.radius - tip_radius;
-        double x = ed.subtree_length;
-        data_points.push_back({x, y});
-      }
+        data_points.push_back({ed.subtree_length, ed.radius - tip_radius});
     }
 
     if (data_points.size() <= 6) continue;
 
-    double sum_x2 = 0, sum_x3 = 0, sum_x4 = 0, sum_xy = 0, sum_x2y = 0;
+    auto mode = fitting::PolynomialFitting::Mode::DecreasingOnly;
+    fitting::PolynomialFitting fit(data_points, tip_radius, mode);
+    if (!fit.valid) continue;
 
-    for (const auto& p : data_points)
-    {
-      double x = p.first;
-      double y = p.second;
-      double x2 = x * x;
-      double x3 = x2 * x;
-      double x4 = x3 * x;
-
-      sum_x2  += x2;
-      sum_x3  += x3;
-      sum_x4  += x4;
-      sum_xy  += x * y;
-      sum_x2y += x2 * y;
-    }
-
-    double det = sum_x2 * sum_x4 - sum_x3 * sum_x3;
-    if (std::abs(det) < 1e-12) continue;
-
-    double a = (sum_xy * sum_x4 - sum_x2y * sum_x3) / det;
-    double b = (sum_x2 * sum_x2y - sum_xy * sum_x3) / det;
-
-    std::vector<double> predictions;
-    predictions.reserve(eids.size());
-    for (int eid : eids)
-    {
-      double len = graph.edge_data(eid).subtree_length;
-      double pred = tip_radius + a * len + b * len * len;
-      if (pred < 0) pred = 0;
-      predictions.push_back(pred);
-    }
-
-    // Ensure no increasing diameters root→tip
-    double previous_radius = predictions.back();
-    for (auto it = predictions.rbegin(); it != predictions.rend(); ++it)
-    {
-      if (*it < previous_radius) *it = previous_radius;
-      previous_radius = *it;
-    }
-
-    int i = 0;
     for (int eid : eids)
     {
       QSMEdge& ed = graph.edge_data(eid);
-      double pred_radius = predictions[i++];
-
       if (ed.subtree_length == SUBTREE_LENGTH_UNSET)
         throw std::logic_error("subtree_length unset during polynomial fitting");
 
-      bool should_update = false;
+      double pred_radius = fit.predict(ed.subtree_length);
 
-      if (ed.radius == RADIUS_UNSET)
+      if (ed.radius == RADIUS_UNSET || std::abs(ed.radius - pred_radius) > 0.25 * pred_radius)
       {
-        should_update = true;
-      }
-      else
-      {
-        double diff = std::abs(ed.radius - pred_radius);
-        //double diff = 99999; // feature disabled
-        if (diff > 0.25 * pred_radius)
-          should_update = true;
-      }
-
-      if (should_update)
-      {
-        ed.radius = pred_radius;
+        ed.radius  = pred_radius;
         ed.quality = POLYNOMIAL;
       }
     }

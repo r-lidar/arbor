@@ -148,29 +148,33 @@ namespace arbor
 
     struct QsmParameters
     {
-      double      step                    = 0.1;
-      double      cl_dist                 = 0.1;
-      double      max_d                   = 0.1;
-      double      apex                    = 0.0025;
-      int         smooth_steps            = 15;
-      double      smooth_lambda           = 0.5;
-      double      smooth_mu               = -0.53;
-      double      min_measurable_radius   = 0.03;
+      float       skeleton_node_distance   = 0.1;
+      float       dbscan_eps_distance      = 0.1;
+      float       max_d                    = 0.1;
+      float       apex_radius              = 0.0025;
+      int         smooth_steps             = 15;
+      float       smooth_lambda            = 0.5;
+      float       smooth_mu                = -0.53;
+      float       min_measurable_dbh       = 0.06;
+      float       min_measurable_radius    = 0.03;
       bool        broken_detection_enabled = true;
-      std::string allometry               = "Griese2025";
+      float       allometry_scale          = 1.0f;
+      std::string allometry_name           = "Griese2025";
 
       template<typename V> void visit(V& v)
       {
-        v("step",                     step);
-        v("cl_dist",                  cl_dist);
+        v("skeleton_node_distance",   skeleton_node_distance);
+        v("dbscan_eps_distance",      dbscan_eps_distance);
         v("max_d",                    max_d);
-        v("apex",                     apex);
+        v("apex_radius",              apex_radius);
         v("smooth_steps",             smooth_steps);
         v("smooth_lambda",            smooth_lambda);
         v("smooth_mu",                smooth_mu);
+        v("min_measurable_dbh",       min_measurable_radius);
         v("min_measurable_radius",    min_measurable_radius);
         v("broken_detection_enabled", broken_detection_enabled);
-        v("allometry",                allometry);
+        v("allometry_name",           allometry_name);
+        v("allometry_scale",          allometry_scale);
       }
     };
 

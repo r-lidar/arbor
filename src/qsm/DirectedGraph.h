@@ -136,6 +136,76 @@ public:
     return edges_.at(inc[0]).source;
   }
 
+  // ---- Graph validity ----
+
+  /**
+   * @brief Validates that the graph is connected with exactly one root,
+   * and that all nodes are reachable from that root.
+   * @throws std::runtime_error if the graph is empty, has multiple roots,
+   * no roots, or contains unreachable nodes.
+   */
+  void validate() const
+  {
+    if (nodes_.empty())
+    {
+      throw std::runtime_error("Graph validation failed: Graph is empty.");
+    }
+
+    // 1. Find all roots (nodes with no incoming edges)
+    std::vector<NodeID> roots;
+    for (const auto& [node_id, _] : nodes_)
+    {
+      if (incoming_edges(node_id).empty())
+      {
+        roots.push_back(node_id);
+      }
+    }
+
+    if (roots.empty())
+    {
+      throw std::runtime_error("Graph validation failed: No root found (graph may be purely cyclic).");
+    }
+    if (roots.size() > 1)
+    {
+      throw std::runtime_error("Graph validation failed: Multiple roots found. Graph is disconnected.");
+    }
+
+    NodeID root = roots.front();
+
+    // 2. Traverse from the single root to check reachability
+    std::map<NodeID, bool> visited;
+    for (const auto& [node_id, _] : nodes_)
+    {
+      visited[node_id] = false;
+    }
+
+    std::vector<NodeID> queue;
+    queue.push_back(root);
+    visited[root] = true;
+    size_t visited_count = 1;
+
+    size_t head = 0;
+    while (head < queue.size())
+    {
+      NodeID current = queue[head++];
+      for (NodeID child : children(current))
+      {
+        if (!visited[child])
+        {
+          visited[child] = true;
+          queue.push_back(child);
+          visited_count++;
+        }
+      }
+    }
+
+    // 3. Verify all nodes were reached
+    if (visited_count != nodes_.size())
+    {
+      throw std::runtime_error("Graph validation failed: Not all nodes are reachable from the root.");
+    }
+  }
+
   // ---- Storage access ----
 
   const std::map<NodeID, NodeData>& nodes() const { return nodes_; }

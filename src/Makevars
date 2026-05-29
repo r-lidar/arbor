@@ -81,4 +81,6 @@ OBJECTS = \
   fitting/fitting_fourrier.o \
   fitting/fitting_ellipse.o \
   fitting/fitting_circle.o \
-  fitting/fitting_orbicular.o
+  fitting/fitting_orbicular.o \
+  fitting/fitting_polynomial.o
+
