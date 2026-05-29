@@ -153,8 +153,6 @@ namespace arbor
       float       max_d                    = 0.1;
       float       apex_radius              = 0.0025;
       int         smooth_steps             = 15;
-      float       smooth_lambda            = 0.5;
-      float       smooth_mu                = -0.53;
       float       min_measurable_dbh       = 0.06;
       float       min_measurable_radius    = 0.03;
       bool        broken_detection_enabled = true;
@@ -168,8 +166,6 @@ namespace arbor
         v("max_d",                    max_d);
         v("apex_radius",              apex_radius);
         v("smooth_steps",             smooth_steps);
-        v("smooth_lambda",            smooth_lambda);
-        v("smooth_mu",                smooth_mu);
         v("min_measurable_dbh",       min_measurable_radius);
         v("min_measurable_radius",    min_measurable_radius);
         v("broken_detection_enabled", broken_detection_enabled);

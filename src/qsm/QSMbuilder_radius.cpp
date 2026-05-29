@@ -348,7 +348,7 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
 
       double pred_radius = fit.predict(ed.subtree_length);
 
-      if (ed.radius == RADIUS_UNSET || std::abs(ed.radius - pred_radius) > 0.25 * pred_radius)
+      if (ed.radius == RADIUS_UNSET || std::abs(ed.radius - pred_radius) > 0.30 * pred_radius)
       {
         ed.radius  = pred_radius;
         ed.quality = POLYNOMIAL;

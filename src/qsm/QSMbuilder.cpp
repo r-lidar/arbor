@@ -190,14 +190,14 @@ void QSMbuilder::build(const PointCloud& tree)
 
   compute_architecture(false);
   prune_spurious_branches();
-  smooth_skeleton(params.qsm.smooth_steps, params.qsm.smooth_lambda, params.qsm.smooth_mu);
+  smooth_skeleton(params.qsm.smooth_steps);
 
   if (likely_broken)  ServiceLocator::logger()("Detection of likely broken tree");
 
   detect_weird_butt();
   construct_radii(wood, params.qsm.apex_radius);
   compute_architecture(true);
-  smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
+  smooth_skeleton(params.qsm.smooth_steps/2);
 
   if (!likely_broken || !params.qsm.broken_detection_enabled)
   {
@@ -207,18 +207,35 @@ void QSMbuilder::build(const PointCloud& tree)
   {
     refine_radii_broken(wood);
     compute_architecture(true);
-    smooth_skeleton(params.qsm.smooth_steps/2, params.qsm.smooth_lambda, params.qsm.smooth_mu);
+    smooth_skeleton(params.qsm.smooth_steps/2);
   }
 
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
-  smooth_radii(15, 0.5, -0.7);
+  smooth_radii();
   distance_to_root();
   shift(tx, ty, tz);
 
   graph.validate();
 }
 
+// Build axis_id -> edge IDs map, with each vector sorted root-to-tip (descending subtree_length).
+std::map<int, std::vector<int>>  QSMbuilder::build_axis_map()
+{
+  std::map<int, std::vector<int>> axis_map;
+  for (const auto& [eid, einfo] : graph.edges())
+    axis_map[einfo.data.axis_id].push_back(eid);
+
+  for (auto& [axis, vec] : axis_map)
+  {
+    std::sort(vec.begin(), vec.end(), [this](int a, int b)
+    {
+      return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
+    });
+  }
+
+  return axis_map;
+}
 
 std::vector<int> cut(const std::vector<float>& x, float by)
 {

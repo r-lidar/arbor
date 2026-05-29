@@ -40,8 +40,8 @@ public:
   void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(bool use_volume = false);
-  void smooth_radii(int steps = 10, double lambda = 0.5, double mu = -0.7);
-  void smooth_skeleton(int steps = 10, double lambda = 0.5, double mu = -0.53);
+  void smooth_radii();
+  void smooth_skeleton(int steps = 10);
   void detect_weird_butt(double thresh = 50.0, int window = 4);
   void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);
@@ -67,6 +67,7 @@ public:
   int count_nodes_connected_to_root() const;
   void remove_disconnected_branches();
   double conic_allometry(double tip_radius, double wi, double w0, double r0) const;
+  std::map<int, std::vector<int>> build_axis_map();
 
   // Find the root edge (first edge whose source node has no incoming edges).
   // Returns -1 if the graph is empty.
