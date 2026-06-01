@@ -53,6 +53,10 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_939.las
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15240.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15408.las"
 
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/urban/urban-karl.las"
+
+
 # ==== Single QSM ======
 
 # QSM for a random tree
@@ -66,9 +70,12 @@ file
 {
 tree <- lidR::readLAS(file)
 tree@data$treeID = as.integer(tree@data$treeID)
+tree@data$foliage = as.integer(tree@data$foliage)
+tree@data$passage = as.integer(tree@data$passage)
 
 t0 = Sys.time()
 params= arbor_parameters_default
+params$qsm$skeleton_node_distance = 0.2
 qsm = qsm(tree, params)
 tf = Sys.time()
 print(difftime(tf, t0))
@@ -85,7 +92,7 @@ plot(merch)
 
 qsm_write(qsm, "~/Téléchargements/test.csv")
 qsm_write(qsm, "~/Téléchargements/test.qsm")
-v = qsm_read( "~/Téléchargements/test.qsm")
+v = qsm_read( "/home/jr/Documents/r-lidar inc/arbor/ArborStudio/ArborStudio/ressources/data/qsm1.qsm")
 plot(v)
 
 as.data.frame(merch)
@@ -104,6 +111,8 @@ x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)
 plot_qsm(qsm, cylinder = T)
 p
+
+qsm_stem(qsm) |> qsm_nostump()|> qsm_merchantable(0.19/2, 1) |> qsm_volume()
 
 d = 10
 qsm$startX = qsm$startX - d
