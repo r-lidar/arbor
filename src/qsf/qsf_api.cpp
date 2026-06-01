@@ -87,7 +87,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
 
       #pragma omp critical
       {
-        result.add_qsm(std::to_string(current_id), q);
+        result.add_qsm(current_id, q);
       }
     }
     catch (...)

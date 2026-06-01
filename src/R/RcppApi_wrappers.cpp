@@ -33,12 +33,37 @@ QSF as_qsf(Rcpp::List x)
 
   Rcpp::CharacterVector names = x.names();
 
+  if (names.size() != x.size())
+    Rcpp::stop("Not all the QSMs in the QSF are named");
+
+  // Convert names to int
+  std::vector<int> id;
+  id.reserve(x.size());
+
+  for (R_xlen_t i = 0; i < x.size(); ++i)
+  {
+    if (names[i] == NA_STRING)
+      Rcpp::stop("NA name at index %d", i);
+
+    const char* s = CHAR(names[i]);
+    char* end = nullptr;
+
+    long val = std::strtol(s, &end, 10);
+
+    if (end == s || *end != '\0')
+      Rcpp::stop("Non-integer name at index %d: '%s'", i, s);
+
+    if (val < std::numeric_limits<int>::min() || val > std::numeric_limits<int>::max())
+      Rcpp::stop("Out of int range at index %d: '%s'", i, s);
+
+    id.push_back(static_cast<int>(val));
+  }
+
   for (int i = 0; i < x.size(); ++i)
   {
-    std::string name = Rcpp::as<std::string>(names[i]);
     Rcpp::DataFrame df = Rcpp::as<Rcpp::DataFrame>(x[i]);
     QSM qsm = as_qsm(df);
-    qsf.add_qsm(name, qsm);
+    qsf.add_qsm(id[i], qsm);
   }
 
   return qsf;
