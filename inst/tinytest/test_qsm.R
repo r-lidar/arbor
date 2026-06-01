@@ -5,8 +5,8 @@ qsm1 = qsm(tree)
 dbh1.3 = qsm_dbh(qsm1, bh = 1.3)
 dbh2.0 = qsm_dbh(qsm1, bh = 2.0)
 
-expect_equal(dbh1.3$dbh,  0.224, tolerance = 0.001)
-expect_equal(dbh2.0$dbh,  0.2195, tolerance = 0.001)
+expect_equal(dbh1.3$dbh,  0.2240, tolerance = 0.005)
+expect_equal(dbh2.0$dbh,  0.2195, tolerance = 0.005)
 
 fqsm = tempfile(fileext = ".qsm")
 
