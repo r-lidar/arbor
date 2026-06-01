@@ -3,3 +3,4 @@
 ^.*\.o$
 .github
 ^LICENSE\.md$
+^.*\.pro$
