@@ -84,10 +84,12 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
     {
       PointCloud tree = scene.subset(indices);
       QSM q = qsm(tree, params);
+      q.id = current_id;
+      q.name = "tree_" + std::to_string(current_id);
 
       #pragma omp critical
       {
-        result.add_qsm(std::to_string(current_id), q);
+        result.add_qsm(q);
       }
     }
     catch (...)

@@ -136,6 +136,8 @@ public:
 
 public:
   std::vector<std::string> messages;
+  std::string name;
+  int id = 0;
 
 private:
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;

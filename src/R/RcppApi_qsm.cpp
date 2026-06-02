@@ -52,7 +52,7 @@ Rcpp::List qsf_cpp(Rcpp::DataFrame scene, double min_height, Rcpp::List params)
   Rcpp::List output;
   for (const auto& item : qsf.get_qsm_map())
   {
-    output[item.first] = as_dataframe(item.second);
+    output[std::to_string(item.first)] = as_dataframe(item.second);
   }
 
   return output;
