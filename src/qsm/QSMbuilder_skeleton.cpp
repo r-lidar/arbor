@@ -60,9 +60,11 @@ struct CenterCloud
 };
 
 
-void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int,int>>& iter_cluster, double max_d)
+std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int,int>>& iter_cluster, double max_d)
 {
   ServiceLocator::logger()("Constructing skeleton");
+
+  std::vector<int> point_to_edges(pc.size(), -1);
 
   // Step 1: group points and compute centers
   // ----------------------------------------
@@ -75,6 +77,10 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
   std::vector<ClusterCenter> centers;
   centers.reserve(cluster_indices.size());
+
+  // Lookup map to associate Center IDs back to their point indices
+  std::unordered_map<int, const std::vector<int>*> center_id_to_points;
+
   int id = 1;
   int valid_ring_counter = 0;
 
@@ -82,7 +88,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
 
   for (auto& [key, indices_binding] : cluster_indices)
   {
-    // Re-assign to a standard reference for clang
     auto& indices = indices_binding;
 
     ClusterCenter c;
@@ -104,7 +109,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       for (int idx : indices)
         rc.add_point(pc.get_x(idx), pc.get_y(idx), pc.get_z(idx));
 
-
       utils::fitting::FittingResult ans = rc.fit(fit_quality.ransac_tolerance);
 
       if (fit_quality.accept(ans))
@@ -125,6 +129,9 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     }
 
     centers.push_back(c);
+
+    // Safely capture the pointer to the points vector (stable because map elements won't move/delete)
+    center_id_to_points[c.id] = &indices_binding;
   }
 
   if (valid_ring_counter > 20)
@@ -132,8 +139,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
     likely_broken = true;
   }
 
-
-  if (centers.empty()) return;
+  if (centers.empty()) return point_to_edges;
 
   //Step 2: build a static nanoflann KD-tree over all centers
   // --------------------------------------------------------
@@ -146,9 +152,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   const double max_d2 = max_d * max_d;
 
   // Step 3: min-heap for fast "undone center with smallest iter" lookup
-  // (used only in the fallback branch)
-  // ---------------------------------
-
+  // -----------------------------------------------------------------
   auto heap_cmp = [](ClusterCenter* a, ClusterCenter* b){ return a->iter > b->iter; };
   std::priority_queue<ClusterCenter*,  std::vector<ClusterCenter*>, decltype(heap_cmp)> minHeap(heap_cmp);
 
@@ -167,7 +171,7 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   center_to_node[root->id] = graph.add_node({root->x, root->y, root->z});
 
   int remaining = (int)centers.size() - 1;
-  id = 1;
+  id = 1; // Resetting incremental edge ID counter
 
   nanoflann::SearchParameters search_params;
   search_params.sorted = false;
@@ -176,7 +180,6 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
   // ---------------------------------
   while (remaining > 0)
   {
-    // Hot path: radius search around root, filter by iter and done
     double query[3] = { root->x, root->y, root->z };
     std::vector<nanoflann::ResultItem<uint32_t, double>> hits;
     kdtree.radiusSearch(query, max_d2, hits, search_params);
@@ -201,25 +204,27 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       if (!center_to_node.count(newRoot->id))
         center_to_node[newRoot->id] = graph.add_node({newRoot->x, newRoot->y, newRoot->z});
 
-      QSMEdge ed; ed.id = id++;
+      QSMEdge ed;
+      ed.id = id++; // Assign current unique edge sequence ID
 
-      graph.add_edge(center_to_node[root->id], center_to_node[newRoot->id], ed);
+      EdgeID added_edge_id = graph.add_edge(center_to_node[root->id], center_to_node[newRoot->id], ed);
+
+      for (int pt_idx : *center_id_to_points[root->id])
+      {
+        point_to_edges[pt_idx] = added_edge_id;
+      }
 
       root = newRoot;
     }
     else
     {
       // Fallback: chain is stuck, start a new branch
-
-      // Drain stale (already-done) entries from the heap - O(log n) amortised
       while (!minHeap.empty() && minHeap.top()->done) minHeap.pop();
       if (minHeap.empty()) break;
 
       ClusterCenter* orphan = minHeap.top();
       minHeap.pop();
 
-      // Find nearest already-done center to orphan (O(n_done), infrequent)
-      // This scan fires only O(branch_count) times, not O(n²)
       ClusterCenter* nearestDone = nullptr;
       double bestDist = std::numeric_limits<double>::max();
       for (auto& c : centers)
@@ -240,13 +245,23 @@ void QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pai
       if (!center_to_node.count(orphan->id))
         center_to_node[orphan->id] = graph.add_node({orphan->x, orphan->y, orphan->z});
 
-      QSMEdge ed; ed.id = id++;
+      QSMEdge ed;
+      ed.id = id++;
 
-      graph.add_edge(center_to_node[nearestDone->id], center_to_node[orphan->id], ed);
+      // Fixed Variable Shadowing: Renamed graph return value to 'added_edge_id'
+      EdgeID added_edge_id = graph.add_edge(center_to_node[nearestDone->id], center_to_node[orphan->id], ed);
+
+      // Assign the incremental edge ID to all points of the outgoing node (nearestDone)
+      for (int pt_idx : *center_id_to_points[nearestDone->id])
+      {
+        point_to_edges[pt_idx] = added_edge_id;
+      }
 
       root = orphan;
     }
   }
+
+  return point_to_edges;
 }
 
 void QSMbuilder::fix_multiple_root()
@@ -292,7 +307,7 @@ static void collect_subtree(QSM& graph, NodeID  node_id, std::vector<EdgeID>& ed
   }
 }
 
-void QSMbuilder::prune_spurious_branches()
+/*void QSMbuilder::prune_spurious_branches()
 {
   std::unordered_map<int, std::vector<EdgeID>> axis_edges;
 
@@ -319,6 +334,6 @@ void QSMbuilder::prune_spurious_branches()
 
   for (EdgeID eid : edges_to_remove) graph.remove_edge(eid);
   for (NodeID nid : nodes_to_remove) graph.remove_node(nid);
-}
+}*/
 
 }

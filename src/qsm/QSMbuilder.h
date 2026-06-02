@@ -34,10 +34,10 @@ public:
 
   // Static and public to be exposed in R
   static std::vector<int> cluster(const PointCloud& data, const std::vector<int>& iter, float eps);
-  static std::unordered_map<int, std::vector<size_t>> group_points_by_edge(const QSM& graph, const PointCloud& tree);
+  static std::unordered_map<int, std::vector<size_t>> group_points_by_edge(const PointCloud& tree);
   static PointCloud clean_tree_butt(const PointCloud&);
 
-  void build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
+  std::vector<int> build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(bool use_volume = false);
   void smooth_radii();
@@ -54,7 +54,7 @@ public:
   void conic_allometry(double R0, double tip_radius = 0.0025);
   void fix_multiple_root();
   void shift(double tx, double ty, double tz);
-  void prune_spurious_branches();
+  //void prune_spurious_branches();
   void distance_to_root();
 
   // recursive helpers (operate on graph edge IDs, analogous to cyl_IDs)

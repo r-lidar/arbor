@@ -102,11 +102,6 @@ void QSMbuilder::build(const PointCloud& tree)
   wood = clean_tree_butt(wood);
   n = wood.size();
 
-  // The skeleton reconstruction needs a pair of <iter, cluster>
-  // What is iter and cluster varies depending on arbor versions
-  std::vector<std::pair<int, int>> iter_cluster;
-  iter_cluster.reserve(n);
-
   // We need ground points. We don't have ground points so
   // as a workaround we use first 5 cm above min HAG
   PointCloud gnd;
@@ -157,17 +152,29 @@ void QSMbuilder::build(const PointCloud& tree)
   dist = std::move(filtered_dist);
   n = wood.size();
 
-  // Now we can compute iter and clust
+  // Now we can compute iter and clust.
+  // What is iter and cluster varies depending on arbor versions
   std::vector<int>    iter = cut(dist, params.qsm.skeleton_node_distance);
   std::vector<int>   clust = cluster(wood, iter, params.qsm.dbscan_eps_distance);
 
+  std::vector<std::pair<int, int>> iter_cluster;
+  iter_cluster.reserve(n);
   for (std::size_t i = 0; i < n; ++i)
   {
     iter_cluster.emplace_back(iter[i], clust[i]);
   }
 
   // Build the QSM nodes
-  build_skeleton(wood, iter_cluster, params.qsm.max_d);
+  auto ids = build_skeleton(wood, iter_cluster, params.qsm.max_d);
+
+  // Assign cluster IDs to the point cloud (used later)
+  for (size_t i = 0 ; i < wood.size() ; i ++)
+    wood.set_treeid(i, ids[i]);
+
+  ids.clear();
+  ids.shrink_to_fit();
+
+  // ============================
 
   // Extremely rare case with so few points that we have no cluster
   // (seen once with a very bad DTM in Murray's data)
@@ -189,7 +196,6 @@ void QSMbuilder::build(const PointCloud& tree)
   }
 
   compute_architecture(false);
-  prune_spurious_branches();
   smooth_skeleton(params.qsm.smooth_steps);
 
   if (likely_broken)  ServiceLocator::logger()("Detection of likely broken tree");
@@ -235,6 +241,16 @@ std::map<int, std::vector<int>>  QSMbuilder::build_axis_map()
   }
 
   return axis_map;
+}
+
+std::unordered_map<int, std::vector<size_t>> QSMbuilder::group_points_by_edge(const PointCloud& tree)
+{
+  std::unordered_map<int, std::vector<size_t>> points_per_eid;
+
+  for (size_t i = 0 ; i < tree.size() ; i++)
+    points_per_eid[tree.get_treeid(i)].push_back(i);
+
+  return points_per_eid;
 }
 
 std::vector<int> cut(const std::vector<float>& x, float by)

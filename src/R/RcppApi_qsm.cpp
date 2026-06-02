@@ -519,7 +519,7 @@ Rcpp::IntegerVector qsm_get_cylID(Rcpp::DataFrame qsmdf, Rcpp::DataFrame pcdf)
 {
   QSM qsm = as_qsm(qsmdf);
   PointCloud pc(pcdf);
-  auto map = QSMbuilder::group_points_by_edge(qsm, pc);
+  auto map = QSMbuilder::group_points_by_edge(pc);
 
   Rcpp::IntegerVector res(pc.size());
   for (const auto& e : map)

@@ -21,8 +21,8 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
 # Bad
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz" # !!!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz" # !!!!
 
 # gap
 file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
@@ -75,10 +75,12 @@ tree@data$passage = as.integer(tree@data$passage)
 
 t0 = Sys.time()
 params= arbor_parameters_default
-params$qsm$skeleton_node_distance = 0.2
+params$qsm$skeleton_node_distance = 0.1
 qsm = qsm(tree, params)
 tf = Sys.time()
 print(difftime(tf, t0))
+
+qsm$radius[is.na(qsm$radius)] =0
 
 x = plot_semantic(tree)
 plot_qsm(qsm, add = x, cylinder = T)

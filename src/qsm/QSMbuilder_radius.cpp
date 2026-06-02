@@ -104,7 +104,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   }
 
   ServiceLocator::logger()("Pre-allometry");
-  conic_allometry(2.0*R0, tip_radius); // Overestimate the tree on purpose
+  conic_allometry(R0, tip_radius); // Overestimate the tree on purpose
 
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree);
@@ -172,11 +172,20 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
 void QSMbuilder::measure_radii(const PointCloud& tree)
 {
-  auto points_by_edge = group_points_by_edge(graph, tree);
+  auto points_by_edge = group_points_by_edge(tree);
   if (points_by_edge.empty()) throw std::runtime_error("Internal error: no cylinders found.");
 
   for (auto& [eid, point_indices] : points_by_edge)
   {
+    // This happens if a point is not assigned an edge id (too far?)
+    if (eid <= 0) continue;
+
+    // This happens if some edges were removed in:
+    // - prune_spurious_branches()
+    // - clean_tree_butt()
+    // - bug in the code but it becomes invisible
+    if (!graph.has_edge(eid)) continue;
+
     auto& einfo = graph.edge(eid);
     QSMEdge& ed = einfo.data;
     ed.radius = RADIUS_UNSET;
@@ -210,7 +219,7 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
 {
   ServiceLocator::logger()("Refine radii (broken tree)");
 
-  auto points_by_edge = group_points_by_edge(graph, tree);
+  auto points_by_edge = group_points_by_edge(tree);
 
   // Group edges by axis_id, then process each axis root->tip
   std::map<int, std::vector<int>> axes;
@@ -282,12 +291,21 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 {
   ServiceLocator::logger()("Refine radii");
 
-  auto points_by_edge = group_points_by_edge(graph, tree);
+  auto points_by_edge = group_points_by_edge(tree);
 
   constexpr utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::accurate_preset();
 
   for (auto& [eid, point_indices] : points_by_edge)
   {
+    // This happens if a point is not assigned an edge id (too far?)
+    if (eid <= 0) continue;
+
+    // This happens if some edges were removed in:
+    // - prune_spurious_branches()
+    // - clean_tree_butt()
+    // - bug in the code but it becomes invisible
+    if (!graph.has_edge(eid)) continue;
+
     auto& einfo = graph.edge(eid);
     if (einfo.data.radius < params.qsm.min_measurable_radius || point_indices.empty()) continue;
 
