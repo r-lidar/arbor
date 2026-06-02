@@ -6,6 +6,9 @@ files = list.files("/home/jr/Documents/Bastien/Individual trees/SainteVeronique/
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its/", full.names = TRUE, pattern = ".las")
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/ITS/", full.names = TRUE, pattern = ".las")
 files = list.files("~/Téléchargements/QSM St Vero/Pall_registered/", full.names = TRUE, pattern = ".las")
+files = list.files("/home/jr/Documents/r-lidar inc/arbor/Tree bank/TLS_21m28_cent_ITD_plot", full.names = T, pattern = ".asc")
+files = list.files("/home/jr/Documents/r-lidar inc/arbor/Tree bank/MLSgrid20m_21m28_cent_ITD_plot", full.names = T, pattern = ".asc")
+
 
 file = "~/Téléchargements/QSM St Vero/Pall_registered/33BOJ.las"
 file = "~/Téléchargements/QSM St Vero/Pall_registered/84ERS.las" # Vstem 2.3 m³
@@ -21,8 +24,8 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
 # Bad
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz" # !!!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz" # !!!!
 
 # gap
 file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
@@ -37,7 +40,11 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
 # Broken
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_119.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_217.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las" # detected but fail
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/P05_TLS_tree_7.asc" # detected but fail
+
+# Overestimate
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/overestimate/P09_TLS_3.las"
 
 # Zambia
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree_236.las" # !!
@@ -54,7 +61,7 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15240
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15408.las"
 
 
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/urban/urban-karl.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/urban/urban-karl.las" ##!!!
 
 
 # ==== Single QSM ======
@@ -68,20 +75,42 @@ file
 #plot_semantic(tree)
 
 {
-tree <- lidR::readLAS(file)
-tree@data$treeID = as.integer(tree@data$treeID)
-tree@data$foliage = as.integer(tree@data$foliage)
-tree@data$passage = as.integer(tree@data$passage)
+  if (tools::file_ext(file) == "asc")
+  {
+    tree = data.table::fread(file)
+    tree = LAS(tree) |> suppressWarnings()
+    tree@data$foliage = 0L
+    tree@data$hag = tree$Z - min(tree$Z)
+    tree = hybrid_homogeneization(tree)
+  }
+  else if (tools::file_ext(file) == "xyz")
+  {
+    tree = data.table::fread(file)
+    tree = LAS(tree) |> suppressWarnings()
+    tree@data$foliage = 0L
+    tree@data$hag = tree$Z - min(tree$Z)
+    tree = hybrid_homogeneization(tree)
+  }
+  else
+  {
+    tree <- lidR::readLAS(file)
+  }
 
-t0 = Sys.time()
-params= arbor_parameters_default
-params$qsm$skeleton_node_distance = 0.2
-qsm = qsm(tree, params)
-tf = Sys.time()
-print(difftime(tf, t0))
+  tree@data$treeID = as.integer(tree@data$treeID)
+  tree@data$foliage = as.integer(tree@data$foliage)
+  tree@data$passage = as.integer(tree@data$passage)
 
-x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = T)
+  t0 = Sys.time()
+  params= arbor_parameters_default
+  params$qsm$skeleton_node_distance = 0.1
+  qsm = qsm(tree, params)
+  tf = Sys.time()
+  print(difftime(tf, t0))
+
+  V = qsm_volume(qsm)
+
+  x = plot_semantic(tree)
+  plot_qsm(qsm, add = x, cylinder = T)
 }
 
 as.data.frame(qsm)
