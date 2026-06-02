@@ -28,10 +28,10 @@ namespace fs = std::filesystem;
 
 namespace arbor::qsm {
 
-void QSF::add_qsm(int id, const QSM& q)
+void QSF::add_qsm(const QSM& q)
 {
   if (q.nodes().size() <= 1) return;
-  qsm_[id] = q;
+  qsm_[q.id] = q;
 }
 
 void QSF::write(const std::string& dir, const std::string& format, bool binary) const
@@ -63,7 +63,12 @@ void QSF::write(const std::string& dir, const std::string& format, bool binary) 
   // Write each QSM
   for (const auto& [key, qsm] : qsm_)
   {
-    fs::path filename = out_dir / (std::to_string(key) + "." + format);
+    fs::path filename;
+    if (qsm.name.empty())
+      filename = out_dir / (std::to_string(qsm.id) + "." + format);
+    else
+      filename = out_dir / (qsm.name + "." + format);
+
     qsm.write(filename.string(), binary);
   }
 }

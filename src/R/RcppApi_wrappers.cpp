@@ -63,7 +63,7 @@ QSF as_qsf(Rcpp::List x)
   {
     Rcpp::DataFrame df = Rcpp::as<Rcpp::DataFrame>(x[i]);
     QSM qsm = as_qsm(df);
-    qsf.add_qsm(id[i], qsm);
+    qsf.add_qsm(qsm);
   }
 
   return qsf;
@@ -165,9 +165,15 @@ QSM as_qsm(Rcpp::DataFrame df)
   QSM graph;
 
   if (df.hasAttribute("message"))
-  {
     graph.messages = Rcpp::as<std::vector<std::string>>(df.attr("message"));
-  }
+
+  if (df.hasAttribute("id"))
+    graph.id = Rcpp::as<int>(df.attr("id"));
+
+  if (df.hasAttribute("name"))
+    graph.name = Rcpp::as<std::string>(df.attr("name"));
+  else
+    graph.name = "tree_" + std::to_string(graph.id);
 
   // Map coordinates to node IDs
   constexpr int digits = 6;
@@ -283,6 +289,8 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
   );
 
   df.attr("message") = graph.messages;
+  df.attr("id")      = graph.id;
+  df.attr("name")    = graph.name;
 
   return df;
 }

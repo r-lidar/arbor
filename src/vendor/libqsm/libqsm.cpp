@@ -421,7 +421,11 @@ static std::string utc_timestamp()
         }
         hdr.messages.push_back(std::move(msg));
       }
-      // Unknown keys are silently ignored (forward-compatibility).
+      else
+      {
+        // Unknown keys are stored in a map.
+        hdr.extra_keys[key] = val;
+      }
     }
 
     if (!data_seen)
@@ -607,6 +611,8 @@ void QSMwriter::write_header(std::ofstream& out, const QSMformatSpec& /*spec*/) 
     }
     out << "\n";
   }
+  for (const auto& kv : header.extra_keys)
+    out << kv.first << " " << kv.second << "\n";
   out << "DATA binary\n";
 }
 

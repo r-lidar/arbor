@@ -56,6 +56,7 @@
 #include <stdexcept>
 #include <iosfwd>    // forward-declares std::ifstream / std::ofstream
 #include <ostream>
+#include <unordered_map>
 
 #define LIBQSM_VERSION_MAJOR 1
 #define LIBQSM_VERSION_MINOR 0
@@ -155,6 +156,7 @@ struct QSMheader
   double      x_offset = 0.0;
   double      y_offset = 0.0;
   double      z_offset = 0.0;
+  std::unordered_map<std::string, std::string> extra_keys;
 
   // Bounding box in global coordinates (mandatory; writer computes from nodes)
   double xmin = 0.0,  ymin = 0.0,  zmin = 0.0;
@@ -275,6 +277,8 @@ public:
   double             get_zmax()          const noexcept { return header.zmax; }
   int                get_message_count() const noexcept { return static_cast<int>(header.messages.size()); }
   const std::string& get_message(int i)  const          { return header.messages.at(static_cast<std::size_t>(i)); }
+  bool has_key(const std::string& key) const noexcept   { return header.extra_keys.find(key) != header.extra_keys.end(); }
+  std::string get_key(const std::string& key) const noexcept { if (!has_key(key)) return {}; return header.extra_keys.at(key); }
 
   // Extra field declarations
   int               get_node_extra_count() const noexcept { return static_cast<int>(header.node_extra_fields.size()); }
@@ -321,6 +325,7 @@ public:
   void set_crs          (const std::string& c) noexcept  { header.crs      = c;  }
   void add_message      (const std::string& m) noexcept  { header.messages.push_back(m); }
   void set_origin(double x, double y, double z) noexcept { header.x_offset = x; header.y_offset = y; header.z_offset = z; }
+  void add_key(const std::string& key, const std::string& value) noexcept { header.extra_keys[key] = value; }
 
   // Append an extra field declaration for node or edge records.
   // Fields are appended in call order, which is the binary storage order.
