@@ -372,3 +372,36 @@ expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
 expect_equal(res$radius, 0.19, tolerance = 0.03)
 expect_equal(res$covered_arc_degree, 360)
 
+f <- system.file("extdata", "complex_slice0.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+
+f <- system.file("extdata", "complex_slice1.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+f <- system.file("extdata", "complex_slice2.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+f <- system.file("extdata", "complex_slice3.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.05)
+

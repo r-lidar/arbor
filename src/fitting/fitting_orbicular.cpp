@@ -115,12 +115,13 @@ FittingResult FittingOrbicular::fit(double tolerance)
   std::vector<std::unique_ptr<IFittingStrategy>> strategies;
   strategies.push_back(std::make_unique<FittingCircle>());
   strategies.push_back(std::make_unique<FittingEllipse>());
-  strategies.push_back(std::make_unique<FittingComplex>());
+  strategies.push_back(std::make_unique<FittingComplex>(5));
+  strategies.push_back(std::make_unique<FittingComplex>(10));
 
   for (auto& strategy : strategies)
   {
     FittingResult current = strategy->fit(m_points, tolerance);
-    if (current.success && current.inlier_percentage > best_result.inlier_percentage)
+    if (current.success && current.inlier_percentage > best_result.inlier_percentage*1.1)
     {
       best_result = std::move(current);
     }
