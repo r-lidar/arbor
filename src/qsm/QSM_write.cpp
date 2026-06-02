@@ -286,7 +286,7 @@ void QSM::write_csv(const std::string& filename) const
     throw std::runtime_error("Cannot open CSV file: " + filename);
 
   // Header
-  out << "startX,startY,startZ,endX,endY,endZ,id,source,axis_id,branch_order,radius,length,volume,subtree_length";
+  out << "startX,startY,startZ,endX,endY,endZ,cyl_ID,parent_ID,axis_ID,branch_order,dist_to_root,subtree_length,radius,quality";
   out << std::endl;
 
   out << std::fixed << std::setprecision(3);
@@ -320,14 +320,12 @@ void QSM::write_csv(const std::string& filename) const
         << c.id            << ","
         << c.source        << ","
         << c.axis_id       << ","
-        << c.branch_order  << ","
+        << static_cast<int>(c.branch_order)  << ","
+        << c.distance_to_root << ","
+        << c.subtree_length << ","
         << c.radius        << ","
-        << c.length(src,tgt) << ","
-        << std::fixed << std::setprecision(5)
-        << c.volume(src,tgt) << ","
-        << std::fixed << std::setprecision(3)
-        << c.subtree_length
-        << std::endl;
+        << static_cast<int>(c.quality)
+        <<  std::endl;
   }
 }
 
