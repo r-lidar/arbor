@@ -166,7 +166,7 @@ namespace arbor
         v("max_d",                    max_d);
         v("apex_radius",              apex_radius);
         v("smooth_steps",             smooth_steps);
-        v("min_measurable_dbh",       min_measurable_radius);
+        v("min_measurable_dbh",       min_measurable_dbh);
         v("min_measurable_radius",    min_measurable_radius);
         v("broken_detection_enabled", broken_detection_enabled);
         v("allometry_name",           allometry_name);
