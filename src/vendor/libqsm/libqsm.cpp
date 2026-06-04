@@ -391,20 +391,22 @@ static std::string utc_timestamp()
         }
         format_seen = true;
       }
-      else if (key == "NODES")          { hdr.n_nodes  = std::stoull(val); }
-      else if (key == "EDGES")          { hdr.n_edges  = std::stoull(val); }
-      else if (key == "X_OFFSET")       { hdr.x_offset = std::stod(val); }
-      else if (key == "Y_OFFSET")       { hdr.y_offset = std::stod(val); }
-      else if (key == "Z_OFFSET")       { hdr.z_offset = std::stod(val); }
-      else if (key == "XMIN")           { hdr.xmin = std::stod(val); }
-      else if (key == "YMIN")           { hdr.ymin = std::stod(val); }
-      else if (key == "ZMIN")           { hdr.zmin = std::stod(val); }
-      else if (key == "XMAX")           { hdr.xmax = std::stod(val); }
-      else if (key == "YMAX")           { hdr.ymax = std::stod(val); }
-      else if (key == "ZMAX")           { hdr.zmax = std::stod(val); }
-      else if (key == "SOFTWARE")       { hdr.software = val; }
-      else if (key == "CREATED")        { hdr.created  = val; }
-      else if (key == "CRS")            { hdr.crs      = val; }
+      else if (key == "NODES")           { hdr.n_nodes  = std::stoull(val); }
+      else if (key == "EDGES")           { hdr.n_edges  = std::stoull(val); }
+      else if (key == "X_OFFSET")        { hdr.x_offset = std::stod(val); }
+      else if (key == "Y_OFFSET")        { hdr.y_offset = std::stod(val); }
+      else if (key == "Z_OFFSET")        { hdr.z_offset = std::stod(val); }
+      else if (key == "XMIN")            { hdr.xmin     = std::stod(val); }
+      else if (key == "YMIN")            { hdr.ymin     = std::stod(val); }
+      else if (key == "ZMIN")            { hdr.zmin     = std::stod(val); }
+      else if (key == "XMAX")            { hdr.xmax     = std::stod(val); }
+      else if (key == "YMAX")            { hdr.ymax     = std::stod(val); }
+      else if (key == "ZMAX")            { hdr.zmax     = std::stod(val); }
+      else if (key == "TREEID")          { hdr.treeid   = std::stoul(val); }
+      else if (key == "TREENAME")        { hdr.treename = val; }
+      else if (key == "SOFTWARE")        { hdr.software = val; }
+      else if (key == "CREATED")         { hdr.created  = val; }
+      else if (key == "CRS")             { hdr.crs      = val; }
       else if (key == "NODE_EXTRABYTES") { hdr.node_extra_fields.push_back(parse_extra_field(val)); }
       else if (key == "EDGE_EXTRABYTES") { hdr.edge_extra_fields.push_back(parse_extra_field(val)); }
       // NODE_SIZE / EDGE_SIZE from older files are silently ignored; sizes are now derived.

@@ -83,8 +83,8 @@ void QSM::write_qsm(const std::string& filename) const
   libqsm::QSMwriter writer(filename);
   writer.set_software("Arbor");
   writer.set_format(2);
-  writer.add_key("ARBOR_TREEID", std::to_string(id));
-  writer.add_key("ARBOR_TREENAME", name);
+  writer.set_treeid(id);
+  writer.set_treename(name);
 
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
   {
