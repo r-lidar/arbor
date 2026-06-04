@@ -116,7 +116,7 @@ FittingResult FittingOrbicular::fit(double tolerance)
   strategies.push_back(std::make_unique<FittingCircle>());
   strategies.push_back(std::make_unique<FittingEllipse>());
   strategies.push_back(std::make_unique<FittingComplex>(5));
-  strategies.push_back(std::make_unique<FittingComplex>(10));
+  //strategies.push_back(std::make_unique<FittingComplex>(10));
 
   for (auto& strategy : strategies)
   {
