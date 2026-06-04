@@ -109,11 +109,16 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree);
 
+  for (auto& e : graph.edges())
+  {
+    if (e.second.data.quality == CONICALLOM)
+      e.second.data.radius = RADIUS_UNSET;
+  }
+
   compute_architecture(true);
 
   ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
-
 
   // Check if main axis has valid measurements
   bool has_na = false;

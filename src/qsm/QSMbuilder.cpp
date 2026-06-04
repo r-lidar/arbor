@@ -122,9 +122,9 @@ void QSMbuilder::build(const PointCloud& tree)
     throw std::runtime_error("Internal error in QSMbuilder::build: gnd size == wood size. Please report.");
 
   arbor::settings::GraphParameters p;
-  p.k = 50;
-  p.max_gap = 1;
-  p.power = 2;
+  p.k = 80;
+  p.max_gap = 1.5;
+  p.power = 1.5;
   std::vector<float> dist = arbor::segment::dist2root(wood, gnd, p);
 
   // Keep only points with valid distance to root

@@ -107,7 +107,11 @@ Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
 
 Rcpp::NumericVector dist2root(DF core, DF gnd, Rcpp::List params)
 {
-  arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
+  arbor::settings::GraphParameters gparams;
+  gparams.k = 80;
+  gparams.max_gap = 1.5;
+  gparams.power = 2;
+
   PointCloud p(core);
   PointCloud s(gnd);
   std::vector<float> ans = arbor::segment::dist2root(p, s, gparams);
