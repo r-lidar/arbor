@@ -207,7 +207,8 @@ void QSMbuilder::build(const PointCloud& tree)
 
   if (!likely_broken || !params.qsm.broken_detection_enabled)
   {
-    refine_radii(wood);
+    // Deleted the step. contruct radii now flag the quality of fit
+    //refine_radii(wood);
   }
   else
   {

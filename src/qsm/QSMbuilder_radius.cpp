@@ -119,6 +119,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   ServiceLocator::logger()("Polynomial fitting");
   polynomial_fitting(tip_radius);
+  polynomial_fitting_root();
 
   // Check if main axis has valid measurements
   bool has_na = false;
@@ -202,7 +203,8 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     const auto& src = graph.node(einfo.source);
     const auto& tgt = graph.node(einfo.target);
 
-    utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::standard_preset();
+    utils::fitting::FitQuality fit_quality  = utils::fitting::FitQuality::standard_preset();
+    utils::fitting::FitQuality fit_hquality = utils::fitting::FitQuality::accurate_preset();
 
     utils::fitting::FittingOrbicular fitter;
     fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
@@ -210,12 +212,19 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    auto res = fitter.fit(fit_quality.ransac_tolerance);
+    int complexity = 1;
+    if (ed.conic_allometry > 0.15) complexity = 3;
+
+    auto res = fitter.fit(fit_quality.ransac_tolerance, complexity);
 
     if (fit_quality.accept(res))
     {
       ed.radius = res.radius;
-      ed.quality = MEASURED;
+
+      if (fit_hquality.accept(res))
+        ed.quality = REFINED;
+      else
+        ed.quality = MEASURED;
     }
   }
 }
@@ -335,28 +344,20 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
 
 void QSMbuilder::polynomial_fitting(double tip_radius)
 {
-  std::map<int, std::vector<int>> axes;
-  for (const auto& [eid, einfo] : graph.edges())
-  {
-    axes[einfo.data.axis_id].push_back(eid);
-  }
+  auto axes = QSMbuilder::build_axis_map();
 
   for (auto& [axis_id, eids] : axes)
   {
-    std::sort(eids.begin(), eids.end(), [this](int a, int b)
-    {
-      return graph.edge_data(a).subtree_length > graph.edge_data(b).subtree_length;
-    });
-
     std::vector<std::pair<float, float>> data_points;
     data_points.reserve(eids.size());
     for (int eid : eids)
     {
       const QSMEdge& ed = graph.edge_data(eid);
-      if (ed.radius != RADIUS_UNSET && ed.subtree_length != SUBTREE_LENGTH_UNSET)
+      if (ed.radius != RADIUS_UNSET && ed.subtree_length != SUBTREE_LENGTH_UNSET && ed.distance_to_root > 1.3)
         data_points.push_back({ed.subtree_length, ed.radius - tip_radius});
     }
 
+    // Don't fit a polynomial with less than 6 radius measures
     if (data_points.size() <= 6) continue;
 
     auto mode = fitting::PolynomialFitting::Mode::DecreasingOnly;
@@ -371,7 +372,53 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
 
       double pred_radius = fit.predict(ed.subtree_length);
 
-      if (ed.radius == RADIUS_UNSET || std::abs(ed.radius - pred_radius) > 0.30 * pred_radius)
+      // Replace previous measure only if
+      // 1. There was no measure (interpolation and extension)
+      // 2. There was a measure that is significantly different (30%) and NOT of high quality
+      if ((ed.radius == RADIUS_UNSET) ||
+          ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED) && ed.distance_to_root > 1.3))
+      {
+        ed.radius  = pred_radius;
+        ed.quality = POLYNOMIAL;
+      }
+    }
+  }
+}
+
+void QSMbuilder::polynomial_fitting_root()
+{
+  auto axes = QSMbuilder::build_axis_map();
+
+  for (auto& [axis_id, eids] : axes)
+  {
+    if (axis_id != 1) continue;
+
+    std::vector<std::pair<float, float>> data_points;
+    data_points.reserve(eids.size());
+    for (int eid : eids)
+    {
+      const QSMEdge& ed = graph.edge_data(eid);
+      if (ed.radius != RADIUS_UNSET && ed.subtree_length != SUBTREE_LENGTH_UNSET && ed.distance_to_root <= 1.3)
+        data_points.push_back({ed.subtree_length, ed.radius});
+    }
+
+    // Don't fit a polynomial with less than 6 radius measures
+    if (data_points.size() <= 4) continue;
+
+    auto mode = fitting::PolynomialFitting::Mode::DecreasingOnly;
+    fitting::PolynomialFitting fit(data_points, 0, mode);
+    if (!fit.valid) continue;
+
+    for (int eid : eids)
+    {
+      QSMEdge& ed = graph.edge_data(eid);
+      if (ed.subtree_length == SUBTREE_LENGTH_UNSET)
+        throw std::logic_error("subtree_length unset during polynomial fitting");
+
+      double pred_radius = fit.predict(ed.subtree_length);
+
+      if ((ed.radius == RADIUS_UNSET) ||
+          ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED) && ed.distance_to_root <= 1.3))
       {
         ed.radius  = pred_radius;
         ed.quality = POLYNOMIAL;

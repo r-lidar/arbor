@@ -75,6 +75,7 @@ void QSMbuilder::compute_architecture(bool use_volume)
 
   int next_axis_id = 2;
   assign_subtree_ids(root_eid, 1, 1, next_axis_id, use_volume);
+  distance_to_root();
 }
 
 double QSMbuilder::compute_subtree_length(int edge_id)

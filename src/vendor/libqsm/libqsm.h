@@ -56,6 +56,7 @@
 #include <stdexcept>
 #include <iosfwd>    // forward-declares std::ifstream / std::ofstream
 #include <ostream>
+#include <unordered_map>
 
 #define LIBQSM_VERSION_MAJOR 1
 #define LIBQSM_VERSION_MINOR 0
@@ -144,18 +145,20 @@ ExtraField parse_extra_field(const std::string& value);
 
 struct QSMheader
 {
-  uint8_t  version_major = LIBQSM_VERSION_MAJOR;
-  uint8_t  version_minor = LIBQSM_VERSION_MINOR;
-  uint8_t  format        = 2;   // edge record layout: 0 = minimal, 1 = + arch, 2 = + distances
-  std::string software;
-  std::string created;
-  std::string crs;
+  uint8_t     version_major = LIBQSM_VERSION_MAJOR;
+  uint8_t     version_minor = LIBQSM_VERSION_MINOR;
+  uint8_t     format        = 2;   // edge record layout: 0 = minimal, 1 = + arch, 2 = + distances
+  uint32_t     treeid        = 0;
   uint64_t    n_nodes = 0;
   uint64_t    n_edges = 0;
   double      x_offset = 0.0;
   double      y_offset = 0.0;
   double      z_offset = 0.0;
-
+  std::string software;
+  std::string created;
+  std::string crs;
+  std::string treename;
+  std::unordered_map<std::string, std::string> extra_keys;
   // Bounding box in global coordinates (mandatory; writer computes from nodes)
   double xmin = 0.0,  ymin = 0.0,  zmin = 0.0;
   double xmax = 0.0,  ymax = 0.0,  zmax = 0.0;
@@ -261,9 +264,11 @@ public:
   uint8_t            get_version_major() const noexcept { return header.version_major; }
   uint8_t            get_version_minor() const noexcept { return header.version_minor; }
   uint8_t            get_format()        const noexcept { return header.format;        }
+  uint32_t           get_treeid()        const noexcept { return header.treeid;        }
   const std::string& get_software()      const noexcept { return header.software;  }
   const std::string& get_created()       const noexcept { return header.created;   }
   const std::string& get_crs()           const noexcept { return header.crs;       }
+  const std::string& get_treename()      const noexcept { return header.treename;  }
   double             get_x_offset()      const noexcept { return header.x_offset;  }
   double             get_y_offset()      const noexcept { return header.y_offset;  }
   double             get_z_offset()      const noexcept { return header.z_offset;  }
@@ -275,6 +280,8 @@ public:
   double             get_zmax()          const noexcept { return header.zmax; }
   int                get_message_count() const noexcept { return static_cast<int>(header.messages.size()); }
   const std::string& get_message(int i)  const          { return header.messages.at(static_cast<std::size_t>(i)); }
+  bool has_key(const std::string& key) const noexcept   { return header.extra_keys.find(key) != header.extra_keys.end(); }
+  std::string get_key(const std::string& key) const noexcept { if (!has_key(key)) return {}; return header.extra_keys.at(key); }
 
   // Extra field declarations
   int               get_node_extra_count() const noexcept { return static_cast<int>(header.node_extra_fields.size()); }
@@ -319,8 +326,11 @@ public:
   void set_format       (uint8_t f) noexcept             { header.format   = f;  }
   void set_software     (const std::string& s) noexcept  { header.software = s;  }
   void set_crs          (const std::string& c) noexcept  { header.crs      = c;  }
+  void set_treeid       (uint32_t v) noexcept            { header.treeid   = v;  }
+  void set_treename     (const std::string& n) noexcept  { header.treename = n;  }
   void add_message      (const std::string& m) noexcept  { header.messages.push_back(m); }
   void set_origin(double x, double y, double z) noexcept { header.x_offset = x; header.y_offset = y; header.z_offset = z; }
+  void add_key(const std::string& key, const std::string& value) noexcept { header.extra_keys[key] = value; }
 
   // Append an extra field declaration for node or edge records.
   // Fields are appended in call order, which is the binary storage order.

@@ -65,7 +65,8 @@ qsm_read = function(x)
     qsm = data.table::fread(x)
     qsm = unify_names(qsm)
     name = tools::file_path_sans_ext(basename(x))
-    attr(qsm, "ID") = name
+    attr(qsm, "name") = name
+    qsm = as_qsm(qsm)
     return(qsm)
   }
   else

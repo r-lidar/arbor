@@ -33,12 +33,37 @@ QSF as_qsf(Rcpp::List x)
 
   Rcpp::CharacterVector names = x.names();
 
+  if (names.size() != x.size())
+    Rcpp::stop("Not all the QSMs in the QSF are named");
+
+  // Convert names to int
+  std::vector<int> id;
+  id.reserve(x.size());
+
+  for (R_xlen_t i = 0; i < x.size(); ++i)
+  {
+    if (names[i] == NA_STRING)
+      Rcpp::stop("NA name at index %d", i);
+
+    const char* s = CHAR(names[i]);
+    char* end = nullptr;
+
+    long val = std::strtol(s, &end, 10);
+
+    if (end == s || *end != '\0')
+      Rcpp::stop("Non-integer name at index %d: '%s'", i, s);
+
+    if (val < std::numeric_limits<int>::min() || val > std::numeric_limits<int>::max())
+      Rcpp::stop("Out of int range at index %d: '%s'", i, s);
+
+    id.push_back(static_cast<int>(val));
+  }
+
   for (int i = 0; i < x.size(); ++i)
   {
-    std::string name = Rcpp::as<std::string>(names[i]);
     Rcpp::DataFrame df = Rcpp::as<Rcpp::DataFrame>(x[i]);
     QSM qsm = as_qsm(df);
-    qsf.add_qsm(name, qsm);
+    qsf.add_qsm(qsm);
   }
 
   return qsf;
@@ -140,9 +165,15 @@ QSM as_qsm(Rcpp::DataFrame df)
   QSM graph;
 
   if (df.hasAttribute("message"))
-  {
     graph.messages = Rcpp::as<std::vector<std::string>>(df.attr("message"));
-  }
+
+  if (df.hasAttribute("id"))
+    graph.id = Rcpp::as<int>(df.attr("id"));
+
+  if (df.hasAttribute("name"))
+    graph.name = Rcpp::as<std::string>(df.attr("name"));
+  else
+    graph.name = "tree_" + std::to_string(graph.id);
 
   // Map coordinates to node IDs
   constexpr int digits = 6;
@@ -258,6 +289,8 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
   );
 
   df.attr("message") = graph.messages;
+  df.attr("id")      = graph.id;
+  df.attr("name")    = graph.name;
 
   return df;
 }

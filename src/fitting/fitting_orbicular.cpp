@@ -109,14 +109,28 @@ void FittingOrbicular::set_axe(const Vec3& from, const Vec3& to)
   compute_rotation_matrix(axis_dir, z_axis);
 }
 
-FittingResult FittingOrbicular::fit(double tolerance)
+FittingResult FittingOrbicular::fit(double tolerance, int complexity)
 {
   FittingResult best_result;
   std::vector<std::unique_ptr<IFittingStrategy>> strategies;
-  strategies.push_back(std::make_unique<FittingCircle>());
-  strategies.push_back(std::make_unique<FittingEllipse>());
-  strategies.push_back(std::make_unique<FittingComplex>(5));
-  //strategies.push_back(std::make_unique<FittingComplex>(10));
+
+  if (complexity >= 1)
+  {
+    strategies.push_back(std::make_unique<FittingCircle>());
+    strategies.push_back(std::make_unique<FittingEllipse>());
+    strategies.push_back(std::make_unique<FittingComplex>(5));      // Complex stem
+  }
+
+  if (complexity >= 2)
+  {
+    //strategies.push_back(std::make_unique<FittingMultiCircle>(2));  // double stem
+    //strategies.push_back(std::make_unique<FittingMultiCircle>(3));  // triple stem
+  }
+
+  if (complexity >= 3)
+  {
+    strategies.push_back(std::make_unique<FittingComplex>(10));     // Super complex stem (tropical buttress)
+  }
 
   for (auto& strategy : strategies)
   {

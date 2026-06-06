@@ -417,15 +417,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // fit_circloid_cpp
-Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance);
-RcppExport SEXP _arbor_fit_circloid_cpp(SEXP xSEXP, SEXP fromSEXP, SEXP toSEXP, SEXP toleranceSEXP) {
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance, int complexity);
+RcppExport SEXP _arbor_fit_circloid_cpp(SEXP xSEXP, SEXP fromSEXP, SEXP toSEXP, SEXP toleranceSEXP, SEXP complexitySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type from(fromSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type to(toSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_circloid_cpp(x, from, to, tolerance));
+    Rcpp::traits::input_parameter< int >::type complexity(complexitySEXP);
+    rcpp_result_gen = Rcpp::wrap(fit_circloid_cpp(x, from, to, tolerance, complexity));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -545,7 +546,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_allometry", (DL_FUNC) &_arbor_allometry, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
-    {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 4},
+    {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 5},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
     {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},

@@ -56,6 +56,12 @@ void QSM::read_qsm(const std::string& filename)
 
   for (const auto& edge : reader.edges())
     add_edge(static_cast<NodeID>(edge.source), static_cast<NodeID>(edge.target), QSMEdge(edge));
+
+  uint32_t tid = reader.get_treeid();
+  if (tid < static_cast<uint32_t>(std::numeric_limits<int>::max()))
+    id = static_cast<int>(tid);
+
+  name = reader.get_treename();
 }
 
 } // namespace arbor::qsm
