@@ -389,6 +389,11 @@ res = fit(xyz, tolerance = 0.03)
 
 if (disp) show(xyz, res, 0.03)
 
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+
 f <- system.file("extdata", "complex_slice2.las", package="arbor")
 las = lidR::readLAS(f)
 xyz = sf::st_coordinates(las)
@@ -397,11 +402,40 @@ res = fit(xyz, tolerance = 0.03)
 
 if (disp) show(xyz, res, 0.03)
 
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
 f <- system.file("extdata", "complex_slice3.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.05)
+
+
+f <- system.file("extdata", "double_ring_slice0.las", package="arbor")
 las = lidR::readLAS(f)
 xyz = sf::st_coordinates(las)
 
 res = fit(xyz, tolerance = 0.03)
 
-if (disp) show(xyz, res, 0.05)
+if (disp) show(xyz, res, 0.03)
 
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+
+f <- system.file("extdata", "double_ring_slice1.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)

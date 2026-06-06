@@ -128,7 +128,7 @@ Rcpp::DataFrame allometry(std::string name)
   );
 }
 
-Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance)
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance, int complexity)
 {
   if (x.ncol() != 3) {
     Rcpp::stop("Input matrix must have 3 columns (X, Y, Z)");
@@ -147,7 +147,7 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   }
 
   // Perform fitting
-  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance);
+  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance, complexity);
 
   if (!result.success)
   {

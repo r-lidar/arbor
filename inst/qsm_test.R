@@ -6,8 +6,6 @@ files = list.files("/home/jr/Documents/Bastien/Individual trees/SainteVeronique/
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its/", full.names = TRUE, pattern = ".las")
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/ITS/", full.names = TRUE, pattern = ".las")
 files = list.files("~/Téléchargements/QSM St Vero/Pall_registered/", full.names = TRUE, pattern = ".las")
-files = list.files("/home/jr/Documents/r-lidar inc/arbor/Tree bank/TLS_21m28_cent_ITD_plot", full.names = T, pattern = ".asc")
-files = list.files("/home/jr/Documents/r-lidar inc/arbor/Tree bank/MLSgrid20m_21m28_cent_ITD_plot", full.names = T, pattern = ".asc")
 
 
 file = "~/Téléchargements/QSM St Vero/Pall_registered/33BOJ.las"
@@ -40,10 +38,10 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
 # Broken
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_119.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_217.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las" # detected but fail
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/P05_TLS_tree_7.asc" # detected but fail
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/P05_TLS_tree_7.asc"
 
-# Overestimate
+# Broken branch
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/overestimate/P09_TLS_3.las"
 
 # Zambia
@@ -51,9 +49,9 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree
 
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_681.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"  # prolongation!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_681.las" # prolongation!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las" # prolongation!!
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_848.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_939.las"
 
@@ -94,6 +92,11 @@ file
   else
   {
     tree <- lidR::readLAS(file)
+    if (all(is.na(tree@data$foliage)))
+        tree@data$foliage = 0L
+
+    if (is.null(tree$hag))
+      tree@data$hag = tree$Z - min(tree$Z)
   }
 
   tree@data$treeID = as.integer(tree@data$treeID)

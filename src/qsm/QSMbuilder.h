@@ -50,6 +50,7 @@ public:
   void refine_radii(const PointCloud& tree);
   void refine_radii_broken(const PointCloud& tree);
   void polynomial_fitting(double tip_radius = 0.0025);
+  void polynomial_fitting_root();
   void reconstruct_missing_radii(double tip_radius);
   void conic_allometry(double R0, double tip_radius = 0.0025);
   void fix_multiple_root();
