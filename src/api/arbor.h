@@ -153,8 +153,8 @@ namespace arbor
       float       max_d                    = 0.1;
       float       apex_radius              = 0.0025;
       int         smooth_steps             = 15;
-      float       min_measurable_dbh       = 0.06;
-      float       min_measurable_radius    = 0.03;
+      float       min_measurable_dbh       = 0.05;
+      float       min_measurable_radius    = 0.025;
       bool        broken_detection_enabled = true;
       float       allometry_scale          = 1.0f;
       std::string allometry_name           = "Griese2025";

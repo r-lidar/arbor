@@ -46,6 +46,28 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/overestimate/P09_TLS_3.la
 
 # Zambia
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree_236.las" # !!
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_164.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_126.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_030.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_060.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_025.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_028.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_086.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_153.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_065.laz"
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_663.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_331.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_418.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_47.laz"
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/LXDC1.laz" # branches surestimée bon test.
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5574.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5664.laz" # bad bad bad
+
+# validation
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Gonzales/4_LidarTreePoinCloudData/MDD01_006_1.laz"
 
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
@@ -105,7 +127,8 @@ file
 
   t0 = Sys.time()
   params= arbor_parameters_default
-  params$qsm$skeleton_node_distance = 0.1
+  #params$qsm$skeleton_node_distance = 0.1
+  #params$qsm$min_measurable_radius = 0.025
   qsm = qsm(tree, params)
   tf = Sys.time()
   print(difftime(tf, t0))
