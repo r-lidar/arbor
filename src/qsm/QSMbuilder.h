@@ -45,7 +45,7 @@ public:
   void detect_weird_butt(double thresh = 50.0, int window = 4);
   void estimate_prolongation(const PointCloud& tree);
   void prolongate(double d, double L = 0.1);
-  void construct_radii(const PointCloud& tree, double tip_radius = 0.0025);
+  bool construct_radii(const PointCloud& tree, double tip_radius = 0.0025);
   void measure_radii(const PointCloud& tree);
   void refine_radii(const PointCloud& tree);
   void refine_radii_broken(const PointCloud& tree);

@@ -37,7 +37,7 @@
 
 namespace arbor::qsm {
 
-void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
+bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 {
   distance_to_root();
   float L = 0.0f;
@@ -80,7 +80,7 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
     graph.messages.push_back(msg);
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
-    return;
+    return true;
   }
 
   if (D0 < params.qsm.min_measurable_dbh && likely_broken)
@@ -134,11 +134,8 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   if (has_na)
   {
-    std::string msg = "[No valid measure] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
-    graph.messages.push_back(msg);
     conic_allometry(R0, tip_radius);
-    return;
+    return false;
   }
 
 
@@ -174,6 +171,8 @@ void QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   ServiceLocator::logger()("Reconstruction");
   reconstruct_missing_radii(tip_radius);
+
+  return true;
 }
 
 void QSMbuilder::measure_radii(const PointCloud& tree)
