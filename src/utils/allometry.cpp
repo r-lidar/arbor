@@ -42,6 +42,38 @@ double Griese2025Allometry::DBH_vs_H(double H) const
   return DBH_cm / 100.0;
 }
 
+double CostaCysneiros2020::H_vs_DBH(double dbh) const
+{
+  constexpr double b0 = 1.029;
+  constexpr double b1 = 0.567;
+
+  return std::exp(b0) * std::pow(dbh*100, b1);
+}
+
+double CostaCysneiros2020::DBH_vs_H(double H) const
+{
+  constexpr double b0 = 1.029;
+  constexpr double b1 = 0.567;
+
+  return std::exp((std::log(H) - b0) / b1)/100;
+}
+
+double Chenge2020::H_vs_DBH(double dbh) const
+{
+  constexpr double a = 5.135;
+  constexpr double b = 0.451;
+
+  return a * std::pow(dbh*100, b);
+}
+
+double Chenge2020::DBH_vs_H(double H) const
+{
+  constexpr double a = 5.135;
+  constexpr double b = 0.451;
+
+  return std::pow(H / a, 1.0 / b)/100;
+}
+
 
 double CacaoAllometry::H_vs_DBH(double dbh) const
 {
@@ -81,8 +113,10 @@ std::unique_ptr<Allometry> AllometryDataBase::getAllometry(const std::string& na
   using Factory = std::function<std::unique_ptr<Allometry>()>;
 
   static const std::unordered_map<std::string_view, Factory> registry = {
-    { "Griese2025", []() { return std::make_unique<Griese2025Allometry>(); } },
-    { "Cacao",      []() { return std::make_unique<CacaoAllometry>(); } }
+    { "Griese2025",         []() { return std::make_unique<Griese2025Allometry>(); } },
+    { "Chenge2020",         []() { return std::make_unique<Chenge2020>(); } },
+    { "CostaCysneiros2020", []() { return std::make_unique<CostaCysneiros2020>(); } },
+    { "Cacao",              []() { return std::make_unique<CacaoAllometry>(); } }
   };
 
   auto it = registry.find(name);
