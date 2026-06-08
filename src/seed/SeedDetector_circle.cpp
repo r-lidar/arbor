@@ -67,7 +67,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
     fitter.add_point(x, y, z);
   }
 
-  utils::fitting::FittingResult res = fitter.fit(0.03);
+  utils::fitting::FittingResult res = fitter.fit(0.03, utils::fitting::FittingStrategy::Standard);
 
   double radius = res.radius;
   double covered_arc_degree = res.arc_coverage_deg;

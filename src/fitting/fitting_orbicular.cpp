@@ -109,54 +109,36 @@ void FittingOrbicular::set_axe(const Vec3& from, const Vec3& to)
   compute_rotation_matrix(axis_dir, z_axis);
 }
 
-FittingResult FittingOrbicular::fit(double tolerance, int complexity)
+FittingResult FittingOrbicular::fit(double tolerance, FittingStrategy flags)
 {
   FittingResult best_result;
   std::vector<std::unique_ptr<IFittingStrategy>> strategies;
 
-  if (complexity >= 1)
-  {
-    strategies.push_back(std::make_unique<FittingCircle>());
-    strategies.push_back(std::make_unique<FittingEllipse>());
-    strategies.push_back(std::make_unique<FittingComplex>(5));      // Complex stem
-  }
-
-  if (complexity >= 2)
-  {
-    //strategies.push_back(std::make_unique<FittingMultiCircle>(2));  // double stem
-    //strategies.push_back(std::make_unique<FittingMultiCircle>(3));  // triple stem
-  }
-
-  if (complexity >= 3)
-  {
-    strategies.push_back(std::make_unique<FittingComplex>(10));     // Super complex stem (tropical buttress)
-  }
+  if (has(flags, FittingStrategy::Circle))        strategies.push_back(std::make_unique<FittingCircle>());
+  if (has(flags, FittingStrategy::Ellipse))       strategies.push_back(std::make_unique<FittingEllipse>());
+  if (has(flags, FittingStrategy::Complex5))      strategies.push_back(std::make_unique<FittingComplex>(5));
+  if (has(flags, FittingStrategy::MultiCircle2))  strategies.push_back(std::make_unique<FittingMultiCircle>(2));
+  if (has(flags, FittingStrategy::MultiCircle3))  strategies.push_back(std::make_unique<FittingMultiCircle>(3));
+  if (has(flags, FittingStrategy::Complex10))     strategies.push_back(std::make_unique<FittingComplex>(10));
 
   for (auto& strategy : strategies)
   {
     FittingResult current = strategy->fit(m_points, tolerance);
-    if (current.success && current.inlier_percentage > best_result.inlier_percentage*1.1)
-    {
+    if (current.success && current.inlier_percentage > best_result.inlier_percentage * 1.1)
       best_result = std::move(current);
-    }
   }
 
-  // 1. Reverse rotation for the center
   reverse_rotation(best_result.center);
-  // 2. Undo the translation to put the center back in global 3D space
   best_result.center.x += m_origin.x;
   best_result.center.y += m_origin.y;
   best_result.center.z += m_origin.z;
-
   for (auto& v : best_result.nodes)
   {
-    // Do the same for all nodes
     reverse_rotation(v);
     v.x += m_origin.x;
     v.y += m_origin.y;
     v.z += m_origin.z;
   }
-
   return best_result;
 }
 

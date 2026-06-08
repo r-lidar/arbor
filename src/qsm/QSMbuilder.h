@@ -32,11 +32,12 @@ public:
   QSMbuilder(QSM& graph, const arbor::settings::ArborParameters& p = arbor::settings::ArborParameters()) : params(p), graph(graph) {};
   void build(const PointCloud& pc);
 
-  // Static and public to be exposed in R
+  // Static and public to be exposed in R for debugging
   static std::vector<int> cluster(const PointCloud& data, const std::vector<int>& iter, float eps);
   static std::unordered_map<int, std::vector<size_t>> group_points_by_edge(const PointCloud& tree);
   static PointCloud clean_tree_butt(const PointCloud&);
 
+  // All public to be callable one by one from R for debugging
   std::vector<int> build_skeleton(const PointCloud&, const std::vector<std::pair<int, int>>& iter_cluster, double max_d);
   void compute_topology();
   void compute_architecture(bool use_volume = false);

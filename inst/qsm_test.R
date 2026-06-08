@@ -56,12 +56,14 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_086.
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_153.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_065.laz"
 
+# Validation
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_663.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_331.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_418.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_47.laz"
 
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/LXDC1.laz" # branches surestimée bon test.
+
 
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5574.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5664.laz" # bad bad bad
@@ -132,6 +134,8 @@ file
   qsm = qsm(tree, params)
   tf = Sys.time()
   print(difftime(tf, t0))
+
+  qsm$radius[is.na(qsm$radius)] = 0
 
   V = qsm_volume(qsm)
 
@@ -276,7 +280,7 @@ x = lidR::plot(wood, color = "dist2root")
 lidR::plot(neg, add = x, pal = "pink", size = 6)
 lidR::plot(gnd, add = x, size = 6)
 lidR::plot(wood, color = "dgroup", pal = pastel.colors(2500))
-lidR::plot(wood, color = "cl", pal = pastel.colors(2500))
+lidR::plot(wood, color = "cl", pal = lidR::pastel.colors(2500))
 
 wood = lidR::filter_poi(wood, dist2root >= 0, !is.na(iter))
 

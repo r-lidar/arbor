@@ -99,30 +99,26 @@ void QSMbuilder::smooth_skeleton(int steps)
 void QSMbuilder::smooth_radii()
 {
   if (graph.edge_count() == 0) return;
-
   ServiceLocator::logger()("Smoothing radii");
-
   for (const auto& [axis_id, edge_ids] : build_axis_map())
   {
     const int n = static_cast<int>(edge_ids.size());
     if (n < 3) continue;
 
     std::vector<double> r(n);
+    bool has_unset = false;
     for (int i = 0; i < n; ++i)
-      r[i] = graph.edge_data(edge_ids[i]).radius;
+    {
+      r[i] = graph.edge(edge_ids[i]).data.radius;
+      if (r[i] == RADIUS_UNSET) { has_unset = true; break; }
+    }
+    if (has_unset) continue;
 
-    // Floor: half the smallest radius on the axis, with an absolute minimum.
     double r_min = *std::min_element(r.begin(), r.end()) * 0.5;
     r_min = std::max(r_min, 1e-4);
-
-    // Root radius (index 0) is fixed inside taubin_smooth.
-    // Tip (index n-1) is also fixed, so restore it after smoothing.
     double r_tip = r[n - 1];
-
     taubin_smooth(r, 15, 0.5, -0.7, r_min);
-
-    r[n - 1] = r_tip;  // Re-pin the tip radius
-
+    r[n - 1] = r_tip;
     for (int i = 0; i < n; ++i)
       graph.edge(edge_ids[i]).data.radius = r[i];
   }

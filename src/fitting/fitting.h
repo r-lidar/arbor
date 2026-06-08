@@ -194,6 +194,34 @@ private:
   mutable std::mt19937 m_rng;
 };
 
+enum class FittingStrategy : uint32_t
+{
+  None          = 0,
+  Circle        = 1 << 0,   // 0x01
+  Ellipse       = 1 << 1,   // 0x02
+  Complex5      = 1 << 2,   // 0x04  — complex stem
+  MultiCircle2  = 1 << 3,   // 0x08  — double stem
+  MultiCircle3  = 1 << 4,   // 0x10  — triple stem
+  Complex10     = 1 << 5,   // 0x20  — super complex / tropical buttress
+
+  // Convenience presets
+  Basic         = Circle | Ellipse,
+  Standard      = Basic | Complex5,
+  Buttress      = Standard | Complex10,
+  Full          = Standard | MultiCircle2 | MultiCircle3 | Complex10,
+};
+
+// Boilerplate to allow | & operators on the scoped enum
+inline FittingStrategy operator|(FittingStrategy a, FittingStrategy b) {
+  return static_cast<FittingStrategy>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+}
+inline FittingStrategy operator&(FittingStrategy a, FittingStrategy b) {
+  return static_cast<FittingStrategy>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+}
+inline bool has(FittingStrategy flags, FittingStrategy flag) {
+  return (flags & flag) != FittingStrategy::None;
+}
+
 // --- Master Orchestrator ---
 class FittingOrbicular
 {
@@ -202,7 +230,7 @@ public:
   void set_axe(const Vec3& from, const Vec3& to);
   void add_point(double x, double y, double z);
   void clear();
-  FittingResult fit(double tolerance = 0.03, int complexity = 1);
+  FittingResult fit(double tolerance = 0.03, FittingStrategy flags = FittingStrategy::Basic);
 
 private:
   Vec3 m_origin;

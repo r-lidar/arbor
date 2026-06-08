@@ -146,8 +146,19 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
     fitter.add_point(x(i, 0), x(i, 1), x(i, 2));
   }
 
+  auto strategyFromComplexity = [](int complexity) -> arbor::utils::fitting::FittingStrategy
+  {
+    switch (complexity)
+    {
+    case 1:  return arbor::utils::fitting::FittingStrategy::Standard;
+    case 2:  return arbor::utils::fitting::FittingStrategy::Standard;
+    case 3:  return arbor::utils::fitting::FittingStrategy::Buttress;
+    default: return arbor::utils::fitting::FittingStrategy::Basic;
+    }
+  };
+
   // Perform fitting
-  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance, complexity);
+  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance, strategyFromComplexity(complexity));
 
   if (!result.success)
   {

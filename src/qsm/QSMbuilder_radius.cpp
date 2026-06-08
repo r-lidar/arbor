@@ -104,7 +104,8 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   }
 
   ServiceLocator::logger()("Pre-allometry");
-  conic_allometry(R0, tip_radius); // Overestimate the tree on purpose
+  conic_allometry(1.5*R0, tip_radius); // Overestimate the tree on purpose
+
 
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree);
@@ -112,7 +113,10 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   for (auto& e : graph.edges())
   {
     if (e.second.data.quality == CONICALLOM)
-      e.second.data.radius = RADIUS_UNSET;
+    {
+      e.second.data.radius  = RADIUS_UNSET;
+      e.second.data.quality = UNKNOWN;
+    }
   }
 
   compute_architecture(true);
@@ -203,6 +207,7 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     const auto& tgt = graph.node(einfo.target);
 
     utils::fitting::FitQuality fit_quality  = utils::fitting::FitQuality::standard_preset();
+    fit_quality.min_radius = params.qsm.min_measurable_radius;
     utils::fitting::FitQuality fit_hquality = utils::fitting::FitQuality::accurate_preset();
 
     utils::fitting::FittingOrbicular fitter;
@@ -211,10 +216,10 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    int complexity = 1;
-    if (ed.conic_allometry > 0.15) complexity = 3;
+    utils::fitting::FittingStrategy strategy = utils::fitting::FittingStrategy::Standard;
+    if (ed.conic_allometry > 0.15) strategy = utils::fitting::FittingStrategy::Buttress;
 
-    auto res = fitter.fit(fit_quality.ransac_tolerance, complexity);
+    auto res = fitter.fit(fit_quality.ransac_tolerance, strategy);
 
     if (fit_quality.accept(res))
     {
@@ -279,7 +284,7 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
       for (size_t pt_idx : point_indices)
         fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-      auto res = fitter.fit(fit_quality.ransac_tolerance);
+      auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FittingStrategy::Standard);
 
       const float current_radius = einfo.data.radius;
 
@@ -331,7 +336,7 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    auto res = fitter.fit(fit_quality.ransac_tolerance);
+    auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FittingStrategy::Standard);
 
     if (fit_quality.accept(res, einfo.data.radius))
     {
