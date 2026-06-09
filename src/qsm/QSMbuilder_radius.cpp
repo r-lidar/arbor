@@ -106,7 +106,6 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   ServiceLocator::logger()("Pre-allometry");
   conic_allometry(1.5*R0, tip_radius); // Overestimate the tree on purpose
 
-
   ServiceLocator::logger()("Measuring diameters");
   measure_radii(tree);
 
@@ -125,8 +124,26 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   polynomial_fitting(tip_radius);
   polynomial_fitting_root();
 
+  bool all_na = true;
+  for (auto& [eid, einfo] : graph.edges())
+  {
+    if (einfo.data.axis_id == 1 && einfo.data.radius != RADIUS_UNSET)
+    {
+      all_na = false;
+      break;
+    }
+  }
+
+  if (all_na)
+  {
+    conic_allometry(R0, tip_radius);
+    return false;
+  }
+
+  pipe_model_reconstruction(tip_radius);
+
   // Check if main axis has valid measurements
-  bool has_na = false;
+  /*bool has_na = false;
   for (auto& [eid, einfo] : graph.edges())
   {
     if (einfo.data.axis_id == 1 && einfo.data.radius == RADIUS_UNSET)
@@ -140,7 +157,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   {
     conic_allometry(R0, tip_radius);
     return false;
-  }
+  }*/
 
 
   // Check root radius
@@ -174,7 +191,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   }
 
   ServiceLocator::logger()("Reconstruction");
-  reconstruct_missing_radii(tip_radius);
+  //reconstruct_missing_radii(tip_radius);
 
   return true;
 }
@@ -362,7 +379,21 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
     }
 
     // Don't fit a polynomial with less than 6 radius measures
-    if (data_points.size() <= 6) continue;
+    if (data_points.size() <= 6)
+    {
+      // Erase previous data
+      for (int eid : eids)
+      {
+        QSMEdge& ed = graph.edge_data(eid);
+        ed.radius = RADIUS_UNSET;
+        ed.quality = UNKNOWN;
+      }
+      continue;
+    }
+
+    // The last point in data_points represents the latest valid measurement limit.
+    // data_points.back().first holds the subtree_length of this boundary.
+    float latest_valid_subtree_length = data_points.back().first;
 
     auto mode = fitting::PolynomialFitting::Mode::DecreasingOnly;
     fitting::PolynomialFitting fit(data_points, tip_radius, mode);
@@ -374,16 +405,22 @@ void QSMbuilder::polynomial_fitting(double tip_radius)
       if (ed.subtree_length == SUBTREE_LENGTH_UNSET)
         throw std::logic_error("subtree_length unset during polynomial fitting");
 
-      double pred_radius = fit.predict(ed.subtree_length);
-
-      // Replace previous measure only if
-      // 1. There was no measure (interpolation and extension)
-      // 2. There was a measure that is significantly different (30%) and NOT of high quality
-      if ((ed.radius == RADIUS_UNSET) ||
-          ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED) && ed.distance_to_root > 1.3))
+      // Check if we are within the limit of the latest valid measurement
+      // (Depending on your coordinate system, this might be <= or >=.
+      // Assuming subtree_length decreases towards the tips, adjust the comparison if needed.)
+      if (ed.subtree_length >= latest_valid_subtree_length)
       {
-        ed.radius  = pred_radius;
-        ed.quality = POLYNOMIAL;
+        double pred_radius = fit.predict(ed.subtree_length);
+
+        // Replace previous measure only if
+        // 1. There was no measure (interpolation and extension)
+        // 2. There was a measure that is significantly different (30%) and NOT of high quality
+        if ((ed.radius == RADIUS_UNSET) ||
+            ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED)))// && ed.distance_to_root > 1.3))
+        {
+          ed.radius  = pred_radius;
+          ed.quality = POLYNOMIAL;
+        }
       }
     }
   }
@@ -406,8 +443,12 @@ void QSMbuilder::polynomial_fitting_root()
         data_points.push_back({ed.subtree_length, ed.radius});
     }
 
-    // Don't fit a polynomial with less than 6 radius measures
+    // Don't fit a polynomial with less than 4 radius measures
     if (data_points.size() <= 4) continue;
+
+    // The last point in data_points represents the latest valid measurement limit.
+    // data_points.back().first holds the subtree_length of this boundary.
+    float latest_valid_subtree_length = data_points.back().first;
 
     auto mode = fitting::PolynomialFitting::Mode::DecreasingOnly;
     fitting::PolynomialFitting fit(data_points, 0, mode);
@@ -419,13 +460,17 @@ void QSMbuilder::polynomial_fitting_root()
       if (ed.subtree_length == SUBTREE_LENGTH_UNSET)
         throw std::logic_error("subtree_length unset during polynomial fitting");
 
-      double pred_radius = fit.predict(ed.subtree_length);
-
-      if ((ed.radius == RADIUS_UNSET) ||
-          ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED) && ed.distance_to_root <= 1.3))
+      // Check if we are within the limit of the latest valid measurement
+      if (ed.subtree_length >= latest_valid_subtree_length)
       {
-        ed.radius  = pred_radius;
-        ed.quality = POLYNOMIAL;
+        double pred_radius = fit.predict(ed.subtree_length);
+
+        if ((ed.radius == RADIUS_UNSET) ||
+            ((std::abs(ed.radius - pred_radius) > 0.30 * pred_radius) && (ed.quality < REFINED) && ed.distance_to_root <= 1.3))
+        {
+          ed.radius  = pred_radius;
+          ed.quality = POLYNOMIAL;
+        }
       }
     }
   }
@@ -468,7 +513,7 @@ void QSMbuilder::reconstruct_missing_radii(double tip_radius)
       if (parent_eid < 0) continue;
 
       const QSMEdge& parent_ed = graph.edge_data(parent_eid);
-      const double r0 = parent_ed.radius * 0.85;
+      const double r0 = parent_ed.radius * 0.75;
       const double w0 = parent_ed.subtree_length;
 
       // Check if reconstruction is needed (any RADIUS_UNSET in axis)

@@ -69,6 +69,7 @@ OBJECTS = \
   qsm/QSMbuilder_prolongation.o \
   qsm/QSMbuilder_cluster.o \
   qsm/QSMbuilder_skeleton.o \
+  qsm/QSMbuilder_pipemodel.o \
   qsm/QSMbuilder.o \
   qsm/QSMbuilder_butt.o \
   qsm/QSMbuilder_utils.o \

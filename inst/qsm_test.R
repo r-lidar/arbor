@@ -55,18 +55,25 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_028.
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_086.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_153.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_065.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_117.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_084.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_096.laz"
 
 # Validation
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_663.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_331.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_418.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_47.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_425.laz"
 
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/LXDC1.laz" # branches surestimée bon test.
 
-
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5574.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5664.laz" # bad bad bad
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/FEXC1.laz"
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/TLSvMLS//MLS15m/P03_MLS15m_28.las"
 
 # validation
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Gonzales/4_LidarTreePoinCloudData/MDD01_006_1.laz"
@@ -129,7 +136,7 @@ file
 
   t0 = Sys.time()
   params= arbor_parameters_default
-  #params$qsm$skeleton_node_distance = 0.1
+  params$qsm$skeleton_node_distance = 0.1
   #params$qsm$min_measurable_radius = 0.025
   qsm = qsm(tree, params)
   tf = Sys.time()
@@ -140,7 +147,7 @@ file
   V = qsm_volume(qsm)
 
   x = plot_semantic(tree)
-  plot_qsm(qsm, add = x, cylinder = T)
+  plot_qsm(qsm, add = x, cylinder = T, skel = F, color = "quality")
 }
 
 as.data.frame(qsm)
