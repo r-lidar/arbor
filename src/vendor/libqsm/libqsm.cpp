@@ -597,6 +597,10 @@ void QSMwriter::write_header(std::ofstream& out, const QSMformatSpec& /*spec*/) 
   out << "XMAX "      << header.xmax      << "\n";
   out << "YMAX "      << header.ymax      << "\n";
   out << "ZMAX "      << header.zmax      << "\n";
+  if (header.treeid != 0)
+    out << "TREEID "  << header.treeid    << "\n";
+  if (!header.treename.empty())
+    out << "TREENAME "<< header.treename  << "\n";
   if (!header.crs.empty())
     out << "CRS "     << header.crs       << "\n";
   for (const ExtraField& f : header.node_extra_fields)

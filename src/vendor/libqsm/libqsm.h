@@ -148,7 +148,7 @@ struct QSMheader
   uint8_t     version_major = LIBQSM_VERSION_MAJOR;
   uint8_t     version_minor = LIBQSM_VERSION_MINOR;
   uint8_t     format        = 2;   // edge record layout: 0 = minimal, 1 = + arch, 2 = + distances
-  uint32_t     treeid        = 0;
+  uint32_t    treeid        = 0;
   uint64_t    n_nodes = 0;
   uint64_t    n_edges = 0;
   double      x_offset = 0.0;
