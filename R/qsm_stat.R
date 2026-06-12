@@ -147,9 +147,12 @@ qsm_stats.qsf <- function(qs, ..., display = FALSE)
   {
     out <- qsm_stats(x, ..., display = FALSE)
     if (is.null(out)) return(NULL)
-    ans = out$stats_global
-    msg = paste0(out$note, collapse = " + ")
-    ans$note = msg
+    tid <- attr(x, "id")
+    if (is.null(tid)) tid = NA_integer_
+    ans <- data.frame(treeID = tid)
+    ans <- cbind(ans, out$stats_global)
+    msg <- paste0(out$note, collapse = " + ")
+    ans$note <- msg
     ans
   })
 
