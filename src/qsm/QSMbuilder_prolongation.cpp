@@ -100,11 +100,9 @@ void QSMbuilder::prolongate(double d, double L)
     ox = (ox / horiz) * horiz_clamped;
     oy = (oy / horiz) * horiz_clamped;
 
-    ServiceLocator::logger()("Trunk angle " + [&]{
-      std::ostringstream s;
-      s << std::fixed << std::setprecision(2) << angle_deg;
-      return s.str();
-    }() + " deg exceeds 50 deg, clamping to 50 deg for prolongation");
+    auto angle_str = std::to_string(angle_deg);
+    angle_str.resize(angle_str.find('.') + 3); // 2 decimals
+    ServiceLocator::logger()("Trunk angle " + angle_str + " deg exceeds 50 deg, clamping to 50 deg for prolongation");
   }
 
   double d_adj;
@@ -113,11 +111,9 @@ void QSMbuilder::prolongate(double d, double L)
   else
     d_adj = d / oz;
 
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(2)
-      << "Trunk angle: " << angle_deg << " deg"
-      << " | Distance " << d << " m adjusted to " << d_adj << " m";
-  ServiceLocator::logger()(oss.str());
+  char buf[256];
+  std::snprintf(buf, sizeof(buf), "Trunk angle: %.2f deg | Distance %.2f m adjusted to %.2f m", angle_deg, d, d_adj);
+  ServiceLocator::logger()(buf);
 
   int nseg = std::max(1, int(std::ceil(d_adj / L)));
 
