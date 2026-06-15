@@ -105,7 +105,7 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
 
     if (indices.size() >= 100)
     {
-      utils::fitting::FittingOrbicular rc;
+      utils::fitting::CrossSectionFitter rc;
       for (int idx : indices)
         rc.add_point(pc.get_x(idx), pc.get_y(idx), pc.get_z(idx));
 

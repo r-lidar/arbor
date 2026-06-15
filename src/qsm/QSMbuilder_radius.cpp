@@ -227,14 +227,14 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
     fit_quality.min_radius = params.qsm.min_measurable_radius;
     utils::fitting::FitQuality fit_hquality = utils::fitting::FitQuality::accurate_preset();
 
-    utils::fitting::FittingOrbicular fitter;
-    fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
+    utils::fitting::CrossSectionFitter fitter;
+    fitter.set_axis({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    utils::fitting::FittingStrategy strategy = utils::fitting::FittingStrategy::Standard;
-    if (ed.conic_allometry > 0.15) strategy = utils::fitting::FittingStrategy::Buttress;
+    utils::fitting::FitMode strategy = utils::fitting::FitMode::Standard;
+    if (ed.conic_allometry > 0.15) strategy = utils::fitting::FitMode::Buttress;
 
     auto res = fitter.fit(fit_quality.ransac_tolerance, strategy);
 
@@ -295,13 +295,13 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
       const auto& src = graph.node(einfo.source);
       const auto& tgt = graph.node(einfo.target);
 
-      utils::fitting::FittingOrbicular fitter;
-      fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
+      utils::fitting::CrossSectionFitter fitter;
+      fitter.set_axis({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
       for (size_t pt_idx : point_indices)
         fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-      auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FittingStrategy::Standard);
+      auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FitMode::Standard);
 
       const float current_radius = einfo.data.radius;
 
@@ -347,13 +347,13 @@ void QSMbuilder::refine_radii(const PointCloud& tree)
     const auto& src = graph.node(einfo.source);
     const auto& tgt = graph.node(einfo.target);
 
-    utils::fitting::FittingOrbicular fitter;
-    fitter.set_axe({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
+    utils::fitting::CrossSectionFitter fitter;
+    fitter.set_axis({src.x, src.y, src.z}, {tgt.x, tgt.y, tgt.z});
 
     for (size_t pt_idx : point_indices)
       fitter.add_point(tree.get_x(pt_idx), tree.get_y(pt_idx), tree.get_z(pt_idx));
 
-    auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FittingStrategy::Standard);
+    auto res = fitter.fit(fit_quality.ransac_tolerance, utils::fitting::FitMode::Standard);
 
     if (fit_quality.accept(res, einfo.data.radius))
     {

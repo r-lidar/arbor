@@ -18,47 +18,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "fitting.h"
+#include "fitting_ellipse.h"
+#include <cmath>
 
 namespace arbor::utils::fitting {
 
-FittingEllipse::FittingEllipse(int max_iterations, int min_inliers, unsigned seed) : m_max_iterations(max_iterations), m_min_inliers(min_inliers), m_rng(seed)
+EllipseFitter::EllipseFitter(int max_iterations, int min_inliers, unsigned seed)
+  : m_max_iterations(max_iterations), m_min_inliers(min_inliers), m_rng(seed)
 {
-
 }
 
-FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::vector<Vec3>& pts) const
+EllipseFitter::EllipseParams EllipseFitter::fit_ellipse_algebraic(const std::vector<Vec3>& pts) const
 {
   EllipseParams res;
   if (pts.size() < 5) return res;
 
-  // Build the 6-column design matrix D manually (no Eigen)
-  // Each row: [x², xy, y², x, y, 1]
-  // We need the null vector of D^T * D, i.e. the eigenvector for the smallest eigenvalue.
-  // For 6 unknowns we use a simple 6x6 symmetric accumulation + Jacobi or power method.
-  // Here we use the compact normal equations via a 6x6 scatter matrix.
-
+  // Build the 6×6 scatter matrix S = Dᵀ D where each row of D is
+  // [x², xy, y², x, y, 1].  The ellipse coefficients are the eigenvector
+  // of S with the smallest eigenvalue.
   const int N = 6;
   double S[N][N] = {};
 
   for (const auto& p : pts)
   {
-    double x = p.x, y = p.y;
-    double row[6] = { x*x, x*y, y*y, x, y, 1.0 };
+    const double x = p.x, y = p.y;
+    const double row[6] = {x*x, x*y, y*y, x, y, 1.0};
     for (int i = 0; i < N; ++i)
       for (int j = 0; j < N; ++j)
         S[i][j] += row[i] * row[j];
   }
 
-  // Power-iteration to find the eigenvector of S corresponding to the SMALLEST eigenvalue.
-  // We do inverse iteration: find the dominant eigenvector of (S - shift*I)^{-1}.
-  // For robustness, use the standard approach: find the last column of V in SVD via
-  // repeated deflation — but that's heavy. Instead, use a small Jacobi SVD on 6x6.
-  // Given the small fixed size (6x6), a Jacobi eigendecomposition is straightforward.
-
-  // --- Jacobi eigendecomposition of symmetric S ---
-  double V[N][N] = {};   // eigenvectors (columns)
-  double A[N][N] = {};   // working copy of S
+  // Jacobi eigendecomposition of the symmetric 6×6 matrix S.
+  // V accumulates the eigenvectors (columns); A converges to diagonal.
+  double V[N][N] = {};
+  double A[N][N] = {};
   for (int i = 0; i < N; ++i) { V[i][i] = 1.0; for (int j = 0; j < N; ++j) A[i][j] = S[i][j]; }
 
   for (int sweep = 0; sweep < 100; ++sweep)
@@ -74,27 +67,27 @@ FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::v
       for (int q = p2+1; q < N; ++q)
       {
         if (std::fabs(A[p2][q]) < 1e-15) continue;
-        double tau = (A[q][q] - A[p2][p2]) / (2.0 * A[p2][q]);
-        double t   = (tau >= 0 ? 1.0 : -1.0) / (std::fabs(tau) + std::sqrt(1.0 + tau*tau));
-        double c   = 1.0 / std::sqrt(1.0 + t*t);
-        double s   = t * c;
 
-        // Update A
-        double App = A[p2][p2], Aqq = A[q][q], Apq = A[p2][q];
+        const double tau = (A[q][q] - A[p2][p2]) / (2.0 * A[p2][q]);
+        const double t   = (tau >= 0 ? 1.0 : -1.0) / (std::fabs(tau) + std::sqrt(1.0 + tau*tau));
+        const double c   = 1.0 / std::sqrt(1.0 + t*t);
+        const double s   = t * c;
+
+        const double App = A[p2][p2], Aqq = A[q][q], Apq = A[p2][q];
         A[p2][p2] = App - t*Apq;
         A[q][q]   = Aqq + t*Apq;
         A[p2][q]  = A[q][p2] = 0.0;
+
         for (int r = 0; r < N; ++r)
         {
           if (r == p2 || r == q) continue;
-          double Arp = A[r][p2], Arq = A[r][q];
+          const double Arp = A[r][p2], Arq = A[r][q];
           A[r][p2] = A[p2][r] = c*Arp - s*Arq;
           A[r][q]  = A[q][r]  = s*Arp + c*Arq;
         }
-        // Update V
         for (int r = 0; r < N; ++r)
         {
-          double Vrp = V[r][p2], Vrq = V[r][q];
+          const double Vrp = V[r][p2], Vrq = V[r][q];
           V[r][p2] = c*Vrp - s*Vrq;
           V[r][q]  = s*Vrp + c*Vrq;
         }
@@ -102,43 +95,52 @@ FittingEllipse::EllipseParams FittingEllipse::fit_ellipse_algebraic(const std::v
     }
   }
 
-  // Find the column of V with the smallest eigenvalue (diagonal of A)
-  int min_col = 0;
+  // Find the column of V whose eigenvalue (diagonal of A) is smallest.
+  // BUG FIX: min_col = i must be inside the if-block; previously it was
+  // unconditionally executed, always yielding min_col = N-1 = 5.
+  int    min_col = 0;
   double min_val = std::fabs(A[0][0]);
   for (int i = 1; i < N; ++i)
   {
     if (std::fabs(A[i][i]) < min_val)
+    {
       min_val = std::fabs(A[i][i]);
-
-    min_col = i;
+      min_col = i;               // ← was outside the if-block before
+    }
   }
 
   res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];
   res.d = V[3][min_col]; res.e = V[4][min_col]; res.f = V[5][min_col];
-  res.valid = (res.b*res.b - 4*res.a*res.c < 0);
+  res.valid = (res.b*res.b - 4.0*res.a*res.c < 0);
   return res;
 }
 
-std::vector<double> FittingEllipse::calculate_distances(const std::vector<Vec3>& pts, const EllipseParams& p) const
+std::vector<double> EllipseFitter::calculate_distances(const std::vector<Vec3>& pts, const EllipseParams& p) const
 {
   std::vector<double> dists;
-  for (const auto& pt : pts) {
-    double f = p.a*pt.x*pt.x + p.b*pt.x*pt.y + p.c*pt.y*pt.y + p.d*pt.x + p.e*pt.y + p.f;
-    double gx = 2*p.a*pt.x + p.b*pt.y + p.d, gy = p.b*pt.x + 2*p.c*pt.y + p.e;
+  dists.reserve(pts.size());
+  for (const auto& pt : pts)
+  {
+    const double f  = p.a*pt.x*pt.x + p.b*pt.x*pt.y + p.c*pt.y*pt.y + p.d*pt.x + p.e*pt.y + p.f;
+    const double gx = 2.0*p.a*pt.x + p.b*pt.y + p.d;
+    const double gy = p.b*pt.x + 2.0*p.c*pt.y + p.e;
     dists.push_back(std::abs(f) / std::sqrt(gx*gx + gy*gy + 1e-12));
   }
   return dists;
 }
 
-FittingEllipse::EllipseGeometry FittingEllipse::get_ellipse_geometry(const EllipseParams& p) const
+EllipseFitter::EllipseGeometry EllipseFitter::get_ellipse_geometry(const EllipseParams& p) const
 {
   EllipseGeometry g;
-  double det = p.b*p.b - 4*p.a*p.c;
+  const double det = p.b*p.b - 4.0*p.a*p.c;
   if (det >= 0) return g;
-  g.cx = (2*p.c*p.d - p.b*p.e)/det; g.cy = (2*p.a*p.e - p.b*p.d)/det;
+
+  g.cx    = (2.0*p.c*p.d - p.b*p.e) / det;
+  g.cy    = (2.0*p.a*p.e - p.b*p.d) / det;
   g.angle = 0.5 * std::atan2(p.b, p.a - p.c);
-  double up = 2*(p.a*p.e*p.e + p.c*p.d*p.d + p.f*p.b*p.b - p.b*p.d*p.e - 4*p.a*p.c*p.f);
-  double root = std::sqrt(std::pow(p.a-p.c, 2) + p.b*p.b);
+
+  const double up   = 2.0 * (p.a*p.e*p.e + p.c*p.d*p.d + p.f*p.b*p.b - p.b*p.d*p.e - 4.0*p.a*p.c*p.f);
+  const double root = std::sqrt(std::pow(p.a - p.c, 2) + p.b*p.b);
   g.major = std::sqrt(std::abs(up / (det * (p.a + p.c - root))));
   g.minor = std::sqrt(std::abs(up / (det * (p.a + p.c + root))));
   if (g.minor > g.major) std::swap(g.minor, g.major);
@@ -146,71 +148,73 @@ FittingEllipse::EllipseGeometry FittingEllipse::get_ellipse_geometry(const Ellip
   return g;
 }
 
-FittingResult FittingEllipse::fit(const std::vector<Vec3>& points, double tolerance)
+FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double tolerance)
 {
   FittingResult best;
   best.shape_type = "ellipse";
   if (points.size() < 5) return best;
 
-  double zsum = 0;
+  double zsum = 0.0;
   for (const auto& v : points) zsum += v.z;
-  m_zmean = zsum/points.size();
+  m_zmean = zsum / static_cast<double>(points.size());
 
   std::uniform_int_distribution<size_t> dist(0, points.size() - 1);
+
   for (int i = 0; i < m_max_iterations; ++i)
   {
     std::vector<Vec3> sample;
-    while(sample.size() < 5) sample.push_back(points[dist(m_rng)]);
-    auto p = fit_ellipse_algebraic(sample);
+    while (sample.size() < 5) sample.push_back(points[dist(m_rng)]);
+
+    const auto p = fit_ellipse_algebraic(sample);
     if (!p.valid) continue;
-    auto d = calculate_distances(points, p);
+
+    const auto d = calculate_distances(points, p);
     std::vector<int> inliers;
-    for (int j=0; j<d.size(); ++j) if (d[j] < tolerance) inliers.push_back(j);
+    for (size_t j = 0; j < d.size(); ++j)
+      if (d[j] < tolerance) inliers.push_back(static_cast<int>(j));
 
     if (inliers.size() > best.inlier_indices.size())
     {
-      auto g = get_ellipse_geometry(p);
+      const auto g = get_ellipse_geometry(p);
       best.inlier_indices = inliers;
-      best.success = g.major < 3*g.minor;
+      best.success        = g.valid && (g.major < 3.0 * g.minor);
     }
   }
 
   if (best.success)
   {
     std::vector<Vec3> inlier_pts;
-    for(int idx : best.inlier_indices) inlier_pts.push_back(points[idx]);
-    auto final_p = fit_ellipse_algebraic(inlier_pts);
-    auto g = get_ellipse_geometry(final_p);
-    best.radius = std::sqrt(g.major*g.minor);
-    best.center = {g.cx, g.cy, m_zmean};
-    best.parameters = {final_p.a, final_p.b, final_p.c, final_p.d, final_p.e, final_p.f, g.major, g.minor, g.angle};
-    best.inlier_percentage = 100.0 * best.inlier_indices.size() / points.size();
-    best.arc_coverage_deg = IFittingStrategy::calculate_arc_coverage(points, best.inlier_indices, best.center);
+    inlier_pts.reserve(best.inlier_indices.size());
+    for (int idx : best.inlier_indices) inlier_pts.push_back(points[idx]);
 
-    double a = g.major;
-    double b = g.minor;
-    double theta = g.angle+M_PI/2;
+    const auto final_p = fit_ellipse_algebraic(inlier_pts);
+    const auto g       = get_ellipse_geometry(final_p);
 
-    double cos_t = std::cos(theta);
-    double sin_t = std::sin(theta);
+    best.radius           = static_cast<float>(std::sqrt(g.major * g.minor));
+    best.center           = {g.cx, g.cy, m_zmean};
+    best.parameters       = {final_p.a, final_p.b, final_p.c, final_p.d, final_p.e, final_p.f,
+                              g.major, g.minor, g.angle};
+    best.inlier_percentage = 100.0f * static_cast<float>(best.inlier_indices.size()) / static_cast<float>(points.size());
+    best.arc_coverage_deg  = static_cast<float>(calculate_arc_coverage(points, best.inlier_indices, best.center));
+
+    const double a     = g.major;
+    const double b     = g.minor;
+    const double theta = g.angle + M_PI / 2.0;
+    const double cos_t = std::cos(theta);
+    const double sin_t = std::sin(theta);
 
     for (int i = 0; i <= 360; i += 2)
     {
-      double t = i * M_PI / 180.0;
-
-      double xr = a * std::cos(t);
-      double yr = b * std::sin(t);
-
-      double x = g.cx + xr * cos_t - yr * sin_t;
-      double y = g.cy + xr * sin_t + yr * cos_t;
-      double z = m_zmean;
-
-      best.nodes.push_back({x, y, z});
+      const double t  = i * M_PI / 180.0;
+      const double xr = a * std::cos(t);
+      const double yr = b * std::sin(t);
+      best.contour.push_back({g.cx + xr*cos_t - yr*sin_t,
+                              g.cy + xr*sin_t + yr*cos_t,
+                              m_zmean});
     }
-
   }
 
   return best;
 }
 
-}
+} // namespace arbor::utils::fitting

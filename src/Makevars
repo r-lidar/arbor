@@ -78,7 +78,7 @@ OBJECTS = \
   qsm/QSM_utils.o \
   qsm/QSM_write.o \
   qsm/QSM_read.o \
-  fitting/fitting_fourrier.o \
+  fitting/fitting_fourier.o \
   fitting/fitting_ellipse.o \
   fitting/fitting_circle.o \
   fitting/fitting_multicircle.o \

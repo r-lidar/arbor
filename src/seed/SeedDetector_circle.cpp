@@ -58,7 +58,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
 
   if (cluster.indices.size() < 20) return nullptr;
 
-  utils::fitting::FittingOrbicular fitter;
+  utils::fitting::CrossSectionFitter fitter;
   for (size_t idx : cluster.indices)
   {
     double x = point_cloud.get_x(idx);
@@ -67,7 +67,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
     fitter.add_point(x, y, z);
   }
 
-  utils::fitting::FittingResult res = fitter.fit(0.03, utils::fitting::FittingStrategy::Standard);
+  utils::fitting::FittingResult res = fitter.fit(0.03, utils::fitting::FitMode::Standard);
 
   double radius = res.radius;
   double covered_arc_degree = res.arc_coverage_deg;
