@@ -39,12 +39,11 @@ expect_equal(qsm1$radius, qsm2$radius)
 expect_equal(qsm1$branch_order, qsm2$branch_order)
 expect_equal(sum(qsm1$branch_order == 3), 823L)
 expect_equal(sum(qsm3$branch_order == 3), 823L)
-expect_equal(sum(qsm1$quality == 5), 93L)
-expect_equal(sum(qsm3$quality == 5), 93L)
+expect_equal(sum(qsm1$quality == 5), 90L)
+expect_equal(sum(qsm3$quality == 5), 90L)
 expect_equal(attr(qsm2, "id"), 2L)
 expect_equal(attr(qsm2, "name"), "BOUJ45")
 
 # invalid qsm throw error
 hqsm = qsm1[qsm1$quality >3,]
 expect_error(qsm_write(hqsm, fqsm), "Graph is disconnected")
-

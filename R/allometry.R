@@ -39,7 +39,7 @@ available_allometries <- function()
     stringsAsFactors = FALSE
   )
 
-  filters <- setNames(
+  filters <- stats::setNames(
     replicate(nrow(models),
               function(x) { x$DBH <- x$DBH * 100; x },
               simplify = FALSE),
@@ -47,7 +47,7 @@ available_allometries <- function()
   )
 
   curves <- Map(
-    function(name, fun) fun(arbor:::allometry(name)),
+    function(name, fun) fun(allometry(name)),
     models$model,
     filters
   )
@@ -63,14 +63,14 @@ available_allometries <- function()
   )
 
   for (i in seq_along(curves)[-1]) {
-    lines(
+    graphics::lines(
       curves[[i]],
       col = models$color[i],
       lwd = 2
     )
   }
 
-  legend(
+  graphics::legend(
     "bottomright",
     legend = sprintf("%s (%s)", models$model, models$country),
     col = models$color,
@@ -78,7 +78,7 @@ available_allometries <- function()
     bty = "n"
   )
 
-  abline(v = 6, lty = 3)
+  graphics::abline(v = 6, lty = 3)
 
   library_table <- models[, c("model", "url")]
 
