@@ -62,6 +62,7 @@ void QSM::read_qsm(const std::string& filename)
     id = static_cast<int>(tid);
 
   name = reader.get_treename();
+  crs  = reader.get_crs();
 }
 
 } // namespace arbor::qsm

@@ -137,6 +137,7 @@ public:
 public:
   std::vector<std::string> messages;
   std::string name;
+  std::string crs;
   int id = 0;
 
 private:

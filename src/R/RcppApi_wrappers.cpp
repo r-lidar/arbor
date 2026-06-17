@@ -175,6 +175,9 @@ QSM as_qsm(Rcpp::DataFrame df)
   else
     graph.name = "tree_" + std::to_string(graph.id);
 
+  if (df.hasAttribute("crs"))
+    graph.crs = Rcpp::as<std::string>(df.attr("crs"));
+
   // Map coordinates to node IDs
   constexpr int digits = 6;
   const double  factor = std::pow(10.0, digits);
@@ -291,6 +294,7 @@ Rcpp::DataFrame as_dataframe(const QSM& graph)
   df.attr("message") = graph.messages;
   df.attr("id")      = graph.id;
   df.attr("name")    = graph.name;
+  df.attr("crs")     = graph.crs;
 
   return df;
 }

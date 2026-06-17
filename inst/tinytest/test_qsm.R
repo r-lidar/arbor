@@ -5,6 +5,7 @@ qsm1 <- qsm(tree)
 # attr exist
 expect_equal(attr(qsm1, "id"), 0)
 expect_equal(attr(qsm1, "name"), "")
+expect_equal(st_crs(qsm1)$Name, "NAD83 / MTM zone 7")
 
 
 # correct dbh
@@ -43,6 +44,7 @@ expect_equal(sum(qsm1$quality == 5), 90L)
 expect_equal(sum(qsm3$quality == 5), 90L)
 expect_equal(attr(qsm2, "id"), 2L)
 expect_equal(attr(qsm2, "name"), "BOUJ45")
+expect_equal(st_crs(qsm2)$Name, "NAD83 / MTM zone 7")
 
 # invalid qsm throw error
 hqsm = qsm1[qsm1$quality >3,]

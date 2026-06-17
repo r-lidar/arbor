@@ -1,6 +1,7 @@
 # arbor 0.14.1
 
 - `qsm_stats` returns the `treeID`
+- CRS supported for QSMs
 
 # arbor 0.14.0
 

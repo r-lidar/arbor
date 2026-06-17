@@ -85,6 +85,7 @@ void QSM::write_qsm(const std::string& filename) const
   writer.set_format(2);
   writer.set_treeid(id);
   writer.set_treename(name);
+  writer.set_crs(crs);
 
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
   {
