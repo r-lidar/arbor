@@ -27,10 +27,13 @@
 
 namespace arbor::utils::fitting {
 
-MultiCircleFitter::MultiCircleFitter(int n_circles, int max_iterations, double early_exit_ratio, unsigned seed)
+MultiCircleFitter::MultiCircleFitter(int n_circles, int max_iterations, double early_exit_ratio,
+                                     unsigned seed, double max_overlap_ratio, double min_inlier_gain_ratio)
   : m_n_circles(n_circles),
     m_max_iterations(max_iterations),
     m_early_exit_ratio(early_exit_ratio),
+    m_max_overlap_ratio(max_overlap_ratio),
+    m_min_inlier_gain_ratio(min_inlier_gain_ratio),
     m_rng(seed)
 {
 }
@@ -52,7 +55,9 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
 
   // --- Sequential RANSAC ---
   // Fit the best circle on the remaining unclaimed points, then remove those
-  // inliers before fitting the next circle.
+  // inliers before fitting the next circle. The first circle fitted here is,
+  // by construction, the best single circle for the *whole* point set, it
+  // becomes the baseline for the inlier-gain guard below.
   std::vector<int> remaining(points.size());
   std::iota(remaining.begin(), remaining.end(), 0);
 
@@ -77,7 +82,7 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     new_remaining.reserve(remaining.size() - inliers.size());
     for (int idx : remaining)
       if (!inlier_set.count(idx)) new_remaining.push_back(idx);
-    remaining = std::move(new_remaining);
+      remaining = std::move(new_remaining);
   }
 
   if (static_cast<int>(fitted_circles.size()) < m_n_circles)
@@ -86,19 +91,16 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     return result;
   }
 
-  // --- Separation guard ---
-  // Reject if any two circle centers are within 30% of their combined radii;
-  // that indicates they fitted the same cluster redundantly.
+  // --- Overlap guard ---
+  // Reject if any two fitted circles overlap too much. Overlap is measured
+  // as the intersection area relative to the area of the smaller of the two
+  // circles, so a small circle nested inside a big one is caught even when
+  // their centers are far apart relative to the big circle's radius.
   for (int i = 0; i < static_cast<int>(fitted_circles.size()); ++i)
   {
     for (int j = i + 1; j < static_cast<int>(fitted_circles.size()); ++j)
     {
-      const auto& ci = fitted_circles[i];
-      const auto& cj = fitted_circles[j];
-      const double dx   = ci.cx - cj.cx;
-      const double dy   = ci.cy - cj.cy;
-      const double dist = std::sqrt(dx*dx + dy*dy);
-      if (dist < 0.3 * (ci.radius + cj.radius))
+      if (circle_overlap_ratio(fitted_circles[i], fitted_circles[j]) > m_max_overlap_ratio)
       {
         result.success = false;
         return result;
@@ -106,14 +108,36 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     }
   }
 
+  // --- Inlier-gain guard ---
+  // The extra circle(s) must explain meaningfully more of the point cloud
+  // than the single best circle already does. Without this check, a second
+  // circle fitted on the leftover outliers from the first one is almost
+  // always "found" even for genuinely single-stem data, since RANSAC will
+  // happily fit a circle to a handful of scattered outlier points. Require
+  // the combined inlier count across all circles to exceed the first
+  // (best single-circle) fit's inlier count by at least the configured
+  // gain ratio (e.g. 1.3 = +30%).
+  if (fitted_circles.size() > 1)
+  {
+    const double baseline_inliers = static_cast<double>(per_circle_inliers.front().size());
+    double total_inliers = 0.0;
+    for (const auto& inl : per_circle_inliers) total_inliers += static_cast<double>(inl.size());
+
+    if (total_inliers < m_min_inlier_gain_ratio * baseline_inliers)
+    {
+      result.success = false;
+      return result;
+    }
+  }
+
   // --- Aggregate metrics ---
 
-  // Arc coverage: minimum across all circles (most conservative).
+  // Arc coverage: max across all circles (less conservative).
   double min_arc = std::numeric_limits<double>::max();
   for (int i = 0; i < static_cast<int>(fitted_circles.size()); ++i)
   {
     const Vec3 c3d = {fitted_circles[i].cx, fitted_circles[i].cy, m_zmean};
-    min_arc = std::min(min_arc, calculate_arc_coverage(points, per_circle_inliers[i], c3d));
+    min_arc = std::max(min_arc, calculate_arc_coverage(points, per_circle_inliers[i], c3d));
   }
 
   // Interior percentage: a point counts if it falls strictly inside any circle.
@@ -128,7 +152,7 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     }
   }
 
-  // Combined center: area-weighted centroid (radius² ∝ cross-section area).
+  // Combined center: area-weighted centroid.
   double total_area = 0.0, cx_w = 0.0, cy_w = 0.0;
   for (const auto& c : fitted_circles)
   {
@@ -140,7 +164,7 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
   cx_w /= total_area;
   cy_w /= total_area;
 
-  // Equivalent radius: √(Σ rᵢ²) — preserves total cross-section area.
+  // Equivalent radius: preserves total cross-section area.
   double r_equiv = 0.0;
   for (const auto& c : fitted_circles) r_equiv += c.radius * c.radius;
   r_equiv = std::sqrt(r_equiv);
@@ -174,8 +198,8 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     {
       const double t = deg * M_PI / 180.0;
       result.contour.push_back({c.cx + c.radius * std::cos(t),
-                                c.cy + c.radius * std::sin(t),
-                                m_zmean});
+                               c.cy + c.radius * std::sin(t),
+                               m_zmean});
     }
   }
 
@@ -217,12 +241,12 @@ CircleModel MultiCircleFitter::fit_circle_ransac(
       if (point_to_circle_distance(points[idx].x, points[idx].y, circle) < tolerance)
         ++inlier_count;
 
-    if (inlier_count > max_inliers)
-    {
-      max_inliers = inlier_count;
-      best = circle;
-      if (max_inliers >= early_exit_thr) break;
-    }
+      if (inlier_count > max_inliers)
+      {
+        max_inliers = inlier_count;
+        best = circle;
+        if (max_inliers >= early_exit_thr) break;
+      }
   }
 
   if (max_inliers > 0) best.valid = true;
@@ -239,7 +263,7 @@ std::vector<int> MultiCircleFitter::find_inliers(
   for (int idx : candidates)
     if (point_to_circle_distance(points[idx].x, points[idx].y, circle) <= tolerance)
       inliers.push_back(idx);
-  return inliers;
+    return inliers;
 }
 
 } // namespace arbor::utils::fitting

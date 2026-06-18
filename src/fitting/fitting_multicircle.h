@@ -27,23 +27,11 @@
 
 namespace arbor::utils::fitting {
 
-/**
- * @brief Fits exactly n_circles circles sequentially via RANSAC.
- *
- * Each circle is fitted on the points not already claimed by a previous
- * circle.  The combined FittingResult has:
- *   center      — area-weighted centroid of all circle centres
- *   radius      — equivalent cross-section radius: √(Σ rᵢ²)
- *   parameters  — packed as [cx₁, cy₁, r₁,  cx₂, cy₂, r₂, …]
- *   contour     — full outline of every circle, concatenated
- *   arc_coverage_deg — minimum across all circles (most conservative)
- *
- * Suitable for multi-stem cross-sections (double stem, triple stem).
- */
 class MultiCircleFitter : public ShapeFitter
 {
 public:
-  MultiCircleFitter(int n_circles = 2, int max_iterations = 1000, double early_exit_ratio = 0.9, unsigned seed = 64);
+  MultiCircleFitter(int n_circles = 2, int max_iterations = 1000, double early_exit_ratio = 0.9,
+                    unsigned seed = 64, double max_overlap_ratio = 0.2, double min_inlier_gain_ratio = 1.3);
   FittingResult fit(const std::vector<Vec3>& points, double tolerance) override;
 
 private:
@@ -53,6 +41,8 @@ private:
   int                  m_n_circles;
   int                  m_max_iterations;
   double               m_early_exit_ratio;
+  double               m_max_overlap_ratio;
+  double               m_min_inlier_gain_ratio;
   mutable std::mt19937 m_rng;
 };
 

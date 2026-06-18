@@ -153,6 +153,7 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
     case 1:  return arbor::utils::fitting::FitMode::Standard;
     case 2:  return arbor::utils::fitting::FitMode::Standard;
     case 3:  return arbor::utils::fitting::FitMode::Buttress;
+    case 4:  return arbor::utils::fitting::FitMode::Full;
     default: return arbor::utils::fitting::FitMode::Basic;
     }
   };
