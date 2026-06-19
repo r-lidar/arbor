@@ -69,7 +69,7 @@ public:
   Derived subset(const std::vector<bool>& mask, bool xyz_only = false) const;
   Derived subset_by_treeid(int tid) const;
   std::vector<unsigned int> find_points_by_tree_id(int tid) const;
-  std::vector<unsigned int> find_point_by_tree_context(int tid, float r = 0.1, bool exclude_tree = false) const;
+  std::vector<unsigned int> find_context_points_by_tree_id(int tid, float r = 0.1, bool exclude_tree = false) const;
 
 
   // Partition like std::partition
@@ -348,7 +348,7 @@ void BasePointCloud<Derived>::colorize_trees(bool darken_foliage)
 }
 
 template <typename Derived>
-std::vector<unsigned int> BasePointCloud<Derived>::find_point_by_tree_context(int tid, float r, bool exclude_tree) const
+std::vector<unsigned int> BasePointCloud<Derived>::find_context_points_by_tree_id(int tid, float r, bool exclude_tree) const
 {
   const Derived& self = static_cast<const Derived&>(*this);
 
