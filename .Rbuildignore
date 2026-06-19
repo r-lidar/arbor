@@ -3,3 +3,7 @@
 ^.*\.o$
 .github
 ^LICENSE\.md$
+^.*\.pro$
+libarbor/
+Makefile
+.qmake.stash

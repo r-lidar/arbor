@@ -128,7 +128,7 @@ Rcpp::DataFrame allometry(std::string name)
   );
 }
 
-Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance)
+Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance, int complexity)
 {
   if (x.ncol() != 3) {
     Rcpp::stop("Input matrix must have 3 columns (X, Y, Z)");
@@ -137,8 +137,8 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   arbor::utils::fitting::Vec3 f = {from[0], from[1], from[2]};
   arbor::utils::fitting::Vec3 t = {to[0], to[1], to[2]};
 
-  arbor::utils::fitting::FittingOrbicular fitter;
-  fitter.set_axe(f, t);
+  arbor::utils::fitting::CrossSectionFitter fitter;
+  fitter.set_axis(f, t);
 
   // Add all points
   int n = x.nrow();
@@ -146,8 +146,19 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
     fitter.add_point(x(i, 0), x(i, 1), x(i, 2));
   }
 
+  auto strategyFromComplexity = [](int complexity) -> arbor::utils::fitting::FitMode
+  {
+    switch (complexity)
+    {
+    case 1:  return arbor::utils::fitting::FitMode::Standard;
+    case 2:  return arbor::utils::fitting::FitMode::Standard;
+    case 3:  return arbor::utils::fitting::FitMode::Buttress;
+    default: return arbor::utils::fitting::FitMode::Basic;
+    }
+  };
+
   // Perform fitting
-  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance);
+  arbor::utils::fitting::FittingResult result = fitter.fit(tolerance, strategyFromComplexity(complexity));
 
   if (!result.success)
   {
@@ -162,14 +173,14 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   Rcpp::IntegerVector r_inliers = Rcpp::wrap(result.inlier_indices);
   for (int i = 0; i < r_inliers.size(); i++) { r_inliers[i] += 1; }  // Convert to 1-based indexing
 
-  size_t nnodes = result.nodes.size();
+  size_t nnodes = result.contour.size();
   Rcpp::NumericMatrix nodes(nnodes, 3);
 
   for (size_t i = 0; i < nnodes; ++i)
   {
-    nodes(i,0) = result.nodes[i].x;
-    nodes(i,1) = result.nodes[i].y;
-    nodes(i,2) = result.nodes[i].z;
+    nodes(i,0) = result.contour[i].x;
+    nodes(i,1) = result.contour[i].y;
+    nodes(i,2) = result.contour[i].z;
   }
 
   // Build result list based on shape type

@@ -1,32 +1,57 @@
 # Arbor
 
-High-performance tree segmentation and structural modeling for TLS/MLS point clouds.
+### From raw forest scan to thousands of QSMs, on a laptop, in minutes.
 
-**arbor** is a production-grade C++ library for large-scale processing of terrestrial and mobile laser scanning data of forests. It introduces a new generation of algorithms for tree segmentation and modeling that significantly advance the state of the art in forest point-cloud analysis.
+[![License: GPL-3](https://img.shields.io/badge/License-GPL3-green.svg)](LICENSE)
 
-Designed for both **accuracy and scalability**, arbor can process very large datasets covering thousands of square meters within few minutes, compute dozens of Quantitative Structure Models (QSMs) per second, and robustly segment forests ranging from simple stands to extremely complex tropical ecosystems.
-
-Arbor maintains high segmentation accuracy in dense understory and low vegetation, enabling reliable reconstruction of complete forest structure from mature trees to saplings.
-
-📖 See the [Arbor Book](https://r-lidar.github.io/arborBook/) for tutorials and examples.
+[📖 Book & Tutorial](https://r-lidar.github.io/arborBook/) · [🌐 r-lidar.com](https://www.r-lidar.com/)
 
 ---
 
-# Features
+Arbor is a **production-grade** C++ library with an R API for processing Mobile and Terrestrial Laser Scanning point clouds of forests. It covers the full pipeline — ground classification, wood/foliage segmentation, individual tree detection, and QSM reconstruction — automatically, without parameter tuning, on real-world noisy data and at an unmatched speed.
 
-- 🌲 **Advanced semantic segmentation:** classifies wood, foliage, and ground with high accuracy even in dense forests and complex understory environments.
-- 🌳 **Instance segmentation: automatically** detects and separates individual trees in large point clouds.
-- 🪵 **Quantitative Structure Models (QSM):** reconstructs detailed tree skeletons and branching architecture at high throughput (dozens of QSMs per second).
-- 🌐 **Quantitative Structure Forest (QSF):** extends QSM reconstruction to entire forest scenes, enabling structural analysis at ecosystem scale.
--  ⚡ **Designed for massive datasets:** optimized algorithms allow arbor to process very large TLS/MLS point clouds efficiently, making it suitable for production pipelines and large forest inventories.
-- 📦 **Interoperable outputs:** support results to CSV, OBJ, PLY, and STL for analysis and 3D visualization.
-- 🖥 **Fast 3D visualization:** built-in tools to quickly render and inspect forest scenes.
+No supervision. No tweaking. Works leaf-on.
 
----
+## What makes it different?
 
-# Installation
+**It scales.** 900 m² in 1 minute. 5 000 m² in 8 minutes. 10 QSMs per second. On a laptop.
+
+**It is easy.** Every dataset goes through the same pipeline with the same default parameters and comes out the other end with accurate 3D models of the forest.
+
+**It is documented.** Arbor is deeply documented in a [dedicated book](https://r-lidar.github.io/arborBook/).
+
+**It is validated.** On an exceptionally large dataset of real data.
+
+## Installation
 
 ```r
-# Install from GitHub
-devtools::install_github("r-lidar-lab/arbor")
+install.packages("arbor")
 ```
+
+Or if not yet on CRAN:
+
+```r
+install.packages('arbor', repos = c('https://r-lidar.r-universe.dev', 'https://cloud.r-project.org'))
+```
+
+## Learn more
+
+The **[Arbor Book](https://r-lidar.github.io/arborBook/)** is a complete, illustrated guide to the full pipeline with example datasets you can download and run right now.
+
+Minimal Reproducible Example:
+
+```r
+las <- readTLS("forest.laz", select = "xyz", filter = "-keep_random_fraction 0.25")
+las <- hybrid_homogeneization(las)
+las <- segment_ground(las)
+las <- wood_likelihood(las)
+las <- segment_semantic(las)
+see <- find_seeds(las)
+las <- segment_instance(las, see)
+qsf <- qsf(las)          # one QSM per tree, in parallel
+plot(qsf, pal = "chocolate4")
+```
+
+## Acknowledgements
+
+Developed by [r-lidar inc.](https://www.r-lidar.com/) with support from Sherbrooke University, Natural Resources Canada, IRD Montpellier, the Québec Ministry of Natural Resources and Forests, and Ontario Forestry Futures Trust.

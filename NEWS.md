@@ -1,3 +1,11 @@
+# arbor 0.14.1
+
+- `qsm_stats` returns the `treeID`
+
+# arbor 0.14.0
+
+- Next level QSMs
+
 # arbor 0.13.2
 
 - New parameters: `params$qsm$min_measurable_dbh` to control the lower bound of what is assumed to be measurable or not.

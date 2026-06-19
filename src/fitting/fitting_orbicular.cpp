@@ -1,5 +1,5 @@
 /**
- * @file fitting_circloid.cpp
+ * @file fitting_orbicular.cpp
  * Project: Arbor
  *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
@@ -18,124 +18,132 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "fitting.h"
-#include <cmath>
+#include "fitting_orbicular.h"
+#include "fitting_circle.h"
+#include "fitting_ellipse.h"
+#include "fitting_fourier.h"
+#include "fitting_multicircle.h"
 #include <algorithm>
+#include <cmath>
 #include <set>
 
 namespace arbor::utils::fitting {
 
-double IFittingStrategy::calculate_arc_coverage(const std::vector<Vec3>& points, const std::vector<int>& inliers, const Vec3& center)
+double ShapeFitter::calculate_arc_coverage(
+    const std::vector<Vec3>& points,
+    const std::vector<int>&  inliers,
+    const Vec3&              center)
 {
   if (inliers.empty()) return 0.0;
 
   const double bin_size = 10.0;
-  std::set<int> unique_bins;
+  const int total_bins = 36; // 360 / 10
 
-  // Calculate angles and directly populate the sorted/unique set of bins
+  // Use a vector of bools as a bitmask for occupied bins (0 to 35)
+  std::vector<bool> has_point(total_bins, false);
+  int unique_bin_count = 0;
+
   for (int idx : inliers)
   {
     const auto& p = points[idx];
     double angle = std::atan2(p.y - center.y, p.x - center.x) * 180.0 / M_PI;
     if (angle < 0.0) angle += 360.0;
 
-    int bin = static_cast<int>(std::round(angle / bin_size) * bin_size);
-    if (bin == 360) bin = 0;
-    unique_bins.insert(bin);
-  }
+    // Integer division to map 0.0-359.999 to 0-35 indices safely
+    int bin_idx = static_cast<int>(angle / bin_size);
+    if (bin_idx >= total_bins) bin_idx = total_bins - 1; // Guard against rounding edge cases
 
-  std::vector<int> sorted_bins(unique_bins.begin(), unique_bins.end());
-
-  if (sorted_bins.empty()) return 0.0;
-  if (sorted_bins.size() == 1) return bin_size;
-
-  int consecutive_count = 0;
-  for (size_t i = 1; i < sorted_bins.size(); ++i)
-  {
-    if (sorted_bins[i] - sorted_bins[i-1] <= static_cast<int>(bin_size))
-    {
-      ++consecutive_count;
+    if (!has_point[bin_idx]) {
+      has_point[bin_idx] = true;
+      ++unique_bin_count;
     }
   }
 
-  // Check wraparound: is last bin close to first bin + 360?
-  if (sorted_bins.back() >= 360 - static_cast<int>(bin_size) && sorted_bins.front() <= static_cast<int>(bin_size))
+  if (unique_bin_count == 0) return 0.0;
+  if (unique_bin_count == total_bins) return 360.0;
+
+  // Find the longest consecutive chain of occupied bins
+  int max_chain = 0;
+  int current_chain = 0;
+
+  // Run the loop up to 2 * total_bins to seamlessly handle the 360->0 wraparound
+  for (int i = 0; i < 2 * total_bins; ++i)
   {
-    ++consecutive_count;
+    if (has_point[i % total_bins])
+    {
+      ++current_chain;
+      if (current_chain > max_chain) {
+        max_chain = current_chain;
+      }
+    }
+    else
+    {
+      current_chain = 0;
+    }
   }
 
-  return consecutive_count * bin_size;
+  // Cap the max chain at total_bins just in case
+  if (max_chain > total_bins) max_chain = total_bins;
+
+  return max_chain * bin_size;
 }
 
-FittingOrbicular::FittingOrbicular()
+CrossSectionFitter::CrossSectionFitter()
 {
   R = {{
     {1.0, 0.0, 0.0},
     {0.0, 1.0, 0.0},
     {0.0, 0.0, 1.0}
-    }};
-
+  }};
   for (int i = 0; i < 3; ++i)
     for (int j = 0; j < 3; ++j)
       R_inv[i][j] = R[j][i];
 }
 
-void FittingOrbicular::add_point(double x, double y, double z)
+void CrossSectionFitter::set_axis(const Vec3& from, const Vec3& to)
 {
-  Vec3 p = {x, y, z};
+  m_origin = from;
+  const Vec3 axis_dir = (to - from).normalized();
+  const Vec3 z_axis(0.0, 0.0, 1.0);
+  compute_rotation_matrix(axis_dir, z_axis);
+}
 
-  p.x -= m_origin.x;
-  p.y -= m_origin.y;
-  p.z -= m_origin.z;
-
+void CrossSectionFitter::add_point(double x, double y, double z)
+{
+  Vec3 p = {x - m_origin.x, y - m_origin.y, z - m_origin.z};
   apply_rotation(p);
   m_points.push_back(p);
 }
 
-void FittingOrbicular::clear() { m_points.clear(); }
+void CrossSectionFitter::clear() { m_points.clear(); }
 
-void FittingOrbicular::set_axe(const Vec3& from, const Vec3& to)
-{
-  // 1. Store 'from' as our local origin to translate points later
-  m_origin = from;
-
-  // 2. Calculate the directional vector of your point cloud
-  Vec3 axis_dir = (to - from).normalized();
-
-  // 3. Define the target axis (We want the point cloud aligned to Z)
-  Vec3 z_axis(0.0, 0.0, 1.0);
-
-  // 4. Compute rotation from the current direction to the Z-axis
-  compute_rotation_matrix(axis_dir, z_axis);
-}
-
-FittingResult FittingOrbicular::fit(double tolerance)
+FittingResult CrossSectionFitter::fit(double tolerance, FitMode flags)
 {
   FittingResult best_result;
-  std::vector<std::unique_ptr<IFittingStrategy>> strategies;
-  strategies.push_back(std::make_unique<FittingCircle>());
-  strategies.push_back(std::make_unique<FittingEllipse>());
-  strategies.push_back(std::make_unique<FittingComplex>());
+  std::vector<std::unique_ptr<ShapeFitter>> strategies;
+
+  if (has(flags, FitMode::Circle))       strategies.push_back(std::make_unique<CircleFitter>());
+  if (has(flags, FitMode::Ellipse))      strategies.push_back(std::make_unique<EllipseFitter>());
+  if (has(flags, FitMode::Fourier5))     strategies.push_back(std::make_unique<FourierFitter>(5));
+  if (has(flags, FitMode::MultiCircle2)) strategies.push_back(std::make_unique<MultiCircleFitter>(2));
+  if (has(flags, FitMode::MultiCircle3)) strategies.push_back(std::make_unique<MultiCircleFitter>(3));
+  if (has(flags, FitMode::Fourier10))    strategies.push_back(std::make_unique<FourierFitter>(10));
 
   for (auto& strategy : strategies)
   {
     FittingResult current = strategy->fit(m_points, tolerance);
-    if (current.success && current.inlier_percentage > best_result.inlier_percentage)
-    {
+    if (current.success && current.inlier_percentage > best_result.inlier_percentage * 1.1)
       best_result = std::move(current);
-    }
   }
 
-  // 1. Reverse rotation for the center
+  // Transform the best result back to the original coordinate frame.
   reverse_rotation(best_result.center);
-  // 2. Undo the translation to put the center back in global 3D space
   best_result.center.x += m_origin.x;
   best_result.center.y += m_origin.y;
   best_result.center.z += m_origin.z;
 
-  for (auto& v : best_result.nodes)
+  for (auto& v : best_result.contour)
   {
-    // Do the same for all nodes
     reverse_rotation(v);
     v.x += m_origin.x;
     v.y += m_origin.y;
@@ -145,91 +153,72 @@ FittingResult FittingOrbicular::fit(double tolerance)
   return best_result;
 }
 
-// --- Compute rotation matrix between two vectors ---
-void FittingOrbicular::compute_rotation_matrix(const Vec3& from, const Vec3& to)
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
+void CrossSectionFitter::compute_rotation_matrix(const Vec3& from, const Vec3& to)
 {
-  Vec3 a = from.normalized();
-  Vec3 b = to.normalized();
+  const Vec3 a = from.normalized();
+  const Vec3 b = to.normalized();
 
-  Vec3 v = a.cross(b);       // Rotation axis (scaled by sine of angle)
-  double s = v.length();     // sine of the angle
-  double c = a.dot(b);       // cosine of the angle
+  Vec3 v  = a.cross(b);     // rotation axis scaled by sin(angle)
+  double s = v.length();    // sin(angle)
+  double c = a.dot(b);      // cos(angle)
 
-  // Handle Parallel or Anti-parallel edge cases
   if (s < 1e-9)
   {
-    if (c > 0)
-    {
-      // Indentity matrix: R already initialized
-      return;
-    }
-    else
-    {
-      // Case: Vectors are 180 degrees apart
-      // Find an arbitrary perpendicular axis to rotate around
-      Vec3 axis = (std::fabs(a.x) > 0.9) ? Vec3(0, 1, 0) : Vec3(1, 0, 0);
-      v = a.cross(axis).normalized();
-      s = 0.0; // sin(180) = 0
-      c = -1.0;
-      // For 180 deg, we proceed with the Rodrigues formula using c = -1
-    }
+    if (c > 0) return;       // already aligned — R stays identity
+
+    // Vectors are 180° apart: pick an arbitrary perpendicular axis
+    const Vec3 axis = (std::fabs(a.x) > 0.9) ? Vec3(0, 1, 0) : Vec3(1, 0, 0);
+    v = a.cross(axis).normalized();
+    s = 0.0;
+    c = -1.0;
   }
   else
   {
-    // Normalize the axis for the skew-symmetric matrix
-    v = v / s;
+    v = v / s;               // normalize rotation axis
   }
 
-  // Rodrigues' rotation formula components
-  // R = I + (sin theta)K + (1 - cos theta)K^2
-  double vx = v.x, vy = v.y, vz = v.z;
-  double K[3][3] = {
+  // Rodrigues' rotation formula: R = I + sin(θ)·K + (1 − cos(θ))·K²
+  const double vx = v.x, vy = v.y, vz = v.z;
+  const double K[3][3] = {
     { 0,  -vz,  vy},
     { vz,  0,  -vx},
     {-vy,  vx,  0 }
   };
 
-  // Compute final matrix R
-  double one_minus_c = 1.0 - c;
+  const double one_minus_c = 1.0 - c;
   for (int i = 0; i < 3; ++i)
   {
     for (int j = 0; j < 3; ++j)
     {
-      double identity = (i == j) ? 1.0 : 0.0;
-
-      // Matrix multiplication for K^2 term
-      double k_squared = K[i][0]*K[0][j] + K[i][1]*K[1][j] + K[i][2]*K[2][j];
-
-      R[i][j] = identity + (K[i][j] * s) + (k_squared * one_minus_c);
+      const double identity  = (i == j) ? 1.0 : 0.0;
+      const double k_squared = K[i][0]*K[0][j] + K[i][1]*K[1][j] + K[i][2]*K[2][j];
+      R[i][j] = identity + K[i][j]*s + k_squared*one_minus_c;
     }
   }
 
   for (int i = 0; i < 3; ++i)
     for (int j = 0; j < 3; ++j)
-      R_inv[i][j] = R[j][i];
+      R_inv[i][j] = R[j][i];   // R is orthogonal: R⁻¹ = Rᵀ
 }
 
-
-void FittingOrbicular::apply_rotation(Vec3& p)
+void CrossSectionFitter::apply_rotation(Vec3& p)
 {
-  double x, y, z;
-  x = R[0][0]*p.x + R[0][1]*p.y + R[0][2]*p.z;
-  y = R[1][0]*p.x + R[1][1]*p.y + R[1][2]*p.z;
-  z = R[2][0]*p.x + R[2][1]*p.y + R[2][2]*p.z;
-  p.x = x;
-  p.y = y;
-  p.z = z;
+  const double x = R[0][0]*p.x + R[0][1]*p.y + R[0][2]*p.z;
+  const double y = R[1][0]*p.x + R[1][1]*p.y + R[1][2]*p.z;
+  const double z = R[2][0]*p.x + R[2][1]*p.y + R[2][2]*p.z;
+  p.x = x; p.y = y; p.z = z;
 }
 
-void FittingOrbicular::reverse_rotation(Vec3& p)
+void CrossSectionFitter::reverse_rotation(Vec3& p)
 {
-  double x, y, z;
-  x = R_inv[0][0]*p.x + R_inv[0][1]*p.y + R_inv[0][2]*p.z;
-  y = R_inv[1][0]*p.x + R_inv[1][1]*p.y + R_inv[1][2]*p.z;
-  z = R_inv[2][0]*p.x + R_inv[2][1]*p.y + R_inv[2][2]*p.z;
-  p.x = x;
-  p.y = y;
-  p.z = z;
+  const double x = R_inv[0][0]*p.x + R_inv[0][1]*p.y + R_inv[0][2]*p.z;
+  const double y = R_inv[1][0]*p.x + R_inv[1][1]*p.y + R_inv[1][2]*p.z;
+  const double z = R_inv[2][0]*p.x + R_inv[2][1]*p.y + R_inv[2][2]*p.z;
+  p.x = x; p.y = y; p.z = z;
 }
 
-}
+} // namespace arbor::utils::fitting

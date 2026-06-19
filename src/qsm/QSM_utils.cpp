@@ -58,6 +58,9 @@ NodeID QSM::find_root_node() const
 QSM QSM::stem() const
 {
   QSM result;
+  result.messages = messages;
+  result.id = id;
+  result.name = name;
 
   // Map from original NodeID -> new NodeID in the result graph.
   std::unordered_map<NodeID, NodeID> node_map;
@@ -87,6 +90,10 @@ QSM QSM::stem() const
 QSM QSM::merchantable(double min_radius, double min_axis_length) const
 {
   QSM result;
+  result.messages = messages;
+  result.id = id;
+  result.name = name;
+
   std::unordered_set<EdgeID> edges_to_keep;
 
   // STEP 1: Radius-based Pruning from leaves to root. Stop at first edge with big enought radius

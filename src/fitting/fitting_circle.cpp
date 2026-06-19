@@ -1,232 +1,135 @@
 /**
  * @file fitting_circle.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "fitting.h"
+#include "fitting_circle.h"
 #include <cmath>
 #include <limits>
-#include <algorithm>
 
 namespace arbor::utils::fitting {
 
-FittingCircle::FittingCircle(int max_iterations, double early_exit_ratio, unsigned seed)
+CircleFitter::CircleFitter(int max_iterations, double early_exit_ratio, unsigned seed)
   : m_max_iterations(max_iterations),
     m_early_exit_ratio(early_exit_ratio),
     m_rng(seed)
 {
 }
 
-FittingResult FittingCircle::fit(const std::vector<Vec3>& points, double tolerance)
+FittingResult CircleFitter::fit(const std::vector<Vec3>& points, double tolerance)
 {
   FittingResult result;
   result.shape_type = "circle";
 
-  double zsum = 0;
+  if (points.size() < 3) { result.success = false; return result; }
+
+  double zsum = 0.0;
   for (const auto& v : points) zsum += v.z;
-  m_zmean = zsum / points.size();
+  m_zmean = zsum / static_cast<double>(points.size());
 
-  if (points.size() < 3) {
-    result.success = false;
-    return result;
-  }
+  CircleModel circle = fit_circle_ransac(points, tolerance);
+  if (!circle.valid) { result.success = false; return result; }
 
-  // Fit circle using RANSAC
-  CircleParams circle = fit_circle_ransac(points, tolerance);
-
-  if (!circle.valid) {
-    result.success = false;
-    return result;
-  }
-
-  // Find inliers
   std::vector<int> inliers = find_inliers(points, circle, tolerance);
+  if (inliers.empty()) { result.success = false; return result; }
 
-  if (inliers.empty()) {
-    result.success = false;
-    return result;
-  }
-
-  // Calculate 3D center
   Vec3 center_3d = calculate_3d_center(circle);
 
-  // Calculate insider percentage (points strictly inside the circle)
-  int insiders = 0;
-  for (const auto& p : points) {
-    double dx = p.x - circle.cx;
-    double dy = p.y - circle.cy;
-    double dist_to_center = std::sqrt(dx * dx + dy * dy);
-    if (dist_to_center < circle.radius - tolerance) {
-      ++insiders;
-    }
+  int interiors = 0;
+  for (const auto& p : points)
+  {
+    const double dx = p.x - circle.cx;
+    const double dy = p.y - circle.cy;
+    if (std::sqrt(dx*dx + dy*dy) < circle.radius - tolerance) ++interiors;
   }
 
-  // Calculate metrics
-  result.success = true;
-  result.center = center_3d;
-  result.radius = circle.radius;
-  result.inlier_indices = inliers;
-  result.inlier_percentage = (double)inliers.size() / points.size() * 100.0;
-  result.insider_percentage = (double)insiders / points.size() * 100.0;
-  result.arc_coverage_deg = calculate_arc_coverage(points, inliers, center_3d);
-  result.parameters = {circle.cx, circle.cy, circle.radius};
+  result.success             = true;
+  result.center              = center_3d;
+  result.radius              = static_cast<float>(circle.radius);
+  result.inlier_indices      = inliers;
+  result.inlier_percentage   = 100.0f * static_cast<float>(inliers.size())  / static_cast<float>(points.size());
+  result.interior_percentage = 100.0f * static_cast<float>(interiors)       / static_cast<float>(points.size());
+  result.arc_coverage_deg    = static_cast<float>(calculate_arc_coverage(points, inliers, center_3d));
+  result.parameters          = {circle.cx, circle.cy, circle.radius};
 
-  // Generate circle nodes
-  double r = circle.radius;
+  const double r = circle.radius;
   for (int i = 0; i <= 360; i += 2)
   {
-    double t = i * M_PI / 180.0;
-    double x = center_3d.x + r * std::cos(t);
-    double y = center_3d.y + r * std::sin(t);
-    double z = m_zmean;
-
-    result.nodes.push_back({x, y, z});
+    const double t = i * M_PI / 180.0;
+    result.contour.push_back({center_3d.x + r * std::cos(t),
+                              center_3d.y + r * std::sin(t),
+                              m_zmean});
   }
 
   return result;
 }
 
-FittingCircle::CircleParams FittingCircle::fit_circle_ransac(const std::vector<Vec3>& points, double tolerance) const
+CircleModel CircleFitter::fit_circle_ransac(const std::vector<Vec3>& points, double tolerance) const
 {
-  CircleParams best_circle;
-  best_circle.valid = false;
-
-  int n = static_cast<int>(points.size());
-  if (n < 3) {
-    return best_circle;
-  }
+  CircleModel best;
+  const int n = static_cast<int>(points.size());
+  if (n < 3) return best;
 
   std::uniform_int_distribution<int> dist(0, n - 1);
-
-  int max_inliers = 0;
-  int early_exit_threshold = static_cast<int>(m_early_exit_ratio * n);
+  int max_inliers          = 0;
+  const int early_exit_thr = static_cast<int>(m_early_exit_ratio * n);
 
   for (int iter = 0; iter < m_max_iterations; ++iter)
   {
-    // Pick 3 unique random points
     int idx1 = dist(m_rng);
-    int idx2, idx3;
-    do { idx2 = dist(m_rng); } while (idx2 == idx1);
-    do { idx3 = dist(m_rng); } while (idx3 == idx1 || idx3 == idx2);
+    int idx2; do { idx2 = dist(m_rng); } while (idx2 == idx1);
+    int idx3; do { idx3 = dist(m_rng); } while (idx3 == idx1 || idx3 == idx2);
 
-    // Fit circle on these 3 points
-    CircleParams circle = fit_circle_on_3_points(
+    CircleModel circle = fit_circle_on_3_points(
       points[idx1].x, points[idx1].y,
       points[idx2].x, points[idx2].y,
-      points[idx3].x, points[idx3].y
-    );
+      points[idx3].x, points[idx3].y);
 
-    if (!circle.valid || circle.radius <= 0.0 || std::isnan(circle.radius)) {
-      continue;
-    }
+    if (!circle.valid || circle.radius <= 0.0 || std::isnan(circle.radius)) continue;
 
-    // Count inliers
     int inliers = 0;
-    for (int j = 0; j < n; ++j)
-    {
-      double dist_val = point_to_circle_distance(points[j].x, points[j].y, circle);
-      if (dist_val < tolerance) {
-        ++inliers;
-      }
-    }
+    for (const auto& p : points)
+      if (point_to_circle_distance(p.x, p.y, circle) < tolerance) ++inliers;
 
-    // Update best model
     if (inliers > max_inliers)
     {
       max_inliers = inliers;
-      best_circle = circle;
-
-      // Early exit if we have enough inliers
-      if (max_inliers >= early_exit_threshold) {
-        break;
-      }
+      best = circle;
+      if (max_inliers >= early_exit_thr) break;
     }
   }
 
-  if (max_inliers > 0) {
-    best_circle.valid = true;
-  }
-
-  return best_circle;
+  if (max_inliers > 0) best.valid = true;
+  return best;
 }
 
-FittingCircle::CircleParams FittingCircle::fit_circle_on_3_points(
-    double x1, double y1,
-    double x2, double y2,
-    double x3, double y3) const
-{
-  CircleParams result;
-  result.valid = false;
-
-  // Calculate the coefficients for the linear system
-  double A = 2.0 * (x2 - x1);
-  double B = 2.0 * (y2 - y1);
-  double C = x2*x2 + y2*y2 - x1*x1 - y1*y1;
-  double D = 2.0 * (x3 - x1);
-  double E = 2.0 * (y3 - y1);
-  double G = x3*x3 + y3*y3 - x1*x1 - y1*y1;
-
-  // Solve for cx and cy using Cramer's rule
-  double denominator = A * E - B * D;
-
-  if (std::fabs(denominator) < 1e-12) {
-    return result;
-  }
-
-  double cx = (C * E - B * G) / denominator;
-  double cy = (A * G - C * D) / denominator;
-
-  // Calculate the radius
-  double r = std::sqrt((x1 - cx) * (x1 - cx) + (y1 - cy) * (y1 - cy));
-
-  result.cx = cx;
-  result.cy = cy;
-  result.radius = r;
-  result.valid = true;
-
-  return result;
-}
-
-double FittingCircle::point_to_circle_distance(double px, double py, const CircleParams& circle) const
-{
-  double dx = px - circle.cx;
-  double dy = py - circle.cy;
-  double dist_to_center = std::sqrt(dx * dx + dy * dy);
-  return std::abs(dist_to_center - circle.radius);
-}
-
-std::vector<int> FittingCircle::find_inliers(const std::vector<Vec3>& points, const CircleParams& circle, double tolerance) const
+std::vector<int> CircleFitter::find_inliers(
+    const std::vector<Vec3>& points, const CircleModel& circle, double tolerance) const
 {
   std::vector<int> inliers;
-
-  for (size_t i = 0; i < points.size(); ++i) {
-    double dist = point_to_circle_distance(points[i].x, points[i].y, circle);
-    if (dist <= tolerance) {
+  for (size_t i = 0; i < points.size(); ++i)
+    if (point_to_circle_distance(points[i].x, points[i].y, circle) <= tolerance)
       inliers.push_back(static_cast<int>(i));
-    }
-  }
-
   return inliers;
 }
 
-Vec3 FittingCircle::calculate_3d_center(const CircleParams& circle) const
+Vec3 CircleFitter::calculate_3d_center(const CircleModel& circle) const
 {
-  // Use the 2D circle center directly, with average Z
   return {circle.cx, circle.cy, m_zmean};
 }
 

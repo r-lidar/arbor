@@ -7,6 +7,7 @@ files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFa
 files = list.files("/home/jr/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/ITS/", full.names = TRUE, pattern = ".las")
 files = list.files("~/Téléchargements/QSM St Vero/Pall_registered/", full.names = TRUE, pattern = ".las")
 
+
 file = "~/Téléchargements/QSM St Vero/Pall_registered/33BOJ.las"
 file = "~/Téléchargements/QSM St Vero/Pall_registered/84ERS.las" # Vstem 2.3 m³
 file = "~/Téléchargements/QSM St Vero/Pall_registered/34BOJ.las"
@@ -21,8 +22,8 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
 # Bad
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD01_006_1.laz" # !!!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/MDD03_011_1.laz" # !!!!
 
 # gap
 file =  "/home/jr/Documents/r-lidar inc/arbor/Tree bank/gap/BD2_DO10.laz"
@@ -38,15 +39,50 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Havelange/BD1_DO12.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_119.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_217.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/tree_269.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/broken/P05_TLS_tree_7.asc"
+
+# Broken branch
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/overestimate/P09_TLS_3.las"
 
 # Zambia
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/its//tree_236.las" # !!
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_164.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_126.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_030.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_060.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_025.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_028.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_086.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_153.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_065.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_117.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_084.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_096.laz"
+
+# Validation
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_663.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_331.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_418.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_47.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_425.laz"
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/LXDC1.laz" # branches surestimée bon test.
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5574.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/StA_09_tree_5664.laz" # bad bad bad
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Demol/pointclouds_clean/FEXC1.laz"
+
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/TLSvMLS//MLS15m/P03_MLS15m_28.las"
+
+# validation
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Gonzales/4_LidarTreePoinCloudData/MDD01_006_1.laz"
 
 # Big tree non circular
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_1114.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_681.las"
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_54.las"  # prolongation!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_681.las" # prolongation!!
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_705.las" # prolongation!!
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_848.las"
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/tree_939.las"
 
@@ -54,7 +90,7 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15240
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/non-circular/wytham_15408.las"
 
 
-file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/urban/urban-karl.las"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/urban/urban-karl.las" ##!!!
 
 
 # ==== Single QSM ======
@@ -68,20 +104,50 @@ file
 #plot_semantic(tree)
 
 {
-tree <- lidR::readLAS(file)
-tree@data$treeID = as.integer(tree@data$treeID)
-tree@data$foliage = as.integer(tree@data$foliage)
-tree@data$passage = as.integer(tree@data$passage)
+  if (tools::file_ext(file) == "asc")
+  {
+    tree = data.table::fread(file)
+    tree = LAS(tree) |> suppressWarnings()
+    tree@data$foliage = 0L
+    tree@data$hag = tree$Z - min(tree$Z)
+    tree = hybrid_homogeneization(tree)
+  }
+  else if (tools::file_ext(file) == "xyz")
+  {
+    tree = data.table::fread(file)
+    tree = LAS(tree) |> suppressWarnings()
+    tree@data$foliage = 0L
+    tree@data$hag = tree$Z - min(tree$Z)
+    tree = hybrid_homogeneization(tree)
+  }
+  else
+  {
+    tree <- lidR::readLAS(file)
+    if (all(is.na(tree@data$foliage)))
+        tree@data$foliage = 0L
 
-t0 = Sys.time()
-params= arbor_parameters_default
-params$qsm$skeleton_node_distance = 0.2
-qsm = qsm(tree, params)
-tf = Sys.time()
-print(difftime(tf, t0))
+    if (is.null(tree$hag))
+      tree@data$hag = tree$Z - min(tree$Z)
+  }
 
-x = plot_semantic(tree)
-plot_qsm(qsm, add = x, cylinder = T)
+  tree@data$treeID = as.integer(tree@data$treeID)
+  tree@data$foliage = as.integer(tree@data$foliage)
+  tree@data$passage = as.integer(tree@data$passage)
+
+  t0 = Sys.time()
+  params= arbor_parameters_default
+  params$qsm$skeleton_node_distance = 0.1
+  #params$qsm$min_measurable_radius = 0.025
+  qsm = qsm(tree, params)
+  tf = Sys.time()
+  print(difftime(tf, t0))
+
+  qsm$radius[is.na(qsm$radius)] = 0
+
+  V = qsm_volume(qsm)
+
+  x = plot_semantic(tree)
+  plot_qsm(qsm, add = x, cylinder = T, skel = F, color = "quality")
 }
 
 as.data.frame(qsm)
@@ -221,7 +287,7 @@ x = lidR::plot(wood, color = "dist2root")
 lidR::plot(neg, add = x, pal = "pink", size = 6)
 lidR::plot(gnd, add = x, size = 6)
 lidR::plot(wood, color = "dgroup", pal = pastel.colors(2500))
-lidR::plot(wood, color = "cl", pal = pastel.colors(2500))
+lidR::plot(wood, color = "cl", pal = lidR::pastel.colors(2500))
 
 wood = lidR::filter_poi(wood, dist2root >= 0, !is.na(iter))
 

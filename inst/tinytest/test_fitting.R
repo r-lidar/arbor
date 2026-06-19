@@ -4,13 +4,32 @@ fit = arbor:::fit_circloid_cpp
 show = function(pt, res, tol = 0.03)
 {
   inliers = pt[res$inliers,]
+
   plot(pt, asp = 1, main = res$shape_type)
   points(res$center_x, res$center_y, pch = 3, cex = 2)
   points(inliers, col = "blue", pch = 18)
   lines(res$nodes, lwd = 2, col = "red")
-  symbols(res$center_x, res$center_y, circles = res$radius, inches = FALSE, add = T, fg = "purple")
-  symbols(res$center_x, res$center_y, circles = res$radius+tol, inches = FALSE, add = T, fg = "purple")
-  symbols(res$center_x, res$center_y, circles = res$radius-tol, inches = FALSE, add = T, fg = "purple")
+
+  symbols(res$center_x, res$center_y,
+          circles = res$radius,
+          inches = FALSE, add = TRUE, fg = "purple")
+  symbols(res$center_x, res$center_y,
+          circles = res$radius + tol,
+          inches = FALSE, add = TRUE, fg = "purple")
+  symbols(res$center_x, res$center_y,
+          circles = res$radius - tol,
+          inches = FALSE, add = TRUE, fg = "purple")
+
+  # Draw 36 sectors (10-degree spacing)
+  theta <- seq(0, 350, by = 10) * pi / 180
+
+  segments(
+    x0 = res$center_x,
+    y0 = res$center_y,
+    x1 = res$center_x + (res$radius+tol) * cos(theta),
+    y1 = res$center_y + (res$radius+tol) * sin(theta),
+    col = "grey80"
+  )
 }
 
 show3d = function(pt, res)
@@ -126,10 +145,10 @@ if (disp) show(pt, res)
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 180)
+expect_equal(res$covered_arc_degree, 200)
 
 pt = hcircle_points
-tol = 0.03
+tol = 0.1
 res <- fit(pt, tolerance = tol)
 
 if (disp) show(pt, res)
@@ -137,7 +156,7 @@ if (disp) show(pt, res)
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 180)
+expect_equal(res$covered_arc_degree, 200)
 
 # ================
 # Check rotated circle
@@ -167,7 +186,7 @@ if (disp) show(pt, res)
 expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, 2.41, tolerance = 0.025)
-expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$covered_arc_degree, 350)
 
 
 pt = ellipse_points
@@ -370,5 +389,72 @@ if (disp) show(pt, res, 0.03)
 expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
 expect_equal(res$radius, 0.19, tolerance = 0.03)
-expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$covered_arc_degree, 350)
 
+f <- system.file("extdata", "complex_slice0.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+
+f <- system.file("extdata", "complex_slice1.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+
+f <- system.file("extdata", "complex_slice2.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+f <- system.file("extdata", "complex_slice3.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.05)
+
+
+f <- system.file("extdata", "double_ring_slice0.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+
+f <- system.file("extdata", "double_ring_slice1.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03)
+
+if (disp) show(xyz, res, 0.03)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
