@@ -25,6 +25,7 @@
 #ifndef USING_R
 
 #include "PointCloudBase.h"
+#include <array>
 #include <span>
 
 #define POINT_CLOUD_ATTR(interface_type, internal_type, name, container, has_func, error_msg)  \
@@ -128,6 +129,11 @@ public:
   #undef POINT_CLOUD_ATTR
 
   inline void set_color(size_t i, uint8_t r, uint8_t g, uint8_t b) { rgb[i] = {r, g, b}; }
+  inline std::array<uint8_t, 3> get_color(size_t i) const
+  {
+    const RGB& color = rgb[i];
+    return {color.r, color.g, color.b};
+  }
 
   inline bool is_wood(const size_t idx) const {
     return get_foliage(idx) == 0;
