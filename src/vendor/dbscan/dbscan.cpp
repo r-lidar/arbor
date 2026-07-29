@@ -79,7 +79,8 @@ auto dbscan(const Adaptor& adapt, float eps, int min_pts)
   index.buildIndex();
 
   const auto n_points = adapt.kdtree_get_point_count();
-  auto visited  = std::vector<bool>(n_points);
+  auto visited  = std::vector<bool>(n_points, false);
+  auto in_queue = std::vector<bool>(n_points, false);
   auto clusters = std::vector<std::vector<size_t>>();
   auto matches = std::vector<nanoflann::ResultItem<index_t, distance_t>>();
   auto sub_matches = std::vector<nanoflann::ResultItem<index_t, distance_t>>();
@@ -91,6 +92,8 @@ auto dbscan(const Adaptor& adapt, float eps, int min_pts)
     index.radiusSearch(adapt.elem_ptr(i), eps, matches, SearchParameters(0.0f, false));
     if (matches.size() < static_cast<size_t>(min_pts)) continue;
     visited[i] = true;
+
+    for (auto& m : matches) in_queue[m.first] = true;
 
     auto cluster = std::vector({i});
 
@@ -105,7 +108,14 @@ auto dbscan(const Adaptor& adapt, float eps, int min_pts)
 
       if (sub_matches.size() >= static_cast<size_t>(min_pts))
       {
-        std::copy(sub_matches.begin(), sub_matches.end(), std::back_inserter(matches));
+        for (auto& m : sub_matches)
+        {
+          if (!visited[m.first] && !in_queue[m.first])
+          {
+            matches.push_back(m);
+            in_queue[m.first] = true;
+          }
+        }
       }
       cluster.push_back(nb_idx);
     }

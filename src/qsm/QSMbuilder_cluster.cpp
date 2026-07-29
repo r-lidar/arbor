@@ -1,19 +1,19 @@
 /**
  * @file QSMbuilder_cluster.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -43,6 +43,26 @@ std::vector<int> QSMbuilder::cluster(const PointCloud& data, const std::vector<i
   for (size_t i = 0; i < n; ++i)
   {
     groups[iter[i]].push_back(i);
+  }
+
+  // Pre-compute the number of large groups before processing DBSCAN
+  size_t large_group_count = 0;
+  for (auto const& [group_id, indices] : groups)
+  {
+    if (indices.size() > 10000)
+    {
+      ++large_group_count;
+    }
+  }
+
+  // Log single warning if any large groups were detected
+  if (large_group_count > 0)
+  {
+    std::string group_text = (large_group_count == 1) ? "group" : "groups";
+    std::string msg = std::to_string(large_group_count) + " large " + group_text +
+      " (>10,000 points) detected during clustering. " +
+      "This usually indicates that the point cloud was not decimated or homogenized before processing.";
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
   }
 
   // Unique pairs of <iter, dbscan_id>
