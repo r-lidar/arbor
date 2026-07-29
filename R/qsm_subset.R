@@ -113,7 +113,7 @@ qsm_nostump.qsm = function(qs, stump_height = 0.15)
 #' @export
 qsm_nostump.qsf = function(qs, stump_height = 0.15)
 {
-  qsf <- lapply(qs, qsm_nostump)
+  qsf <- lapply(qs, qsm_nostump, stump_height = stump_height)
   qsf <- Filter(function(x) nrow(x) > 0, qsf)
   as_qsf(qsf)
 }
