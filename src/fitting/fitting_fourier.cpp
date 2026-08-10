@@ -97,15 +97,14 @@ Vec solve_symmetric(Mat S, Vec b, int n, double eps = 1e-9)
 
 namespace arbor::utils::fitting {
 
-FourierFitter::FourierFitter(int K, double step_deg)
-  : m_K(K), m_step_deg(step_deg)
+FourierFitter::FourierFitter(int K, double step_deg) : m_K(K), m_step_deg(step_deg)
 {
 }
 
 FittingResult FourierFitter::fit(const std::vector<Vec3>& points, double tolerance)
 {
   FittingResult result;
-  result.shape_type = "fourier";
+  result.shape_type = "fourier" + std::to_string(m_K);
   if (points.size() < 3) return result;
 
   double zsum = 0.0;
@@ -114,15 +113,19 @@ FittingResult FourierFitter::fit(const std::vector<Vec3>& points, double toleran
 
   result.center = calculate_centroid(points);
 
-  const PolarData polar    = to_polar(points, result.center);
-  const double fill_radius = calculate_median(polar.r);
+  const PolarData polar     = to_polar(points, result.center);
+  const double fill_radius  = calculate_median(polar.r);
   const PolarData augmented = inject_missing_angles(polar, fill_radius);
 
   const std::vector<double> coefficients = fit_fourier(augmented.theta, augmented.r);
 
   for (size_t i = 0; i < polar.theta.size(); ++i)
+  {
     if (std::abs(polar.r[i] - evaluate_fourier(polar.theta[i], coefficients)) < tolerance)
+    {
       result.inlier_indices.push_back(static_cast<int>(i));
+    }
+  }
 
   result.success            = !result.inlier_indices.empty();
   result.inlier_percentage  = 100.0f * static_cast<float>(result.inlier_indices.size()) / static_cast<float>(points.size());
@@ -135,9 +138,9 @@ FittingResult FourierFitter::fit(const std::vector<Vec3>& points, double toleran
   {
     const double angle_rad = i * M_PI / 180.0;
     const double radius    = evaluate_fourier(angle_rad, coefficients);
-    result.contour.push_back({result.center.x + radius * std::cos(angle_rad),
-                              result.center.y + radius * std::sin(angle_rad),
-                              m_zmean});
+    const double xcontour  = result.center.x + radius * std::cos(angle_rad);
+    const double ycontour  = result.center.y + radius * std::sin(angle_rad);
+    result.contour.push_back({xcontour, ycontour, m_zmean});
   }
 
   // Recompute center and radius from the actual contour polygon via the
@@ -151,8 +154,8 @@ FittingResult FourierFitter::fit(const std::vector<Vec3>& points, double toleran
 
   for (size_t i = 0; i < n; ++i)
   {
-    const auto& p0 = result.contour[i];
-    const auto& p1 = result.contour[(i + 1) % n];
+    const auto& p0  = result.contour[i];
+    const auto& p1  = result.contour[(i + 1) % n];
     const double x0 = p0.x - ref_x,  y0 = p0.y - ref_y;
     const double x1 = p1.x - ref_x,  y1 = p1.y - ref_y;
     const double cross = x0*y1 - x1*y0;
@@ -266,8 +269,7 @@ std::vector<double> FourierFitter::build_fourier_matrix(const std::vector<double
   return X;
 }
 
-std::vector<double> FourierFitter::fit_fourier(
-    const std::vector<double>& theta, const std::vector<double>& r) const
+std::vector<double> FourierFitter::fit_fourier(const std::vector<double>& theta, const std::vector<double>& r) const
 {
   const int m = static_cast<int>(theta.size());
   const int n = 1 + 2 * m_K;
@@ -281,8 +283,9 @@ double FourierFitter::evaluate_fourier(double theta, const std::vector<double>& 
 {
   double r = coeffs[0];
   for (int k = 1; k <= m_K; ++k)
-    r += coeffs[2*k - 1] * std::cos(k * theta)
-       + coeffs[2*k    ] * std::sin(k * theta);
+  {
+    r += coeffs[2*k - 1] * std::cos(k * theta) + coeffs[2*k] * std::sin(k * theta);
+  }
   return r;
 }
 

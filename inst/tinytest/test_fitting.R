@@ -119,6 +119,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "circle")
 
 
 pt = circle_points
@@ -131,6 +132,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "circle")
 
 # ================
 # Check half circle
@@ -146,6 +148,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 200)
+expect_equal(res$shape_type, "circle")
 
 pt = hcircle_points
 tol = 0.1
@@ -157,6 +160,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 200)
+expect_equal(res$shape_type, "circle")
 
 # ================
 # Check rotated circle
@@ -172,6 +176,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, 12.38, tolerance = 0.005)
 expect_equal(res$radius, r, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "circle")
 
 # ================
 # Check ellipse
@@ -187,7 +192,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, 2.41, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 350)
-
+expect_equal(res$shape_type, "ellipse")
 
 pt = ellipse_points
 tol = 0.15
@@ -199,6 +204,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, yc, tolerance = 0.005)
 expect_equal(res$radius, 2.41, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "ellipse")
 
 # ================
 # Check half ellipse
@@ -214,6 +220,7 @@ expect_equal(res$center_x, xc, tolerance = 0.005)
 expect_equal(res$center_y, 18.75, tolerance = 0.005)
 expect_equal(res$radius, 2.17, tolerance = 0.05)
 expect_true(res$covered_arc_degree >= 180)
+expect_equal(res$shape_type, "ellipse")
 
 
 # ================
@@ -230,7 +237,7 @@ expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, yc, tolerance = 0.05)
 expect_equal(res$radius, 3.1, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
-
+expect_equal(res$shape_type, "fourier5")
 
 pt = circloid_points
 tol = 0.15
@@ -241,6 +248,8 @@ expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, yc, tolerance = 0.05)
 expect_equal(res$radius, 3.1, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "fourier5")
+
 
 # ================
 # Check half circloid
@@ -257,6 +266,7 @@ expect_equal(res$center_x, 13.4, tolerance = 0.02)
 expect_equal(res$center_y, 19.6, tolerance = 0.02)
 expect_equal(res$radius, 2.43, tolerance = 0.03)
 expect_true(res$covered_arc_degree >= 220)
+expect_equal(res$shape_type, "ellipse")
 
 # ================
 # Check rotated circloid
@@ -272,6 +282,7 @@ expect_equal(res$center_x, xc, tolerance = 0.05)
 expect_equal(res$center_y, 12.48, tolerance = 0.05)
 expect_equal(res$radius, 3.1, tolerance = 0.025)
 expect_equal(res$covered_arc_degree, 360)
+expect_equal(res$shape_type, "fourier5")
 
 
 # =================
@@ -390,6 +401,8 @@ expect_equal(res$center_x, 312335.577, tolerance = 0.05)
 expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
 expect_equal(res$radius, 0.19, tolerance = 0.03)
 expect_equal(res$covered_arc_degree, 350)
+expect_equal(res$shape_type, "circle")
+
 
 f <- system.file("extdata", "complex_slice0.las", package="arbor")
 las = lidR::readLAS(f)
@@ -434,6 +447,16 @@ res = fit(xyz, tolerance = 0.03, complexity = 3)
 if (disp) show(xyz, res, 0.05)
 
 
+
+f <- system.file("extdata", "slice_buttress.las", package="arbor")
+las = lidR::readLAS(f)
+xyz = sf::st_coordinates(las)
+
+res = fit(xyz, tolerance = 0.03, complexity = 3)
+
+if (disp) show(xyz, res, 0.03)
+
+
 f <- system.file("extdata", "double_ring_slice0.las", package="arbor")
 las = lidR::readLAS(f)
 xyz = sf::st_coordinates(las)
@@ -458,3 +481,4 @@ if (disp) show(xyz, res, 0.03)
 res = fit(xyz, tolerance = 0.03, complexity = 3)
 
 if (disp) show(xyz, res, 0.03)
+
