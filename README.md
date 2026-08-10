@@ -12,15 +12,18 @@ Arbor is an R package with a fast C++ core designed for processing Mobile Laser 
 
 It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention.
 
-
-[![Arbor demo](https://raw.githubusercontent.com/r-lidar/arbor/main/man/figures/yt-play-readme-500px.png)](https://youtu.be/GIbaMfSo6dc)
+<p align="center">
+  <a href="https://youtu.be/GIbaMfSo6dc" title="Arbor demo - Click to Watch!">
+    <img src="https://i.ibb.co/0PvZc2d/yt-play-readme-500px.png" alt="Arbor demo">
+  </a>
+</p>
 
 ## Why Arbor?
 
-- **Built to scale:** Process 900 m² in about a minute, a quarter-hectare in 8 minutes. Compute roughly 700 QSMs per minute. All on a standard laptop.
-- **Consistent results out of the box:** Run your datasets through a clear, repeatable pipeline using default settings that just work.
-- **Well documented:** Explore step-by-step guides, theoretical context, and hands-on examples in the [Arbor Book](https://r-lidar.github.io/arborBook/).
-- **Grounded in real data:** Validated on an extensive collection of real-world forest scans.
+- :zap: **Built to scale:** Process a quarter-hectare in 8-10 minutes. Compute roughly 700 QSMs per minute. All on a standard laptop.
+- :triangular_ruler: **Consistent results out of the box:** Run your datasets through a clear, repeatable pipeline using default settings that just work.
+- :book: **Well documented:** Explore step-by-step guides and hands-on examples in the [Arbor Book](https://r-lidar.github.io/arborBook/).
+- :chart_with_upwards_trend: **Grounded in real data:** Validated on an extensive collection of real-world forest scans.
 
 ## Installation
 
