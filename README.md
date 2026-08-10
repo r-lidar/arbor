@@ -1,6 +1,6 @@
 # Arbor
 
-### From raw forest scan to thousands of QSMs, on a laptop, in minutes.
+### From raw forest scans to thousands of QSMs on your laptop, in minutes.
 
 [![License: GPL-3](https://img.shields.io/badge/License-GPL3-green.svg)](LICENSE)
 
@@ -8,27 +8,21 @@
 
 ---
 
-Arbor is a **production-grade** C++ library with an R API for processing Mobile and Terrestrial Laser Scanning point clouds of forests. It covers the full pipeline — ground classification, wood/foliage segmentation, individual tree detection, and QSM reconstruction — automatically, without parameter tuning, on real-world noisy data and at an unmatched speed.
+Arbor is an R package with a fast C++ core designed for processing Mobile Laser Scanning (MLS) point clouds in forestry. It takes you through the entire workflow: from initial ground classification to final QSM reconstruction, including wood/foliage semantic segmentation and individual tree instance segmentation.
 
-No supervision. No tweaking. Works leaf-on.
+It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention.
 
-## What makes it different?
 
-**It scales.** 900 m² in 1 minute. 5 000 m² in 8 minutes. 10 QSMs per second. On a laptop.
+[![Arbor demo](https://raw.githubusercontent.com/r-lidar/arbor/main/man/figures/yt-play-readme-500px.png)](https://youtu.be/GIbaMfSo6dc)
 
-**It is easy.** Every dataset goes through the same pipeline with the same default parameters and comes out the other end with accurate 3D models of the forest.
+## Why Arbor?
 
-**It is documented.** Arbor is deeply documented in a [dedicated book](https://r-lidar.github.io/arborBook/).
-
-**It is validated.** On an exceptionally large dataset of real data.
+- **Built to scale:** Process 900 m² in about a minute, a quarter-hectare in 8 minutes. Compute roughly 700 QSMs per minute. All on a standard laptop.
+- **Consistent results out of the box:** Run your datasets through a clear, repeatable pipeline using default settings that just work.
+- **Well documented:** Explore step-by-step guides, theoretical context, and hands-on examples in the [Arbor Book](https://r-lidar.github.io/arborBook/).
+- **Grounded in real data:** Validated on an extensive collection of real-world forest scans.
 
 ## Installation
-
-```r
-install.packages("arbor")
-```
-
-Or if not yet on CRAN:
 
 ```r
 install.packages('arbor', repos = c('https://r-lidar.r-universe.dev', 'https://cloud.r-project.org'))
@@ -48,10 +42,6 @@ las <- wood_likelihood(las)
 las <- segment_semantic(las)
 see <- find_seeds(las)
 las <- segment_instance(las, see)
-qsf <- qsf(las)          # one QSM per tree, in parallel
+qsf <- qsf(las)
 plot(qsf, pal = "chocolate4")
 ```
-
-## Acknowledgements
-
-Developed by [r-lidar inc.](https://www.r-lidar.com/) with support from Sherbrooke University, Natural Resources Canada, IRD Montpellier, the Québec Ministry of Natural Resources and Forests, and Ontario Forestry Futures Trust.
