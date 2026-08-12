@@ -133,6 +133,7 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
 // Move Constructor (Rule of Five: 3/5)
 // ------------------------------------------------------------
 PointCloudDataFrame::PointCloudDataFrame(PointCloudDataFrame&& other) noexcept
+: PointCloudDataFrame()
 {
   init();
   swap(*this, other);
