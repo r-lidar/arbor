@@ -18,7 +18,7 @@ are labelled as foliage or non-foliage based on their proximity to QSM
 elements.
 }
 \seealso{
-Other experimental: 
-\code{\link{extract_tree_context}()}
+Other experimental:
+\code{\link[=extract_tree_context]{extract_tree_context()}}
 }
 \concept{experimental}

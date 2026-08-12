@@ -68,6 +68,8 @@ export(transfer_attributes)
 export(wood_likelihood)
 importFrom(Rcpp,sourceCpp)
 importFrom(data.table,":=")
-importFrom(sf,"st_crs<-")
-importFrom(sf,st_crs)
+importFrom(sf,
+  "st_crs<-",
+  st_crs
+)
 useDynLib(arbor, .registration = TRUE)
