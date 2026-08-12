@@ -48,6 +48,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
+          extra-repositories: https://r-lidar.r-universe.dev
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
