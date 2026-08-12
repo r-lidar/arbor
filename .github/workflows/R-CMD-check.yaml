@@ -43,12 +43,12 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
+          extra-repositories: https://r-lidar.r-universe.dev
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
-          extra-repositories: https://r-lidar.r-universe.dev
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
