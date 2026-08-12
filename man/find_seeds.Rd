@@ -4,7 +4,7 @@
 \alias{find_seeds}
 \title{Find seeds to perform instance segmentation}
 \usage{
-find_seeds(las, params)
+find_seeds(las, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A LAS object from lidR.}
