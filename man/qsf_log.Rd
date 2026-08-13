@@ -10,5 +10,5 @@ qsf_log(qsf)
 \item{qsf}{qsf}
 }
 \description{
-Use qsf_log() after qsf() to get the logs
+Use qsf_log after \link{qsf} to get the logs
 }

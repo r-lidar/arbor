@@ -3,25 +3,20 @@
 \name{parameters}
 \alias{parameters}
 \alias{arbor_parameters_default}
-\alias{arbor_parameters_occlusion}
-\alias{ARBORTREE}
-\alias{ARBORLOW}
-\alias{ARBORUNDERSTORY}
-\alias{ARBORBUFFER}
 \title{Parameters}
 \usage{
 arbor_parameters_default
-
-arbor_parameters_occlusion
-
-ARBORTREE
-
-ARBORLOW
-
-ARBORUNDERSTORY
-
-ARBORBUFFER
 }
 \description{
-Default is suitable for most dataset. Occlusion is suitable for lower quality datasets
+The built-in internal variable `arbor_parameters_default` contains all the parameters used
+by the arbor functions. The variable itself is a nested list that is intentionally not documented.
+There are numerous parameters controlling thresholds, neighborhoods, clustering, noise filtering,
+and pathfinder configuration. If users had to adjust and understand all of them, the software would
+quickly become unusable. While every parameter can be configured, we deliberately avoid documenting
+them to prevent endless tweaking. The pipeline MUST work reliably out of the box with the default
+parameters. See the [Arbor book](<placeholder>)
+}
+\examples{
+params = arbor_parameters_default
+params$global$cut_above_ground <- 0.25
 }

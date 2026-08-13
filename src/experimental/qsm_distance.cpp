@@ -73,7 +73,8 @@ struct CylinderCloud
 
   inline size_t kdtree_get_point_count() const { return cylinders.size(); }
 
-  inline double kdtree_get_pt(const size_t idx, const size_t dim) const {
+  inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+  {
     if (dim == 0) return cylinders[idx].mid_x;
     if (dim == 1) return cylinders[idx].mid_y;
     return cylinders[idx].mid_z;
@@ -83,10 +84,7 @@ struct CylinderCloud
   bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
 };
 
-typedef nanoflann::KDTreeSingleIndexAdaptor<
-  nanoflann::L2_Simple_Adaptor<double, CylinderCloud>,
-  CylinderCloud, 3
-> CylinderKDTree;
+typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, CylinderCloud>, CylinderCloud, 3> CylinderKDTree;
 
 // ============================================================================
 //  3. Geometric Logic (Optimized)
@@ -106,11 +104,10 @@ inline void update_if_closer(const double px, const double py, const double pz,
   double dot = ap_x * cyl.ab_x + ap_y * cyl.ab_y + ap_z * cyl.ab_z;
   double t = dot / cyl.ab_sqnorm;
 
-  double closest_x, closest_y, closest_z;
-
   // Case A: The point projects onto the finite axis (0 <= t <= 1)
   // Distance is distance to the cylindrical surface
-  if (t >= 0.0 && t <= 1.0) {
+  if (t >= 0.0 && t <= 1.0)
+  {
     double axis_pt_x = cyl.startX + t * cyl.ab_x;
     double axis_pt_y = cyl.startY + t * cyl.ab_y;
     double axis_pt_z = cyl.startZ + t * cyl.ab_z;
@@ -124,14 +121,16 @@ inline void update_if_closer(const double px, const double py, const double pz,
     // If inside the radius, distance is 0. If outside, it's (dist - R)
     double d = (dist_to_axis > cyl.radius) ? (dist_to_axis - cyl.radius) : 0.0;
 
-    if (d < best_dist) {
+    if (d < best_dist)
+    {
       best_dist = d;
       best_id = cyl.cyl_ID;
       best_rad = cyl.radius;
     }
   }
   // Case B: The point projects beyond the ends (Caps)
-  else {
+  else
+  {
     // Determine which cap we are closest to (Start or End)
     double cap_x, cap_y, cap_z;
 
@@ -143,7 +142,8 @@ inline void update_if_closer(const double px, const double py, const double pz,
       cap_z = cyl.startZ;
     }
     else
-    { // t > 1.0
+    {
+      // t > 1.0
       // Closest to End Cap
       cap_x = cyl.startX + cyl.ab_x;
       cap_y = cyl.startY + cyl.ab_y;
@@ -202,7 +202,8 @@ inline void update_if_closer(const double px, const double py, const double pz,
       final_dist = std::sqrt(dist_along_axis*dist_along_axis + d_rim*d_rim);
     }
 
-    if (final_dist < best_dist) {
+    if (final_dist < best_dist)
+    {
       best_dist = final_dist;
       best_id = cyl.cyl_ID;
       best_rad = cyl.radius;

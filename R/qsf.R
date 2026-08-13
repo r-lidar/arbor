@@ -60,7 +60,7 @@ as_qsf <- function(x)
 
 #' QSF log
 #'
-#' Use qsf_log() after qsf() to get the logs
+#' Use qsf_log after \link{qsf} to get the logs
 #'
 #' @param qsf qsf
 #' @export

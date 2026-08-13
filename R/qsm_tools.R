@@ -73,6 +73,7 @@ filter_tree = function(tree)
 #' ground points.
 #'
 #' @export
+#' @md
 add_single_tree_ground = function(las, n = 1000)
 {
   z  <- min(las$Z)

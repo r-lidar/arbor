@@ -18,6 +18,10 @@ file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneauc
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_130.las"
 file = "/home/jr/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneaucd6_output/ITS/tree_177.las"
 
+#bug
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bug/405_erreur.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bug/23_bad_alloc.laz"
+
 # Buttress
 file = "/home/jr/Documents/r-lidar inc/arbor/Tree bank/bad-dbh/DUC0001-02_44.las"
 
@@ -58,6 +62,12 @@ file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_065.
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_117.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_084.laz"
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/Zambia_096.laz"
+
+# Cameroun
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Momo/tree_laz/3.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Momo/tree_laz/12.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Momo/tree_laz/64.laz"
+file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Momo/tree_laz/100.laz"
 
 # Validation
 file = "/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/las/PRF193_663.laz"
@@ -123,6 +133,19 @@ file
   else
   {
     tree <- lidR::readLAS(file)
+
+    if ("WL" %in% names(tree))
+    {
+      data.table::setnames(tree@data, "WL", "foliage")
+      tree@data[, foliage := foliage - 1]
+    }
+
+    if ("TreeID" %in% names(tree))
+    {
+      data.table::setnames(tree@data, "TreeID", "treeID")
+    }
+
+
     if (all(is.na(tree@data$foliage)))
         tree@data$foliage = 0L
 
@@ -130,13 +153,14 @@ file
       tree@data$hag = tree$Z - min(tree$Z)
   }
 
-  tree@data$treeID = as.integer(tree@data$treeID)
+
+  tree@data$treeID  = as.integer(tree@data$treeID)
   tree@data$foliage = as.integer(tree@data$foliage)
   tree@data$passage = as.integer(tree@data$passage)
 
   t0 = Sys.time()
   params= arbor_parameters_default
-  params$qsm$skeleton_node_distance = 0.1
+  #params$qsm$skeleton_node_distance = 0.1
   #params$qsm$min_measurable_radius = 0.025
   qsm = qsm(tree, params)
   tf = Sys.time()
@@ -145,6 +169,9 @@ file
   qsm$radius[is.na(qsm$radius)] = 0
 
   V = qsm_volume(qsm)
+
+  x = plot_semantic(tree)
+  plot_qsm(qsm, add = x, cylinder = T, skel = F)
 
   x = plot_semantic(tree)
   plot_qsm(qsm, add = x, cylinder = T, skel = F, color = "quality")

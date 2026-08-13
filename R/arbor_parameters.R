@@ -18,26 +18,44 @@
 
 #' Parameters
 #'
-#' Default is suitable for most dataset. Occlusion is suitable for lower quality datasets
+#' The built-in internal variable `arbor_parameters_default` contains all the parameters used
+#' by the arbor functions. The variable itself is a nested list that is intentionally not documented.
+#' There are numerous parameters controlling thresholds, neighborhoods, clustering, noise filtering,
+#' and pathfinder configuration. If users had to adjust and understand all of them, the software would
+#' quickly become unusable. While every parameter can be configured, we deliberately avoid documenting
+#' them to prevent endless tweaking. The pipeline MUST work reliably out of the box with the default
+#' parameters. See the [Arbor book](<placeholder>)
 #' @rdname parameters
 #' @name parameters
+#' @examples
+#' params = arbor_parameters_default
+#' params$global$cut_above_ground <- 0.25
 #' @export
 arbor_parameters_default = list()
 
+#' Constants
+#'
+#' Built-in variables. See the [Arbor book](<placeholder>) for more details.
+#'
+#' - `ARBORTREE` is used in the `UserData` attributes. It flags points that are valid trees.
+#'   Usually, all points of interest are flagged as `ARBORTREE`.
+#' - `ARBORLOW` is used in the `UserData` attributes. It flags low points that are not processed by
+#'   Arbor at all.
+#' - `ARBORUNDERSTORY` is used in the `UserData` attributes. It flags small trees that are not
+#'   processed to build QSMs. See \link{flag_small_trees}.
+#' - `ARBORBUFFER` is used in the `UserData` attributes. It flags points in the buffer area. See
+#'   \link{flag_buffer}.
 #' @export
-#' @rdname parameters
-#' @name parameters
-arbor_parameters_occlusion = list()
+#' @md
+#' @rdname constants
+ARBORTREE <- 0L
 
 #' @export
-#' @rdname parameters
-ARBORTREE <- 0L
-#' @export
-#' @rdname parameters
+#' @rdname constants
 ARBORLOW <- 1L
 #' @export
-#' @rdname parameters
+#' @rdname constants
 ARBORUNDERSTORY <- 2L
 #' @export
-#' @rdname parameters
+#' @rdname constants
 ARBORBUFFER <- 3L

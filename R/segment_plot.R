@@ -16,10 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#' Plot function
+#' Plot functions
 #'
-#' Various useful plot functions. Colorize tree does not plot be assigns a RGB value per tree
-#' for rendering.
+#' `colorize_trees` assigns a RGB value per tree for rendering in third
+#' party softwares.
 #'
 #' @param las LAS object
 #' @param dtm SpatRaster DTM

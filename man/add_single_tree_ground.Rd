@@ -7,12 +7,12 @@
 add_single_tree_ground(las, n = 1000)
 }
 \arguments{
-\item{las}{A `LAS` object containing a single-tree point cloud.}
+\item{las}{A \code{LAS} object containing a single-tree point cloud.}
 
 \item{n}{integer. Number of ground points}
 }
 \value{
-A `LAS` object containing the original points plus n synthetic
+A \code{LAS} object containing the original points plus n synthetic
 ground points.
 }
 \description{

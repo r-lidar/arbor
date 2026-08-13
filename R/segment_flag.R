@@ -19,9 +19,8 @@
 #' Flag Trees for Exclusion
 #'
 #' Utilities to flag trees that should be excluded from downstream processing.
-#' These functions do not remove points from the point cloud. Instead, tree IDs are
-#' made negative. Negative tree IDs are ignored by \link{qsf} and can be restored
-#' by rerunning the function with different parameters.
+#' These functions assign values to the `UserData` attribute of the point cloud in order to later
+#' filter data on the fly. See the [Arbor book](<placeholder>)
 #'
 #' `flag_small_trees()` flags trees below a given height threshold, which are often
 #' poorly segmented or correspond to understory vegetation.\cr\cr

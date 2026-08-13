@@ -66,6 +66,6 @@ one rendering.}
 \description{
 Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
 
-Various useful plot functions. Colorize tree does not plot be assigns a RGB value per tree
-for rendering.
+`colorize_trees` assigns a RGB value per tree for rendering in third
+party softwares.
 }
