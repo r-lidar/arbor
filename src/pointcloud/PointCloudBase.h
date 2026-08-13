@@ -12,21 +12,66 @@
 
 #include "nanoflann.h"
 
+inline void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
+{
+  // 1. Convert HCL to CIELAB
+  float h_rad = h * M_PI / 180.0f;
+  float L = l;
+  float a = std::cos(h_rad) * c;
+  float b = std::sin(h_rad) * c;
+
+  // 2. Convert CIELAB to XYZ
+  auto f_inv = [](float t)
+  {
+    return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
+  };
+
+  float y = (L + 16.0f) / 116.0f;
+  float x = y + a / 500.0f;
+  float z = y - b / 200.0f;
+
+  // Scale by D65 white point
+  x = 0.95047f * f_inv(x);
+  y = 1.00000f * f_inv(y);
+  z = 1.08883f * f_inv(z);
+
+  // 3. Convert XYZ to Linear RGB
+  float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
+  float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
+  float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
+
+  // 4. Gamma correction (sRGB) and Clamping
+  auto gamma = [](float val)
+  {
+    val = std::max(0.0f, std::min(1.0f, val));
+    return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
+  };
+
+  *R = gamma(r_lin)*255;
+  *G = gamma(g_lin)*255;
+  *B = gamma(b_lin)*255;
+}
+
 // ============================================================================
 // DECLARATIONS (Interface)
 // ============================================================================
 
-static void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B);
-
-// CRTP design pattern
+// CRTP design pattern. BasePointCloud provides a common interface and implements
+// functions that can operate on the derived class through compile-time polymorphism.
+// The base class does not know the memory layout of the derived class, which is
+// defined by the inherited classes.
+//
+// PointCloudDataFrame maps directly onto the memory of an R data.frame to integrate
+// with an R package. PointCloudDefault manages its own memory layout and is used
+// by ArborStudio.
 template <typename Derived>
 class BasePointCloud
 {
   using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, Derived>, Derived, 3>;
 
 protected:
-  size_t n_points;
-  size_t true_n_points;
+  size_t n_points = 0;
+  size_t true_n_points = 0;
   mutable std::unique_ptr<KDTree> kdtree;
 
   // 0. Default constructor
@@ -78,49 +123,6 @@ public:
 
   void colorize_trees(bool darken_foliage = false);
 };
-
-// ============================================================================
-// IMPLEMENTATIONS
-// ============================================================================
-
-static void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
-{
-  // 1. Convert HCL to CIELAB
-  float h_rad = h * M_PI / 180.0f;
-  float L = l;
-  float a = std::cos(h_rad) * c;
-  float b = std::sin(h_rad) * c;
-
-  // 2. Convert CIELAB to XYZ
-  auto f_inv = [](float t) {
-    return (t > 6.0f/29.0f) ? (t * t * t) : (3.0f * (6.0f/29.0f) * (6.0f/29.0f) * (t - 4.0f/29.0f));
-  };
-
-  float y = (L + 16.0f) / 116.0f;
-  float x = y + a / 500.0f;
-  float z = y - b / 200.0f;
-
-  // Scale by D65 white point
-  x = 0.95047f * f_inv(x);
-  y = 1.00000f * f_inv(y);
-  z = 1.08883f * f_inv(z);
-
-  // 3. Convert XYZ to Linear RGB
-  float r_lin =  3.2406f * x - 1.5372f * y - 0.4986f * z;
-  float g_lin = -0.9689f * x + 1.8758f * y + 0.0415f * z;
-  float b_lin =  0.0557f * x - 0.2040f * y + 1.0570f * z;
-
-  // 4. Gamma correction (sRGB) and Clamping
-  auto gamma = [](float val)
-  {
-    val = std::max(0.0f, std::min(1.0f, val));
-    return (val <= 0.0031308f) ? (12.92f * val) : (1.055f * std::pow(val, 1.0f/2.4f) - 0.055f);
-  };
-
-  *R = gamma(r_lin)*255;
-  *G = gamma(g_lin)*255;
-  *B = gamma(b_lin)*255;
-}
 
 template <typename Derived>
 template <class BBOX>

@@ -1,19 +1,19 @@
 /**
  * @file qsm_distance.cpp
  * Project: Arbor
- * 
+ *
  * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
@@ -135,12 +135,15 @@ inline void update_if_closer(const double px, const double py, const double pz,
     // Determine which cap we are closest to (Start or End)
     double cap_x, cap_y, cap_z;
 
-    if (t < 0.0) {
+    if (t < 0.0)
+    {
       // Closest to Start Cap
       cap_x = cyl.startX;
       cap_y = cyl.startY;
       cap_z = cyl.startZ;
-    } else { // t > 1.0
+    }
+    else
+    { // t > 1.0
       // Closest to End Cap
       cap_x = cyl.startX + cyl.ab_x;
       cap_y = cyl.startY + cyl.ab_y;
@@ -148,9 +151,9 @@ inline void update_if_closer(const double px, const double py, const double pz,
     }
 
     // Vector from Cap Center to Point
-    double cp_x = px - cap_x;
-    double cp_y = py - cap_y;
-    double cp_z = pz - cap_z;
+    //double cp_x = px - cap_x;
+    //double cp_y = py - cap_y;
+    //double cp_z = pz - cap_z;
 
     // We need to find the distance to the *disk* defined by the cap.
     // However, since we are in the "beyond ends" region, the closest point
@@ -182,11 +185,14 @@ inline void update_if_closer(const double px, const double py, const double pz,
 
     double final_dist;
 
-    if (dist_radial <= cyl.radius) {
+    if (dist_radial <= cyl.radius)
+    {
       // Point is within the tube's radius, but past the end.
       // Distance is purely the longitudinal distance to the flat cap face.
       final_dist = dist_along_axis;
-    } else {
+    }
+    else
+    {
       // Point is outside the tube and past the end.
       // The closest point is on the circular rim (edge of the cap).
       // We form a right triangle:
@@ -224,8 +230,8 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
   CylinderCloud cloud;
   cloud.cylinders.resize(n_cyl);
 
-  // Standard loop for setup (this is fast enough usually)
-  for(int i = 0; i < n_cyl; ++i) {
+  for(int i = 0; i < n_cyl; ++i)
+  {
     cloud.cylinders[i].setup(sX[i], sY[i], sZ[i], eX[i], eY[i], eZ[i], rad[i], id[i]);
   }
 
@@ -239,7 +245,7 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
   NumericVector pZ = pts_df["Z"];
   int n_pts = pX.size();
 
-  // Prepare Output (std::vector for thread safety)
+  // Prepare Output
   std::vector<double> out_dist(n_pts);
   std::vector<int>    out_id(n_pts);
   std::vector<double> out_rad(n_pts);
