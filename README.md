@@ -1,16 +1,14 @@
 # Arbor  <img src="man/figures/logo200.png" align="right"/>
 
-### From raw forest scans to thousands of QSMs on your laptop, in minutes.
-
 [![License: GPL-3](https://img.shields.io/badge/License-GPL3-green.svg)](LICENSE)
+
+**From raw forest scans to thousands of QSMs on your laptop, in minutes.**
 
 [📖 Book & Tutorial](https://r-lidar.github.io/arborBook/) · [🌐 r-lidar.com](https://www.r-lidar.com/)
 
----
+Arbor is a production-grade C++ library for large-scale processing of forest mobile laser scanning (MLS) data, with an R package API. It takes you through the entire workflow: from initial ground classification to final QSM reconstruction, including wood/foliage semantic segmentation and individual tree instance segmentation.
 
-Arbor is an R package with a fast C++ core designed for processing Mobile Laser Scanning (MLS) point clouds in forestry. It takes you through the entire workflow: from initial ground classification to final QSM reconstruction, including wood/foliage semantic segmentation and individual tree instance segmentation.
-
-It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention.
+It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention and can produce up to 1.000 QSMs per minute
 
 <p align="center">
   <a href="https://youtu.be/uvsoBODrmpw" title="Arbor demo - Click to Watch!">
