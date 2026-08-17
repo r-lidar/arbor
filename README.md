@@ -13,9 +13,11 @@ Arbor is an R package with a fast C++ core designed for processing Mobile Laser 
 It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention.
 
 <p align="center">
-  <a href="https://youtu.be/X0MTZX_-2ww" title="Arbor demo - Click to Watch!">
-    <img src="https://i.ibb.co/SX5qvfdc/yt-play-readme.png" alt="Arbor demo">
+  <a href="https://youtu.be/uvsoBODrmpw" title="Arbor demo - Click to Watch!">
+    <img src="man/figures/yt-play-readme.png" alt="Arbor demo">
   </a>
+  <br/>
+  Click to view on Youtube
 </p>
 
 ## Why Arbor?
