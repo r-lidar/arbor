@@ -73,6 +73,150 @@ file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/BCI_A0_decimated_50_clip_
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark.las" ; filter =  "-keep_random_fraction 0.3" ; cut_above_ground = 0.25
 file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark_30x30.las" ; filter =  "-keep_random_fraction 1" ; cut_above_ground = 0.25
 
+
+# Thomas Dandkiller
+
+file = "/home/jr/Téléchargements/traj_registered_center/2026-05-04_12-27-martelodrome-bloc1-p4_clean_color_registered_subsampled50.laz" ; filter =  "-keep_random_fraction 0.5" ; cut_above_ground = 0.25
+
+library(lidR)
+library(arbor)
+
+file = "~/Blender/PRF193/PRF193.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF184_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF002_15m_sor_10pct.laz" ; filter = "" # qsm failure
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF133_15m_sor_10pct.laz" ; filter = "" # some ugly qsm
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF185_15m_sor_10pct.laz" ; filter = "" # qsm failure
+#file = "~/Téléchargements/PRF193_tiny.las"
+
+params = arbor_parameters_default
+
+las <- readTLS(file, select = "xyz", filter = filter)
+
+t0 = Sys.time()
+las <- hybrid_homogeneization(las)
+las <- segment_ground(las)
+las <- wood_likelihood(las, params)
+las <- segment_semantic(las, params)
+see <- find_seeds(las, params)
+las <- segment_instance(las, see, params)
+las <- flag_small_trees(las, max_height = 1)
+las <- flag_buffer(las, see, buffer =  -10)
+las <- colorize_trees(las)
+
+qsf <- qsf(las, params = params)
+qsf_log(qsf)
+tf = Sys.time()
+dt = difftime(tf, t0)
+arbor:::record_entry(las, dt, file)
+
+trees = filter_poi(las, UserData == ARBORTREE)
+dtm = rasterize_terrain(las, 2)
+writeLAS(trees, paste0(tools::file_path_sans_ext(file), "_segmented.laz"))
+terra::writeRaster(dtm, paste0(tools::file_path_sans_ext(file), "_dtm.tif"))
+qsf_write(qsf, dirname(file))
+stats = qsm_stats(qsf)
+data.table::fwrite(stats, paste0(tools::file_path_sans_ext(file), "_stats.csv"))
+
+x = plot_instance(las, size = 1)
+plot_instance(see, size = 8, add = x)
+dtm = lidR::rasterize_terrain(las, 0.2)
+plot(qsf, pal = "chocolate4", add = x) |> lidR::add_dtm3d(dtm)
+
+merch = qsf_merchantable(qsf)
+plot(merch, pal = "chocolate4")
+
+merch2 = qsm_merchantable(merch)
+plot(merch2, pal = "chocolate4")
+
+merch3 = qsm_merchantable(qsf)
+plot(merch3, pal = "chocolate4")
+
+stem = qsm_stem(qsf)
+plot(stem, pal = "chocolate4")
+
+plot_semantic(las)
+plot_instance(las)
+
+x = plot_instance(las)
+plot(qsf, add = x, pal = "chocolate4")
+u = rgl::identify3d(las$X-x[1], las$Y-x[2], las$Z)
+
+params$qsm$step = 0.2
+
+i = 2
+tree = lidR::filter_poi(las, treeID %in% i)
+q = qsm(tree, params)
+x = plot_semantic(tree)
+plot(q, add = x, color = "quality")
+i = i+1
+
+#plot_instance(trees, dtm)
+#plot_semantic(trees, dtm)
+
+#
+# ids = unique(trees$treeID)
+# id = sample(ids, 1)
+# tree <- lidR::filter_poi(trees, treeID == id)
+# qsm  <- qsm(tree)
+# x <- plot_semantic(tree)
+# plot(qsm, color = "branch_order", add = x, skeleton = F)
+#
+# res = qsm_dbh(qsm, tree, display = TRUE)
+# res = qsm_stats(qsm, tree, display = TRUE)
+
+# id = sample(seq_along(qsf), 1)
+# qsm = qsf[[id]]
+# plot_qsm(qsm)
+
+
+res = qsf(las)
+x = plot(res[[1]]) |> add_dtm3d(dtm)
+
+t0 = arbor:::tic()
+trees2 = segment_sementic_from_qsf(trees, res)
+arbor:::toc(t0)
+
+tm = arbor:::qsf_treemap(res)
+tm = sf::st_buffer(tm, tm$DBH)
+st_crs(tm) = 3161
+library(tmap)
+
+x = mean(valid_trees$X)
+y = mean(valid_trees$Y)+1.5
+center_pt <- sf::st_sfc(sf::st_point(c(x, y)), crs = 3161)
+circle <- sf::st_buffer(center_pt, dist = 15)
+
+tmap_mode("plot")
+
+tm_shape(tm) +
+  tm_graticules() +
+  tm_polygons(
+    col = "V",
+    palette = "viridis",
+    style = "quantile",
+    n = 5
+  ) +
+  tm_shape(circle) +
+  tm_polygons(border = "red", fill = NULL) +
+  tm_layout(
+    frame = TRUE,
+    axes = TRUE,
+    axes.labels = TRUE
+  )
+
+x = plot_semantic(trees2)
+add_dtm3d(x, dtm)
+
+
+for (i in stats$treeID)
+{
+  t = filter_poi(las, treeID == i)
+  writeLAS(t, paste0("/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/PRF193_", i, ".las"))
+}
+
+
 # ===== PROCESSING PARAMETERS =====
 
 params = arbor_parameters_default

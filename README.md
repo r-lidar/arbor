@@ -1,4 +1,4 @@
-# Arbor
+# Arbor  <img src="man/figures/logo200.png" align="right"/>
 
 ### From raw forest scans to thousands of QSMs on your laptop, in minutes.
 
