@@ -31,7 +31,7 @@
 #' @param params list See \link{parameters}.
 #'
 #' @return A `LAS` object with an additional attribute `foliage`. 0 - wood, 1 and 2 foliage. The `UserData`
-#' attribute is also assigned two constant: `ARBOR` for points below the cut threshold ans `ARBORTREE`
+#' attribute is also assigned two constant: `ARBORLOW` for points below the cut threshold ans `ARBORTREE`
 #' for all others points
 #' @md
 #' @rdname segment_semantic
