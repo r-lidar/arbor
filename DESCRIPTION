@@ -20,6 +20,6 @@ Imports:
   sf,
   utils
 Suggests: 
-  tinytest,
+  testthat (>= 3.0.0),
   terra
 Config/roxygen2/version: 8.1.0

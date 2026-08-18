@@ -1,59 +1,41 @@
-# Test case 7: RANSAC on noisy circle points
-fit = arbor:::fit_circloid_cpp
-
-show = function(pt, res, tol = 0.03)
-{
-  inliers = pt[res$inliers,]
-  plot(pt, asp = 1, main = res$shape_type)
-  points(res$center_x, res$center_y, pch = 3, cex = 2)
-  points(inliers, col = "blue", pch = 18)
-  lines(res$nodes, lwd = 2, col = "red")
-  symbols(res$center_x, res$center_y, circles = res$radius, inches = FALSE, add = T, fg = "purple")
-  symbols(res$center_x, res$center_y, circles = res$radius+tol, inches = FALSE, add = T, fg = "purple")
-  symbols(res$center_x, res$center_y, circles = res$radius-tol, inches = FALSE, add = T, fg = "purple")
-}
-
-disp = FALSE
+fit <- arbor:::fit_circloid_cpp
 
 set.seed(123)
-n = 500
+n <- 500
 theta <- seq(0, 2 * pi, length.out = n)
 circle_points <- matrix(c(12 + 2 * cos(theta) + rnorm(n, 0, 0.1),
                           18.5 + 2 * sin(theta) + rnorm(n, 0, 0.1),
                           rep(0, n)), ncol = 3, byrow = FALSE)
 
-result7 <- fit(circle_points, tolerance = 0.04)
+test_that("RANSAC fits noisy circle (case 7)", {
+  result7 <- fit(circle_points, tolerance = 0.04)
 
-if (disp) show(circle_points, result7)
+  expect_equal(result7$center_x, 12, tolerance = 0.005)
+  expect_equal(result7$center_y, 18.5, tolerance = 0.005)
+  expect_equal(result7$radius, 2, tolerance = 0.025)
+  expect_equal(result7$covered_arc_degree, 360)
+})
 
-expect_equal(result7$center_x, 12, tolerance = 0.005)
-expect_equal(result7$center_y, 18.5, tolerance = 0.005)
-expect_equal(result7$radius, 2, tolerance = 0.025)
-expect_equal(result7$covered_arc_degree, 360)
-
-
-# Test case 8: RANSAC on noisy circle points
 set.seed(123)
-n = 1000
+n <- 1000
 theta <- seq(0, 2 * pi, length.out = n)
-circle_points <- matrix(c(500 + 0.12 * cos(theta) + runif(n, 0, 0.01),
-                          500 + 0.12 * sin(theta) + runif(n, 0, 0.01),
-                          rep(0, n)), ncol = 3, byrow = FALSE)
-rm = circle_points[,1] > 499.95
-circle_points = circle_points[rm,]
+circle_points8 <- matrix(c(500 + 0.12 * cos(theta) + runif(n, 0, 0.01),
+                           500 + 0.12 * sin(theta) + runif(n, 0, 0.01),
+                           rep(0, n)), ncol = 3, byrow = FALSE)
+rm <- circle_points8[, 1] > 499.95
+circle_points8 <- circle_points8[rm, ]
 
-result8 <- fit(circle_points, tolerance = 0.02)
+test_that("RANSAC fits partial noisy circle (case 8)", {
+  result8 <- fit(circle_points8, tolerance = 0.02)
 
-if (disp) show(circle_points, result8, 0.02)
+  expect_equal(result8$center_x, 500, tolerance = 0.005)
+  expect_equal(result8$center_y, 500, tolerance = 0.005)
+  expect_equal(result8$radius, 0.12, tolerance = 0.05)
+  expect_equal(result8$covered_arc_degree, 183, tolerance = 3)
+  expect_equal(result8$percentage_inlier, 100, tolerance = 0.02)
+})
 
-expect_equal(result8$center_x, 500, tolerance = 0.005)
-expect_equal(result8$center_y, 500, tolerance = 0.005)
-expect_equal(result8$radius, 0.12, tolerance = 0.05)
-expect_equal(result8$covered_arc_degree, 183, tolerance = 3)
-expect_equal(result8$percentage_inlier, 100, tolerance = 0.02)
-
-
-x = structure(
+x <- structure(
   c(305610.02215, 305610.04015, 305610.05725, 305610.06855,
     305610.05065, 305610.06075, 305609.99775, 305609.98925, 305609.99825,
     305609.99845, 305610.00445, 305610.00355, 305610.04835, 305610.02385,
@@ -77,10 +59,11 @@ x = structure(
     201.7047, 201.7211, 201.7299, 201.71, 201.7077, 201.7411),
   dim = c(38L, 3L), dimnames = list(NULL, c("X", "Y", "Z")))
 
-xc = mean(x[,1])
-yc = mean(x[,2])
-c = fit(x, tolerance = 0.02)
+test_that("RANSAC fits real-world point cloud data", {
+  xc <- mean(x[, 1])
+  yc <- mean(x[, 2])
+  c <- fit(x, tolerance = 0.02)
 
-expect_true(c$center_x - xc < 0.02)
-expect_true(c$center_y - yc < 0.02)
-
+  expect_true(c$center_x - xc < 0.02)
+  expect_true(c$center_y - yc < 0.02)
+})
