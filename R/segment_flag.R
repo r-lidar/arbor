@@ -155,7 +155,8 @@ flag_buffer = function(las, seeds, buffer = -5)
 
   # Convert roots to sf (safe: no NA)
   seeds <- sf::st_as_sf(roots, coords = c("X", "Y"), crs = sf::st_crs(las))
-  valid_seeds <- suppressWarnings(sf::st_filter(seeds, bb))
+  idx <- sf::st_intersects(seeds, bb)
+  valid_seeds <- seeds[lengths(idx) > 0, ]
   if (!nrow(valid_seeds)) return(las[0])
 
   # Keep trees whose seeds are inside
