@@ -14,5 +14,5 @@ find_seeds(las, params = arbor_parameters_default)
 \description{
 In order to perform instance segmentation with  \link{segment_instance} we need
 some seeds with reference treeIDs. Thus function finds the seeds. See
-the \href{placeholder}{Arbor book} for mode details.
+the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for mode details.
 }

@@ -19,7 +19,7 @@
 #' Generate a QSM from a single tree point cloud
 #'
 #' This function processes a tree point cloud to generate a Quantitative Structure Model (QSM)
-#' See the [Arbor book](<placeholder>) for mode details.
+#' See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param tree A `LAS` object from lidR containing a single tree point cloud. Only
 #' the point labelled as wood will be used for QSM.

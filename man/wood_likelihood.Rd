@@ -13,5 +13,5 @@ wood_likelihood(las, params = arbor_parameters_default)
 }
 \description{
 This function calculates the local anisotropy of each point in a LAS object using
-a k-nearest neighbors (KNN) approach. See the [Arbor book](<placeholder>) for mode details.
+a k-nearest neighbors (KNN) approach. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 }

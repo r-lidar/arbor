@@ -14,5 +14,5 @@ hybrid_homogeneization(las, res = 0.02)
 \description{
 Homogenization of the point cloud using a hybrid approach that includes
 Barycentric Voxel Decimation and reinjection of random points. See
-the \href{placeholder}{Arbor book} for mode details.
+the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for mode details.
 }

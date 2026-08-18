@@ -30,14 +30,14 @@ A modified LAS object with flagged trees assigned negative \code{treeID} values.
 \description{
 Utilities to flag trees that should be excluded from downstream processing.
 These functions assign values to the \code{UserData} attribute of the point cloud in order to later
-filter data on the fly. See the \href{placeholder}{Arbor book}
+filter data on the fly. See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book}
 }
 \details{
 \code{flag_small_trees()} flags trees below a given height threshold, which are often
 poorly segmented or correspond to understory vegetation.\cr\cr
 \code{flag_buffer()} flags trees located near the edges of a point cloud by clipping
 trees whose seed points fall outside a buffered polygon.\cr\cr
-See the \href{placeholder}{Arbor book} for more details.
+See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for more details.
 }
 \seealso{
 \link{qsf}, \link{find_seeds}

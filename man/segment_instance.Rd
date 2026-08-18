@@ -24,7 +24,7 @@ This function performs individual tree instance segmentation by constructing a p
 and computing the least-cost path for each point to predefined seed points. The goal is to assign
 each point in the point cloud a \code{treeID} corresponding to its nearest seed, based on the least-cost
 path computed through the network. The process incorporates both spatial and heuristic constraints
-to segment trees effectively. See the \href{placeholder}{Arbor book} for mode details.
+to segment trees effectively. See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for mode details.
 }
 \seealso{
 \link{find_seeds}, \link{segment_semantic}

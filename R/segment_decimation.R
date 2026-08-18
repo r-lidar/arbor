@@ -20,7 +20,7 @@
 #'
 #' Homogenization of the point cloud using a hybrid approach that includes
 #' Barycentric Voxel Decimation and reinjection of random points. See
-#' the [Arbor book](<placeholder>) for mode details.
+#' the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param las LAS object from lidR
 #' @param res Voxel resolution.

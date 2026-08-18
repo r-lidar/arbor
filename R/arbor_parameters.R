@@ -24,7 +24,7 @@
 #' and pathfinder configuration. If users had to adjust and understand all of them, the software would
 #' quickly become unusable. While every parameter can be configured, we deliberately avoid documenting
 #' them to prevent endless tweaking. The pipeline MUST work reliably out of the box with the default
-#' parameters. See the [Arbor book](<placeholder>)
+#' parameters. See the [Arbor book](https://r-lidar.github.io/arbor_book/)
 #' @rdname parameters
 #' @name parameters
 #' @examples
@@ -35,7 +35,7 @@ arbor_parameters_default = list()
 
 #' Constants
 #'
-#' Built-in variables. See the [Arbor book](<placeholder>) for more details.
+#' Built-in variables. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for more details.
 #'
 #' - `ARBORTREE` is used in the `UserData` attributes. It flags points that are valid trees.
 #'   Usually, all points of interest are flagged as `ARBORTREE`.

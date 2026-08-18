@@ -20,13 +20,13 @@
 #'
 #' Utilities to flag trees that should be excluded from downstream processing.
 #' These functions assign values to the `UserData` attribute of the point cloud in order to later
-#' filter data on the fly. See the [Arbor book](<placeholder>)
+#' filter data on the fly. See the [Arbor book](https://r-lidar.github.io/arbor_book/)
 #'
 #' `flag_small_trees()` flags trees below a given height threshold, which are often
 #' poorly segmented or correspond to understory vegetation.\cr\cr
 #' `flag_buffer()` flags trees located near the edges of a point cloud by clipping
 #' trees whose seed points fall outside a buffered polygon.\cr\cr
-#' See the [Arbor book](<placeholder>) for more details.
+#' See the [Arbor book](https://r-lidar.github.io/arbor_book/) for more details.
 #'
 #' @param las A LAS object from lidR containing segmented trees.
 #' @param max_height Numeric. Trees with a height lower than this threshold (in meters)

@@ -25,7 +25,7 @@
 #' (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 #' first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
 #' Finally, a connected component step removes small clusters incorrectly classified as wood.\cr\cr
-#' See the [Arbor book](<placeholder>) for mode details.
+#' See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param las A LAS object.
 #' @param params list See \link{parameters}.

@@ -14,7 +14,7 @@ There are numerous parameters controlling thresholds, neighborhoods, clustering,
 and pathfinder configuration. If users had to adjust and understand all of them, the software would
 quickly become unusable. While every parameter can be configured, we deliberately avoid documenting
 them to prevent endless tweaking. The pipeline MUST work reliably out of the box with the default
-parameters. See the [Arbor book](<placeholder>)
+parameters. See the [Arbor book](https://r-lidar.github.io/arbor_book/)
 }
 \examples{
 params = arbor_parameters_default

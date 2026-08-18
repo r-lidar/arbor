@@ -14,7 +14,7 @@ the point labelled as wood will be used for QSM.}
 }
 \description{
 This function processes a tree point cloud to generate a Quantitative Structure Model (QSM)
-See the \href{placeholder}{Arbor book} for mode details.
+See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for mode details.
 }
 \examples{
 f <- system.file("extdata", "tree_qsm.laz", package="arbor")

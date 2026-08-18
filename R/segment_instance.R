@@ -22,7 +22,7 @@
 #' and computing the least-cost path for each point to predefined seed points. The goal is to assign
 #' each point in the point cloud a `treeID` corresponding to its nearest seed, based on the least-cost
 #' path computed through the network. The process incorporates both spatial and heuristic constraints
-#' to segment trees effectively. See the [Arbor book](<placeholder>) for mode details.
+#' to segment trees effectively. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param las A `LAS` object (from the `lidR` package) containing the point cloud data. It must have
 #'   an attribute `foliage`, which can be generated using prior semantic segmentation.

@@ -20,7 +20,7 @@
 #'
 #' In order to perform instance segmentation with  \link{segment_instance} we need
 #' some seeds with reference treeIDs. Thus function finds the seeds. See
-#' the [Arbor book](<placeholder>) for mode details.
+#' the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.

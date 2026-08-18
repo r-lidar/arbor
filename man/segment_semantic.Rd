@@ -13,7 +13,7 @@ segment_semantic(las, params = arbor_parameters_default)
 }
 \value{
 A \code{LAS} object with an additional attribute \code{foliage}. 0 - wood, 1 and 2 foliage. The \code{UserData}
-attribute is also assigned two constant: \code{ARBOR} for points below the cut threshold ans \code{ARBORTREE}
+attribute is also assigned two constant: \code{ARBORLOW} for points below the cut threshold ans \code{ARBORTREE}
 for all others points
 }
 \description{
@@ -24,5 +24,5 @@ is classified as wood or foliage based on two main criteria: (1) Proximity to th
 (2) wood likelihood exceeding a given threshold. The function \link{wood_likelihood} must be applied
 first. The point cloud must have an attribute 'hag' (see \link[lidR:height_above_ground]{height_above_ground})
 Finally, a connected component step removes small clusters incorrectly classified as wood.\cr\cr
-See the \href{placeholder}{Arbor book} for mode details.
+See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for mode details.
 }

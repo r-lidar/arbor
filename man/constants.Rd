@@ -16,7 +16,7 @@ ARBORUNDERSTORY
 ARBORBUFFER
 }
 \description{
-Built-in variables. See the \href{placeholder}{Arbor book} for more details.
+Built-in variables. See the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for more details.
 }
 \details{
 \itemize{
