@@ -86,6 +86,8 @@ keep_small_trees = function(las, max_height = 2)
 #' @importFrom data.table :=
 flag_buffer = function(las, seeds, buffer = -5)
 {
+  if (buffer > 0) stop("'buffer' must be negative.")
+
   UserData <- NULL
 
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
