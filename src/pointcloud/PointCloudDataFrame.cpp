@@ -22,20 +22,52 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   true_n_points = n_points;
   owns_memory = false;
 
-  // The macro now takes a 'mandatory' boolean to handle X, Y, Z logic
-  #define LOAD_ATTR_SAFE(expected_sexp, r_name, member, mandatory)       \
-  if (df.containsElementNamed(r_name)) {                                 \
-    SEXP col_sexp = df[r_name];                                          \
-    if (TYPEOF(col_sexp) != expected_sexp) {                             \
-      throw std::runtime_error(std::string("Column '") + r_name +        \
-                               "' has wrong type. Copy avoided.");       \
-    }                                                                    \
-    Rcpp::Vector<expected_sexp> col(col_sexp);                           \
-    member = col.begin();                                                \
-  } else if (mandatory) {                                                \
-    throw std::runtime_error(std::string("Missing mandatory column: ")   \
-                               + r_name);                                \
+  // swap_points() relies on every column being REALSXP, INTSXP, or LGLSXP.
+  // Fail fast at construction rather than silently desyncing a column
+  // (e.g. a STRSXP or list column) during partition()/sort later on.
+  Rcpp::CharacterVector names = df.names();
+  for (int c = 0; c < df.size(); ++c)
+  {
+    SEXP col = df[c];
+    switch (TYPEOF(col))
+    {
+    case REALSXP:
+    case INTSXP:
+    case LGLSXP:
+      break;
+    default:
+      throw std::runtime_error(std::string("Column '") + Rcpp::as<std::string>(names[c]) + "' has unsupported type for swapping " + "(only numeric, integer, and logical columns are supported).");
+    }
   }
+
+  // This is for sorting R data.frames
+  generic_columns.reserve(df.size());
+  for (int c = 0; c < df.size(); ++c)
+  {
+    SEXP col = df[c];
+    switch (TYPEOF(col))
+    {
+    case REALSXP: generic_columns.push_back({REAL(col),    REALSXP}); break;
+    case INTSXP:  generic_columns.push_back({INTEGER(col), INTSXP});  break;
+    case LGLSXP:  generic_columns.push_back({LOGICAL(col), LGLSXP});  break;
+    }
+  }
+
+  // The macro now takes a 'mandatory' boolean to handle X, Y, Z logic
+  #define LOAD_ATTR_SAFE(expected_sexp, r_name, member, mandatory)          \
+  if (df.containsElementNamed(r_name)) {                                  \
+    SEXP col_sexp = df[r_name];                                           \
+    if (TYPEOF(col_sexp) != expected_sexp) {                              \
+      throw std::runtime_error(std::string("Column '") + r_name +         \
+                               "' has wrong type. Copy avoided.");        \
+    }                                                                     \
+    Rcpp::Vector<expected_sexp> col(col_sexp);                            \
+    member = col.begin();                                                 \
+  } else if (mandatory) {                                                 \
+    throw std::runtime_error(std::string("Missing mandatory column: ")    \
+                               + r_name);                                 \
+  }                                                                       \
+
 
   // --- Mandatory ---
   LOAD_ATTR_SAFE(REALSXP, "X", coords[0], true)
@@ -164,25 +196,25 @@ PointCloudDataFrame& PointCloudDataFrame::operator=(PointCloudDataFrame other) n
 // ------------------------------------------------------------
 void PointCloudDataFrame::cleanup()
 {
-  if (!owns_memory)
-    return;
-
-  delete[] coords[0];
-  delete[] coords[1];
-  delete[] coords[2];
-
-  delete[] treeid;
-  delete[] foliage;
-  delete[] pwood;
-  delete[] hag;
-  delete[] passage;
-  delete[] classif;
-  delete[] red;
-  delete[] green;
-  delete[] blue;
+  if (owns_memory)
+  {
+    delete[] coords[0];
+    delete[] coords[1];
+    delete[] coords[2];
+    delete[] treeid;
+    delete[] foliage;
+    delete[] pwood;
+    delete[] hag;
+    delete[] passage;
+    delete[] classif;
+    delete[] red;
+    delete[] green;
+    delete[] blue;
+  }
 
   n_points = 0;
   true_n_points = 0;
+  owns_memory = true;
 
   coords[0] = coords[1] = coords[2] = nullptr;
   treeid = foliage = classif = nullptr;
@@ -327,6 +359,40 @@ PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& 
   return *this;
 }
 
+void PointCloudDataFrame::swap_points(size_t i, size_t j)
+{
+  if (!owns_memory)
+  {
+    // Backed directly by an R data.frame. Swap every column generically
+    // so nothing gets left behind / desynced, regardless of whether this
+    // class explicitly models that column.
+    for (auto& gc : generic_columns)
+    {
+      switch (gc.type)
+      {
+      case REALSXP: std::swap(static_cast<double*>(gc.ptr)[i], static_cast<double*>(gc.ptr)[j]); break;
+      case INTSXP:
+      case LGLSXP:  std::swap(static_cast<int*>(gc.ptr)[i],    static_cast<int*>(gc.ptr)[j]);    break;
+      default: break;
+      }
+    }
+  }
+  else
+  {
+    // Self-owned memory: no source_df, only the known attributes exist.
+    for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
+    if (treeid)  std::swap(treeid[i], treeid[j]);
+    if (foliage) std::swap(foliage[i], foliage[j]);
+    if (passage) std::swap(passage[i], passage[j]);
+    if (classif) std::swap(classif[i], classif[j]);
+    if (hag)     std::swap(hag[i], hag[j]);
+    if (pwood)   std::swap(pwood[i], pwood[j]);
+    if (red)     std::swap(red[i],   red[j]);
+    if (green)   std::swap(green[i], green[j]);
+    if (blue)    std::swap(blue[i],  blue[j]);
+  }
+}
+
 void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept
 {
   std::swap(first.n_points, second.n_points);
@@ -347,21 +413,19 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
   std::swap(first.red,   second.red);
   std::swap(first.green, second.green);
   std::swap(first.blue,  second.blue);
+
+  std::swap(first.generic_columns, second.generic_columns);
 }
 
 void PointCloudDataFrame::init()
 {
   n_points = 0;
+  true_n_points = 0;
   owns_memory = true;
-  coords[0] = nullptr;
-  coords[1] = nullptr;
-  coords[2] = nullptr;
-  treeid  = nullptr;
-  foliage = nullptr;
-  passage = nullptr;
-  hag     = nullptr;
-  pwood   = nullptr;
-  classif = nullptr;
+  coords[0] = coords[1] = coords[2] = nullptr;
+  treeid = foliage = passage = classif = nullptr;
+  red = green = blue = nullptr;
+  hag = pwood = nullptr;
 }
 
 void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)

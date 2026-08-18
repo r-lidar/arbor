@@ -1,18 +1,25 @@
 f <- system.file("extdata", "9x9.laz", package = "arbor")
-las <- lidR::readLAS(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
+las <- lidR::readTLS(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
+
+sink(tempfile())
 
 las <- hybrid_homogeneization(las)
 las <- segment_ground(las)
 las <- wood_likelihood(las)
 
+# This is only to check partitioning
+las@data$PID = 1:lidR::npoints(las)
 
 test_that("Wood likelihood is valid", {
 
   expect_true("pwood" %in% names(las))
   expect_true(is.double(las$pwood))
+  expect_equal(unique(diff(las$PID)), 1)
 })
 
 las <- segment_semantic(las)
+
+#las@data$PID2 = 1:npoints(las)
 
 test_that("Semantic segmenation is valid", {
   expect_true("foliage" %in% names(las))
@@ -21,9 +28,10 @@ test_that("Semantic segmenation is valid", {
   expect_true("UserData" %in% names(las))
   expect_all_equal(las@data[hag < 0.25]$UserData, ARBORLOW)
 
-  # partitioning. Low points are at the end
+  # partitioning. Low points are at the end. All data.frame sorted
   rle = rle(las$UserData)
   expect_equal(rle$values, c(ARBORTREE,ARBORLOW))
+  expect_false(length(unique(diff(las$PID))) == 1L)
 })
 
 see <- find_seeds(las)
@@ -61,7 +69,10 @@ test_that("QSF is valid", {
   expect_equal(length(qsf), 22L, tolerance = 1)
 })
 
+sink()
+
 #plot_semantic(las)
 #plot_instance(las)
 #lidR::plot(las, color = "UserData")
 #plot(qsf, pal = "chocolate4")
+

@@ -45,7 +45,7 @@ f <- system.file("extdata", "9x9.laz", package = "arbor")
 
 # Using 0.6 instead 0.25 recommanded in the book because it is
 # a pre-decimated scene
-las <- lidR::readLAS(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
+las <- lidR::readTLS(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
 las <- hybrid_homogeneization(las)
 las <- segment_ground(las)
 las <- wood_likelihood(las)

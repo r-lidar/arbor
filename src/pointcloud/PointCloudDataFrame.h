@@ -122,19 +122,7 @@ private:
   void swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept;
   void init();
   void safe_alloc(size_t n, bool alloc_attrs);
-  void swap_points(size_t i, size_t j) override
-  {
-    for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
-    if (treeid)  std::swap(treeid[i], treeid[j]);
-    if (foliage) std::swap(foliage[i], foliage[j]);
-    if (passage) std::swap(passage[i], passage[j]);
-    if (classif) std::swap(classif[i], classif[j]);
-    if (hag)     std::swap(hag[i], hag[j]);
-    if (pwood)   std::swap(pwood[i], pwood[j]);
-    if (red)     std::swap(red[i],   red[j]);
-    if (green)   std::swap(green[i], green[j]);
-    if (blue)    std::swap(blue[i],  blue[j]);
-  }
+  void swap_points(size_t i, size_t j) override;
   template <typename T>
   void merge_attribute(T*& current, const T* other, size_t old_n, size_t other_n, bool other_has_it)
   {
@@ -171,6 +159,8 @@ private:
   double* pwood   = nullptr;
 
   bool owns_memory = false;
+  struct RawColumn { void* ptr; SEXPTYPE type; };
+  std::vector<RawColumn> generic_columns;
 };
 
 #endif
