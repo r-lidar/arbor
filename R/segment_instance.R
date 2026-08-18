@@ -39,7 +39,7 @@
 #' @name segment_instance
 #' @importFrom Rcpp sourceCpp
 #' @seealso \link{find_seeds}, \link{segment_semantic}
-segment_instance = function(las, seeds, params)
+segment_instance = function(las, seeds, params = arbor_parameters_default)
 {
   stop_if_not_tls(las)
   las@data$treeID = 0L

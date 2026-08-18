@@ -4,7 +4,7 @@
 \alias{segment_instance}
 \title{Individual Tree Instance Segmentation}
 \usage{
-segment_instance(las, seeds, params)
+segment_instance(las, seeds, params = arbor_parameters_default)
 }
 \arguments{
 \item{las}{A \code{LAS} object (from the \code{lidR} package) containing the point cloud data. It must have

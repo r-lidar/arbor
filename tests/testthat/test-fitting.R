@@ -1,5 +1,50 @@
 fit <- arbor:::fit_circloid_cpp
 
+show = function(pt, res, tol = 0.03)
+{
+  inliers = pt[res$inliers,]
+
+  plot(pt, asp = 1, main = res$shape_type)
+  points(res$center_x, res$center_y, pch = 3, cex = 2)
+  points(inliers, col = "blue", pch = 18)
+  lines(res$nodes, lwd = 2, col = "red")
+
+  symbols(res$center_x, res$center_y,
+          circles = res$radius,
+          inches = FALSE, add = TRUE, fg = "purple")
+
+  symbols(res$center_x, res$center_y,
+          circles = res$radius + tol,
+          inches = FALSE, add = TRUE, fg = "purple")
+
+  symbols(res$center_x, res$center_y,
+          circles = res$radius - tol,
+          inches = FALSE, add = TRUE, fg = "purple")
+
+  # Draw 36 sectors (10-degree spacing)
+  theta <- seq(0, 350, by = 10) * pi / 180
+
+  segments(
+    x0 = res$center_x,
+    y0 = res$center_y,
+    x1 = res$center_x + (res$radius + tol) * cos(theta),
+    y1 = res$center_y + (res$radius + tol) * sin(theta),
+    col = "grey80"
+  )
+}
+
+
+show3d = function(pt, res)
+{
+  inliers = pt[res$inliers,]
+
+  rgl::points3d(pt)
+  rgl::points3d(res$center_x, res$center_y, res$center_z,
+                size = 6, col = "red")
+  rgl::points3d(inliers, col = "blue", pch = 18)
+  rgl::lines3d(res$nodes, lwd = 2, col = "red")
+}
+
 set.seed(123)
 n <- 500
 theta <- seq(0, 2 * pi, length.out = n)
@@ -56,6 +101,7 @@ hcircloid_points <- cbind(xc + R_hc * cos(theta_hc),
                           yc + R_hc * sin(theta_hc),
                           rep(0, n))
 
+disp = FALSE
 
 test_that("fitting detects full circle (tol = 0.07)", {
   res <- fit(circle_points, tolerance = 0.07)
@@ -65,6 +111,9 @@ test_that("fitting detects full circle (tol = 0.07)", {
   expect_equal(res$radius, r, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "circle")
+
+
+  if (disp) show(circle_points, res)
 })
 
 test_that("fitting detects full circle (tol = 0.15)", {
@@ -75,6 +124,8 @@ test_that("fitting detects full circle (tol = 0.15)", {
   expect_equal(res$radius, r, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "circle")
+
+  if (disp) show(circle_points, res)
 })
 
 test_that("fitting detects half circle (tol = 0.06)", {
@@ -85,6 +136,8 @@ test_that("fitting detects half circle (tol = 0.06)", {
   expect_equal(res$radius, r, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 200)
   expect_equal(res$shape_type, "circle")
+
+  if (disp) show(hcircle_points, res)
 })
 
 test_that("fitting detects half circle (tol = 0.1)", {
@@ -95,6 +148,8 @@ test_that("fitting detects half circle (tol = 0.1)", {
   expect_equal(res$radius, r, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 200)
   expect_equal(res$shape_type, "circle")
+
+  if (disp) show(hcircle_points, res)
 })
 
 test_that("fitting detects rotated circle", {
@@ -105,6 +160,8 @@ test_that("fitting detects rotated circle", {
   expect_equal(res$radius, r, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "circle")
+
+  if (disp) show3d(rcircle_points, res)
 })
 
 test_that("fitting detects full ellipse (tol = 0.08)", {
@@ -115,6 +172,8 @@ test_that("fitting detects full ellipse (tol = 0.08)", {
   expect_equal(res$radius, 2.41, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 350)
   expect_equal(res$shape_type, "ellipse")
+
+  if (disp) show(ellipse_points, res)
 })
 
 test_that("fitting detects full ellipse (tol = 0.15)", {
@@ -125,6 +184,8 @@ test_that("fitting detects full ellipse (tol = 0.15)", {
   expect_equal(res$radius, 2.41, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "ellipse")
+
+  if (disp) show(ellipse_points, res)
 })
 
 test_that("fitting detects half ellipse", {
@@ -135,6 +196,8 @@ test_that("fitting detects half ellipse", {
   expect_equal(res$radius, 2.17, tolerance = 0.05)
   expect_true(res$covered_arc_degree >= 180)
   expect_equal(res$shape_type, "ellipse")
+
+  if (disp) show(hellipse_points, res)
 })
 
 test_that("fitting detects full circloid (tol = 0.07)", {
@@ -145,6 +208,8 @@ test_that("fitting detects full circloid (tol = 0.07)", {
   expect_equal(res$radius, 3.1, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "fourier5")
+
+  if (disp) show(circloid_points, res)
 })
 
 test_that("fitting detects full circloid (tol = 0.15)", {
@@ -155,6 +220,8 @@ test_that("fitting detects full circloid (tol = 0.15)", {
   expect_equal(res$radius, 3.1, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "fourier5")
+
+  if (disp) show(circloid_points, res)
 })
 
 test_that("fitting detects half circloid", {
@@ -165,6 +232,8 @@ test_that("fitting detects half circloid", {
   expect_equal(res$radius, 2.43, tolerance = 0.03)
   expect_true(res$covered_arc_degree >= 220)
   expect_equal(res$shape_type, "ellipse")
+
+  if (disp) show(hcircloid_points, res)
 })
 
 test_that("fitting detects rotated circloid", {
@@ -175,6 +244,9 @@ test_that("fitting detects rotated circloid", {
   expect_equal(res$radius, 3.1, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "fourier5")
+
+
+  if (disp) show3d(rcircloid_points, res)
 })
 
 test_that("fitting works on real case point cloud", {
@@ -289,6 +361,9 @@ test_that("fitting works on real case point cloud", {
   expect_equal(res$radius, 0.19, tolerance = 0.03)
   expect_equal(res$covered_arc_degree, 350)
   expect_equal(res$shape_type, "circle")
+
+
+  if (disp) show(pt, res)
 })
 
 test_that("fitting handles complex_slice0", {
@@ -297,6 +372,9 @@ test_that("fitting handles complex_slice0", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03)
   expect_true(is.list(res))
+
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles complex_slice1", {
@@ -305,8 +383,13 @@ test_that("fitting handles complex_slice1", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
+
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles complex_slice2", {
@@ -314,9 +397,14 @@ test_that("fitting handles complex_slice2", {
   las <- lidR::readLAS(f)
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03)
+
+  if (disp) show(xyz, res)
+
   expect_true(is.list(res))
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles complex_slice3", {
@@ -325,6 +413,8 @@ test_that("fitting handles complex_slice3", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles slice_buttress", {
@@ -333,6 +423,8 @@ test_that("fitting handles slice_buttress", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles double_ring_slice0", {
@@ -341,8 +433,13 @@ test_that("fitting handles double_ring_slice0", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
+
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
 
 test_that("fitting handles double_ring_slice1", {
@@ -351,6 +448,11 @@ test_that("fitting handles double_ring_slice1", {
   xyz <- sf::st_coordinates(las)
   res <- fit(xyz, tolerance = 0.03)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
+
   res <- fit(xyz, tolerance = 0.03, complexity = 3)
   expect_true(is.list(res))
+
+  if (disp) show(xyz, res)
 })
