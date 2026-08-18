@@ -41,11 +41,10 @@ hellipse_points <- matrix(c(xc + a * cos(theta_half) + ex,
 
 rcircle_points <- circle_points %*% t(Rx)
 
-theta_full <- seq(0, 2 * pi, length.out = n)
 set.seed(42)
-R_vals <- 3 + 0.5 * cos(theta_full) + sin(2 * theta_full) + runif(n, -0.25, 0.25)
-circloid_points <- cbind(xc + R_vals * cos(theta_full),
-                         yc + R_vals * sin(theta_full),
+R_vals <- 3 + 0.5 * cos(theta) + sin(2 * theta) + runif(n, -0.25, 0.25)
+circloid_points <- cbind(xc + R_vals * cos(theta),
+                         yc + R_vals * sin(theta),
                          runif(n, 0, 2))
 
 rcircloid_points <- circloid_points %*% t(Rx)

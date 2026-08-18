@@ -64,6 +64,6 @@ test_that("RANSAC fits real-world point cloud data", {
   yc <- mean(x[, 2])
   c <- fit(x, tolerance = 0.02)
 
-  expect_true(c$center_x - xc < 0.02)
-  expect_true(c$center_y - yc < 0.02)
+  expect_true(abs(c$center_x - xc) < 0.02)
+  expect_true(abs(c$center_y - yc) < 0.02)
 })
