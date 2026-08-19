@@ -381,12 +381,18 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   if (scene.size() == 0)     throw std::runtime_error("segment_semantic: point cloud is empty.");
   if (!scene.has_foliage())  throw std::runtime_error("segment_semantic: point cloud is missing required 'foliage' attribute.");
   if (!scene.has_pwood())    throw std::runtime_error("segment_semantic: point cloud is missing required 'pwood' attribute.");
+  if (!scene.has_userdata()) throw std::runtime_error("segment_semantic: point cloud is missing required 'UserData' attribute.");
 
   ServiceLocator::logger()("Partitioning...");
   scene.partition([&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
 
+  // After partitioning the low point are at the end of the memory layout and will never be processed
+  // The scene has a new size.
   size_t n = scene.size();
-  if (scene.size() == 0)     throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
+  if (scene.size() == 0) throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
+
+  // Flag low points with UserData = 1. Low points are beyond the new size of the point cloud
+  for (size_t i = n ; i < scene.true_size() ; i++) scene.set_userdata(i, static_cast<int>(PointCloud::UserData::LOW));
 
   std::vector<int> passages = accumulate_passages(scene, dtm, par.pathfinder);
   for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);
@@ -397,7 +403,8 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   std::vector<bool> high_likelihood_based_wood   = assign_wood_from_high_likelihood(scene, par.semantic);
   std::vector<bool> medium_likelihood_based_wood = assign_wood_from_medium_likelihood(scene, par.semantic);
 
-  for (size_t i = 0 ; i < n ; i++) {
+  for (size_t i = 0 ; i < n ; i++)
+  {
     bool wood = path_finder_based_wood[i] || high_likelihood_based_wood[i] || medium_likelihood_based_wood[i];
     scene.set_foliage(i, (int)(!wood));
   }

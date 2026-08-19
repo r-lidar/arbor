@@ -107,24 +107,25 @@ public:
   inline void   set_z(const size_t idx, double v) { coords[idx].z = static_cast<float>(v); }
 
   // --- Optional attribute access ---
-  inline bool has_red()     const { return !rgb.empty(); }
-  inline bool has_blue()    const { return !rgb.empty(); }
-  inline bool has_green()   const { return !rgb.empty(); }
-  inline bool has_rgb()     const { return !rgb.empty(); }
-  inline bool has_hag()     const { return !hag.empty(); }
-  inline bool has_treeid()  const { return !treeid.empty(); }
-  inline bool has_pwood()   const { return !pwood.empty(); }
-  inline bool has_foliage() const { return !foliage.empty(); }
-  inline bool has_passage() const { return !passage.empty(); }
-  inline bool has_class()   const { return !classif.empty(); }
+  inline bool has_red()      const { return !rgb.empty(); }
+  inline bool has_blue()     const { return !rgb.empty(); }
+  inline bool has_green()    const { return !rgb.empty(); }
+  inline bool has_rgb()      const { return !rgb.empty(); }
+  inline bool has_hag()      const { return !hag.empty(); }
+  inline bool has_treeid()   const { return !treeid.empty(); }
+  inline bool has_pwood()    const { return !pwood.empty(); }
+  inline bool has_foliage()  const { return !foliage.empty(); }
+  inline bool has_passage()  const { return !passage.empty(); }
+  inline bool has_class()    const { return !classif.empty(); }
+  inline bool has_userdata() const { return !userdata.empty(); }
 
-
-  POINT_CLOUD_ATTR(int,    int,      treeid,         treeid,  has_treeid,  "Instance segmentation not available")
-  POINT_CLOUD_ATTR(double, double,   pwood,          pwood,   has_pwood,   "Wood likelihood data not available")
-  POINT_CLOUD_ATTR(int,    uint8_t,  foliage,        foliage, has_foliage, "Semantic segmentation not available")
-  POINT_CLOUD_ATTR(double, float,    hag,            hag,     has_hag,     "HAG data not available")
-  POINT_CLOUD_ATTR(int,    int,      passage,        passage, has_passage, "Passage not available")
-  POINT_CLOUD_ATTR(int,    uint16_t, classification, classif, has_class,   "Classification data not available")
+  POINT_CLOUD_ATTR(int,    int,      treeid,         treeid,   has_treeid,   "Instance segmentation not available")
+  POINT_CLOUD_ATTR(double, double,   pwood,          pwood,    has_pwood,    "Wood likelihood data not available")
+  POINT_CLOUD_ATTR(int,    uint8_t,  foliage,        foliage,  has_foliage,  "Semantic segmentation not available")
+  POINT_CLOUD_ATTR(double, float,    hag,            hag,      has_hag,      "HAG data not available")
+  POINT_CLOUD_ATTR(int,    int,      passage,        passage,  has_passage,  "Passage not available")
+  POINT_CLOUD_ATTR(int,    uint16_t, classification, classif,  has_class,    "Classification data not available")
+  POINT_CLOUD_ATTR(int,    uint8_t,  userdata,       userdata, has_userdata, "Classification data not available")
 
   #undef POINT_CLOUD_ATTR
 
@@ -190,6 +191,7 @@ private:
   std::vector<int> passage;
   std::vector<float> hag;
   std::vector<float> pwood;
+  std::vector<uint8_t> userdata;
 };
 
 #endif

@@ -99,6 +99,14 @@ protected:
   virtual void swap_points(size_t i, size_t j) = 0;
 
 public:
+  enum class UserData : uint8_t
+  {
+    TREE       = 0,
+    LOW        = 1,
+    UNDERSTORY = 2,
+    BUFFER     = 3
+  };
+
   // For nanoflann
   template <class BBOX>
   bool kdtree_get_bbox(BBOX&) const;

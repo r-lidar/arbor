@@ -128,6 +128,13 @@ PointCloudDefault PointCloudDefault::subset(const std::vector<unsigned int>& ind
       for (size_t j = 0; j < new_count; ++j)
         result.classif[j] = classif[indices[j]];
     }
+
+    if (!userdata.empty())
+    {
+        result.userdata.resize(new_count);
+        for (size_t j = 0; j < new_count; ++j)
+            result.userdata[j] = userdata[indices[j]];
+    }
   }
 
   return result;
@@ -227,6 +234,16 @@ PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
     classif.clear();
   }
 
+  // Merge classification if both have it
+  if (has_userdata() && other.has_userdata())
+  {
+      userdata.insert(userdata.end(), other.userdata.begin(), other.userdata.end());
+  }
+  else if (has_userdata())
+  {
+      userdata.clear();
+  }
+
   this->n_points = new_size;
   this->true_n_points = new_size;
 
@@ -250,6 +267,7 @@ void PointCloudDefault::init()
   hag.clear();
   pwood.clear();
   classif.clear();
+  userdata.clear();
 }
 
 // ------------------------------------------------------------
@@ -270,6 +288,7 @@ void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
       hag.resize(n, 0.0f);
       pwood.resize(n, 0.0f);
       rgb.resize(n, {128, 128, 128});
+      userdata.resize(n, 0);
     }
   }
   catch (...)

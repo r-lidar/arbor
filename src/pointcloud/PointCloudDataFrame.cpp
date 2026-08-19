@@ -75,15 +75,16 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
   LOAD_ATTR_SAFE(REALSXP, "Z", coords[2], true)
 
   // --- Optional ---
-  LOAD_ATTR_SAFE(REALSXP, "hag",            hag,     false)
-  LOAD_ATTR_SAFE(INTSXP,  "treeID",         treeid,  false)
-  LOAD_ATTR_SAFE(REALSXP, "pwood",          pwood,   false)
-  LOAD_ATTR_SAFE(INTSXP,  "foliage",        foliage, false)
-  LOAD_ATTR_SAFE(INTSXP,  "passage",        passage, false)
-  LOAD_ATTR_SAFE(INTSXP,  "Classification", classif, false)
-  LOAD_ATTR_SAFE(INTSXP,  "R",              red,     false)
-  LOAD_ATTR_SAFE(INTSXP,  "G",              green,   false)
-  LOAD_ATTR_SAFE(INTSXP,  "B",              blue,    false)
+  LOAD_ATTR_SAFE(REALSXP, "hag",            hag,      false)
+  LOAD_ATTR_SAFE(INTSXP,  "treeID",         treeid,   false)
+  LOAD_ATTR_SAFE(REALSXP, "pwood",          pwood,    false)
+  LOAD_ATTR_SAFE(INTSXP,  "foliage",        foliage,  false)
+  LOAD_ATTR_SAFE(INTSXP,  "passage",        passage,  false)
+  LOAD_ATTR_SAFE(INTSXP,  "Classification", classif,  false)
+  LOAD_ATTR_SAFE(INTSXP,  "R",              red,      false)
+  LOAD_ATTR_SAFE(INTSXP,  "G",              green,    false)
+  LOAD_ATTR_SAFE(INTSXP,  "B",              blue,     false)
+  LOAD_ATTR_SAFE(INTSXP,  "UserData",       userdata, false)
 
   #undef LOAD_ATTR_SAFE
 }
@@ -210,6 +211,7 @@ void PointCloudDataFrame::cleanup()
     delete[] red;
     delete[] green;
     delete[] blue;
+    delete[] userdata;
   }
 
   n_points = 0;
@@ -271,15 +273,16 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>&
   // Allocate Optional Attributes
   if (!xyz_only)
   {
-    if (treeid)  result.treeid  = new int[new_count];
-    if (foliage) result.foliage = new int[new_count];
-    if (passage) result.passage = new int[new_count];
-    if (classif) result.classif = new int[new_count];
-    if (pwood)   result.pwood   = new double[new_count];
-    if (hag)     result.hag     = new double[new_count];
-    if (red)     result.red     = new int[new_count];
-    if (green)   result.green   = new int[new_count];
-    if (blue)    result.blue    = new int[new_count];
+    if (treeid)   result.treeid   = new int[new_count];
+    if (foliage)  result.foliage  = new int[new_count];
+    if (passage)  result.passage  = new int[new_count];
+    if (classif)  result.classif  = new int[new_count];
+    if (pwood)    result.pwood    = new double[new_count];
+    if (hag)      result.hag      = new double[new_count];
+    if (red)      result.red      = new int[new_count];
+    if (green)    result.green    = new int[new_count];
+    if (blue)     result.blue     = new int[new_count];
+    if (userdata) result.userdata = new int[new_count];
   }
 
   for (size_t j = 0; j < new_count; ++j)
@@ -302,7 +305,8 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>&
       if (hag)     result.hag[j]     = hag[i];
       if (red)     result.red[j]     = red[i];
       if (green)   result.green[j]   = green[i];
-      if (blue)    result.blue [j]   = blue[i];
+      if (blue)    result.blue[j]    = blue[i];
+      if (userdata)result.userdata[j]= userdata[i];
     }
   }
 
@@ -350,6 +354,7 @@ PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& 
   merge_attribute(this->red,     other.red,     old_size, other_size, other.has_red());
   merge_attribute(this->green,   other.green,   old_size, other_size, other.has_green());
   merge_attribute(this->blue,    other.blue,    old_size, other_size, other.has_blue());
+  merge_attribute(this->userdata,other.userdata,old_size, other_size, other.has_userdata());
 
   this->n_points += other_size;
   this->owns_memory = true;
@@ -381,15 +386,16 @@ void PointCloudDataFrame::swap_points(size_t i, size_t j)
   {
     // Self-owned memory: no source_df, only the known attributes exist.
     for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
-    if (treeid)  std::swap(treeid[i], treeid[j]);
-    if (foliage) std::swap(foliage[i], foliage[j]);
-    if (passage) std::swap(passage[i], passage[j]);
-    if (classif) std::swap(classif[i], classif[j]);
-    if (hag)     std::swap(hag[i], hag[j]);
-    if (pwood)   std::swap(pwood[i], pwood[j]);
-    if (red)     std::swap(red[i],   red[j]);
-    if (green)   std::swap(green[i], green[j]);
-    if (blue)    std::swap(blue[i],  blue[j]);
+    if (treeid)   std::swap(treeid[i], treeid[j]);
+    if (foliage)  std::swap(foliage[i], foliage[j]);
+    if (passage)  std::swap(passage[i], passage[j]);
+    if (classif)  std::swap(classif[i], classif[j]);
+    if (hag)      std::swap(hag[i], hag[j]);
+    if (pwood)    std::swap(pwood[i], pwood[j]);
+    if (red)      std::swap(red[i],   red[j]);
+    if (green)    std::swap(green[i], green[j]);
+    if (blue)     std::swap(blue[i],  blue[j]);
+    if (userdata) std::swap(userdata[i],  userdata[j]);
   }
 }
 
@@ -409,6 +415,7 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
   std::swap(first.hag, second.hag);
   std::swap(first.pwood, second.pwood);
   std::swap(first.classif, second.classif);
+  std::swap(first.userdata, second.userdata);
 
   std::swap(first.red,   second.red);
   std::swap(first.green, second.green);
@@ -426,6 +433,7 @@ void PointCloudDataFrame::init()
   treeid = foliage = passage = classif = nullptr;
   red = green = blue = nullptr;
   hag = pwood = nullptr;
+  userdata = nullptr;
 }
 
 void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
@@ -438,12 +446,13 @@ void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
 
     if (alloc_attrs)
     {
-      treeid  = new int[n]();
-      foliage = new int[n]();
-      passage = new int[n]();
-      classif = new int[n]();
-      hag     = new double[n]();
-      pwood   = new double[n]();
+      treeid   = new int[n]();
+      foliage  = new int[n]();
+      passage  = new int[n]();
+      classif  = new int[n]();
+      hag      = new double[n]();
+      pwood    = new double[n]();
+      userdata = new int[n]();
     }
   }
   catch (...)

@@ -69,15 +69,16 @@ public:
   inline void   set_z(const size_t idx, double v) { coords[2][idx] = v; }
 
   // --- Optional attribute access ---
-  inline bool has_hag()     const { return hag != nullptr; }
-  inline bool has_treeid()  const { return treeid != nullptr; }
-  inline bool has_pwood()   const { return pwood != nullptr; }
-  inline bool has_foliage() const { return foliage != nullptr; }
-  inline bool has_passage() const { return passage != nullptr; }
-  inline bool has_class()   const { return classif != nullptr; }
-  inline bool has_red()     const { return red != nullptr; }
-  inline bool has_green()   const { return green != nullptr; }
-  inline bool has_blue()    const { return blue != nullptr; }
+  inline bool has_hag()      const { return hag != nullptr; }
+  inline bool has_treeid()   const { return treeid != nullptr; }
+  inline bool has_pwood()    const { return pwood != nullptr; }
+  inline bool has_foliage()  const { return foliage != nullptr; }
+  inline bool has_passage()  const { return passage != nullptr; }
+  inline bool has_class()    const { return classif != nullptr; }
+  inline bool has_red()      const { return red != nullptr; }
+  inline bool has_green()    const { return green != nullptr; }
+  inline bool has_blue()     const { return blue != nullptr; }
+  inline bool has_userdata() const { return userdata != nullptr; }
 
   POINT_CLOUD_ATTR(int, treeid, treeid, has_treeid, "Instance segmentation not available")
   POINT_CLOUD_ATTR(double, pwood, pwood, has_pwood, "Wood likelihood data not available")
@@ -88,6 +89,7 @@ public:
   POINT_CLOUD_ATTR(int, red, red, has_red, "RGB not available")
   POINT_CLOUD_ATTR(int, green, green, has_green, "RGB not available")
   POINT_CLOUD_ATTR(int, blue, blue, has_blue, "RGB not available")
+  POINT_CLOUD_ATTR(int, userdata, userdata, has_userdata, "UserData not available")
 
   #undef POINT_CLOUD_ATTR
 
@@ -148,15 +150,16 @@ private:
   double* coords[3] = {nullptr, nullptr, nullptr};
 
   // Optional attributes (nullptr if absent)
-  int*    treeid  = nullptr;
-  int*    foliage = nullptr;
-  int*    passage = nullptr;
-  int*    classif = nullptr;
-  int*    red     = nullptr;
-  int*    green   = nullptr;
-  int*    blue    = nullptr;
-  double* hag     = nullptr;
-  double* pwood   = nullptr;
+  int*    treeid   = nullptr;
+  int*    foliage  = nullptr;
+  int*    passage  = nullptr;
+  int*    classif  = nullptr;
+  int*    red      = nullptr;
+  int*    green    = nullptr;
+  int*    blue     = nullptr;
+  int*    userdata = nullptr;
+  double* hag      = nullptr;
+  double* pwood    = nullptr;
 
   bool owns_memory = false;
   struct RawColumn { void* ptr; SEXPTYPE type; };

@@ -29,14 +29,7 @@
 #' @seealso  \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
-  UserData <- treeID <- NULL
-
-  #params <- evaluate_penalty(params)
-  if ("UserData" %in% names(las))
-  {
-    las@data$treeID = data.table::copy(las@data$treeID)
-    las@data[UserData != ARBORTREE, treeID := treeID * -1] # negative values for treeID such as C++ qsf skips them.
-  }
+  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
   res <- qsf_cpp(las@data, min_height, params)
   for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]
