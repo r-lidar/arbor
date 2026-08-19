@@ -104,9 +104,9 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
 
       for (size_t j = 0; j < path.size(); ++j)
       {
-        Graph::NodeId id = path[j];
-        if (id >= 0 && id < (int) num_points)
-          local_passage[id] += 1;
+          Graph::NodeId id = path[j];
+          if (id >= 0 && id < static_cast<unsigned int>(num_points))
+              local_passage[id] += 1;
       }
     }
 

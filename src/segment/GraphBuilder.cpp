@@ -330,7 +330,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 
     for (int j = 0; j < k_retry; ++j)
     {
-      int to = static_cast<int>(idx[j]);
+      unsigned int to = idx[j];
       if (to == from) continue;
 
       float eucl = std::sqrt(sq_dist[j]);

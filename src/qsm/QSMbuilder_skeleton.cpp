@@ -296,44 +296,4 @@ void QSMbuilder::fix_multiple_root()
   compute_topology();
 }
 
-static void collect_subtree(QSM& graph, NodeID  node_id, std::vector<EdgeID>& edges_out, std::vector<NodeID>& nodes_out)
-{
-  for (EdgeID eid : graph.outgoing_edges(node_id))
-  {
-    NodeID child = graph.edge(eid).target;
-    edges_out.push_back(eid);
-    nodes_out.push_back(child);
-    collect_subtree(graph, child, edges_out, nodes_out);
-  }
-}
-
-/*void QSMbuilder::prune_spurious_branches()
-{
-  std::unordered_map<int, std::vector<EdgeID>> axis_edges;
-
-  for (const auto& [eid, einfo] : graph.edges())
-  {
-    if (einfo.data.branch_order == 2)
-      axis_edges[einfo.data.axis_id].push_back(eid);
-  }
-
-  std::vector<EdgeID> edges_to_remove;
-  std::vector<NodeID> nodes_to_remove;
-
-  for (const auto& [axis_id, eids] : axis_edges)
-  {
-    if (eids.size() != 1) continue;
-
-    EdgeID eid = eids[0];
-    NodeID subtree_root = graph.edge(eid).target;
-
-    edges_to_remove.push_back(eid);
-    nodes_to_remove.push_back(subtree_root);
-    collect_subtree(graph, subtree_root, edges_to_remove, nodes_to_remove);
-  }
-
-  for (EdgeID eid : edges_to_remove) graph.remove_edge(eid);
-  for (NodeID nid : nodes_to_remove) graph.remove_node(nid);
-}*/
-
 }

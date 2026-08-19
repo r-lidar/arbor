@@ -81,8 +81,11 @@ FittingResult MultiCircleFitter::fit(const std::vector<Vec3>& points, double tol
     std::vector<int> new_remaining;
     new_remaining.reserve(remaining.size() - inliers.size());
     for (int idx : remaining)
-      if (!inlier_set.count(idx)) new_remaining.push_back(idx);
-      remaining = std::move(new_remaining);
+    {
+        if (!inlier_set.count(idx))
+            new_remaining.push_back(idx);
+    }
+    remaining = std::move(new_remaining);
   }
 
   if (static_cast<int>(fitted_circles.size()) < m_n_circles)
@@ -238,15 +241,17 @@ CircleModel MultiCircleFitter::fit_circle_ransac(
 
     int inlier_count = 0;
     for (int idx : indices)
+    {
       if (point_to_circle_distance(points[idx].x, points[idx].y, circle) < tolerance)
         ++inlier_count;
+    }
 
-      if (inlier_count > max_inliers)
-      {
+    if (inlier_count > max_inliers)
+    {
         max_inliers = inlier_count;
         best = circle;
         if (max_inliers >= early_exit_thr) break;
-      }
+    }
   }
 
   if (max_inliers > 0) best.valid = true;
@@ -261,9 +266,11 @@ std::vector<int> MultiCircleFitter::find_inliers(
 {
   std::vector<int> inliers;
   for (int idx : candidates)
+  {
     if (point_to_circle_distance(points[idx].x, points[idx].y, circle) <= tolerance)
       inliers.push_back(idx);
-    return inliers;
+  }
+  return inliers;
 }
 
 } // namespace arbor::utils::fitting

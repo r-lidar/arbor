@@ -123,8 +123,10 @@ std::vector<int> CircleFitter::find_inliers(
 {
   std::vector<int> inliers;
   for (size_t i = 0; i < points.size(); ++i)
+  {
     if (point_to_circle_distance(points[i].x, points[i].y, circle) <= tolerance)
       inliers.push_back(static_cast<int>(i));
+  }
   return inliers;
 }
 

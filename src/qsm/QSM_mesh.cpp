@@ -22,7 +22,6 @@
 #include <algorithm>
 #include <map>
 #include <set>
-#include <limits>
 #include <array>
 
 namespace arbor::qsm {

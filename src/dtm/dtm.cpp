@@ -33,7 +33,7 @@ PointCloud dtm(const PointCloud& scene)
   double xmin = std::numeric_limits<double>::max(), xmax = -std::numeric_limits<double>::max();
   double ymin = std::numeric_limits<double>::max(), ymax = -std::numeric_limits<double>::max();
   double zmin = std::numeric_limits<double>::max(), zmax = -std::numeric_limits<double>::max();
-  for (unsigned int i = 0; i < scene.size() ; ++i)
+  for (unsigned int i = 0; i < n ; ++i)
   {
     double x = scene.get_x(i);
     double y = scene.get_y(i);
@@ -49,13 +49,13 @@ PointCloud dtm(const PointCloud& scene)
 
   double x_offset = (xmin + xmax) * 0.5;
   double y_offset = (ymin + ymax) * 0.5;
-  double z_offset = (zmin + zmax) * 0.5;
+  //double z_offset = (zmin + zmax) * 0.5;
 
   IncrementalDelaunay::Grid index(xmin - x_offset, ymin - y_offset, xmax - x_offset, ymax - y_offset, 0.5);
   IncrementalDelaunay::Triangulation d(index);
 
 
-  for (unsigned int i = 0 ; i < scene.size() ; i++)
+  for (unsigned int i = 0 ; i < n ; i++)
   {
     if (scene.is_ground(i))
     {

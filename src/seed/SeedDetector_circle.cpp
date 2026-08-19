@@ -20,9 +20,7 @@
 
 #include <vector>
 #include <memory>
-#include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <queue>
 #include <map>
 
@@ -59,6 +57,7 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
   if (cluster.indices.size() < 20) return nullptr;
 
   utils::fitting::CrossSectionFitter fitter;
+
   for (size_t idx : cluster.indices)
   {
     double x = point_cloud.get_x(idx);
