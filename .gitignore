@@ -5,3 +5,5 @@
 libarbor/
 Makefile
 .qmake.stash
+compile_commands.json
+.cache
