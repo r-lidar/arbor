@@ -54,7 +54,7 @@ test_that("Instance segmenation is valid", {
 })
 
 las <- flag_buffer(las, see, -0.75)
-las <- flag_small_trees(las, 3)
+las <- flag_small_trees(las, 1)
 
 test_that("Flag buffer is valid", {
   u = sort(unique(las$UserData))

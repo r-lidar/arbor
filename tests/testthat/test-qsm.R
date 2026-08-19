@@ -1,6 +1,9 @@
 f <- system.file("extdata", "tree_qsm.laz", package = "arbor")
 tree <- lidR::readLAS(f)
+
+sink(tempfile())
 qsm1 <- qsm(tree)
+sink()
 
 test_that("qsm attributes exist", {
   expect_equal(attr(qsm1, "id"), 0)

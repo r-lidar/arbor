@@ -1,6 +1,8 @@
 f <- system.file("extdata", "tree_qsm.laz", package = "arbor")
 tree <- lidR::readLAS(f)
 
+sink(tempfile())
+
 test_that("qsf produces stats with required columns", {
   qsf_obj <- qsf(tree)
   stats <- qsm_stats(qsf_obj)
@@ -9,3 +11,6 @@ test_that("qsf produces stats with required columns", {
   expect_true("V" %in% names(stats))
   expect_true("H" %in% names(stats))
 })
+
+
+sink()
