@@ -7,7 +7,6 @@ suppressPackageStartupMessages({
   library(tools)
 })
 
-
 # ----------
 # Report
 # ----------
@@ -23,7 +22,7 @@ Usage:
     quit(save = "no", status = 0)
   }
 
-  if (length(args) < 2 || has_flag(args, "-h") || has_flag(args, "--help")) {
+  if (length(args) < 2 || arbor:::has_flag(args, "-h") || arbor:::has_flag(args, "--help")) {
     usage_report()
   }
 
@@ -45,6 +44,7 @@ Usage:
   )
 }
 
+
 # ------------------------------------------------------------
 # Main Dispatcher
 # ------------------------------------------------------------
@@ -52,7 +52,7 @@ Usage:
 all_args <- commandArgs(trailingOnly = TRUE)
 
 if (length(all_args) == 0) {
-  usage_main()
+  cmd_usage()
 }
 
 command  <- all_args[1]
@@ -62,17 +62,17 @@ t0 = arbor:::tic()
 
 if (command == "segment") {
   arbor:::cmd_segment(sub_args)
-} else if (command == "qsm") {
-  arbor:::cmd_qsm(sub_args)
+} else if (command == "qsf") {
+  arbor:::cmd_qsf(sub_args)
 } else if (command == "report") {
   run_report(sub_args)
 } else if (command == "blender") {
   arbor:::cmd_blender(sub_args)
 } else if (command %in% c("-h", "--help")) {
-  arbor:::usage_main()
+  arbor:::cmd_usage()
 } else {
   cat(paste0("Unknown command: '", command, "'\n"))
-  arbor:::usage_main()
+  arbor:::cmd_usage()
 }
 
 arbor:::toc(t0, space = "")

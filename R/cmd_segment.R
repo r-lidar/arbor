@@ -34,8 +34,7 @@ Options:
   -height <m>             Remove trees smaller than this [default: 2]
   -buffer <m>             Buffer removed from borders [default: 5]
   -fraction <0-1>         Keep random fraction [default: 0.25]
-  -tls                    Set parameters for tls
-  -mls                    Set parameters for mls (default)
+  -epsg 1234              EPSG code to georeference the dataset if missing
 
 Export options (enabled by default):
   -no-segmented           Do not write segmented point cloud
@@ -46,6 +45,7 @@ Export options (enabled by default):
 Other:
   -h, --help              Show this help
   -center                 Center the scene on (0,0,0)
+  -mesh                   Export DTM as mesh
 ")
     quit(save = "no", status = 0)
   }
@@ -67,6 +67,7 @@ Other:
   min_tree_height  <- as.numeric(get_arg(args, "-height", 2))
   buffer           <- as.numeric(get_arg(args, "-buffer", 5))
   fraction         <- as.numeric(get_arg(args, "-fraction", 0.25))
+  epsg             <- as.numeric(get_arg(args, "-epsg", 0))
 
   # Helper for export flags (local to this function)
   export_enabled <- function(name) { !paste0("-no-", name) %in% args }
@@ -75,9 +76,9 @@ Other:
   export_trees       <- export_enabled("trees")
   export_valid_trees <- export_enabled("valid-trees")
   export_dtm         <- export_enabled("dtm")
+
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
-  tls                <- has_flag(args, "-tls")
 
   filter_str = paste("-keep_random_fraction", fraction)
 
@@ -95,6 +96,9 @@ Other:
   out_dtm         <- paste0(base, "_dtm.tif")
   out_dtm_mesh    <- paste0(base, "_dtm.obj")
   its_dir         <- file.path(dirname(base), "its")
+
+  crs = sf::NA_crs_
+  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg)) 
 
   # --- Configuration Log ---
   cat("
@@ -115,14 +119,14 @@ Exports
 
   # --- Processing ---
   params <- arbor_parameters_default
-  params$path_finder$max_gap = 1
-  params$path_finder$k_neighborhood_connectivity = 20
-
-  if (tls)
-  {}
 
   cat("Reading point cloud\n")
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
+  gc()
+
+  if (!is.na(crs)) st_crs(las) <- crs
+    
+  cat("Hybrid homogeneization\n")
   las <- hybrid_homogeneization(las)
   gc()
 

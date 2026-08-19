@@ -36,7 +36,8 @@ Options:
   -fraction <0-1>         Keep random fraction [default: 0.25]
 
 Other:
-  -h, --help               Show this help
+  -h, --help              Show this help
+  -center                 Center the scene on (0,0,0)
 ")
     quit(save = "no", status = 0)
   }

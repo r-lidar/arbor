@@ -16,26 +16,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmd_qsm <- function(args) {
+cmd_qsf <- function(args) {
 
   # --- QSM Usage ---
   usage_qsm <- function() {
     cat("
 Usage:
-  arbor qsm <input> [options]
+  arbor qsf <input> [options]
 
 Mandatory:
-  <input>           Input file
+  <input>           Input LAS file segmented with arbor
 
 Options:
   -o, --output <dir> Output directory [default: input directory]
   -overwrite         Overwrite existing files
-  -csv               Export CSV [default: on if nothing provided]
-  -obj               Export OBJ [default: on if nothing provided]
+  -epsg 1234         EPSG code to georeference the dataset if missing
+  -qsm               Export QSM [default: on if nothing provided]
+  -csv               Export CSV 
+  -obj               Export OBJ
   -ply               Export PLY
 
 Example:
-  arbor qsm tree.laz -csv -obj
+  arbor qsf segmented.laz
 ")
     quit(save = "no", status = 0)
   }
@@ -66,13 +68,18 @@ Example:
   out_flag <- get_arg(args, "-o")
   if (is.null(out_flag)) out_flag <- get_arg(args, "--output")
   if (!is.null(out_flag)) odir <- normalizePath(out_flag, mustWork = FALSE)
-
+  
+  epsg <- as.numeric(get_arg(args, "-epsg", 0))
+  crs = sf::NA_crs_
+  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg)) 
+  
   # Formats
   formats <- character()
+  if (has_flag(args, "-qsm")) formats <- c(formats, "qsm")
   if (has_flag(args, "-csv")) formats <- c(formats, "csv")
   if (has_flag(args, "-obj")) formats <- c(formats, "obj")
   if (has_flag(args, "-ply")) formats <- c(formats, "ply")
-  if (length(formats) == 0) formats <- c("csv", "obj") # Default
+  if (length(formats) == 0) formats <- c("qsm") # Default
 
   overwrite <- has_flag(args, "-overwrite")
 
@@ -85,22 +92,15 @@ Settings
 =====================================================
 ")
 
-  # res <- qsf(
-  #   input     = ifiles,
-  #   odir      = odir,
-  #   formats   = formats,
-  #   overwrite = overwrite,
-  #   ncores    = ncores
-  # )
-  #
-  # log <- qsf_log(res)
+  cat("Reading point cloud\n")
+  las <- lidR::readLAS(ifiles)
 
-  #for (i in which(has_msg))
-  #{
-  #  if (isTRUE(res$success[i])) {
-  #    cat("\033[33m", "WARNING | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
-  #  } else {
-  #    cat("\033[31m", "ERROR   | ", res$name[i], " | ", res$message[i], "\033[0m\n", sep = "")
-  #  }
-  #}
+  cat("Computing QSMs\n")
+  res <- qsf(las)
+
+  if (!is.na(crs))
+    st_crs(res) <- crs 
+
+  cat("Writing QSMs\n")
+  qsf_write(res, odir, formats)
 }

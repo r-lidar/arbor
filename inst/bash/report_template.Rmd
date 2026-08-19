@@ -38,7 +38,7 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 ```
 
-```{r}
+```{r read-qsm}
 # Define a modern, publication-ready theme
 brand_color <- "#1C6B3C" # Matching the LaTeX color
 
@@ -70,48 +70,18 @@ ans <- lapply(files, function(f)
   name <- tools::file_path_sans_ext(basename(f))
   res  <- qsm_stats(qsm)
   
-  root <- qsm[parent_ID == 0]
   # Handle potential empty QSMs safely
-  if(nrow(root) > 0){
-    root <- st_as_sf(st_sfc(st_point(c(root$startX[1], root$startY[1]))))
-    root$name      <- name
-    root$volume    <- round(res$stats_global$V, 3)
-    root$height    <- round(res$stats_global$H, 2)
-    root$dbh       <- res$stats_global$DBH
-    root$filename  <- f
-    return(root)
-  } else {
-    return(NULL)
-  }
+  root <- st_as_sf(st_sfc(st_point(c(res$stats_global$X_root[1], res$stats_global$Y_root[1]))))
+  root$name      <- name
+  root$volume    <- round(res$stats_global$V, 3)
+  root$height    <- round(res$stats_global$H, 2)
+  root$dbh       <- res$stats_global$DBH
+  root$filename  <- f
+  st_crs(root) <- st_crs(qsm)
+  return(root)
 })
 
 ans <- do.call(rbind, ans)
-
-Vtot  <- sum(ans$volume, na.rm = TRUE)
-Ntree <- nrow(ans)
-idir  <- params$idir
-files <- list.files(idir, full.names = TRUE)
-
-ans <- lapply(files, function(f) {
-
-  qsm  <- qsm_read(f)
-  name <- tools::file_path_sans_ext(basename(f))
-  res  <- qsm_stats(qsm)
-
-  root <- qsm[parent_ID == 0]
-  root <- st_as_sf(st_sfc(st_point(c(root$startX, root$startY))))
-
-  root$name     <- name
-  root$volume   <- round(res$stats_global$V, 3)
-  root$height   <- round(res$stats_global$H, 2)
-  root$dbh      <- res$stats_global$DBH
-  root$filename <- f
-
-  root
-})
-
-ans <- do.call(rbind, ans)
-st_crs(ans) <- "EPSG:32735"
 
 Vtot  <- sum(ans$volume)
 Ntree <- nrow(ans)
@@ -122,7 +92,7 @@ ba    <- sum((ans$dbh/2)^2*pi)
 
 # Location
 
-```{r}
+```{r world-map}
 # World map
 world <- ne_countries(scale = "medium", returnclass = "sf")
 rivers <- ne_download(
@@ -136,10 +106,12 @@ cities <- ne_download(
 
 bb = st_as_sfc(st_bbox(ans))
 
+if (!is.na(st_crs(ans)))
+{
 centroids <- ans |>
-st_transform(3857) |>
 st_centroid() |>
 st_transform(4326)
+
 
 bb <- st_bbox(centroids)
 pad <- 2
@@ -177,7 +149,6 @@ p_local <- ggplot() +
   ) +
   theme_minimal()
 
-
 # Plot world map + centroids
 p_global <- ggplot() +
 geom_sf(data = world, fill = "grey95", color = "grey70", linewidth = 0.2) +
@@ -192,6 +163,27 @@ geom_sf(data = st_as_sfc(bb_local), color = "black", size = 1, alpha = 0) +
 theme_minimal()
 
 p_global | p_local
+} else {
+  ggplot() +
+  geom_sf(
+      data = world,
+      fill = "grey95",
+      color = "grey70",
+      linewidth = 0.2
+    ) +
+    coord_sf() +
+    annotate(
+      "text",
+      x = 0,
+      y = 0,
+      label = "Cannot display data location\nCRS is missing",
+      size = 6,
+      color = "red"
+    ) +
+    xlab("") +
+    ylab("") +
+    theme_minimal()
+}
 ```
 
 # Global Statistics
@@ -199,7 +191,7 @@ p_global | p_local
 This report summarizes the QSM processing results. The dataset consists of `r Ntree` trees with a cumulative biological volume of `r round(Vtot, 2)` m^3^.
 
 
-```{r}
+```{r stat-global}
 summary_df <- data.frame(
   Metric = c("Trees",
              "Area ",  
@@ -244,7 +236,7 @@ kbl(summary_df, booktabs = T, escape = F, align = c('l', 'l', 'l')) %>%
 
 The following figures illustrate the relationships between tree metrics derived from the Quantitative Structure Models.
 
-```{r}
+```{r allometry}
 # Plot 1: Volume vs Diameter
 p1 <- ggplot(ans, aes(x = dbh * 100, y = volume)) +
 geom_point(col = "darkgreen", size = 2, alpha = 0.7) +
@@ -276,7 +268,7 @@ p1 | p2
 # Distributions
 
 
-```{r}
+```{r distribution}
 p1 = ggplot(ans, aes(x = dbh * 100)) +
   geom_histogram(bins = 30, fill = "darkgreen", col = "black", alpha = 0.7) +
   labs(
@@ -303,7 +295,7 @@ p1 | p2
 
 # Contributions
 
-```{r}
+```{r contribution}
 # --- Data Preparation ---
 V <- sort(ans$volume, decreasing = TRUE)           # Sort volumes ascending
 Vcum <- cumsum(V)               # Cumulative volume
@@ -322,7 +314,7 @@ half_vol_value <- Vp[half_vol_idx]
 The `r half_vol_idx` (`r round((half_vol_idx)/Ntree*100)`%)  biggest trees represent 50% of the volume. The `r Ntree - half_vol_idx` (`r round((Ntree - half_vol_idx)/Ntree*100)`%) smallest trees represent 50% of the volume.
 
 
-```{r fig.height=4}
+```{r contribution2, fig.height=4}
 p1 <- ggplot(data, aes(x = Tree, y = Vp)) +
   geom_line(color = "darkgreen", size = 1.2) +
   geom_point(color = "forestgreen", size = 2) +
@@ -358,7 +350,7 @@ p1
 # Tree map
 
 
-```{r}
+```{r tree-map}
 tree_map = st_buffer(ans, dist = ans$dbh)
 ggplot(tree_map) +
   geom_sf(aes(fill = volume), alpha = 0.6, size = 0.2) +
