@@ -50,7 +50,7 @@ double ShapeFitter::calculate_arc_coverage(
     if (angle < 0.0) angle += 360.0;
 
     // Integer division to map 0.0-359.999 to 0-35 indices safely
-    int bin_idx = static_cast<int>(angle / bin_size);
+    int bin_idx = static_cast<int>(std::lround(angle / bin_size)) % total_bins;
     if (bin_idx >= total_bins) bin_idx = total_bins - 1; // Guard against rounding edge cases
 
     if (!has_point[bin_idx]) {

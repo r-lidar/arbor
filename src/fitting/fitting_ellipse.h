@@ -42,13 +42,13 @@ public:
 private:
   struct EllipseParams
   {
-    double a, b, c, d, e, f;
+    double a = 0.0, b = 0.0, c = 0.0, d = 0.0, e = 0.0, f = 0.0;
     bool valid = false;
   };
 
   struct EllipseGeometry
   {
-    double cx, cy, major, minor, angle;
+    double cx = 0.0, cy = 0.0, major = 0.0, minor = 0.0, angle = 0.0;
     bool valid = false;
   };
 

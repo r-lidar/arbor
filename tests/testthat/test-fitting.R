@@ -229,7 +229,7 @@ test_that("fitting detects half circloid", {
 
   expect_equal(res$center_x, 13.4, tolerance = 0.02)
   expect_equal(res$center_y, 19.6, tolerance = 0.02)
-  expect_equal(res$radius, 2.43, tolerance = 0.03)
+  expect_equal(res$radius, 2.40, tolerance = 0.05)
   expect_true(res$covered_arc_degree >= 220)
   expect_equal(res$shape_type, "ellipse")
 

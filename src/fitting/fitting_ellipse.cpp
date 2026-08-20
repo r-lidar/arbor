@@ -190,6 +190,12 @@ FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double toleran
     const auto final_p = fit_ellipse_algebraic(inlier_pts);
     const auto g       = get_ellipse_geometry(final_p);
 
+    if (!final_p.valid || !g.valid)
+    {
+      best.success = false;
+      return best;
+    }
+
     best.radius           = static_cast<float>(std::sqrt(g.major * g.minor));
     best.center           = {g.cx, g.cy, m_zmean};
     best.parameters       = {final_p.a, final_p.b, final_p.c, final_p.d, final_p.e, final_p.f,
