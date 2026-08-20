@@ -1,11 +1,13 @@
 Package: arbor
 Type: Package
 Title: Tree Segmentation in MLS/TLS Point Clouds
-Version: 0.14.0
+Version: 1.0.0
 Author: Jean-Romain Roussel
 Maintainer: Jean-Romain Roussel <info@r-lidar.com>
 Description: Semantic segmentation, instance segmentaion and Quantitative Structure Model in MLS and TLS Point Clouds.
 License: GPL (>= 3)
+URL: https://github.com/r-lidar/arbor
+BugReports: https://github.com/r-lidar/arbor/issues
 Encoding: UTF-8
 LazyData: true
 LinkingTo: Rcpp
