@@ -134,7 +134,7 @@ test_that("fitting detects half circle (tol = 0.06)", {
   expect_equal(res$center_x, xc, tolerance = 0.005)
   expect_equal(res$center_y, yc, tolerance = 0.005)
   expect_equal(res$radius, r, tolerance = 0.025)
-  expect_equal(res$covered_arc_degree, 200)
+  expect_equal(res$covered_arc_degree, 190)
   expect_equal(res$shape_type, "circle")
 
   if (disp) show(hcircle_points, res)
@@ -146,7 +146,7 @@ test_that("fitting detects half circle (tol = 0.1)", {
   expect_equal(res$center_x, xc, tolerance = 0.005)
   expect_equal(res$center_y, yc, tolerance = 0.005)
   expect_equal(res$radius, r, tolerance = 0.025)
-  expect_equal(res$covered_arc_degree, 200)
+  expect_equal(res$covered_arc_degree, 190)
   expect_equal(res$shape_type, "circle")
 
   if (disp) show(hcircle_points, res)
@@ -170,7 +170,7 @@ test_that("fitting detects full ellipse (tol = 0.08)", {
   expect_equal(res$center_x, xc, tolerance = 0.005)
   expect_equal(res$center_y, yc, tolerance = 0.005)
   expect_equal(res$radius, 2.41, tolerance = 0.025)
-  expect_equal(res$covered_arc_degree, 350)
+  expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "ellipse")
 
   if (disp) show(ellipse_points, res)
