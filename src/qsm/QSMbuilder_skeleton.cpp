@@ -186,6 +186,17 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
     std::vector<nanoflann::ResultItem<uint32_t, double>> hits;
     kdtree.radiusSearch(query, max_d2, hits, search_params);
 
+    // Sort by (d2, idx) for deterministic selection across platforms.
+    // nanoflann returns hits in internal tree-traversal order (not sorted),
+    // which can differ between ARM and x86 builds.  Sorting ensures that
+    // when two candidates are equidistant the one with the smaller center
+    // index (stable, because centers was built from a std::map) always wins.
+    std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b)
+    {
+      if (a.second != b.second) return a.second < b.second;
+      return a.first < b.first;
+    });
+
     ClusterCenter* newRoot = nullptr;
     double bestD2 = std::numeric_limits<double>::max();
 
