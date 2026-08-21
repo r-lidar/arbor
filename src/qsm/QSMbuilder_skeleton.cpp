@@ -191,20 +191,25 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
     // which can differ between ARM and x86 builds.  Sorting ensures that
     // when two candidates are equidistant the one with the smaller center
     // index (stable, because centers was built from a std::map) always wins.
+    // Primary key: ascending d2 (nearest first).
+    // Secondary key: ascending idx (lower center index wins on tie).
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b)
     {
-      if (a.second != b.second) return a.second < b.second;
+      if (a.second < b.second) return true;
+      if (b.second < a.second) return false;
       return a.first < b.first;
     });
 
+    // After sorting, the first eligible candidate is the nearest.
+    // No floating-point comparison against a running best is needed.
     ClusterCenter* newRoot = nullptr;
-    double bestD2 = std::numeric_limits<double>::max();
 
     for (auto& [idx, d2] : hits)
     {
       ClusterCenter* c = &centers[idx];
       if (c->done || c->iter <= root->iter) continue;
-      if (d2 < bestD2) { bestD2 = d2; newRoot = c; }
+      newRoot = c;
+      break;
     }
 
     if (newRoot)
