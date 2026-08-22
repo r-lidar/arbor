@@ -7,3 +7,6 @@ Makefile
 .qmake.stash
 compile_commands.json
 .cache
+*.Rcheck/
+*.tar.gz
+DESCRIPTION.bak
