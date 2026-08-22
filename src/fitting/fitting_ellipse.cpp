@@ -208,8 +208,8 @@ FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double toleran
   for (const auto& v : points) zsum += v.z;
   m_zmean = zsum / static_cast<double>(points.size());
 
-  std::uniform_int_distribution<size_t> dist(0, points.size() - 1);
-
+  //std::uniform_int_distribution<size_t> dist(0, points.size() - 1);
+  deterministic_uniform_int_distribution dist(0, points.size() - 1);
   for (int i = 0; i < m_max_iterations; ++i)
   {
     std::vector<Vec3> sample;
