@@ -1,0 +1,87 @@
+# Compilation flags
+PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
+  -I. \
+  -I./utils \
+  -I./pointcloud \
+  -I./qsm \
+  -I./qsf \
+  -I./api \
+  -I./segment \
+  -I./seed \
+  -I./dtm \
+  -I./fitting \
+  -I./nanoflann \
+  -I./vendor \
+  -I./vendor/ptd \
+  -I./vendor/libqsm \
+  -I./R \
+  -I/usr/include/eigen3
+
+# OpenMP support
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
+
+# Explicit list of object files (POSIX compliant)
+OBJECTS = \
+  RcppExports.o \
+  pointcloud/PointCloudDataFrame.o \
+  vendor/ptd/PTD.o \
+  vendor/hporro/pred3d.o \
+  vendor/hporro/delaunay.o \
+  vendor/hporro/index.o \
+  vendor/dbscan/dbscan.o \
+  vendor/libqsm/libqsm.o \
+  experimental/qsm_distance.o \
+  experimental/extrat_context.o \
+  qsf/QSF.o \
+  qsf/qsf_api.o \
+  R/RcppApi_wrappers.o \
+  R/RcppApi_segment.o \
+  R/RcppApi_qsm.o \
+  R/RcppApi_params.o \
+  R/RcppApi_tools.o \
+  seed/SeedDetector.o \
+  seed/find_seeds_api.o \
+  seed/SeedDetector_cage.o \
+  seed/SeedDetector_circle.o \
+  segment/segment_semantic_api.o \
+  segment/Graph.o \
+  segment/GraphBuilder.o \
+  segment/segment_instance_api.o \
+  segment/segment_ground_api.o \
+  RcppAutoExport.o \
+  dtm/dtm.o \
+  utils/services.o \
+  utils/homogeneization.o \
+  utils/knn.o \
+  utils/progressbar.o \
+  utils/Grid3D.o \
+  utils/sor.o \
+  utils/anisotopy.o \
+  utils/ransac.o \
+  utils/smooth3d.o \
+  utils/allometry.o \
+  misc/read_adtree_skeleton.o \
+  qsm/QSMbuilder_dist2root.o \
+  qsm/QSMbuilder_radius.o \
+  qsm/QSMbuilder_smooth.o \
+  qsm/QSMbuilder_architecture.o \
+  qsm/QSMbuilder_prolongation.o \
+  qsm/QSMbuilder_cluster.o \
+  qsm/QSMbuilder_skeleton.o \
+  qsm/QSMbuilder_pipemodel.o \
+  qsm/QSMbuilder.o \
+  qsm/QSMbuilder_butt.o \
+  qsm/QSMbuilder_utils.o \
+  qsm/qsm_api.o \
+  qsm/QSM_mesh.o \
+  qsm/QSM_utils.o \
+  qsm/QSM_write.o \
+  qsm/QSM_read.o \
+  fitting/fitting_fourier.o \
+  fitting/fitting_ellipse.o \
+  fitting/fitting_circle.o \
+  fitting/fitting_multicircle.o \
+  fitting/fitting_orbicular.o \
+  fitting/fitting_polynomial.o
+

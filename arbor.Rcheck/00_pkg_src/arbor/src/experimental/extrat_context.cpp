@@ -1,0 +1,87 @@
+/**
+ * @file extrat_context.cpp
+ * Project: Arbor
+ *
+ * Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "PointCloud.h"
+
+#include <unordered_set>
+#include <vector>
+
+std::vector<int> extract_tree_context(const PointCloud& pc, int target_tree_id,  bool exclude_tree = false, int k = 10)
+{
+  // Find all points belonging to the target tree
+  std::vector<size_t> target_indices;
+  target_indices.reserve(pc.size() / 100);
+  for (size_t i = 0; i < pc.size(); ++i)
+  {
+    if (pc.get_treeid(i) == target_tree_id)
+    {
+      target_indices.push_back(i);
+    }
+  }
+
+  if (target_indices.empty())
+  {
+    throw std::runtime_error("Requested tree ID is not part of the point cloud");
+  }
+
+  pc.build_index();
+
+  std::unordered_set<int> contact_tree_ids;
+
+  std::vector<unsigned int> ret_index(k);
+  std::vector<double> out_dist_sqr(k);
+  for (size_t target_idx : target_indices)
+  {
+    double q[3];
+    pc.get_point(target_idx, q);
+
+    pc.knn(q, k, ret_index, out_dist_sqr);
+
+    for (size_t j = 0; j < k; ++j)
+    {
+      size_t neighbor_idx = ret_index[j];
+      int neighbor_tree_id = pc.get_treeid(neighbor_idx);
+
+      if (neighbor_tree_id > 0 && neighbor_tree_id != target_tree_id)
+      {
+        contact_tree_ids.insert(neighbor_tree_id);
+      }
+    }
+  }
+
+  std::vector<int> result;
+  if (!exclude_tree)
+  {
+    result.push_back(target_tree_id);
+  }
+
+  result.insert(result.end(), contact_tree_ids.begin(), contact_tree_ids.end());
+  std::sort(result.begin(), result.end());
+
+  return result;
+}
+
+// Rcpp wrapper
+Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id,  bool exclude_tree = false, int k = 10)
+{
+  PointCloud adaptor(las);
+  std::vector<int> result = extract_tree_context(adaptor, tree_id, exclude_tree, k);
+  return Rcpp::wrap(result);
+}

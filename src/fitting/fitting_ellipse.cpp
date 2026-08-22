@@ -35,6 +35,27 @@ EllipseFitter::EllipseParams EllipseFitter::fit_ellipse_algebraic(const std::vec
   EllipseParams res;
   if (pts.size() < 5) return res;
 
+  double mean_x = 0.0;
+  double mean_y = 0.0;
+  for (const auto& p : pts)
+  {
+    mean_x += p.x;
+    mean_y += p.y;
+  }
+  mean_x /= static_cast<double>(pts.size());
+  mean_y /= static_cast<double>(pts.size());
+
+  double sq_sum = 0.0;
+  for (const auto& p : pts)
+  {
+    const double dx = p.x - mean_x;
+    const double dy = p.y - mean_y;
+    sq_sum += dx*dx + dy*dy;
+  }
+
+  const double scale = std::sqrt(sq_sum / static_cast<double>(pts.size()));
+  if (!std::isfinite(scale) || scale <= std::numeric_limits<double>::epsilon()) return res;
+
   // Build the 6×6 scatter matrix S = Dᵀ D where each row of D is
   // [x², xy, y², x, y, 1].  The ellipse coefficients are the eigenvector
   // of S with the smallest eigenvalue.
@@ -43,7 +64,8 @@ EllipseFitter::EllipseParams EllipseFitter::fit_ellipse_algebraic(const std::vec
 
   for (const auto& p : pts)
   {
-    const double x = p.x, y = p.y;
+    const double x = (p.x - mean_x) / scale;
+    const double y = (p.y - mean_y) / scale;
     const double row[6] = {x*x, x*y, y*y, x, y, 1.0};
     for (int i = 0; i < N; ++i)
       for (int j = 0; j < N; ++j)
@@ -111,8 +133,20 @@ EllipseFitter::EllipseParams EllipseFitter::fit_ellipse_algebraic(const std::vec
     }
   }
 
-  res.a = V[0][min_col]; res.b = V[1][min_col]; res.c = V[2][min_col];
-  res.d = V[3][min_col]; res.e = V[4][min_col]; res.f = V[5][min_col];
+  const double an = V[0][min_col];
+  const double bn = V[1][min_col];
+  const double cn = V[2][min_col];
+  const double dn = V[3][min_col];
+  const double en = V[4][min_col];
+  const double fn = V[5][min_col];
+
+  res.a = an;
+  res.b = bn;
+  res.c = cn;
+  res.d = -2.0*an*mean_x - bn*mean_y + dn*scale;
+  res.e = -bn*mean_x - 2.0*cn*mean_y + en*scale;
+  res.f = an*mean_x*mean_x + bn*mean_x*mean_y + cn*mean_y*mean_y
+        - dn*scale*mean_x - en*scale*mean_y + fn*scale*scale;
   res.valid = (res.b*res.b - 4.0*res.a*res.c < 0);
   return res;
 }

@@ -1,0 +1,100 @@
+# @file qsf.R
+# Project: Arbor
+#
+# Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#' Quantitative Structural Forest
+#'
+#' Batch processing of QSM models with parallel execution.
+#'
+#' @param las A point cloud with semantic and instance segmentation computed
+#' @param min_height numeric. Default: any instance higher than 2 m generates a QSMs
+#' @param params list See \link{parameters}.
+#' @return A qsf object
+#'
+#' @export
+#' @seealso  \link{qsm}
+qsf <- function(las, min_height = 2, params = arbor_parameters_default)
+{
+  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
+  res <- qsf_cpp(las@data, min_height, params)
+  for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
+  res <- res[order(as.numeric(names(res)))]
+  res <- as_qsf(res)
+  res
+}
+
+as_qsf <- function(x)
+{
+  if (!is.list(x)) {
+    stop("`x` must be a list.", call. = FALSE)
+  }
+
+  if (length(x) > 0 && !all(vapply(x, inherits, logical(1), what = "qsm"))) {
+    stop("All elements of `x` must be QSM objects (class 'qsm').", call. = FALSE)
+  }
+
+  class(x) <- c("qsf", class(x))
+  x
+}
+
+#' QSF log
+#'
+#' Use qsf_log after \link{qsf} to get the logs
+#'
+#' @param qsf qsf
+#' @export
+qsf_log = function(qsf)
+{
+  # 1. Extract messages from attributes
+  messages = lapply(qsf, function(x) attr(x, "message"))
+
+  # 2. Identify and subset non-empty messages
+  keep_idx <- which(sapply(messages, length) > 0)
+  clean_list <- unlist(messages[keep_idx])
+
+  # 3. Extract tags: catches everything between the first []
+  # We use a simple sapply to ensure we get a vector of the same length as clean_list
+  warn_tags <- sapply(clean_list, function(x) {
+    if (!grepl("\\[.*?\\]", x)) return(NA)
+    sub(".*\\[(.*?)\\].*", "\\1", x)
+  })
+  # 4. Create the structured list
+  unique_tags <- unique(warn_tags)
+
+  final_output <- lapply(unique_tags, function(tag)
+  {
+    # Find which messages belong to this tag
+    match_mask <- !is.na(warn_tags) & (warn_tags == tag)
+
+    matches <- clean_list[match_mask]
+    original_indices <- keep_idx[match_mask]
+
+    # 5. SIMPLIFIED MESSAGE: No regex escaping needed!
+    # Using fixed = TRUE treats 'tag' as plain text, not a regex pattern.
+    raw_msg <- matches[1]
+    generic_msg <- trimws(gsub(tag, "", raw_msg, fixed = TRUE))
+
+    list(
+      type = tag,
+      index = unname(original_indices),
+      treeID = as.integer(names(matches))
+    )
+  })
+
+  # Name the list elements by their tag (e.g., "[No valid measure]")
+  final_output
+}

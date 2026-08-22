@@ -1,0 +1,373 @@
+library(lidR)
+library(arbor)
+
+set_lidr_threads(0)
+
+cut_above_ground = 0.25
+
+display = FALSE
+
+# The `filter` option is critical. **Do NOT** load the full point density. Use rather 20 to 30% max!
+# I recommend targeting for 15.000 pts/m². Loading more points makes everything slower but not
+# necessarily more accurate. Of course 15.000 pts/m² means nothing in 3D and depends on the forest density
+# but the idea is too drastically reduce the number of points from the original point cloud. Working
+# full density is worthless. It blows up RAM consumption, blows up computation time and brings no value.
+
+# California
+file = "~/Documents/r-lidar/clients/fsinvestor/SanDiego/FSTESTSCAN3UCSD_01_laz1_4_extract30m.laz" ; filter = "-keep_random_fraction 0.3"
+
+# Zambia
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part1.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part2.laz" ; filter = "-keep_random_fraction 0.15"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouse/ZamPlot_part3.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonHouseTrees/Tree1-10_subsampled_rnd30.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/JasonFarm_segmented.laz" ; filter = ""
+
+# Indonesia
+file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/Walk1Area2/Walk1area2slam_20x20plot.laz" ; filter = "-keep_random_fraction 0.3"
+file = "~/Documents/r-lidar/clients/fsinvestor/Indonesia/MasiveButtroot/Waykananbindotree_01_isolated.laz" ; filter="-keep_random_fraction 0.6"
+
+# Rwanda
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Kwandahillside/Kwandahillside.laz" ; filter = "-keep_random_fraction 0.2"
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Forest site 1/Referencesite1_part2_subsample0.5.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Eucalyptuswalk2_01_subsampled_50.laz" ; filter = "-keep_random_fraction 0.333"
+file = "~/Documents/r-lidar/clients/fsinvestor/Rwanda/Eucalyptus/Stoneucsd6_01_subsampled_clio_40x40.laz" ; filter = ""
+
+
+# Petawawa Research Forest
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF002_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/PRF200_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar/clients/Forest Analysis Ltd/PRF/PRF/P0020_05_MLS_10m_buf10m_pj_z_range_30x30_test.las" ; filter = "-keep_random_fraction 0.3"
+
+# Richard's data
+file = "/home/jr/Documents/Usherbrooke/Registration/data/TN00/MLS-TN00-clip.laz" ; filter = "-keep_random_fraction 0.25"
+file = "/home/jr/Documents/Usherbrooke/Registration/data/PRF002/MLS-PRF002-clip.laz" ; filter = "-keep_random_fraction 0.1"
+
+# MRNF Oak plantations
+file = "/home/jr/Documents/r-lidar/clients/MRNF-MLS/las/Tutoriel/sta_plot1_20x20.laz" ; filter = "-keep_random_fraction 0.8" ; cut_above_ground = 0.5
+
+# Bastien's data
+file = "~/Téléchargements/GJ-019_plot_15m_prep.las" ; filter = "-keep_random_fraction 0.25"
+file = "~/Téléchargements/P2_clean.laz" ; filter = "-keep_random_fraction 0.2"
+file = "~/Téléchargements/P1_clean_subset.laz" ; filter = "-keep_random_fraction 0.4"
+file = "~/Téléchargements/P0024_07_segmented_subset.laz" ; filter = ""
+file = "~/Téléchargements/P1_decimated.laz" ; filter = "-keep_random_fraction 0.6"
+
+# Olivier Martim
+file = "/home/jr/Documents/r-lidar/clients/IRF/TropiscatNE/TropiscatNE_01_laz1_4_decimated_40x40.laz" ; filter = "-keep_random_fraction 0.4" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_Cacao.laz" ; filter = "-keep_random_fraction 0.4"
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/TLS_2021_FTH_1.laz" ; filter = "-keep_random_fraction 0.4"
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip40.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated25_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/IRF/data/Quadra_filter_025_0005_select_xyz0_0_decimated50_clip_bigtree.laz" ; filter = "" ; cut_above_ground = 0.5
+
+
+# UAV
+file = "/home/jr/Téléchargements/Forestertestzone.las" ; filter = "" ; cut_above_ground = 0.25
+
+# Geotree
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/BCI_A0_decimated_50_clip_40x40.laz" ; filter = "" ; cut_above_ground = 0.5
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark.las" ; filter =  "-keep_random_fraction 0.3" ; cut_above_ground = 0.25
+file = "/home/jr/Documents/r-lidar/clients/geotree/TLS/wytham/wytham_benchmark_30x30.las" ; filter =  "-keep_random_fraction 1" ; cut_above_ground = 0.25
+
+
+# Thomas Dandkiller
+
+file = "/home/jr/Téléchargements/traj_registered_center/2026-05-04_12-27-martelodrome-bloc1-p4_clean_color_registered_subsampled50.laz" ; filter =  "-keep_random_fraction 0.5" ; cut_above_ground = 0.25
+
+library(lidR)
+library(arbor)
+
+file = "~/Blender/PRF193/PRF193.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF184_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF193_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF002_15m_sor_10pct.laz" ; filter = "" # qsm failure
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF025_15m_sor_10pct.laz" ; filter = ""
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF133_15m_sor_10pct.laz" ; filter = "" # some ugly qsm
+file = "~/Documents/r-lidar inc/arbor/LAS/MLS/PRF/PRF185_15m_sor_10pct.laz" ; filter = "" # qsm failure
+#file = "~/Téléchargements/PRF193_tiny.las"
+
+params = arbor_parameters_default
+
+las <- readTLS(file, select = "xyz", filter = filter)
+
+t0 = Sys.time()
+las <- hybrid_homogeneization(las)
+las <- segment_ground(las)
+las <- wood_likelihood(las, params)
+las <- segment_semantic(las, params)
+see <- find_seeds(las, params)
+las <- segment_instance(las, see, params)
+las <- flag_small_trees(las, max_height = 1)
+las <- flag_buffer(las, see, buffer =  -10)
+las <- colorize_trees(las)
+
+qsf <- qsf(las, params = params)
+qsf_log(qsf)
+tf = Sys.time()
+dt = difftime(tf, t0)
+arbor:::record_entry(las, dt, file)
+
+trees = filter_poi(las, UserData == ARBORTREE)
+dtm = rasterize_terrain(las, 2)
+writeLAS(trees, paste0(tools::file_path_sans_ext(file), "_segmented.laz"))
+terra::writeRaster(dtm, paste0(tools::file_path_sans_ext(file), "_dtm.tif"))
+qsf_write(qsf, dirname(file))
+stats = qsm_stats(qsf)
+data.table::fwrite(stats, paste0(tools::file_path_sans_ext(file), "_stats.csv"))
+
+x = plot_instance(las, size = 1)
+plot_instance(see, size = 8, add = x)
+dtm = lidR::rasterize_terrain(las, 0.2)
+plot(qsf, pal = "chocolate4", add = x) |> lidR::add_dtm3d(dtm)
+
+merch = qsf_merchantable(qsf)
+plot(merch, pal = "chocolate4")
+
+merch2 = qsm_merchantable(merch)
+plot(merch2, pal = "chocolate4")
+
+merch3 = qsm_merchantable(qsf)
+plot(merch3, pal = "chocolate4")
+
+stem = qsm_stem(qsf)
+plot(stem, pal = "chocolate4")
+
+plot_semantic(las)
+plot_instance(las)
+
+x = plot_instance(las)
+plot(qsf, add = x, pal = "chocolate4")
+u = rgl::identify3d(las$X-x[1], las$Y-x[2], las$Z)
+
+params$qsm$step = 0.2
+
+i = 2
+tree = lidR::filter_poi(las, treeID %in% i)
+q = qsm(tree, params)
+x = plot_semantic(tree)
+plot(q, add = x, color = "quality")
+i = i+1
+
+#plot_instance(trees, dtm)
+#plot_semantic(trees, dtm)
+
+#
+# ids = unique(trees$treeID)
+# id = sample(ids, 1)
+# tree <- lidR::filter_poi(trees, treeID == id)
+# qsm  <- qsm(tree)
+# x <- plot_semantic(tree)
+# plot(qsm, color = "branch_order", add = x, skeleton = F)
+#
+# res = qsm_dbh(qsm, tree, display = TRUE)
+# res = qsm_stats(qsm, tree, display = TRUE)
+
+# id = sample(seq_along(qsf), 1)
+# qsm = qsf[[id]]
+# plot_qsm(qsm)
+
+
+res = qsf(las)
+x = plot(res[[1]]) |> add_dtm3d(dtm)
+
+t0 = arbor:::tic()
+trees2 = segment_sementic_from_qsf(trees, res)
+arbor:::toc(t0)
+
+tm = arbor:::qsf_treemap(res)
+tm = sf::st_buffer(tm, tm$DBH)
+st_crs(tm) = 3161
+library(tmap)
+
+x = mean(valid_trees$X)
+y = mean(valid_trees$Y)+1.5
+center_pt <- sf::st_sfc(sf::st_point(c(x, y)), crs = 3161)
+circle <- sf::st_buffer(center_pt, dist = 15)
+
+tmap_mode("plot")
+
+tm_shape(tm) +
+  tm_graticules() +
+  tm_polygons(
+    col = "V",
+    palette = "viridis",
+    style = "quantile",
+    n = 5
+  ) +
+  tm_shape(circle) +
+  tm_polygons(border = "red", fill = NULL) +
+  tm_layout(
+    frame = TRUE,
+    axes = TRUE,
+    axes.labels = TRUE
+  )
+
+x = plot_semantic(trees2)
+add_dtm3d(x, dtm)
+
+
+for (i in stats$treeID)
+{
+  t = filter_poi(las, treeID == i)
+  writeLAS(t, paste0("/home/jr/Documents/r-lidar inc/arbor/Validation/Special1/PRF193_", i, ".las"))
+}
+
+
+# ===== PROCESSING PARAMETERS =====
+
+params = arbor_parameters_default
+
+# ====== READ POINT CLOUD =======
+
+# Do not use readLAS use readTLS! It sorts the point cloud for L1 cache efficiency
+
+las = readTLS(file, select = "xyz0", filter = filter)
+
+las <- hybrid_homogeneization(las)
+
+plot(header(las))
+
+#las = clip_circle(las, mean(las$X), mean(las$Y), 15)
+
+# Print to see your density. Target is between 10.000 and 20.000
+print(las)
+plot(header(las))
+
+# ===== GROUND CLASSIFICATION + HAG ======
+
+las    <-  arbor::segment_ground(las, params)
+gc()
+
+# ====== DTM & HAG ======
+
+dtm <- lidR::rasterize_terrain(las, 0.5, lidR::tin())
+
+if (display) plot_dtm3d(dtm)
+if (display) plot(las) |> add_dtm3d(dtm)
+
+gc()
+
+# ====== CLEAN BOTTOM NOISE  ======
+
+# Removing noise only on the lowest layer to preserve foliage and high branches.
+# Not recommended if the understory has a lot of foliage, a lot of sapling, a lot of mess!
+# Might be useful is some specific case. Not recommanded to apply.
+
+if (FALSE)
+{
+  las <- classify_noise(las, sor(m = 0.5))
+  if (display) plot(las, color = "Classification")
+  las <- filter_poi(las, !(Classification == LASNOISE & hag < 2))
+}
+
+
+# ===== COMPUTE ANISOTROPY =======
+
+# Anisotropy is a critical stage. It is controlled mainly by the parameter k for knn search.
+# Choice of k depends on the point density and sensor accuracy. More points? Increase k!
+# Less accurate sensor? Increase k!
+# k = 50 works well at 15.000–20.000 pts/m² with a sensor accuracy of 2–4 cm.
+# Plot the output, then check if the wood foliage looks reasonable.
+# Foliage should be blue, while trunks and branches should be yellow and red.
+# This is not the actual segmentation, so it is not intended to be perfect,
+# but this step should make sense and look roughly correct.
+
+las <- wood_likelihood(las, params)
+
+if (display) plot_likelihood(las)
+
+# ====== SEGMENT FOLIAGE/WOOD ======
+
+# segment_foliage relies, at least partially, on a good anisotropy measurement.
+# If the previous step is bad this step will be bad too.
+
+las <- segment_semantic(las, params)
+
+if (display)
+{
+  plot_semantic(las, dtm) # Wood/foliage
+  plot(filter_poi(las, foliage == FALSE), pal = foliage.colors[1], size = 2) |> add_dtm3d(dtm)   # Wood only
+  plot_passage(las, dtm, th = 3)   # Pathfinder passages
+
+  passage <- lidR::filter_poi(las, passage > 3)
+  x <- plot_semantic(las, dtm)
+  plot(passage, add = x, legend = T, size = 4)
+
+  # Pathfinder passages + scene < 2m
+  passage <- lidR::filter_poi(las, passage <15)
+  x <- plot(filter_poi(las,  hag < 3), color = "foliage", pal = foliage.colors) |> add_dtm3d(dtm)
+  plot_passage(passage, add = x, size = 3, th = 15)
+}
+
+# ====== FIND TREE SEEDS =======
+
+# Finding seeds is a critical step and probably the weakest link in the pipeline.
+# To segment individual trees, we need to identify seeds and assign an ID to each one.
+# Then, a pathfinder determines the least-cost path from each point to a seed
+# and assigns the ID of the seed with the lowest cost.
+#
+# To find seeds, the algorithm look at the previous paths taken during the foliage segmentation
+# and aggregate them using connected component analysis.
+
+seeds <- find_seeds(las, params)
+
+if (display)
+{
+  x <- plot(lidR::filter_poi(las,  hag < 2, hag > 0.25), color = "foliage", pal = foliage.colors, size =2)
+  plot(seeds, color = "treeID", add = x, size = 8)
+}
+
+# ====== SEGMENT TREES =======
+
+# Finding seed is THE critical step here.
+
+las <- segment_instance(las, seeds, params)
+
+if (display)
+{
+  x = plot_instance(las, dtm)
+  plot(seeds, color = "treeID", add = x, size = 8)
+  plot_semantic_instance(las, dtm)
+
+}
+
+# ====== RETAIN ONLY MAIN TREES =======
+
+# Low understory is unlikely to be properly segmented in complex contexts.
+# In simpler contexts, this threshold can be set to a lower value.
+# The goal is to retain the main trees and clean up the understory. It also
+# remove blob of points with no ID
+
+trees <- flag_small_trees(las, max_height = 2)
+
+if (display)
+{
+  plot_instance(trees, dtm)
+  plot_semantic(trees, dtm)
+  plot_semantic_instance(trees, dtm)
+  plot(lidR::filter_poi(trees, foliage == FALSE), color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+}
+
+# ==== CLIP BUFFER ======
+
+# Edge trees are necessarily bad by construction. We need to remove a buffer large enough
+# to exclude trees connected to partially visible edge trees.
+
+valid_trees <- clip_buffer(trees, -5)
+
+if (display)
+{
+  plot(valid_trees, color = "treeID", legend = TRUE) |> add_dtm3d(dtm)
+}
+
+
+# ==== QSF ======
+
+qsf = qsf(las)
+
+x = plot_instance(las)
+plot(qsf, add = x, pal = "chocolate4")

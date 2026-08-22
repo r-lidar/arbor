@@ -12,17 +12,17 @@ Encoding: UTF-8
 LazyData: true
 LinkingTo: Rcpp
 Depends: R (>= 4.1.0)
-Imports: 
+Imports:
   data.table,
   graphics,
-  lidR (>= 4.2.2),
   methods,
   Rcpp,
   rgl,
   sf,
   utils
-Suggests: 
+Suggests:
   testthat (>= 3.0.0),
-  terra
+  terra,
+  lidR (>= 4.2.2)
 Config/roxygen2/version: 8.1.0
 Config/build/compilation-database: true

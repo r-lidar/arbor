@@ -1,0 +1,376 @@
+---
+title: "Forest Inventory Report"
+subtitle: "Automatic report"
+author: "r-lidar inc."
+date: "`r {Sys.setlocale('LC_TIME', 'C'); format(Sys.time(), '%B %d, %Y')}`"
+output:
+  bookdown::pdf_document2:
+    toc: false
+    number_sections: false
+    fig_caption: true
+    highlight: tango
+    includes:
+      in_header: preamble.tex
+geometry: "left=4cm,right=2cm,top=2cm,bottom=2cm" # Added extra left margin for the band
+params:
+  idir: "/home/jr/Documents/r-lidar/clients/fsinvestor/Zambia/JasonFarm/qsm/csv"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = 'center',
+  fig.pos = 'H',
+  dpi = 400
+)
+
+# Load necessary libraries
+library(ggplot2)
+library(arbor)
+library(data.table)
+library(sf)
+library(kableExtra)
+library(patchwork)
+library(scales)
+library(rnaturalearth)
+library(rnaturalearthdata)
+```
+
+```{r read-qsm}
+# Define a modern, publication-ready theme
+brand_color <- "#1C6B3C" # Matching the LaTeX color
+
+report_theme = theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(size = 12, face = "bold", margin = margin(b = 8)),
+    plot.subtitle = element_text(size = 10, color = "grey60", face = "italic"),
+    axis.title = element_text(size = 11, face = "bold"),
+    axis.text = element_text(size = 10, color = "grey40"),
+    panel.grid.major = element_line(color = "grey90", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    legend.position = "none", # Removed legend as it wasn't used in plots
+    plot.background = element_rect(fill = "white", color = NA),
+    aspect.ratio = 1
+  )
+
+# --- DATA LOADING ---
+idir = params$idir
+
+# Check if directory exists to prevent crash if running elsewhere
+if(!dir.exists(idir)) stop("Invalid directory")
+
+files <- list.files(idir, full.names = TRUE)
+
+ans <- lapply(files, function(f) 
+{
+  qsm  <- qsm_read(f)
+  name <- tools::file_path_sans_ext(basename(f))
+  res  <- qsm_stats(qsm)
+  
+  # Handle potential empty QSMs safely
+  root <- st_as_sf(st_sfc(st_point(c(res$stats_global$X_root[1], res$stats_global$Y_root[1]))))
+  root$name      <- name
+  root$volume    <- round(res$stats_global$V, 3)
+  root$height    <- round(res$stats_global$H, 2)
+  root$dbh       <- res$stats_global$DBH
+  root$filename  <- f
+  st_crs(root) <- st_crs(qsm)
+  return(root)
+})
+
+ans <- do.call(rbind, ans)
+
+Vtot  <- sum(ans$volume)
+Ntree <- nrow(ans)
+area  <- st_area(st_as_sfc(st_bbox(ans)))
+area  <- round(area / 50) * 50
+ba    <- sum((ans$dbh/2)^2*pi)
+```
+
+# Location
+
+```{r world-map}
+# World map
+world <- ne_countries(scale = "medium", returnclass = "sf")
+rivers <- ne_download(
+  scale = 10, type = "rivers_lake_centerlines",
+  category = "physical", returnclass = "sf"
+)
+cities <- ne_download(
+  scale = 10, type = "populated_places",
+  category = "cultural", returnclass = "sf"
+)
+
+bb = st_as_sfc(st_bbox(ans))
+
+if (!is.na(st_crs(ans)))
+{
+centroids <- ans |>
+st_centroid() |>
+st_transform(4326)
+
+
+bb <- st_bbox(centroids)
+pad <- 2
+bb_local <- st_bbox(c(
+bb["xmin"] - pad,
+bb["ymin"] - pad,
+bb["xmax"] + pad,
+bb["ymax"] + pad
+), crs = st_crs(4326))
+
+pad <- 45
+bb_global <- st_bbox(c(
+bb["xmin"] - pad,
+bb["ymin"] - pad,
+bb["xmax"] + pad,
+bb["ymax"] + pad
+), crs = st_crs(4326))
+
+# ---- Local zoom ----
+p_local <- ggplot() +
+  geom_sf(data = world, fill = "grey98", color = "grey80", linewidth = 0.2) +
+  geom_sf(data = rivers, color = "steelblue", linewidth = 0.4, alpha = 0.7) +
+  geom_sf(data = cities, color = "black", size = 1) +
+  geom_sf_text(
+    data = cities,
+    aes(label = NAME_EN),
+    size = 2,
+    check_overlap = TRUE
+  ) +
+  geom_sf(data = centroids, color = "red", size = 3) +
+  coord_sf(
+    xlim = c(bb_local["xmin"], bb_local["xmax"]),
+    ylim = c(bb_local["ymin"], bb_local["ymax"]),
+    expand = FALSE
+  ) +
+  theme_minimal()
+
+# Plot world map + centroids
+p_global <- ggplot() +
+geom_sf(data = world, fill = "grey95", color = "grey70", linewidth = 0.2) +
+geom_sf(data = centroids, color = "red", size = 2) +
+geom_sf(data = st_as_sfc(bb_local), color = "black", size = 1, alpha = 0) +
+  coord_sf(
+    xlim = c(bb_global["xmin"], bb_global["xmax"]),
+    ylim = c(bb_global["ymin"], bb_global["ymax"]),
+    expand = FALSE
+  ) +
+  xlab("") + ylab("") +
+theme_minimal()
+
+p_global | p_local
+} else {
+  ggplot() +
+  geom_sf(
+      data = world,
+      fill = "grey95",
+      color = "grey70",
+      linewidth = 0.2
+    ) +
+    coord_sf() +
+    annotate(
+      "text",
+      x = 0,
+      y = 0,
+      label = "Cannot display data location\nCRS is missing",
+      size = 6,
+      color = "red"
+    ) +
+    xlab("") +
+    ylab("") +
+    theme_minimal()
+}
+```
+
+# Global Statistics
+
+This report summarizes the QSM processing results. The dataset consists of `r Ntree` trees with a cumulative biological volume of `r round(Vtot, 2)` m^3^.
+
+
+```{r stat-global}
+summary_df <- data.frame(
+  Metric = c("Trees",
+             "Area ",  
+             "Density",
+             "Basal Area",
+             "Basal Area",
+             "Total Volume",
+             "Average Height", 
+             "Average dbh"),
+  Value = c(
+    as.character(Ntree), 
+    paste(round(area, 1), "m$^2$"),
+    paste(round(Ntree/area*10000, 2), "tree/ha"),
+    paste(round(ba, 2), "m$^2$"),
+    paste(round(ba/area*10000, 2), "m$^2/ha$"),
+    paste(round(Vtot, 2), "m$^3$"),
+    paste(round(mean(ans$height, na.rm=T), 2), "m"),
+    paste(round(mean(ans$dbh, na.rm=T)*100, 1), "cm")
+  ),
+  Description = c(
+    "Count of individual tree", 
+    "Area of the plot",
+    "Number of tree per hectare", 
+    "Sum of the cross-sectional area at breast height",
+    "Basal area per hectare",
+    "Sum of cylindrical volume (Stem + Branches)",
+    "Mean vertical height of the stand",
+    "Mean diameter at breast height (1.3 m)"
+  )
+)
+
+kbl(summary_df, booktabs = T, escape = F, align = c('l', 'l', 'l')) %>%
+  kable_styling(latex_options = c("striped", "hold_position"), position = "center", font_size = 10) %>%
+  row_spec(0, bold = T, color = "white", background = brand_color) %>%
+  column_spec(1, bold = T, width = "4cm") %>%
+  column_spec(3, italic = T)
+```
+
+\pagebreak
+
+# Allometrics
+
+The following figures illustrate the relationships between tree metrics derived from the Quantitative Structure Models.
+
+```{r allometry}
+# Plot 1: Volume vs Diameter
+p1 <- ggplot(ans, aes(x = dbh * 100, y = volume)) +
+geom_point(col = "darkgreen", size = 2, alpha = 0.7) +
+labs(
+title = "Tree volume vs diameter",
+subtitle = "Volume estimated using QSM",
+x = "Diameter (cm)",
+y = expression(Volume~(m^3))
+) +
+report_theme
+
+
+# Plot 2: Height vs Diameter
+p2 <- ggplot(ans, aes(x = dbh * 100, y = height)) +
+geom_point(col = "darkgreen", size = 2, alpha = 0.7) +
+labs(
+title = "Tree height vs diameter",
+subtitle = "Height estimated using QSM",
+x = "Diameter (cm)",
+y = "Height (m)"
+) +
+report_theme
+
+
+# Display side by side
+p1 | p2
+```
+
+# Distributions
+
+
+```{r distribution}
+p1 = ggplot(ans, aes(x = dbh * 100)) +
+  geom_histogram(bins = 30, fill = "darkgreen", col = "black", alpha = 0.7) +
+  labs(
+    title = "Distribution of tree diameter",
+    subtitle = "Estimated by circle fitting",
+    x = "Diameter (cm)"
+  ) +
+  report_theme
+
+p2 = ggplot(ans, aes(x = height)) +
+  geom_histogram(bins = 30, fill = "darkgreen", col = "black", alpha = 0.7) +
+  labs(
+    title = "Distribution of tree height",
+    subtitle = "Estimated using QSM",
+    x = "Height (m)"
+  ) +
+  report_theme
+
+# Display side by side
+p1 | p2
+```
+
+\pagebreak
+
+# Contributions
+
+```{r contribution}
+# --- Data Preparation ---
+V <- sort(ans$volume, decreasing = TRUE)           # Sort volumes ascending
+Vcum <- cumsum(V)               # Cumulative volume
+Vtot <- sum(V)
+Vp <- Vcum / Vtot * 100         # Cumulative percentage
+Ntree <- length(V)
+data <- data.frame(Tree = 1:Ntree, V, Vcum, Vp)
+
+# --- Key Values ---
+# Index where cumulative volume reaches 50%
+half_vol_idx <- which(Vp >= 50)[1]
+# Actual cumulative percentage at that tree
+half_vol_value <- Vp[half_vol_idx]
+```
+
+The `r half_vol_idx` (`r round((half_vol_idx)/Ntree*100)`%)  biggest trees represent 50% of the volume. The `r Ntree - half_vol_idx` (`r round((Ntree - half_vol_idx)/Ntree*100)`%) smallest trees represent 50% of the volume.
+
+
+```{r contribution2, fig.height=4}
+p1 <- ggplot(data, aes(x = Tree, y = Vp)) +
+  geom_line(color = "darkgreen", size = 1.2) +
+  geom_point(color = "forestgreen", size = 2) +
+  geom_hline(yintercept = 50, linetype = "dashed", size = 0.5) +
+  geom_vline(xintercept = half_vol_idx, linetype = "dashed", size = 0.5) +
+  geom_text(
+    aes(x = half_vol_idx + 1, y = 98,
+        label = paste0(Ntree - half_vol_idx)),
+    hjust = 0,
+    size = 3.5, # smaller
+    fontface = "plain", # not bold
+    family = "sans" # vector-friendly font
+  ) +
+  geom_text(
+    aes(x = 0, y = 98,
+        label = paste0(half_vol_idx)),
+    hjust = 0,
+    size = 3.5,
+    fontface = "plain",
+    family = "sans"
+  ) +
+  labs(
+    title = "Cumulative Volume of Trees",
+    subtitle = "Cumulative percentage of total volume with trees order by volume",
+    x = "Tree",
+    y = "Cumulative Volume (%)"
+  ) +
+  report_theme
+
+p1
+```
+
+# Tree map
+
+
+```{r tree-map}
+tree_map = st_buffer(ans, dist = ans$dbh)
+ggplot(tree_map) +
+  geom_sf(aes(fill = volume), alpha = 0.6, size = 0.2) +
+  scale_fill_viridis_c(option = "plasma", name = "Volume (m\U00B3)") +
+  labs(
+    title = "Tree Map",
+    subtitle = "Each tree is represented to 2x scale",
+    caption = ""
+  ) +
+  report_theme + 
+theme(
+  aspect.ratio = NULL,
+  legend.position = c(1.2, 1), # x and y in [0,1], top-right
+  legend.justification = c("right", "top"),
+  legend.background = element_rect(fill = "white", color = "black", size = 0.25, linetype = "solid"),
+  legend.key = element_rect(fill = "white"), # key background
+  legend.key.size = unit(0.25, "cm"), # smaller color boxes
+  legend.title = element_text(size = 8), # smaller title
+  legend.text = element_text(size = 8) # smaller labels
+  ) +
+  coord_sf()
+```
+
