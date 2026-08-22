@@ -19,7 +19,9 @@
  */
 
 #include "fitting_ellipse.h"
+#include <array>
 #include <cmath>
+#include <limits>
 
 namespace arbor::utils::fitting {
 
@@ -132,6 +134,10 @@ std::vector<double> EllipseFitter::calculate_distances(const std::vector<Vec3>& 
 EllipseFitter::EllipseGeometry EllipseFitter::get_ellipse_geometry(const EllipseParams& p) const
 {
   EllipseGeometry g;
+  if (!std::isfinite(p.a) || !std::isfinite(p.b) || !std::isfinite(p.c)
+      || !std::isfinite(p.d) || !std::isfinite(p.e) || !std::isfinite(p.f))
+    return g;
+
   const double det = p.b*p.b - 4.0*p.a*p.c;
   if (det >= 0) return g;
 
@@ -141,9 +147,19 @@ EllipseFitter::EllipseGeometry EllipseFitter::get_ellipse_geometry(const Ellipse
 
   const double up   = 2.0 * (p.a*p.e*p.e + p.c*p.d*p.d + p.f*p.b*p.b - p.b*p.d*p.e - 4.0*p.a*p.c*p.f);
   const double root = std::sqrt(std::pow(p.a - p.c, 2) + p.b*p.b);
-  g.major = std::sqrt(std::abs(up / (det * (p.a + p.c - root))));
-  g.minor = std::sqrt(std::abs(up / (det * (p.a + p.c + root))));
+  const double major_sq = up / (det * (p.a + p.c - root));
+  const double minor_sq = up / (det * (p.a + p.c + root));
+  if (!std::isfinite(g.cx) || !std::isfinite(g.cy) || !std::isfinite(g.angle)
+      || !std::isfinite(major_sq) || !std::isfinite(minor_sq)
+      || major_sq <= 0.0 || minor_sq <= 0.0)
+    return g;
+
+  g.major = std::sqrt(major_sq);
+  g.minor = std::sqrt(minor_sq);
   if (g.minor > g.major) std::swap(g.minor, g.major);
+  if (!std::isfinite(g.major) || !std::isfinite(g.minor) || g.major <= 0.0 || g.minor <= 0.0)
+    return g;
+
   g.valid = true;
   return g;
 }
@@ -163,7 +179,25 @@ FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double toleran
   for (int i = 0; i < m_max_iterations; ++i)
   {
     std::vector<Vec3> sample;
-    while (sample.size() < 5) sample.push_back(points[dist(m_rng)]);
+    sample.reserve(5);
+    std::array<size_t, 5> sample_indices{};
+    size_t unique_count = 0;
+    while (unique_count < sample_indices.size())
+    {
+      const size_t candidate = dist(m_rng);
+      bool duplicate = false;
+      for (size_t j = 0; j < unique_count; ++j)
+      {
+        if (sample_indices[j] == candidate)
+        {
+          duplicate = true;
+          break;
+        }
+      }
+      if (duplicate) continue;
+      sample_indices[unique_count++] = candidate;
+      sample.push_back(points[candidate]);
+    }
 
     const auto p = fit_ellipse_algebraic(sample);
     if (!p.valid) continue;
@@ -173,9 +207,11 @@ FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double toleran
     for (size_t j = 0; j < d.size(); ++j)
       if (d[j] < tolerance) inliers.push_back(static_cast<int>(j));
 
-    if (inliers.size() > best.inlier_indices.size())
+    const auto g = get_ellipse_geometry(p);
+    if (g.valid
+        && inliers.size() >= static_cast<size_t>(m_min_inliers)
+        && inliers.size() > best.inlier_indices.size())
     {
-      const auto g = get_ellipse_geometry(p);
       best.inlier_indices = inliers;
       best.success        = g.valid && (g.major < 3.0 * g.minor);
     }
@@ -196,10 +232,23 @@ FittingResult EllipseFitter::fit(const std::vector<Vec3>& points, double toleran
       return best;
     }
 
+    const auto final_d = calculate_distances(points, final_p);
+    std::vector<int> final_inliers;
+    final_inliers.reserve(points.size());
+    for (size_t i = 0; i < final_d.size(); ++i)
+      if (final_d[i] < tolerance) final_inliers.push_back(static_cast<int>(i));
+
+    if (final_inliers.size() < static_cast<size_t>(m_min_inliers))
+    {
+      best.success = false;
+      return best;
+    }
+
     best.radius           = static_cast<float>(std::sqrt(g.major * g.minor));
     best.center           = {g.cx, g.cy, m_zmean};
     best.parameters       = {final_p.a, final_p.b, final_p.c, final_p.d, final_p.e, final_p.f,
                               g.major, g.minor, g.angle};
+    best.inlier_indices    = std::move(final_inliers);
     best.inlier_percentage = 100.0f * static_cast<float>(best.inlier_indices.size()) / static_cast<float>(points.size());
     best.arc_coverage_deg  = static_cast<float>(calculate_arc_coverage(points, best.inlier_indices, best.center));
 
