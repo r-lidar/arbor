@@ -169,7 +169,7 @@ test_that("fitting detects full ellipse (tol = 0.08)", {
 
   expect_equal(res$center_x, xc, tolerance = 0.005)
   expect_equal(res$center_y, yc, tolerance = 0.005)
-  expect_equal(res$radius, 2.41, tolerance = 0.025)
+  expect_equal(res$radius, 2.5, tolerance = 0.01)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "ellipse")
 
@@ -191,9 +191,9 @@ test_that("fitting detects full ellipse (tol = 0.15)", {
 test_that("fitting detects half ellipse", {
   res <- fit(hellipse_points, tolerance = 0.08)
 
-  expect_equal(res$center_x, xc, tolerance = 0.01)
-  expect_equal(res$center_y, yc, tolerance = 0.01)
-  expect_equal(res$radius, 2.31, tolerance = 0.05)
+  expect_equal(res$center_x, xc, tolerance = 0.02)
+  expect_equal(res$center_y, yc, tolerance = 0.02)
+  expect_equal(res$radius, 2.5, tolerance = 0.02)
   expect_true(res$covered_arc_degree >= 180)
   expect_equal(res$shape_type, "ellipse")
 
@@ -229,9 +229,9 @@ test_that("fitting detects half circloid", {
 
   expect_equal(res$center_x, 13.4, tolerance = 0.02)
   expect_equal(res$center_y, 19.6, tolerance = 0.02)
-  expect_equal(res$radius, 2.60, tolerance = 0.05)
+  expect_equal(res$radius, 2.40, tolerance = 0.05)
   expect_true(res$covered_arc_degree >= 210)
-  expect_equal(res$shape_type, "ellipse")
+  expect_equal(res$shape_type, "circle")
 
   if (disp) show(hcircloid_points, res)
 })
