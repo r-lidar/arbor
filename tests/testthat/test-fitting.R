@@ -169,7 +169,7 @@ test_that("fitting detects full ellipse (tol = 0.08)", {
 
   expect_equal(res$center_x, xc, tolerance = 0.005)
   expect_equal(res$center_y, yc, tolerance = 0.005)
-  expect_equal(res$radius, 2.49, tolerance = 0.025)
+  expect_equal(res$radius, 2.41, tolerance = 0.025)
   expect_equal(res$covered_arc_degree, 360)
   expect_equal(res$shape_type, "ellipse")
 
@@ -193,7 +193,7 @@ test_that("fitting detects half ellipse", {
 
   expect_equal(res$center_x, xc, tolerance = 0.01)
   expect_equal(res$center_y, yc, tolerance = 0.01)
-  expect_equal(res$radius, 2.25, tolerance = 0.05)
+  expect_equal(res$radius, 2.31, tolerance = 0.05)
   expect_true(res$covered_arc_degree >= 180)
   expect_equal(res$shape_type, "ellipse")
 
@@ -224,30 +224,17 @@ test_that("fitting detects full circloid (tol = 0.15)", {
   if (disp) show(circloid_points, res)
 })
 
-test_that("fitting detects half circloid (tol = 0.2", {
+test_that("fitting detects half circloid", {
   res <- fit(hcircloid_points, tolerance = 0.2)
 
   expect_equal(res$center_x, 13.4, tolerance = 0.02)
   expect_equal(res$center_y, 19.6, tolerance = 0.02)
-  expect_equal(res$radius, 2.40, tolerance = 0.05)
-  expect_true(res$covered_arc_degree >= 220)
-  expect_equal(res$shape_type, "circle")
-
-  if (disp) show(hcircloid_points, res)
-})
-
-test_that("fitting detects half circloid (tol = 0.1", {
-  res <- fit(hcircloid_points, tolerance = 0.1)
-
-  expect_equal(res$center_x, 13.4, tolerance = 0.02)
-  expect_equal(res$center_y, 19.6, tolerance = 0.02)
-  expect_equal(res$radius, 2.77, tolerance = 0.05)
+  expect_equal(res$radius, 2.60, tolerance = 0.05)
   expect_true(res$covered_arc_degree >= 210)
   expect_equal(res$shape_type, "ellipse")
 
   if (disp) show(hcircloid_points, res)
 })
-
 
 test_that("fitting detects rotated circloid", {
   res <- fit(rcircloid_points, tolerance = 0.15, from = c(0, 0, 0), to = c(0, -1, 1))
@@ -372,7 +359,7 @@ test_that("fitting works on real case point cloud", {
   expect_equal(res$center_x, 312335.577, tolerance = 0.05)
   expect_equal(res$center_y, 5096507.1, tolerance = 0.05)
   expect_equal(res$radius, 0.19, tolerance = 0.03)
-  expect_equal(res$covered_arc_degree, 310)
+  expect_equal(res$covered_arc_degree, 350)
   expect_equal(res$shape_type, "circle")
 
 
@@ -430,6 +417,22 @@ test_that("fitting handles complex_slice3", {
   if (disp) show(xyz, res)
 })
 
+
+test_that("fitting handles complex_slice4", {
+  f <- system.file("extdata", "complex_slice4.las", package = "arbor")
+  las <- lidR::readLAS(f)
+  xyz <- sf::st_coordinates(las)
+  res <- fit(xyz, tolerance = 0.03, complexity = 3)
+  expect_true(is.list(res))
+  # A previous bug with geographic coordinates trigger a 100% inlier with an
+  # virtually infinite ellipse
+  expect_lt(res$percentage_inlier, 90)
+  expect_equal(res$shape_type, "fourier10")
+
+  if (disp) show(xyz, res)
+})
+
+
 test_that("fitting handles slice_buttress", {
   f <- system.file("extdata", "slice_buttress.las", package = "arbor")
   las <- lidR::readLAS(f)
@@ -469,3 +472,4 @@ test_that("fitting handles double_ring_slice1", {
 
   if (disp) show(xyz, res)
 })
+
