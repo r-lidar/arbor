@@ -143,7 +143,11 @@ EllipseFitter::EllipseGeometry EllipseFitter::get_ellipse_geometry(const Ellipse
   const double root = std::sqrt(std::pow(p.a - p.c, 2) + p.b*p.b);
   g.major = std::sqrt(std::abs(up / (det * (p.a + p.c - root))));
   g.minor = std::sqrt(std::abs(up / (det * (p.a + p.c + root))));
-  if (g.minor > g.major) std::swap(g.minor, g.major);
+  if (g.minor > g.major)
+  {
+    std::swap(g.minor, g.major);
+    g.angle += M_PI / 2.0;   // rotate frame to match the axis swap
+  }
   g.valid = true;
   return g;
 }

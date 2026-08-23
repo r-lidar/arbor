@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <stdexcept>
 
 namespace arbor::utils::fitting {
 
@@ -112,6 +113,8 @@ void CrossSectionFitter::add_point(double x, double y, double z)
 {
   Vec3 p = {x - m_origin.x, y - m_origin.y, z - m_origin.z};
   apply_rotation(p);
+  if (std::abs(p.x) > 1000 || std::abs(p.y) > 1000 )
+    throw std::invalid_argument("Coordinates > 1000. The coordinates are likely geographic coordinates and must be centered before computation.");
   m_points.push_back(p);
 }
 

@@ -57,6 +57,12 @@ std::unique_ptr<Circle> fit_circle_to_cluster(const Cluster& cluster, const Poin
   if (cluster.indices.size() < 20) return nullptr;
 
   utils::fitting::CrossSectionFitter fitter;
+  
+  // This ensure a translation close to the origin for geographic coordinates
+  // Important for numerical stability
+  utils::fitting::Vec3 p1 = { point_cloud.get_x(0), point_cloud.get_y(0), 0 };
+  utils::fitting::Vec3 p2 = { point_cloud.get_x(0), point_cloud.get_y(0), 1 };
+  fitter.set_axis(p1, p2);
 
   for (size_t idx : cluster.indices)
   {

@@ -137,6 +137,27 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   arbor::utils::fitting::Vec3 f = {from[0], from[1], from[2]};
   arbor::utils::fitting::Vec3 t = {to[0], to[1], to[2]};
 
+  // Force data centered on (0,0,0) to normalize geographic coordinates
+  if (f.x == 0 && f.y == 0 && t.x == 0 && t.y == 0)
+  {
+    double mean_x = 0.0;
+    double mean_y = 0.0;
+
+    for (int i = 0; i < x.nrow(); ++i)
+    {
+      mean_x += x(i, 0);
+      mean_y += x(i, 1);
+    }
+
+    mean_x /= x.nrow();
+    mean_y /= x.nrow();
+
+    f.x = mean_x;
+    f.y = mean_y;
+    t.x = mean_x;
+    t.y = mean_y;
+  }
+
   arbor::utils::fitting::CrossSectionFitter fitter;
   fitter.set_axis(f, t);
 
