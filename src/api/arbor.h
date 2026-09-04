@@ -146,6 +146,16 @@ namespace arbor
       }
     };
 
+    struct InstanceParameters
+    {
+      bool oversegmentation_solver_enabled = true;
+
+      template<typename V> void visit(V& v)
+      {
+        v("oversegmentation_solver_enabled", oversegmentation_solver_enabled);
+      }
+    };
+
     struct QsmParameters
     {
       float       skeleton_node_distance   = 0.1;
@@ -181,6 +191,7 @@ namespace arbor
       GraphParameters          pathfinder;
       SemanticParameters       semantic;
       SeedParameters           seeds;
+      InstanceParameters       instance;
       QsmParameters            qsm;
     };
   }

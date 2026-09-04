@@ -113,6 +113,11 @@ arbor::settings::SemanticParameters extract_semantic_params(const Rcpp::List& pa
   return extract<arbor::settings::SemanticParameters>(params, "semantic");
 }
 
+arbor::settings::InstanceParameters extract_instance_params(const Rcpp::List& params)
+{
+  return extract<arbor::settings::InstanceParameters>(params, "instance");
+}
+
 arbor::settings::QsmParameters extract_qsm_params(const Rcpp::List& params)
 {
   return extract<arbor::settings::QsmParameters>(params, "qsm");
@@ -155,6 +160,7 @@ arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
   s.pathfinder     = extract_pathfinder_params(params);
   s.semantic       = extract_semantic_params(params);
   s.seeds          = extract_seeds_params(params);
+  s.instance       = extract_instance_params(params);
   s.qsm            = extract_qsm_params(params);
   return s;
 }
@@ -171,6 +177,9 @@ Rcpp::List semantic_to_list(arbor::settings::SemanticParameters& s)
 { return to_list(s); }
 
 Rcpp::List qsm_to_list(arbor::settings::QsmParameters& s)
+{ return to_list(s); }
+
+Rcpp::List instance_to_list(arbor::settings::InstanceParameters& s)
 { return to_list(s); }
 
 Rcpp::List seeds_to_list(arbor::settings::SeedParameters& s)
@@ -200,13 +209,32 @@ Rcpp::List default_arbor_params_cpp()
 {
   arbor::settings::ArborParameters p;
 
+  Rcpp::List graph_inst = graph_to_instance_list(p.pathfinder);
+  Rcpp::List inst_inst  = instance_to_list(p.instance);
+
+  Rcpp::List combined_instance = Rcpp::List::create();
+
+  Rcpp::CharacterVector graph_names = graph_inst.names();
+  for (int i = 0; i < graph_names.size(); ++i)
+  {
+    std::string key = Rcpp::as<std::string>(graph_names[i]);
+    combined_instance[key] = graph_inst[key];
+  }
+  
+  Rcpp::CharacterVector inst_names = inst_inst.names();
+  for (int i = 0; i < inst_names.size(); ++i)
+  {
+    std::string key = Rcpp::as<std::string>(inst_names[i]);
+    combined_instance[key] = inst_inst[key];
+  }
+
   return Rcpp::List::create(
     Rcpp::Named("global")         = global_to_list(p.global),
     Rcpp::Named("woodlikelihood") = likelihood_to_list(p.woodlikelihood),
     Rcpp::Named("path_finder")    = graph_to_pathfinder_list(p.pathfinder),
-    Rcpp::Named("instance")       = graph_to_instance_list(p.pathfinder),
     Rcpp::Named("semantic")       = semantic_to_list(p.semantic),
     Rcpp::Named("seed")           = seeds_to_list(p.seeds),
+    Rcpp::Named("instance")       = combined_instance,
     Rcpp::Named("qsm")            = qsm_to_list(p.qsm)
   );
 }

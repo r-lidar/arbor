@@ -85,6 +85,14 @@ C_fix_small_isolated_low_clusters <- function(df, res = 0.05, min_size = 200L) {
     invisible(.Call(`_arbor_C_fix_small_isolated_low_clusters`, df, res, min_size))
 }
 
+C_match_instances <- function(df) {
+    .Call(`_arbor_C_match_instances`, df)
+}
+
+C_merge_instances <- function(match_result, df, min_support = 3L, min_weight_ratio = 0.0) {
+    invisible(.Call(`_arbor_C_merge_instances`, match_result, df, min_support, min_weight_ratio))
+}
+
 generate_cage_cpp <- function(circles, decimation) {
     .Call(`_arbor_generate_cage_cpp`, circles, decimation)
 }

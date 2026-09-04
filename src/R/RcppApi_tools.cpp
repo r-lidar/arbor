@@ -223,7 +223,9 @@ Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcp
   return output;
 }
 
-namespace arbor::segment{
+#include "segment_overfitting.h"
+
+namespace arbor::segment {
 void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min_size = 200);
 }
 void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200)
@@ -231,5 +233,127 @@ void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, in
   PointCloud pc(df);
   arbor::segment::fix_small_isolated_low_clusters(pc, res, min_size);
 }
+
+Rcpp::List C_match_instances(Rcpp::DataFrame df)
+{
+  PointCloud pc(df);
+  arbor::segment::MergerConfig config;
+  arbor::segment::OverSegmentationResolver merger(config);
+  arbor::segment::InstanceMatchResult ans = merger.detect(pc);
+
+  const size_t nc = ans.circles.size();
+  Rcpp::NumericVector cx(nc), cy(nc), cz(nc), cr(nc);
+  Rcpp::IntegerVector cn(nc);
+  for (size_t i = 0; i < nc; ++i)
+  {
+    cx[i] = ans.circles[i].x;
+    cy[i] = ans.circles[i].y;
+    cz[i] = ans.circles[i].z;
+    cr[i] = ans.circles[i].r;
+    cn[i] = static_cast<int>(ans.circles[i].n);
+  }
+  Rcpp::DataFrame circles = Rcpp::DataFrame::create(
+    Rcpp::Named("x") = cx,
+    Rcpp::Named("y") = cy,
+    Rcpp::Named("z") = cz,
+    Rcpp::Named("r") = cr,
+    Rcpp::Named("n") = cn,
+    Rcpp::Named("stringsAsFactors") = false);
+
+  const size_t nm = ans.matches.size();
+  Rcpp::IntegerVector ref(nm), move(nm);
+  Rcpp::IntegerVector n(nm);
+  Rcpp::NumericVector ref_points(nm), move_points(nm), pct(nm);
+  for (size_t i = 0; i < nm; ++i)
+  {
+    const arbor::segment::MatchRecord& m = ans.matches[i];
+    ref[i]         = m.ref;
+    move[i]        = m.move;
+    n[i]           = static_cast<int>(m.n);
+    ref_points[i]  = static_cast<double>(m.ref_points);
+    move_points[i] = static_cast<double>(m.move_points);
+    pct[i]         = m.weight_ratio();
+  }
+  Rcpp::DataFrame matching_table = Rcpp::DataFrame::create(
+    Rcpp::Named("ref")         = ref,
+    Rcpp::Named("move")        = move,
+    Rcpp::Named("n")           = n,
+    Rcpp::Named("ref_points")  = ref_points,
+    Rcpp::Named("move_points") = move_points,
+    Rcpp::Named("pct")         = pct,
+    Rcpp::Named("stringsAsFactors") = false);
+
+  return Rcpp::List::create(
+    Rcpp::Named("circles")        = circles,
+    Rcpp::Named("matching_table") = matching_table);
+}
+
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_support = 3, double min_weight_ratio = 0.0)
+{
+  if (min_support < 0)
+    Rcpp::stop("min_support must be >= 0");
+  if (min_weight_ratio < 0.0)
+    Rcpp::stop("min_weight_ratio must be >= 0");
+
+  // Extract the 'matching_table' DataFrame from the match_result list
+  if (!match_result.containsElementNamed("matching_table"))
+  {
+    Rcpp::stop("match_result must contain a 'matching_table' element.");
+  }
+  Rcpp::DataFrame matching_table = Rcpp::as<Rcpp::DataFrame>(match_result["matching_table"]);
+
+  // Extract columns from the matching table
+  Rcpp::IntegerVector ref = matching_table["ref"];
+  Rcpp::IntegerVector move = matching_table["move"];
+  Rcpp::IntegerVector n = matching_table["n"];
+
+  // ref_points/move_points are new columns produced by the current
+  // C_match_instances(). Fall back to 0 (i.e. weight_ratio() == 0, which
+  // only matters if min_weight_ratio > 0) so a matching_table saved by an
+  // older version of this package doesn't hard-fail here.
+  const bool has_weights = matching_table.containsElementNamed("ref_points") &&
+    matching_table.containsElementNamed("move_points");
+  Rcpp::NumericVector ref_points, move_points;
+  if (has_weights)
+  {
+    ref_points  = matching_table["ref_points"];
+    move_points = matching_table["move_points"];
+  }
+  else if (min_weight_ratio > 0.0)
+  {
+    Rcpp::stop("matching_table has no 'ref_points'/'move_points' columns; re-run match_instances() to use min_weight_ratio > 0.");
+  }
+
+  // Convert Rcpp vectors into a std::vector<MatchRecord>
+  const size_t nm = matching_table.nrows();
+  std::vector<arbor::segment::MatchRecord> matches;
+  matches.reserve(nm);
+  for (size_t i = 0; i < nm; ++i)
+  {
+    arbor::segment::MatchRecord rec;
+    rec.ref  = ref[i];
+    rec.move = move[i];
+    rec.n    = static_cast<size_t>(n[i]);
+    if (has_weights)
+    {
+      rec.ref_points  = static_cast<size_t>(ref_points[i]);
+      rec.move_points = static_cast<size_t>(move_points[i]);
+    }
+    matches.push_back(rec);
+  }
+
+  // Construct PointCloud and set up MergerConfig
+  PointCloud pc(df);
+  arbor::segment::MergerConfig config;
+  config.min_support      = static_cast<size_t>(min_support);
+  config.min_weight_ratio = min_weight_ratio;
+
+  // Perform the merge step directly using the extracted matches
+  arbor::segment::OverSegmentationResolver merger(config);
+  merger.merge(pc, matches);
+  return;
+}
+
+
 
 #endif

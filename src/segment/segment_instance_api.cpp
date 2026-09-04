@@ -23,6 +23,7 @@
 #include "nanoflann.h"
 #include "Grid3D.h"
 #include "GraphBuilder.h"
+#include "segment_overfitting.h"
 
 #include <chrono>
 #include <numeric>
@@ -201,6 +202,13 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   ServiceLocator::logger()("Fix low isolated wood clusters");
   fix_small_isolated_low_clusters(core);
+
+  if (params.instance.oversegmentation_solver_enabled)
+  {
+    ServiceLocator::logger()("Fix oversegmentation");
+    OverSegmentationResolver osr;
+    osr.run(core);
+  }
 
   ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }

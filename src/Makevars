@@ -48,6 +48,7 @@ OBJECTS = \
   segment/GraphBuilder.o \
   segment/segment_instance_api.o \
   segment/segment_ground_api.o \
+  segment/segment_overfitting.o \
   RcppAutoExport.o \
   dtm/dtm.o \
   utils/services.o \

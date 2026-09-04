@@ -95,6 +95,12 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 //[[Rcpp::export(rng = false)]]
 void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::List C_match_instances(Rcpp::DataFrame df);
+
+//[[Rcpp::export(rng = false)]]
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_support = 3, double min_weight_ratio = 0.0);
+
 // ========================
 // SEEDS
 // ========================

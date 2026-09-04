@@ -119,8 +119,10 @@ public:
   void build_index() const;
   void knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
+  void remap_treeid(int from, int to);
   Derived subset(const std::vector<bool>& mask, bool xyz_only = false) const;
   Derived subset_by_treeid(int tid) const;
+
   std::vector<unsigned int> find_points_by_tree_id(int tid) const;
   std::vector<unsigned int> find_context_points_by_tree_id(int tid, float r = 0.1, bool exclude_tree = false) const;
 
@@ -266,6 +268,25 @@ std::vector<unsigned int> BasePointCloud<Derived>::find_points_by_tree_id(int ti
   }
 
   return keep;
+}
+
+template <typename Derived>
+void BasePointCloud<Derived>::remap_treeid(int from, int to)
+{
+  Derived& self = static_cast<Derived&>(*this);
+
+  if (from == to) return;
+
+  if (!self.has_treeid())
+    throw std::runtime_error("No treeID in this point cloud");
+
+  for (size_t i = 0; i < self.size(); ++i)
+  {
+    if (self.get_treeid(i) == from)
+    {
+      self.set_treeid(i, to);
+    }
+  }
 }
 
 template <typename Derived>
