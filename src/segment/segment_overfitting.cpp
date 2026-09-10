@@ -207,7 +207,7 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
 
       utils::fitting::FittingResult fit = fitter.fit(config_.fit_tolerance, utils::fitting::FitMode::Buttress);
 
-      // Rejection filters. Reject circle that are not of good enough quality
+      // Rejection filters. Reject circles that are not of good enough quality
       if (!fit.success ||
           fit.arc_coverage_deg < config_.min_arc_degree ||
           fit.inlier_percentage < config_.min_inlier_pct ||
@@ -240,9 +240,17 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
         if (local_inlier < 0 || static_cast<size_t>(local_inlier) >= cluster.size())
           continue;
 
-        const int tree_id = cloud.get_treeid(global_indices[local_inlier]);
-        auto it = std::find_if(id_counts.begin(), id_counts.end(),
-                                [tree_id](const auto& kv) { return kv.first == tree_id; });
+        auto idx = global_indices[local_inlier];
+
+        const int tree_id = cloud.get_treeid(idx);
+        bool wood = cloud.is_wood(idx);
+
+        // Fit the circles on all points without semantic information but test IDs on wood points only
+        // This solves some noise issues.
+        if (!wood) 
+          continue;
+
+        auto it = std::find_if(id_counts.begin(), id_counts.end(), [tree_id](const auto& kv) { return kv.first == tree_id; });
         if (it == id_counts.end())
           id_counts.emplace_back(tree_id, 1);
         else

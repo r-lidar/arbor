@@ -205,7 +205,6 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   if (params.instance.oversegmentation_solver_enabled)
   {
-    ServiceLocator::logger()("Fix oversegmentation");
     OverSegmentationResolver osr;
     osr.run(core);
   }

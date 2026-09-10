@@ -73,7 +73,7 @@ struct MergerConfig
   double fit_tolerance    = 0.02;   // Orbicular fitting tolerance (small)
   double min_arc_degree   = 240.0;  // Orbicular fitting minimal arc coverage for validity check
   double min_inlier_pct   = 60.0;   // Orbicular fitting minimal inlier percentage for validity check
-  double max_interior_pct = 30.0;   // Orbicular fitting max insider percentage for validity check
+  double max_interior_pct = 20.0;   // Orbicular fitting max insider percentage for validity check
   double max_radius       = 2.0;    // Orbicular fitting max radius (more than that it is not a tree)
   double min_radius       = 0.05;   // Orbicular fitting min radius (less than that there is not issue)
   int    min_support      = 3;      // Min number of OF fits to support a merging
