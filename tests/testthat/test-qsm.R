@@ -59,3 +59,14 @@ test_that("invalid qsm throws error on write", {
   hqsm <- qsm1[qsm1$quality > 3, ]
   expect_error(qsm_write(hqsm, fqsm), "Graph is disconnected")
 })
+
+test_that("invalid qsm generate a placeholder", {
+  f <- system.file("extdata", "tree_6307.laz", package = "arbor")
+  las = lidR::readLAS(f)
+  sink(tempfile())
+  q = expect_warning(qsm(las))
+  sink()
+  expect_equal(nrow(q), 1)
+  expect_equal(qsm_dbh(q)$dbh, 0)
+  q
+})

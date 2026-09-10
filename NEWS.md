@@ -1,4 +1,7 @@
 # 1.1.0
+
+### NEW FEATURES
+
 - `segment_instance()` now detects and fixes over-segmentation, i.e. single
   trees split across two or more treeIDs. This occurs occasionally for large
   trees and especially often for buttress trees. The module is enabled by
@@ -11,6 +14,12 @@
   ```r
     las <- resolve_oversegmentation(las)
   ```
+  
+### BUG FIXES
+
+- Fix #15: Prevent QSM generation failure on non-constructible skeletons by defaulting to a zero-volume placeholder edge.
+
+
 # 1.0.0
 
 Public release

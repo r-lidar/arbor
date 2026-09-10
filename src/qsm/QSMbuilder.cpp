@@ -19,8 +19,12 @@
  */
 
 #include "QSMbuilder.h"
+#include "PointCloud.h"
+#include "QSM.h"
 
+#include <cstdio>
 #include <limits>
+#include <type_traits>
 #include <vector>
 #include <unordered_set>
 
@@ -127,9 +131,39 @@ void QSMbuilder::build(const PointCloud& tree)
   ids.clear(); ids.shrink_to_fit();
 
   // Extremely rare case with so few points that we have no cluster
-  // (seen once with a very bad DTM in Murray's data)
-  if (graph.edges().size() == 0) {
+  // Seen twice with a very bad DTM in Murray's data + issue #15
+  if (graph.edges().size() == 0) 
+  {
+    std::string msg = "[QSM Generation Failed] Input data yielded no valid skeleton. A placeholder QSM with 0 volume was generated.";
+    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+    graph.messages.push_back(msg);
+
+    // Build a arbitrary straight graph with volume 0
+    min_max_idx = which_min_max_z(wood);
+    int max_idx = min_max_idx.second;
+    QSMNode n1;
+    n1.x = wood.get_x(max_idx);
+    n1.y = wood.get_y(max_idx);
+    n1.z = wood.get_z(max_idx);
+    auto id1 = graph.add_node(n1);
+
+    arbor::qsm::QSMNode n2;
+    n2.x = wood.get_x(max_idx);
+    n2.y = wood.get_y(max_idx);
+    n2.z = -wood.get_hag(min_max_idx.first);
+    auto id2 = graph.add_node(n2);
+
+    arbor::qsm::QSMEdge edge_data;
+    edge_data.radius = 0.0f;
+    edge_data.axis_id = 1;
+    edge_data.branch_order = 1;
+    edge_data.subtree_length = n1.z;
+    edge_data.distance_to_root = 0;
+
+    graph.add_edge(id2, id1, edge_data);
+
     shift(tx, ty, tz);
+
     return;
   }
 
@@ -140,7 +174,8 @@ void QSMbuilder::build(const PointCloud& tree)
   // Fix root issues (rare and likely even impossible with the new skeleton code)
   int n_root = count_nodes_connected_to_root();
   if (n_root == 0) throw std::runtime_error("Internal error in QSMbuilder::build. 0 root for this QSM. Please report.");
-  if (n_root > 1) {
+  if (n_root > 1) 
+  {
     ServiceLocator::logger()("Multiple nodes connected to root detected");
     fix_multiple_root();
   }
@@ -166,13 +201,13 @@ void QSMbuilder::build(const PointCloud& tree)
   {
     if (retried)
     {
-      std::string msg = "[No valid measure] Not a single valid measure for this tree. The QSM is a pure reconstruction based on allometry";
+      std::string msg = "[No valid measure] No direct measurements matched this tree. QSM generated using allometric reconstruction.";
       ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
       graph.messages.push_back(msg);
     }
     else
     {
-      std::string msg = "[No valid measure] Not a single valid measure for this tree. Retry with larger internode size";
+      std::string msg = "[No valid measure] Zero valid measures extracted for this tree. Triggering automatic retry with expanded internode parameters.";
       ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
       retried = true;
       params.qsm.skeleton_node_distance *= 2;
@@ -313,7 +348,13 @@ PointCloud make_ground_seed(const PointCloud& wood)
   }
 
   if (gnd.size() == wood.size() && wood.size() > 1)
-    throw std::runtime_error("Internal error in QSMbuilder::build: gnd size == wood size. Please report.");
+  {
+    //  throw std::runtime_error("Internal error in QSMbuilder::build: gnd size == wood size. Please report.");
+    gnd = PointCloud(1, false);
+    gnd.set_x(0,0);
+    gnd.set_y(0,0);
+    gnd.set_z(0,0);
+  }
 
   return gnd;
 }
