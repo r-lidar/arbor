@@ -44,7 +44,8 @@ void SeedDetector::run(const PointCloud& scene)
 
   log("Circle detection");
   circles = detect_tree_circles(wood);
-  if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
+
+  //if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
 
   log("Generate tree cages");
   make_cages();

@@ -14,10 +14,16 @@
   ```r
     las <- resolve_oversegmentation(las)
   ```
+
+### ENHANCES
+
+- `find_seeds()` no longer throw the error "No circle detected in wood slices", 
+  No shape detection is no longer an issue.
   
 ### BUG FIXES
 
-- Fix #15: Prevent QSM generation failure on non-constructible skeletons by defaulting to a zero-volume placeholder edge.
+- Fix #15: Prevent QSM generation failure on non-constructible skeletons by 
+  defaulting to a zero-volume placeholder edge.
 
 
 # 1.0.0
