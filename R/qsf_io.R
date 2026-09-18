@@ -23,6 +23,11 @@
 #' Alternatively, if `dir` is given as a single file path whose extension matches `formats`
 #' (e.g. `"forest.obj"` or `"forest.ply"`), all the QSM are merged and written into that
 #' single OBJ or PLY file. This single-file mode is not supported for the `.qsm` format.
+#' In single-file mode, each QSM is kept as an individually named object: OBJ files get one
+#' `o <name>` group per QSM, while PLY files get an extra per-face `object_id` property (and a
+#' `comment object <id> <name>` header line) identifying which QSM each face belongs to.
+#' OBJ has no binary variant and is always written as ASCII regardless of `binary`; PLY supports
+#' both ASCII (`binary = FALSE`) and binary little-endian (`binary = TRUE`).
 #'
 #' Supported formats:
 #' * `.qsm` native binary format

@@ -55,9 +55,20 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
   if (format != "obj" && format != "ply")
     throw std::runtime_error("QSF::write: writing all QSM into a single file is only supported for .obj and .ply formats");
 
-  // Merge the meshes of every QSM into a single set of vertices/faces
+  // OBJ has no official binary variant: it is always a plain-text format,
+  // exactly as for a single QSM (see QSM::write_obj). The 'binary' flag is
+  // only meaningful for PLY.
+
+  // Merge the meshes of every QSM into a single set of vertices/faces, but
+  // keep track of which QSM each vertex/face came from so that each QSM can
+  // be written back out as its own named object (OBJ "o" group) / tagged
+  // face (PLY "object_id" property), instead of a single flattened blob.
   std::vector<std::array<double,3>> vertices;
   std::vector<std::array<int,3>> faces;
+  std::vector<int> face_object_id;
+  std::vector<std::string> object_names;
+  std::vector<std::pair<size_t,size_t>> object_vertex_range; // [start, end)
+  std::vector<std::pair<size_t,size_t>> object_face_range;   // [start, end)
 
   for (const auto& [key, qsm] : qsm_)
   {
@@ -67,10 +78,22 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
 
     qsm.tmesh(v, f, node_ids);
 
-    int offset = static_cast<int>(vertices.size());
+    int voffset = static_cast<int>(vertices.size());
+    size_t vstart = vertices.size();
+    size_t fstart = faces.size();
+
     vertices.insert(vertices.end(), v.begin(), v.end());
+
+    int object_id = static_cast<int>(object_names.size());
     for (const auto& face : f)
-      faces.push_back({ face[0] + offset, face[1] + offset, face[2] + offset });
+    {
+      faces.push_back({ face[0] + voffset, face[1] + voffset, face[2] + voffset });
+      face_object_id.push_back(object_id);
+    }
+
+    object_names.push_back(qsm.name.empty() ? std::to_string(qsm.id) : qsm.name);
+    object_vertex_range.emplace_back(vstart, vertices.size());
+    object_face_range.emplace_back(fstart, faces.size());
   }
 
   if (format == "obj")
@@ -78,11 +101,20 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
     std::ofstream out(filename);
     if (!out.is_open()) throw std::runtime_error("Cannot open OBJ file: " + filename);
 
-    for (const auto& v : vertices)
-      out << "v " << std::fixed << std::setprecision(3) << v[0] << " " << v[1] << " " << v[2] << "\n";
+    out << std::fixed << std::setprecision(3);
 
-    for (const auto& f : faces)
-      out << "f " << (f[0]+1) << " " << (f[1]+1) << " " << (f[2]+1) << "\n";
+    for (size_t o = 0; o < object_names.size(); ++o)
+    {
+      out << "o " << object_names[o] << "\n";
+
+      auto [vstart, vend] = object_vertex_range[o];
+      for (size_t i = vstart; i < vend; ++i)
+        out << "v " << vertices[i][0] << " " << vertices[i][1] << " " << vertices[i][2] << "\n";
+
+      auto [fstart, fend] = object_face_range[o];
+      for (size_t i = fstart; i < fend; ++i)
+        out << "f " << (faces[i][0]+1) << " " << (faces[i][1]+1) << " " << (faces[i][2]+1) << "\n";
+    }
   }
   else // ply
   {
@@ -93,12 +125,15 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
 
       out << "ply\n";
       out << "format binary_little_endian 1.0\n";
+      for (size_t o = 0; o < object_names.size(); ++o)
+        out << "comment object " << o << " " << object_names[o] << "\n";
       out << "element vertex " << vertices.size() << "\n";
       out << "property double x\n";
       out << "property double y\n";
       out << "property double z\n";
       out << "element face " << faces.size() << "\n";
       out << "property list uchar int vertex_indices\n";
+      out << "property int object_id\n";
       out << "end_header\n";
 
       for (const auto& v : vertices)
@@ -108,13 +143,15 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
         out.write(reinterpret_cast<const char*>(&v[2]), sizeof(double));
       }
 
-      for (const auto& f : faces)
+      for (size_t i = 0; i < faces.size(); ++i)
       {
+        const auto& f = faces[i];
         unsigned char nverts = 3;
         out.write(reinterpret_cast<const char*>(&nverts), sizeof(unsigned char));
         out.write(reinterpret_cast<const char*>(&f[0]), sizeof(int));
         out.write(reinterpret_cast<const char*>(&f[1]), sizeof(int));
         out.write(reinterpret_cast<const char*>(&f[2]), sizeof(int));
+        out.write(reinterpret_cast<const char*>(&face_object_id[i]), sizeof(int));
       }
     }
     else
@@ -124,19 +161,25 @@ void QSF::write_single_file(const std::string& filename, const std::string& form
 
       out << "ply\n";
       out << "format ascii 1.0\n";
+      for (size_t o = 0; o < object_names.size(); ++o)
+        out << "comment object " << o << " " << object_names[o] << "\n";
       out << "element vertex " << vertices.size() << "\n";
       out << "property double x\n";
       out << "property double y\n";
       out << "property double z\n";
       out << "element face " << faces.size() << "\n";
       out << "property list uchar int vertex_indices\n";
+      out << "property int object_id\n";
       out << "end_header\n";
 
       for (const auto& v : vertices)
         out << std::fixed << std::setprecision(3) << v[0] << " " << v[1] << " " << v[2] << "\n";
 
-      for (const auto& f : faces)
-        out << "3 " << f[0] << " " << f[1] << " " << f[2] << "\n";
+      for (size_t i = 0; i < faces.size(); ++i)
+      {
+        const auto& f = faces[i];
+        out << "3 " << f[0] << " " << f[1] << " " << f[2] << " " << face_object_id[i] << "\n";
+      }
     }
   }
 }
