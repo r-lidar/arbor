@@ -36,6 +36,9 @@ public:
   const std::unordered_map<int, QSM>& get_qsm_map() const { return qsm_; }
 
 private:
+  void write_single_file(const std::string& filename, const std::string& format, bool binary) const;
+
+private:
   std::unordered_map<int, QSM> qsm_;
 };
 

@@ -19,7 +19,10 @@
 #' Write a QSF to Files
 #'
 #' Writes a Quantitative Structure Forest (QSF) to files in either OBJ, PLY or CSV format,
-#' based on the file extension. Each QSM is written in its own file.
+#' based on the file extension. By default, each QSM is written in its own file inside `dir`.
+#' Alternatively, if `dir` is given as a single file path whose extension matches `formats`
+#' (e.g. `"forest.obj"` or `"forest.ply"`), all the QSM are merged and written into that
+#' single OBJ or PLY file. This single-file mode is not supported for the `.qsm` format.
 #'
 #' Supported formats:
 #' * `.qsm` native binary format
@@ -27,7 +30,8 @@
 #' * `.csv` or `.txt`: writes the QSM as a ASCII table
 #'
 #' @param qsf A QSF object to be written.
-#' @param dir A string giving the director to the output files.
+#' @param dir A string giving the directory to the output files, or a single file path
+#' (with an extension matching `formats`) to write all the QSM into one OBJ or PLY file.
 #' @param formats the format (e.g. "qsm", "ply", "obj", "csv", "txt", "stl").
 #' @param binary Boolean. Used if the format supports ASCII or binary
 #'
