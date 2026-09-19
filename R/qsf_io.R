@@ -18,25 +18,158 @@
 
 #' Write a QSF to Files
 #'
-#' Writes a Quantitative Structure Forest (QSF) to files in either OBJ, PLY or CSV format,
-#' based on the file extension. Each QSM is written in its own file.
+#' Writes a Quantitative Structure Forest (QSF), i.e. a collection of QSMs
+#' to files in QSM, OBJ, PLY, STL, CSV, or TXT format.
+#'
+#' The function operates in two distinct modes:
+#' \itemize{
+#'   \item \strong{Directory mode (recommended):} If `path` is a directory (or has
+#'     no file extension), each QSM in the forest is written into its own separate
+#'     file inside `path/format/`, named after the QSM's name (or its id if it has
+#'     no name). Multiple formats can be exported at once by passing several values
+#'     in `format`. Every tree is always fully separate and identifiable in this
+#'     mode, for every format, because each tree gets its own file.
+#'   \item \strong{Single-file mode:} If `path` points to a specific file path
+#'     (i.e., its extension is non-empty), a single file is written containing all
+#'     QSMs together. The file format is inferred strictly from the file
+#'     extension of `path`, and the `format` argument is ignored. This is only
+#'     supported for the \code{obj}, \code{ply}, and \code{stl} mesh formats.
+#'     \code{qsm}, \code{csv}, and \code{txt} do not support combining several
+#'     trees into one file and will raise an error if used this way. Even among the
+#'     supported formats, how well individual trees stay distinguishable inside the
+#'     combined file varies a lot (see "Limits of single-file mode" below), so this
+#'     mode is best reserved for cases where you specifically need one file to hand
+#'     to some other piece of software (e.g. importing a whole forest into Blender
+#'     in one go).
+#' }
 #'
 #' Supported formats:
-#' * `.qsm` native binary format
-#' * `.ply` or `.obj` or `.stl`: writes the QSM as a mesh file
-#' * `.csv` or `.txt`: writes the QSM as a ASCII table
+#' \itemize{
+#'   \item \code{.qsm}: Native binary format. Directory mode only.
+#'   \item \code{.obj}, \code{.ply}, or \code{.stl}: Mesh formats. Available in
+#'     both directory and single-file mode.
+#'   \item \code{.csv} or \code{.txt}: ASCII table formats. Directory mode only.
+#' }
+#'
+#' @section Limits of single-file mode:
+#'
+#' When several QSMs are combined into one \code{obj}, \code{ply}, or \code{stl}
+#' file, each format has a different (and sometimes very limited) way of keeping
+#' individual trees identifiable:
+#' \itemize{
+#'   \item \strong{OBJ:} Full support. Each QSM becomes its own named `o` object
+#'     inside the file. This is NOT respected by all OBJ readers. E.g. Blender
+#'     respects the OBJ specifications and load individual trees but not
+#'     CloudCompare that loads one massive undifferentiated mesh.
+#'   \item \strong{PLY:} Partial support. All QSMs share one vertex/face list (a
+#'     single mesh), but every face carries a `qsm_id` integer property, and the
+#'     header records one comment per QSM with its id and name. Software that lets
+#'     you inspect or filter by custom face properties can recover the original
+#'     trees; a generic PLY viewer will just show one undifferentiated mesh.
+#'   \item \strong{STL (ASCII, \code{binary = FALSE}):} Weak, non-standard support.
+#'     Each QSM is written as its own `solid <name> ... endsolid <name>` block.
+#'     This is a common convention, not part of the STL standard, so support is
+#'     inconsistent: some tools import every block as a separate named object,
+#'     others only read the first block, and others merge everything into one
+#'     mesh. Always test with your target software before relying on this.
+#'   \item \strong{STL (binary, \code{binary = TRUE}, the default):} No support at
+#'     all. Binary STL has no concept of an object name or grouping - it is just a
+#'     flat, unlabelled list of triangles. Combining multiple QSMs into one binary
+#'     STL file merges them into a single anonymous mesh with no way to tell which
+#'     triangle came from which tree. Use \code{binary = FALSE} (ASCII STL), or
+#'     switch to \code{obj} or \code{ply}, if keeping trees separate matters.
+#' }
 #'
 #' @param qsf A QSF object to be written.
-#' @param dir A string giving the director to the output files.
-#' @param formats the format (e.g. "qsm", "ply", "obj", "csv", "txt", "stl").
-#' @param binary Boolean. Used if the format supports ASCII or binary
+#' @param path A string giving the output directory path (directory mode), or a
+#'   file path ending in \code{.obj}, \code{.ply}, or \code{.stl} for single-file
+#'   mode (see Details).
+#' @param format A character vector specifying the export format(s) (e.g., \code{"qsm"},
+#'   \code{"obj"}, \code{"ply"}, \code{"stl"}, \code{"csv"}, \code{"txt"}). Defaults to
+#'   \code{c("qsm", "obj")}. Ignored when \code{path} specifies a single-file output.
+#' @param binary Logical. Indicates whether to output binary or ASCII where supported.
+#'   Defaults to \code{TRUE}. For \code{stl} in particular this also controls whether
+#'   trees stay distinguishable in single-file mode - see Details.
+#'
+#' @return Returns \code{TRUE} invisibly upon completion.
+#'
+#' @examples
+#' \dontrun{
+#' # Directory mode: one file per tree.
+#' # Writes forest/qsm/<name>.qsm and forest/obj/<name>.obj for every tree.
+#' qsf_write(qsf, "forest", format = c("qsm", "obj"))
+#'
+#' # Directory mode, several formats at once, ASCII where applicable.
+#' qsf_write(qsf, "forest", format = c("ply", "csv"), binary = FALSE)
+#'
+#' # Single-file mode, OBJ: safest choice, every tree keeps its name as a
+#' # separate 'o' object that  NOT all software will import as such.
+#' qsf_write(qsf, "forest_all_trees.obj")
+#'
+#' # Single-file mode, PLY: one mesh, but trees can still be told apart via the
+#' # per-face 'qsm_id' property if your software can filter on it.
+#' qsf_write(qsf, "forest_all_trees.ply")
+#'
+#' # Single-file mode, ASCII STL: trees are separated into named 'solid' blocks,
+#' # but check that your target software actually honours multiple solids.
+#' qsf_write(qsf, "forest_all_trees.stl", binary = FALSE)
+#'
+#' # Single-file mode, binary STL (default binary = TRUE): all trees are merged
+#' # into one anonymous mesh - only use this if you don't need trees kept apart.
+#' qsf_write(qsf, "forest_all_trees.stl")
+#'
+#' # Not supported: qsm/csv/txt cannot be combined into a single file and will
+#' # raise an error; use directory mode for these formats instead.
+#' # qsf_write(qsf, "forest_all_trees.csv")
+#' }
 #'
 #' @export
-#' @export
 #' @md
-qsf_write = function(qsf, dir, formats = c("qsm", "obj"), binary = TRUE)
+qsf_write = function(qsf, path, format = c("qsm", "obj"), binary = TRUE)
 {
-  dir = normalizePath(dir, mustWork = FALSE)
-  for (format in formats) qsf_write_cpp(qsf, dir, format, binary)
+  path = normalizePath(path, mustWork = FALSE)
+  ext = tools::file_ext(path)
+
+  valid_formats = c("qsm", "ply", "obj", "stl", "csv", "txt")
+  single_file_formats = c("obj", "ply", "stl")
+
+  # Mode 1: Single-file export (path has a file extension)
+  if (nzchar(ext))
+  {
+    ext_clean = tolower(ext)
+    if (!ext_clean %in% valid_formats)
+    {
+      stop("Unsupported file extension '.", ext, "'. Must be one of: ", paste(valid_formats, collapse = ", "), call. = FALSE)
+    }
+
+    if (!ext_clean %in% single_file_formats)
+    {
+      stop("'.", ext, "' does not support combining several QSMs into a single file. ",
+           "Single-file output is only supported for: ", paste(single_file_formats, collapse = ", "), ". ",
+           "Use directory mode instead, e.g. qsf_write(qsf, \"", tools::file_path_sans_ext(basename(path)), "\", format = \"", ext_clean, "\").",
+           call. = FALSE)
+    }
+
+    qsf_write_cpp(qsf, path, ext_clean, binary)
+    return(invisible(TRUE))
+  }
+
+  # Mode 2: Directory export (one file per QSM inside path/format/)
+  if (!is.character(format) || length(format) == 0)
+  {
+    stop("'format' must be a non-empty character vector.", call. = FALSE)
+  }
+
+  invalid_formats = setdiff(format, valid_formats)
+  if (length(invalid_formats) > 0)
+  {
+    stop("Invalid format(s) requested: ", paste(invalid_formats, collapse = ", "), ". Allowed formats are: ", paste(valid_formats, collapse = ", "), call. = FALSE)
+  }
+
+  for (fmt in format)
+  {
+    qsf_write_cpp(qsf, path, fmt, binary)
+  }
+
   return(invisible(TRUE))
 }

@@ -15,6 +15,12 @@
     las <- resolve_oversegmentation(las)
   ```
 
+- `qsf_write()` can now merge an entire forest into a single combined
+  `.stl` file, joining the existing single-file support for `.obj` and
+  `.ply`. Documentation for `qsf_write()` now explains, format by format, how 
+  well individual trees stay distinguishable when several QSMs are combined
+  into one file.
+
 ### ENHANCES
 
 - `find_seeds()` no longer throw the error "No circle detected in wood slices", 
