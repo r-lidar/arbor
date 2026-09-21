@@ -162,6 +162,9 @@ Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
 //[[Rcpp::export(rng = false)]]
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsf_read_cpp(std::string filename);
+
 // ========================
 // FITTING
 // ========================

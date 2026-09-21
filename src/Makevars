@@ -14,6 +14,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./vendor \
   -I./vendor/ptd \
   -I./vendor/libqsm \
+  -I./vendor/libqsf \
   -I./R
 
 # OpenMP support
@@ -30,6 +31,7 @@ OBJECTS = \
   vendor/hporro/index.o \
   vendor/dbscan/dbscan.o \
   vendor/libqsm/libqsm.o \
+  vendor/libqsf/libqsf.o \
   experimental/qsm_distance.o \
   experimental/extrat_context.o \
   qsf/QSF.o \

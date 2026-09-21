@@ -358,6 +358,19 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
   qsf.write(dir, format, binary);
 }
 
+Rcpp::List qsf_read_cpp(std::string filename)
+{
+  QSF qsf = QSF::read(filename);
+
+  Rcpp::List output;
+  for (const auto& item : qsf.get_qsm_map())
+  {
+    output[std::to_string(item.first)] = as_dataframe(item.second);
+  }
+
+  return output;
+}
+
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)
 {
   Rcpp::IntegerVector id = qsm["id"];

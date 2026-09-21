@@ -425,6 +425,16 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// qsf_read_cpp
+Rcpp::List qsf_read_cpp(std::string filename);
+RcppExport SEXP _arbor_qsf_read_cpp(SEXP filenameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsf_read_cpp(filename));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ransac_circle_cpp
 Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations, double inlier_threshold, double early_exit);
 RcppExport SEXP _arbor_ransac_circle_cpp(SEXP xSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP early_exitSEXP) {
@@ -569,6 +579,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_get_cylID", (DL_FUNC) &_arbor_qsm_get_cylID, 2},
     {"_arbor_allometry", (DL_FUNC) &_arbor_allometry, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
+    {"_arbor_qsf_read_cpp", (DL_FUNC) &_arbor_qsf_read_cpp, 1},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 5},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},

@@ -21,6 +21,12 @@
   well individual trees stay distinguishable when several QSMs are combined
   into one file.
 
+- New QSF file format. When writing QSMs to `.qsm` files, `qsf_write()` now also creates a `.qsf` file that indexes all the `.qsm` files. A QSF can be reloaded with `qsf_read()` by reading the `.qsf` index file.
+  ```r
+  qsf_write(qsf, "forest.qsf")
+  qsf <- qsf_read("forest.qsf")
+  ```
+
 ### ENHANCES
 
 - `find_seeds()` no longer throw the error "No circle detected in wood slices", 
