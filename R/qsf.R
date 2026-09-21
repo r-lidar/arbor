@@ -51,6 +51,25 @@ as_qsf <- function(x)
   x
 }
 
+#' Subset a qsf object
+#'
+#' Subsets a `qsf` object while preserving its class.
+#'
+#' @param x A `qsf` object.
+#' @param i Index specifying the elements to extract.
+#' @param ... Additional arguments passed to `[`.
+#'
+#' @return A `qsf` object containing the selected QSMs.
+#'
+#' @export
+`[.qsf` <- function(x, i, ...)
+{
+y <- NextMethod("[")
+class(y) <- class(x)
+y
+}
+
+
 #' QSF log
 #'
 #' Use qsf_log after \link{qsf} to get the logs
