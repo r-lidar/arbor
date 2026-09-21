@@ -16,10 +16,12 @@
   ```
 
 - `qsf_write()` can now merge an entire forest into a single combined
-  `.stl` file, joining the existing single-file support for `.obj` and
-  `.ply`. Documentation for `qsf_write()` now explains, format by format, how 
+  mesh file. Documentation for `qsf_write()` now explains, format by format, how 
   well individual trees stay distinguishable when several QSMs are combined
-  into one file.
+  into one mesh file.
+  ```r
+  qsf_write(qsf, "forest.obj")
+  ```
 
 - New QSF file format. When writing QSMs to `.qsm` files, `qsf_write()` now also creates a `.qsf` file that indexes all the `.qsm` files. A QSF can be reloaded with `qsf_read()` by reading the `.qsf` index file.
   ```r
