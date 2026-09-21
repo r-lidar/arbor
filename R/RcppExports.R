@@ -149,6 +149,10 @@ qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
 }
 
+qsf_read_cpp <- function(filename) {
+    .Call(`_arbor_qsf_read_cpp`, filename)
+}
+
 ransac_circle_cpp <- function(x, num_iterations = 100L, inlier_threshold = 0.01, early_exit = 1.0) {
     .Call(`_arbor_ransac_circle_cpp`, x, num_iterations, inlier_threshold, early_exit)
 }

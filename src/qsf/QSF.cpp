@@ -19,6 +19,7 @@
  */
 
 #include "QSF.h"
+#include "libqsf.h"
 
 #include <string>
 #include <filesystem>
@@ -31,6 +32,8 @@
 #include <cstdint>
 #include <cstring>
 #include <cmath>
+#include <limits>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -118,6 +121,8 @@ void QSF::write(const std::string& path, const std::string& format, bool binary)
   if (!fs::exists(out_dir))
     fs::create_directories(out_dir);
 
+  std::unordered_map<int, fs::path> written_files;
+
   for (const auto& [key, qsm] : qsm_)
   {
     fs::path filename;
@@ -127,7 +132,14 @@ void QSF::write(const std::string& path, const std::string& format, bool binary)
       filename = out_dir / (qsm.name + "." + format);
 
     qsm.write(filename.string(), binary);
+    written_files[key] = filename;
   }
+
+  // A .qsm export additionally gets a sibling .qsf manifest (KIND VIRTUAL)
+  // referencing every .qsm file just written, similar to a virtual raster
+  // mosaic. Other formats (obj/ply/stl/csv/txt) are not indexed this way.
+  if (format == "qsm")
+    write_qsf_manifest(out_dir, written_files);
 }
 
 void QSF::write_obj(const fs::path& file) const
@@ -425,6 +437,114 @@ void QSF::write_stl(const fs::path& file, bool binary) const
       out << "endsolid " << label << "\n";
     }
   }
+}
+
+void QSF::write_qsf_manifest(const fs::path& qsm_dir, const std::unordered_map<int, fs::path>& written_files) const
+{
+  // The manifest sits one level above the 'qsm/' directory it indexes, named
+  // after that parent directory, e.g. writing to "forest" produces:
+  //   forest/qsm/<name>.qsm  (one file per QSM, written by the caller)
+  //   forest/forest.qsf      (this manifest, referencing the .qsm files above
+  //                            by a path relative to its own directory)
+  fs::path manifest_dir = qsm_dir.parent_path();
+  std::string manifest_name = manifest_dir.filename().string();
+  if (manifest_name.empty())
+    manifest_name = "forest";
+  fs::path manifest_file = manifest_dir / (manifest_name + ".qsf");
+
+  libqsf::QSFwriter writer(manifest_file.string());
+  writer.set_software("Arbor");
+  writer.set_kind(libqsf::QSFKind::VIRTUAL);
+
+  for (const auto& [key, qsm] : qsm_)
+  {
+    auto it = written_files.find(key);
+    if (it == written_files.end()) continue; // should not happen
+
+    libqsf::QSFEntry entry;
+    entry.path = fs::relative(it->second, manifest_dir).string();
+    entry.id   = qsm.id;
+    entry.name = qsm.name;
+
+    double xmin = std::numeric_limits<double>::max();
+    double ymin = std::numeric_limits<double>::max();
+    double zmin = std::numeric_limits<double>::max();
+    double xmax = std::numeric_limits<double>::lowest();
+    double ymax = std::numeric_limits<double>::lowest();
+    double zmax = std::numeric_limits<double>::lowest();
+
+    for (const auto& [nid, node] : qsm.nodes())
+    {
+      xmin = std::min(xmin, node.x); xmax = std::max(xmax, node.x);
+      ymin = std::min(ymin, node.y); ymax = std::max(ymax, node.y);
+      zmin = std::min(zmin, node.z); zmax = std::max(zmax, node.z);
+    }
+
+    if (!qsm.nodes().empty())
+    {
+      entry.has_bbox = true;
+      entry.xmin = xmin; entry.ymin = ymin; entry.zmin = zmin;
+      entry.xmax = xmax; entry.ymax = ymax; entry.zmax = zmax;
+    }
+
+    writer.add_entry(entry);
+  }
+
+  writer.write();
+}
+
+QSF QSF::read(const std::string& path)
+{
+  fs::path manifest_file(path);
+
+  if (!fs::exists(manifest_file))
+    throw std::runtime_error("QSF::read: file not found: " + path);
+
+  libqsf::QSFreader reader(manifest_file.string());
+
+  // KIND dispatch. libqsf::QSFreader already refuses to parse an EMBEDDED
+  // manifest's entries, but the check is repeated here (defensively, and to
+  // keep the branch structure explicit and easy to extend once an EMBEDDED
+  // reader is implemented).
+  QSF result;
+
+  if (reader.get_kind() == libqsf::QSFKind::VIRTUAL)
+  {
+    fs::path manifest_dir = manifest_file.parent_path();
+
+    for (const auto& entry : reader.entries())
+    {
+      fs::path qsm_file = manifest_dir / entry.path;
+
+      if (!fs::exists(qsm_file))
+        throw std::runtime_error("QSF::read: referenced .qsm file not found: " + qsm_file.string() + " (from manifest " + path + ")");
+
+      QSM qsm;
+      qsm.read(qsm_file.string());
+
+      // The manifest's id/name take precedence over whatever the .qsm file
+      // itself stores, since the manifest is the authoritative index.
+      qsm.id = entry.id;
+      if (!entry.name.empty())
+        qsm.name = entry.name;
+
+      result.add_qsm(qsm);
+    }
+  }
+  else if (reader.get_kind() == libqsf::QSFKind::EMBEDDED)
+  {
+    // Reserved for a future fully self-contained QSF variant. libqsf already
+    // throws while parsing an EMBEDDED manifest's body, so this branch is
+    // effectively unreachable today; it is kept to make the intended
+    // extension point explicit.
+    throw std::runtime_error("QSF::read: KIND EMBEDDED is not yet supported.");
+  }
+  else
+  {
+    throw std::runtime_error("QSF::read: unsupported manifest KIND.");
+  }
+
+  return result;
 }
 
 }

@@ -53,7 +53,9 @@ in one go).
 
 Supported formats:
 \itemize{
-\item \code{.qsm}: Native binary format. Directory mode only.
+\item \code{.qsm}: Native binary format. Directory mode only. Also produces
+a sibling \code{.qsf} manifest file that indexes every \code{.qsm} file
+written, by relative path (see \link{qsf_read}).
 \item \code{.obj}, \code{.ply}, or \code{.stl}: Mesh formats. Available in
 both directory and single-file mode.
 \item \code{.csv} or \code{.txt}: ASCII table formats. Directory mode only.

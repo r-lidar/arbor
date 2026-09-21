@@ -70,6 +70,17 @@ public:
   //                      matters.
   void write(const std::string& path, const std::string& format, bool binary = true) const;
 
+  // Reads a .qsf manifest file and returns the QSF it describes.
+  //
+  // Only KIND VIRTUAL manifests are currently supported: every entry is a
+  // relative reference to an external .qsm file, resolved against the
+  // directory containing the manifest itself, and loaded with QSM::read().
+  // KIND EMBEDDED (a future, fully self-contained variant that inlines QSM
+  // data directly in the manifest) is recognized but not yet implemented;
+  // reading such a file throws a clear "not supported" error rather than
+  // silently misinterpreting it.
+  static QSF read(const std::string& path);
+
   const std::unordered_map<int, QSM>& get_qsm_map() const { return qsm_; }
 
 private:
@@ -78,6 +89,11 @@ private:
   void write_obj(const std::filesystem::path& file) const;
   void write_ply(const std::filesystem::path& file, bool binary) const;
   void write_stl(const std::filesystem::path& file, bool binary) const;
+
+  // Writes a sibling .qsf manifest (KIND VIRTUAL) referencing, by relative
+  // path, every .qsm file just written into 'qsm_dir'. Called automatically
+  // by write() whenever format == "qsm".
+  void write_qsf_manifest(const std::filesystem::path& qsm_dir, const std::unordered_map<int, std::filesystem::path>& written_files) const;
 };
 
 }
