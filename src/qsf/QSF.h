@@ -69,6 +69,7 @@ public:
   //                      STL, OBJ, or PLY instead if that distinction
   //                      matters.
   void write(const std::string& path, const std::string& format, bool binary = true) const;
+  static QSF read(const std::string& path); // Reads a .qsf manifest file and returns the QSF it describes.
 
   const std::unordered_map<int, QSM>& get_qsm_map() const { return qsm_; }
 
@@ -78,6 +79,7 @@ private:
   void write_obj(const std::filesystem::path& file) const;
   void write_ply(const std::filesystem::path& file, bool binary) const;
   void write_stl(const std::filesystem::path& file, bool binary) const;
+  void write_qsf(const std::filesystem::path& qsm_dir, const std::unordered_map<int, std::filesystem::path>& written_files) const;
 };
 
 }

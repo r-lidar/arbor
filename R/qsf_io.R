@@ -45,7 +45,9 @@
 #'
 #' Supported formats:
 #' \itemize{
-#'   \item \code{.qsm}: Native binary format. Directory mode only.
+#'   \item \code{.qsm}: Native binary format. Directory mode only. Also produces
+#'     a sibling \code{.qsf} manifest file that indexes every \code{.qsm} file
+#'     written, by relative path (see \link{qsf_read}).
 #'   \item \code{.obj}, \code{.ply}, or \code{.stl}: Mesh formats. Available in
 #'     both directory and single-file mode.
 #'   \item \code{.csv} or \code{.txt}: ASCII table formats. Directory mode only.
@@ -92,35 +94,30 @@
 #'   trees stay distinguishable in single-file mode - see Details.
 #'
 #' @return Returns \code{TRUE} invisibly upon completion.
-#'
+#' @seealso \link{qsf_read}
 #' @examples
 #' \dontrun{
+#' # Single-file mode: maybe the simplest use case. Writes forest.qsf file that references 
+#' # the .qsm files in the subdirectory "qsm/". In this case it does produces numerous
+#' # files because .qsf file format only contains metadata.
+#' qsf_write(qsf, "forest.qsf")
+#' 
 #' # Directory mode: one file per tree.
 #' # Writes forest/qsm/<name>.qsm and forest/obj/<name>.obj for every tree.
-#' qsf_write(qsf, "forest", format = c("qsm", "obj"))
+#' # Writes also path/to/directory/directory.qsf to reference all the .qsm file
+#' qsf_write(qsf, "path/to/directory/", format = c("qsm", "obj"))
 #'
-#' # Directory mode, several formats at once, ASCII where applicable.
+#' # Directory mode: several formats at once, ASCII where applicable.
 #' qsf_write(qsf, "forest", format = c("ply", "csv"), binary = FALSE)
 #'
-#' # Single-file mode, OBJ: safest choice, every tree keeps its name as a
-#' # separate 'o' object that  NOT all software will import as such.
+#' # Single-file mode: with OBJ format is the safest choice. Write a single OBJ file. Every 
+#' # tree keeps its name as a separate 'o' object. Be careful that  NOT all software will 
+#' # import as such. Blender supports it not CloudCompare.
 #' qsf_write(qsf, "forest_all_trees.obj")
 #'
-#' # Single-file mode, PLY: one mesh, but trees can still be told apart via the
+#' # Single-file mode: with PLY format. One mesh, but trees can still be told apart via the
 #' # per-face 'qsm_id' property if your software can filter on it.
 #' qsf_write(qsf, "forest_all_trees.ply")
-#'
-#' # Single-file mode, ASCII STL: trees are separated into named 'solid' blocks,
-#' # but check that your target software actually honours multiple solids.
-#' qsf_write(qsf, "forest_all_trees.stl", binary = FALSE)
-#'
-#' # Single-file mode, binary STL (default binary = TRUE): all trees are merged
-#' # into one anonymous mesh - only use this if you don't need trees kept apart.
-#' qsf_write(qsf, "forest_all_trees.stl")
-#'
-#' # Not supported: qsm/csv/txt cannot be combined into a single file and will
-#' # raise an error; use directory mode for these formats instead.
-#' # qsf_write(qsf, "forest_all_trees.csv")
 #' }
 #'
 #' @export
@@ -130,8 +127,8 @@ qsf_write = function(qsf, path, format = c("qsm", "obj"), binary = TRUE)
   path = normalizePath(path, mustWork = FALSE)
   ext = tools::file_ext(path)
 
-  valid_formats = c("qsm", "ply", "obj", "stl", "csv", "txt")
-  single_file_formats = c("obj", "ply", "stl")
+  valid_formats = c("qsm",  "qsf", "ply", "obj", "stl", "csv", "txt")
+  single_file_formats = c("qsf", "obj", "ply", "stl")
 
   # Mode 1: Single-file export (path has a file extension)
   if (nzchar(ext))
@@ -172,4 +169,40 @@ qsf_write = function(qsf, path, format = c("qsm", "obj"), binary = TRUE)
   }
 
   return(invisible(TRUE))
+}
+
+#' Read a QSF Manifest File
+#'
+#' Reads a \code{.qsf} manifest file produced by \link{qsf_write} (whenever
+#' \code{"qsm"} is among the requested \code{format}s) and reconstructs the
+#' Quantitative Structural Forest (QSF) it describes.
+#'
+#' A \code{.qsf} file is a lightweight, standalone manifest that indexes a
+#' collection of \code{.qsm} files by relative path - conceptually similar to
+#' a virtual raster mosaic (VRT). Currently only "virtual" manifests are
+#' supported: the manifest itself holds no tree data, only relative
+#' references to the \code{.qsm} files sitting next to it, which are read in
+#' turn.
+#'
+#' @param path A string giving the path to the \code{.qsf} manifest file.
+#'
+#' @return A \code{qsf} object, i.e. a list of \code{qsm} objects.
+#'
+#' @export
+#' @seealso \link{qsf_write}
+#' @md
+#'
+#' @examples
+#' \dontrun{
+#' qsf_write(qsf, "forest", format = "qsm")
+#' forest <- qsf_read("forest/forest.qsf")
+#' }
+qsf_read = function(path)
+{
+  path = normalizePath(path, mustWork = TRUE)
+  res = qsf_read_cpp(path)
+  for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
+  res = res[order(as.numeric(names(res)))]
+  res = as_qsf(res)
+  res
 }
