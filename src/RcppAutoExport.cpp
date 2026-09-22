@@ -99,7 +99,7 @@ void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, in
 Rcpp::List C_match_instances(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
-void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_support = 3, double min_weight_ratio = 0.0);
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df);
 
 // ========================
 // SEEDS

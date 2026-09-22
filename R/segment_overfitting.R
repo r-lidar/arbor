@@ -34,7 +34,7 @@ resolve_oversegmentation = function(las)
 {
   res <- detect_oversegmentation(las)
   las@data$treeID <- data.table::copy(las@data$treeID)
-  remap_treeids(las, res, 3)
+  remap_treeids(las, res)
   return(las)
 }
 
@@ -45,5 +45,5 @@ detect_oversegmentation = function(las)
 
 remap_treeids = function(las, matching_table)
 {
-  C_merge_instances(matching_table, las@data, 3)
+  C_merge_instances(matching_table, las@data)
 }

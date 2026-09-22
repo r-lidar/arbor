@@ -257,14 +257,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // C_merge_instances
-void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_support, double min_weight_ratio);
-RcppExport SEXP _arbor_C_merge_instances(SEXP match_resultSEXP, SEXP dfSEXP, SEXP min_supportSEXP, SEXP min_weight_ratioSEXP) {
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df);
+RcppExport SEXP _arbor_C_merge_instances(SEXP match_resultSEXP, SEXP dfSEXP) {
 BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type match_result(match_resultSEXP);
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< int >::type min_support(min_supportSEXP);
-    Rcpp::traits::input_parameter< double >::type min_weight_ratio(min_weight_ratioSEXP);
-    C_merge_instances(match_result, df, min_support, min_weight_ratio);
+    C_merge_instances(match_result, df);
     return R_NilValue;
 END_RCPP
 }
@@ -564,7 +562,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_C_fix_small_isolated_low_clusters", (DL_FUNC) &_arbor_C_fix_small_isolated_low_clusters, 3},
     {"_arbor_C_match_instances", (DL_FUNC) &_arbor_C_match_instances, 1},
-    {"_arbor_C_merge_instances", (DL_FUNC) &_arbor_C_merge_instances, 4},
+    {"_arbor_C_merge_instances", (DL_FUNC) &_arbor_C_merge_instances, 2},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},

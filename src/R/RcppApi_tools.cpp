@@ -288,13 +288,8 @@ Rcpp::List C_match_instances(Rcpp::DataFrame df)
     Rcpp::Named("matching_table") = matching_table);
 }
 
-void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_support = 3, double min_weight_ratio = 0.0)
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df)
 {
-  if (min_support < 0)
-    Rcpp::stop("min_support must be >= 0");
-  if (min_weight_ratio < 0.0)
-    Rcpp::stop("min_weight_ratio must be >= 0");
-
   // Extract the 'matching_table' DataFrame from the match_result list
   if (!match_result.containsElementNamed("matching_table"))
   {
@@ -319,7 +314,7 @@ void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_supp
     ref_points  = matching_table["ref_points"];
     move_points = matching_table["move_points"];
   }
-  else if (min_weight_ratio > 0.0)
+  else
   {
     Rcpp::stop("matching_table has no 'ref_points'/'move_points' columns; re-run match_instances() to use min_weight_ratio > 0.");
   }
@@ -345,8 +340,6 @@ void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df, int min_supp
   // Construct PointCloud and set up MergerConfig
   PointCloud pc(df);
   arbor::segment::MergerConfig config;
-  config.min_support      = static_cast<size_t>(min_support);
-  config.min_weight_ratio = min_weight_ratio;
 
   // Perform the merge step directly using the extracted matches
   arbor::segment::OverSegmentationResolver merger(config);
