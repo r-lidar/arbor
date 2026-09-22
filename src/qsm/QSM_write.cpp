@@ -87,6 +87,9 @@ void QSM::write_qsm(const std::string& filename) const
   writer.set_treename(name);
   writer.set_crs(crs);
 
+  for (auto msg : messages)
+    writer.add_message(msg);
+
   double xoffset = 0.0, yoffset = 0.0, zoffset = 0.0;
   {
     const NodeID root = find_root_node();

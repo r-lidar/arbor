@@ -23,7 +23,9 @@
     qsf_write(qsf, "forest.obj")
     ```
 
-3. New QSF file format. When writing QSMs to `.qsm` files, `qsf_write()` now also creates a `.qsf` file that indexes all the `.qsm` files. A QSF can be reloaded with `qsf_read()` by reading the `.qsf` index file.
+3. New QSF file format. When writing QSMs to `.qsm` files, `qsf_write()` now also 
+  creates a `.qsf` file that indexes all the `.qsm` files. A QSF can be reloaded with 
+  `qsf_read()` by reading the `.qsf` index file.
     ```r
     qsf_write(qsf, "forest.qsf")
     qsf <- qsf_read("forest.qsf")
@@ -38,6 +40,9 @@
 
 1. Fix #15: Prevent QSM generation failure on non-constructible skeletons by 
   defaulting to a zero-volume placeholder edge.
+  
+2. Fix: QSM message were not written in `.qsm` files. They are now recorded 
+  properly.
 
 
 # 1.0.0
