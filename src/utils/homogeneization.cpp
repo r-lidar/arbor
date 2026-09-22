@@ -156,8 +156,21 @@ std::vector<bool> homogeneization(const PointCloud& pc, double res, bool hybrid)
   size_t k = std::min(static_cast<size_t>(kept * 0.1), rm.size());
   if (k == 0) return keep;
 
+  // Deterministic Fisher-Yates shuffle: same result on every platform/compiler/std-lib.
+  // Drop-in replacement to fix std::shuffle that have implementation dependant behaviors
+  // and creates issues on different plateforms.
+  auto deterministic_shuffle = [](auto& v, std::mt19937& rng)
+  {
+    for (size_t i = v.size(); i > 1; --i)
+    {
+        size_t j = static_cast<size_t>(rng() % i);
+        std::swap(v[i - 1], v[j]);
+    }
+  };
+
   std::mt19937 rng(42);
-  std::shuffle(rm.begin(), rm.end(), rng);
+  //std::shuffle(rm.begin(), rm.end(), rng);
+  deterministic_shuffle(rm, rng);
 
   for (size_t i = 0; i < k; ++i)
   {

@@ -15,8 +15,8 @@ test_that("qsm computes correct dbh", {
   dbh1.3 <- qsm_dbh(qsm1, bh = 1.3)
   dbh2.0 <- qsm_dbh(qsm1, bh = 2.0)
 
-  expect_equal(dbh1.3$dbh, 0.2228, tolerance = 0.005)
-  expect_equal(dbh2.0$dbh, 0.2093, tolerance = 0.005)
+  expect_equal(dbh1.3$dbh, 0.22, tolerance = 0.005)
+  expect_equal(dbh2.0$dbh, 0.226, tolerance = 0.005)
 })
 
 test_that("calling C++ preserves qsm attributes", {
@@ -45,8 +45,10 @@ test_that("write and read preserve qsm", {
   expect_equal(v1, v3, tolerance = 0.002)
   expect_equal(qsm1$radius, qsm2$radius)
   expect_equal(qsm1$branch_order, qsm2$branch_order)
-  expect_equal(sum(qsm1$branch_order == 3), 823L)
-  expect_equal(sum(qsm3$branch_order == 3), 823L)
+  expect_equal(sum(qsm1$branch_order == 1), 209L)
+  expect_equal(sum(qsm3$branch_order == 1), 209L)
+  expect_equal(sum(qsm1$branch_order == 3), 790L)
+  expect_equal(sum(qsm3$branch_order == 3), 790L)
   expect_equal(sum(qsm1$quality == 5), 93L)
   expect_equal(sum(qsm3$quality == 5), 93L)
   expect_equal(attr(qsm2, "id"), 2L)

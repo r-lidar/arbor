@@ -18,6 +18,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <map>
 #include <unordered_map>
 #include <vector>
 #include <tuple>
@@ -44,10 +45,10 @@ struct ClusterCenter
   bool done = false;
 };
 
-struct pair_hash
+/*struct pair_hash
 {
   std::size_t operator()(const std::pair<int,int>& p) const { return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1); }
-};
+};*/
 
 // Adaptor: nanoflann reads directly from our vector
 struct CenterCloud
@@ -69,7 +70,8 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
   // Step 1: group points and compute centers
   // ----------------------------------------
   typedef std::pair<int,int> ClusterKey;
-  std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
+  //std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
+  std::map<ClusterKey, std::vector<int>> cluster_indices;
   for (size_t i = 0, n = pc.size(); i < n; ++i)
   {
     cluster_indices[iter_cluster[i]].push_back((int)i);
