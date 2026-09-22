@@ -193,9 +193,10 @@ qsf_write = function(qsf, path, format = c("qsm", "obj"), binary = TRUE)
 #' @md
 #'
 #' @examples
+#' f <- system.file("extdata", "oak-plantation.qsf", package="arbor")
+#' oak <- qsf_read(f)
 #' \dontrun{
-#' qsf_write(qsf, "forest", format = "qsm")
-#' forest <- qsf_read("forest/forest.qsf")
+#' plot(oak)
 #' }
 qsf_read = function(path)
 {

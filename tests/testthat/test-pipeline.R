@@ -44,6 +44,11 @@ test_that("Seeds segmenation is valid", {
 
 las <- segment_instance(las, see)
 
+test_that("Overfitting solver works", {
+
+  expect_error(resolve_oversegmentation(las), NA)
+})
+
 test_that("Instance segmenation is valid", {
   expect_true("treeID" %in% names(las))
   expect_true(is.integer(las$treeID))

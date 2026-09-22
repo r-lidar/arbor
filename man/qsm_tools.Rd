@@ -2,17 +2,23 @@
 % Please edit documentation in R/qsm_tools.R
 \name{qsm_volume}
 \alias{qsm_volume}
+\alias{qsm_height}
 \alias{qsm_message}
 \title{Simple tools for QSM}
 \usage{
-qsm_volume(qsm)
+qsm_volume(qs)
+
+qsm_height(qs)
 
 qsm_message(qsm, short = FALSE)
 }
 \arguments{
+\item{qs}{A QSM or QSF}
+
 \item{qsm}{A QSM}
 
-\item{short}{bool. Shorter message.}
+\item{short}{bool. Shorter message: only the human readable label is returned
+(the optional leading `[<code>]` tag, see \link{qsf_log}, is stripped as well).}
 }
 \description{
 Simple tools for QSM.

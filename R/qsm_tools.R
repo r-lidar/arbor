@@ -20,25 +20,61 @@
 #'
 #' Simple tools for QSM.
 #'
+#' @param qs A QSM or QSF
 #' @param qsm A QSM
 #' @export
 #' @rdname qsm_tools
 #' @md
-qsm_volume = function(qsm)
+qsm_volume <- function(qs)
 {
-  l = sqrt((qsm$endX-qsm$startX)^2+(qsm$endY-qsm$startY)^2+(qsm$endZ-qsm$startZ)^2)
-  qsm$volume = pi*qsm$radius^2*l
-  V = sum(qsm$volume)
+  UseMethod("qsm_volume")
+}
+
+#' @export
+qsm_volume.qsm = function(qs)
+{
+  l = sqrt((qs$endX-qs$startX)^2+(qs$endY-qs$startY)^2+(qs$endZ-qs$startZ)^2)
+  qs$volume = pi*qs$radius^2*l
+  V = sum(qs$volume)
   return(V)
 }
 
+#' @export
+qsm_volume.qsf <- function(qs)
+{
+  vapply(qs, qsm_volume, numeric(1))
+}
+
 #' @rdname qsm_tools
-#' @param short bool. Shorter message.
+#' @export
+qsm_height <- function(qs)
+{
+  UseMethod("qsm_height")
+}
+
+#' @export
+qsm_height.qsm <- function(qs)
+{
+  if (nrow(qs) == 0) return(NA_real_)
+  zmin <- min(c(qs$startZ, qs$endZ), na.rm = TRUE)
+  zmax <- max(c(qs$startZ, qs$endZ), na.rm = TRUE)
+  zmax - zmin
+}
+
+#' @export
+qsm_height.qsf <- function(qs)
+{
+  vapply(qs, qsm_height, numeric(1))
+}
+
+#' @rdname qsm_tools
+#' @param short bool. Shorter message: only the human readable label is returned
+#' (the optional leading `[<code>]` tag, see \link{qsf_log}, is stripped as well).
 #' @export
 qsm_message = function(qsm, short = FALSE)
 {
   msg = attr(qsm, "message")
-  if (short) msg = sub("^\\[([^]]+)\\].*", "\\1", msg)
+  if (short) msg = vapply(msg, function(m) .qsf_parse_message(m)$label, character(1), USE.NAMES = FALSE)
   msg
 }
 

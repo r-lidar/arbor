@@ -1,4 +1,4 @@
-# 1.1.0
+# v1.1.0
 
 ### NEW FEATURES
 
@@ -31,6 +31,17 @@
     qsf <- qsf_read("forest.qsf")
     ```
 
+4. `qsf_log()` has been redesigned. It is easier to read, and easier to manipulated.
+
+5. New function `qsf_select()` that allows to filter QSMs in the QSF object by message,
+  by message type, by DBH, by height.
+    ```r
+    # Keep only trees flagged with code W2
+    qsf_select(qsf, code = c("W0", "W3"))
+    # Exclude trees flagged with code W2 or W3, while keeping trees with DBH > 20 cm
+    qsf_select(qsf, code = c("W2", "W3"), invert = TRUE, dbh = c(0.2, Inf))
+    ```
+
 ### ENHANCES
 
 1. `find_seeds()` no longer throw the error "No circle detected in wood slices", 
@@ -41,10 +52,10 @@
 1. Fix #15: Prevent QSM generation failure on non-constructible skeletons by 
   defaulting to a zero-volume placeholder edge.
   
-2. Fix: QSM message were not written in `.qsm` files. They are now recorded 
+2. Fix: QSM messages were not written in `.qsm` files. They are now recorded 
   properly.
 
 
-# 1.0.0
+# v1.0.0
 
 Public release
