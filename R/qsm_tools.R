@@ -33,12 +33,13 @@ qsm_volume = function(qsm)
 }
 
 #' @rdname qsm_tools
-#' @param short bool. Shorter message.
+#' @param short bool. Shorter message: only the human readable label is returned
+#' (the optional leading `[<code>]` tag, see \link{qsf_log}, is stripped as well).
 #' @export
 qsm_message = function(qsm, short = FALSE)
 {
   msg = attr(qsm, "message")
-  if (short) msg = sub("^\\[([^]]+)\\].*", "\\1", msg)
+  if (short) msg = vapply(msg, function(m) .qsf_parse_message(m)$label, character(1), USE.NAMES = FALSE)
   msg
 }
 

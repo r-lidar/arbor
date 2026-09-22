@@ -70,7 +70,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
-    oss << "[Small tree allometry] H = " << H
+    oss << "[W3] [Small tree allometry] H = " << H
         << std::fixed << std::setprecision(1)
         << " m: estimated DBH = " << (D0 * 100)
         << " cm. Too small to be measured. "
@@ -87,7 +87,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
-    oss << "[Broken tree] H = " << H
+    oss << "[W4] [Broken tree] H = " << H
         << std::fixed << std::setprecision(1)
         << " m: estimated DBH = " << (D0 * 100)
         << " cm. Too small to be measured but with good measurement anyway. "
@@ -174,7 +174,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
   if (Rroot > 3*R0 && !likely_broken)
   {
     std::ostringstream oss;
-    oss << "[Diameter anomaly] Measured root diameter is "
+    oss << "[W5] [Diameter anomaly] Measured root diameter is "
         << static_cast<int>(Rroot / R0)
         << " times greater than the expected DBH ("
         << std::fixed << std::setprecision(1) << 2 * Rroot

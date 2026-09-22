@@ -2,13 +2,50 @@
 % Please edit documentation in R/qsf.R
 \name{qsf_log}
 \alias{qsf_log}
+\alias{print.qsf_log}
 \title{QSF log}
 \usage{
 qsf_log(qsf)
+
+\method{print}{qsf_log}(x, ...)
 }
 \arguments{
 \item{qsf}{qsf}
+
+\item{x}{A `qsf_log` object, as returned by \link{qsf_log}.}
+
+\item{...}{Unused (for S3 compatibility).}
+}
+\value{
+A named list, one element per distinct log entry. Elements are named by
+their `code` (e.g. `"W0"`) when the underlying message follows the code
+convention (see Codes section below), or fall back to the short label text
+for legacy, uncoded messages, preserving the historical behavior. Each
+element is a list with:
+\itemize{
+  \item{`code`: the log code (e.g. `"W0"`), or `NA` for legacy, uncoded messages.}
+  \item{`type`: `"warning"`, `"message"`, `"error"`, or `NA` if unknown.}
+  \item{`label`: the short, human readable label extracted from the message.}
+  \item{`message`: an example of the full message text.}
+  \item{`index`: the indices, within `qsf`, of the trees carrying this log entry.}
+  \item{`treeID`: the tree IDs of the trees carrying this log entry.}
+}
 }
 \description{
-Use qsf_log after \link{qsf} to get the logs
+Use qsf_log after \link{qsf} to get a structured summary of the log messages
+recorded during the QSM reconstruction of every tree in a `qsf` object.
+}
+\section{Codes}{
+
+Messages recorded on a QSM may start with a code `[<L><n>]`, where `<L>` is
+one of `W` (warning), `M` (message) or `E` (error) and `<n>` is a numeric
+identifier, immediately followed by the historical `[Short label]` and the
+free text explanation, e.g. `"[W0] [No wood point] This tree has no point
+labelled as wood"`. This is fully backward compatible: messages recorded
+before this convention was introduced have no code (`code = NA`) and are
+grouped by their short label instead, exactly as before.
+}
+
+\seealso{
+\link{qsf_filter} \link{qsm_message}
 }

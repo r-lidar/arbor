@@ -61,6 +61,37 @@ qsm_dbh.qsf <- function(qs, bh = 1.30)
   return(ans)
 }
 
+#' Extract the height of a QSM
+#'
+#' Extract the total height of a Quantitative Structure Model (QSM), computed as the
+#' vertical extent of its cylinders (same convention as used by \code{print.qsm}).
+#'
+#' @param qs A QSM or QSF
+#'
+#' @return A numeric value (or a numeric vector for a `qsf`, one value per tree).
+#'
+#' @export
+#' @rdname height
+qsm_height <- function(qs)
+{
+  UseMethod("qsm_height")
+}
+
+#' @export
+qsm_height.qsm <- function(qs)
+{
+  if (nrow(qs) == 0) return(NA_real_)
+  zmin <- min(c(qs$startZ, qs$endZ), na.rm = TRUE)
+  zmax <- max(c(qs$startZ, qs$endZ), na.rm = TRUE)
+  zmax - zmin
+}
+
+#' @export
+qsm_height.qsf <- function(qs)
+{
+  vapply(qs, qsm_height, numeric(1))
+}
+
 #' Simple DBH plot function
 #'
 #' @param x An alignment offset returned by a `plot` function.

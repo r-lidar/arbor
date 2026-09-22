@@ -12,7 +12,8 @@ qsm_message(qsm, short = FALSE)
 \arguments{
 \item{qsm}{A QSM}
 
-\item{short}{bool. Shorter message.}
+\item{short}{bool. Shorter message: only the human readable label is returned
+(the optional leading `[<code>]` tag, see \link{qsf_log}, is stripped as well).}
 }
 \description{
 Simple tools for QSM.
