@@ -57,6 +57,9 @@
 2. Fix: QSM messages were not written in `.qsm` files. They are now recorded 
   properly.
 
+### DOCUMENTATION
+
+ 1. Added details about tree excluded by `qsf()`
 
 # v1.0.0
 

@@ -18,15 +18,20 @@
 
 #' Quantitative Structural Forest
 #'
-#' Batch processing of QSM models with parallel execution.
+#' Batch processing of QSM models with parallel execution. Trees that are flagged with
+#' \link{flag_buffer} or \link{flag_small_trees} are excluded from the computation.
+#' See also the [Arbor book](https://r-lidar.github.io/arbor_book/) for more details.
 #'
-#' @param las A point cloud with semantic and instance segmentation computed
-#' @param min_height numeric. Default: any instance higher than 2 m generates a QSMs
-#' @param params list See \link{parameters}.
-#' @return A qsf object
+#' @param las A point cloud with semantic and instance segmentation computed.
+#' @param min_height numeric. Default: any instance higher than 2 m generates a QSM. This is
+#' pretty equivalent to \link{flag_small_trees}, but forces a height limit even if the user
+#' did not call \link{flag_small_trees}, thus ensuring that no QSM lower than 2 m is computed.
+#' @param params list. See \link{parameters}.
+#' @return A qsf object.
 #'
 #' @export
-#' @seealso  \link{qsm}
+#' @md
+#' @seealso \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
   if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
