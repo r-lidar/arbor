@@ -33,7 +33,7 @@
 
 4. `qsf_log()` has been redesigned. It is easier to read, and easier to manipulate.
 
-5. New function `qsf_filter()` with user-friendly wrapper that allows to filter QSMs in the QSF 
+5. New function `qsf_filter()` with user-friendly wrappers that allow to filter QSMs in the QSF 
   object by log types, by DBH, by height. E.g. :
     ```r
     qsf_filter_ok(qsf)       # trees with no log entry at all
