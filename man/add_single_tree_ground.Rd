@@ -2,7 +2,8 @@
 % Please edit documentation in R/qsm_tools.R
 \name{add_single_tree_ground}
 \alias{add_single_tree_ground}
-\title{Add Synthetic Ground Points to a Single-Tree Point Cloud}
+\title{Adds a set of synthetic ground points below a single-tree point cloud. Useful to perform
+arbor operations on already externally isolated trees}
 \usage{
 add_single_tree_ground(las, n = 1000)
 }

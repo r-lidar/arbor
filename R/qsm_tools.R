@@ -78,6 +78,31 @@ qsm_message = function(qsm, short = FALSE)
   msg
 }
 
+#' @rdname qsm_tools
+#' @export
+qsm_treeid <- function(qs)
+{
+  UseMethod("qsm_treeid")
+}
+
+#' @rdname qsm_tools
+#' @export
+qsm_treeid.qsm = function(qs)
+{
+  attr(qs,'id')
+}
+
+
+#' @rdname qsm_tools
+#' @export
+qsm_treeid.qsf = function(qs)
+{
+  res <- vapply(qs, attr, numeric(1), which = 'id')
+  res <- unname(res)
+  res
+}
+
+
 filter_tree = function(tree)
 {
   foliage <- NULL
@@ -97,8 +122,6 @@ filter_tree = function(tree)
   return(tree)
 }
 
-#' Add Synthetic Ground Points to a Single-Tree Point Cloud
-#'
 #' Adds a set of synthetic ground points below a single-tree point cloud. Useful to perform
 #' arbor operations on already externally isolated trees
 #'

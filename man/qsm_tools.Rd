@@ -4,6 +4,9 @@
 \alias{qsm_volume}
 \alias{qsm_height}
 \alias{qsm_message}
+\alias{qsm_treeid}
+\alias{qsm_treeid.qsm}
+\alias{qsm_treeid.qsf}
 \title{Simple tools for QSM}
 \usage{
 qsm_volume(qs)
@@ -11,6 +14,12 @@ qsm_volume(qs)
 qsm_height(qs)
 
 qsm_message(qsm, short = FALSE)
+
+qsm_treeid(qs)
+
+\method{qsm_treeid}{qsm}(qs)
+
+\method{qsm_treeid}{qsf}(qs)
 }
 \arguments{
 \item{qs}{A QSM or QSF}
