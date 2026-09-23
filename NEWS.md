@@ -37,7 +37,7 @@
   object by log types, by DBH, by height. E.g. :
     ```r
     qsf_filter_ok(qsf)       # trees with no log entry at all
-    qsf_filter_sapling(qsf)  # splings according to arbor's definition
+    qsf_filter_sapling(qsf)  # saplings according to arbor's definition
     qsf_filter_flagged(qsf)  # trees with at least one log entry, any kind
     qsf_filter_warnings(qsf) # trees carrying at least one warning
     qsf_filter_broken()      # automatically detected as broken trees.
