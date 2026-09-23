@@ -34,7 +34,7 @@
 #' logs$W2$treeID
 #' logs$W3
 #' @export
-#' @seealso \link{qsf_select} \link{qsm_message}
+#' @seealso \link{qsf_filter} \link{qsm_message}
 qsf_log = function(qsf)
 {
   # 1. Extract messages from attributes

@@ -53,5 +53,5 @@ logs$W2$treeID
 logs$W3
 }
 \seealso{
-\link{qsf_select} \link{qsm_message}
+\link{qsf_filter} \link{qsm_message}
 }

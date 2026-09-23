@@ -60,7 +60,7 @@ void QSMbuilder::build(const PointCloud& tree)
   n = wood.size();
 
   if (n == 0) {
-    graph.messages.push_back("[W0] [No wood point] This tree has no point labelled as wood");
+    graph.messages.push_back("[E0] [No wood point] This tree has no point labelled as wood");
     return;
   }
 
@@ -134,7 +134,7 @@ void QSMbuilder::build(const PointCloud& tree)
   // Seen twice with a very bad DTM in Murray's data + issue #15
   if (graph.edges().size() == 0) 
   {
-    std::string msg = "[E0] [QSM Generation Failed] Input data yielded no valid skeleton. A placeholder QSM with 0 volume was generated.";
+    std::string msg = "[E1] [QSM Generation Failed] Input data yielded no valid skeleton. A placeholder QSM with 0 volume was generated.";
     ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
 

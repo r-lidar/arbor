@@ -31,15 +31,17 @@
     qsf <- qsf_read("forest.qsf")
     ```
 
-4. `qsf_log()` has been redesigned. It is easier to read, and easier to manipulated.
+4. `qsf_log()` has been redesigned. It is easier to read, and easier to manipulate.
 
-5. New function `qsf_select()` that allows to filter QSMs in the QSF object by message,
-  by message type, by DBH, by height.
+5. New function `qsf_filter()` with user-friendly wrapper that allows to filter QSMs in the QSF 
+  object by log types, by DBH, by height. E.g. :
     ```r
-    # Keep only trees flagged with code W2
-    qsf_select(qsf, code = c("W0", "W3"))
-    # Exclude trees flagged with code W2 or W3, while keeping trees with DBH > 20 cm
-    qsf_select(qsf, code = c("W2", "W3"), invert = TRUE, dbh = c(0.2, Inf))
+    qsf_filter_ok(qsf)       # trees with no log entry at all
+    qsf_filter_sapling(qsf)  # splings according to arbor's definition
+    qsf_filter_flagged(qsf)  # trees with at least one log entry, any kind
+    qsf_filter_warnings(qsf) # trees carrying at least one warning
+    qsf_filter_broken()      # automatically detected as broken trees.
+    # [...] and more
     ```
 
 ### ENHANCES
