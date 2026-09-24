@@ -1,0 +1,441 @@
+---
+title: "Forest Inventory Report"
+subtitle: "Automatic report"
+author: "By r-lidar inc."
+date: "`r {Sys.setlocale('LC_TIME', 'C'); format(Sys.time(), '%B %d, %Y')}`"
+output:
+  html_document:
+    theme: default           # minimal base theme; custom.css overrides its look
+    css: custom.css
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 2
+    number_sections: false
+    code_folding: hide
+    fig_caption: true
+    self_contained: true
+params:
+  input: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.qsf"
+  epsg: 32619
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = 'center'
+)
+
+library(ggplot2)
+library(arbor)
+library(data.table)
+library(sf)
+library(scales)
+library(leaflet)
+library(plotly)
+library(DT)
+library(crosstalk)
+library(htmltools)
+
+# --- ACCURATE DATUM TRANSFORMS, WITH A SAFETY NET -----------------------
+# NAD27 (the datum under EPSG:32098) needs an NTv2 grid file for an accurate
+# shift to WGS84; that grid isn't bundled with sf, only fetchable from the
+# PROJ CDN. If this machine can't actually reach that CDN, telling PROJ to
+# prefer the grid-based pipeline (sf_proj_network(TRUE)) backfires: PROJ
+# still picks that pipeline, the grid never downloads, and every point
+# comes back degenerate instead of falling back gracefully - which is what
+# pushes everything to the pole in a Lambert Conformal Conic projection.
+# So: try the accurate transform, but verify the result actually lands in
+# Quebec before trusting it; if not, disable network mode and redo it with
+# whatever grids/approximation are available locally instead.
+qc_bbox_wgs84 <- c(xmin = -80, xmax = -55, ymin = 44, ymax = 63)
+
+safe_transform_to_wgs84 <- function(x) {
+  transform_and_check <- function(x) {
+    xy <- sf::st_coordinates(sf::st_transform(x, 4326))
+    ok <- xy[, 1] >= qc_bbox_wgs84["xmin"] & xy[, 1] <= qc_bbox_wgs84["xmax"] &
+          xy[, 2] >= qc_bbox_wgs84["ymin"] & xy[, 2] <= qc_bbox_wgs84["ymax"]
+    list(xy = xy, ok = all(ok))
+  }
+
+  tryCatch(sf::sf_proj_network(TRUE), error = function(e) invisible(NULL))
+  res <- transform_and_check(x)
+
+  if (!res$ok) {
+    warning(
+      "Network datum grid produced points outside Quebec - probably ",
+      "unreachable from this machine. Falling back to the local ",
+      "(less accurate, ~10-100 m) NAD27->WGS84 approximation.",
+      call. = FALSE
+    )
+    sf::sf_proj_network(FALSE)
+    res <- transform_and_check(x)
+    if (!res$ok)
+      warning(
+        "Points are still outside Quebec even with the local fallback. ",
+        "This points to the source X/Y values themselves not being real ",
+        "EPSG:32098 (NAD27 / Quebec Lambert) coordinates - check the raw ",
+        "X_root/Y_root against the CRS's valid range (easting roughly ",
+        "-900,000 to 900,000 m, northing roughly 110,000 to 2,112,000 m).",
+        call. = FALSE
+      )
+  }
+
+  res$xy
+}
+```
+
+```{r brand-palette}
+# Keep this in sync with the :root variables in custom.css
+brand_green   <- "#1C6B3C"
+brand_green_d <- "#123F23"
+accent_amber  <- "#C77B3B"   # used for click/selection highlight
+ink           <- "#2B2B28"
+mid_gray      <- "#6B6963"
+
+report_theme <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(size = 13, face = "bold", margin = margin(b = 6)),
+    plot.subtitle = element_text(size = 10, color = mid_gray, face = "italic"),
+    axis.title    = element_text(size = 11, face = "bold"),
+    axis.text     = element_text(size = 10, color = mid_gray),
+    panel.grid.major = element_line(color = "grey90", linewidth = 0.4),
+    panel.grid.minor = element_blank(),
+    legend.position  = "none",
+    plot.background  = element_rect(fill = "white", color = NA)
+  )
+```
+
+```{r read-qsm}
+# --- DATA LOADING (unchanged from the PDF template) ---
+input <- params$input
+epsg <- params$epsg
+if (!file.exists(input)) stop("Invalid directory")
+
+qsf <- qsf_read(input)
+ans <- qsf_treemap(qsf)
+ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
+if (epsg > 0) st_crs(ans)  <- epsg
+
+Vtot  <- sum(ans$volume)
+Ntree <- nrow(ans)
+area  <- st_area(st_as_sfc(st_bbox(ans)))
+area  <- round(area / 50) * 50
+ba    <- sum((ans$dbh / 2)^2 * pi)
+
+has_crs <- !is.na(st_crs(ans))
+```
+
+```{r shared-data}
+# --- ONE shared dataset feeds every interactive widget below ---------------
+# Clicking a point in any plot, a marker on the tree map, or a row in the
+# table highlights the *same tree* everywhere else, because they all point
+# back to this single crosstalk group ("trees").
+
+ans_df <- st_drop_geometry(ans)
+ans_df$dbh_cm <- round(ans_df$dbh * 100, 1)
+
+if (has_crs) {
+  coords <- safe_transform_to_wgs84(ans)
+  ans_df$lon <- coords[, 1]
+  ans_df$lat <- coords[, 2]
+}
+
+sd_trees <- SharedData$new(ans_df, key = ~name, group = "trees")
+```
+
+# Location
+
+Interactive map of the plot — scroll to zoom, drag to pan. The inset in the
+bottom-right corner shows the wider region for context (click it to expand).
+
+```{r world-map, fig.height=5}
+if (has_crs) {
+
+  hull <- st_convex_hull(st_union(st_zm(ans)))
+  hull <- st_as_sf(hull)
+  hull <- st_transform(hull, 4326)
+
+  # 1. Compute the centroid point for the marker
+  centroid <- st_centroid(hull)
+  coords <- st_coordinates(centroid)
+  lng <- coords[1]
+  lat <- coords[2]
+
+  leaflet(width = "100%", height = 480) %>%
+    # 2. Set custom world view zoom (zoom level 2 gives a macro view)
+    setView(lng = lng, lat = lat, zoom = 2) %>% 
+    addProviderTiles(providers$Esri.WorldTopoMap, group = "Topo (Esri)") %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "Satellite (Esri)") %>%
+    addPolygons(
+      data = hull,
+      weight = 2,
+      color = "#ffffff",
+      fillOpacity = 0.6,
+      highlightOptions = highlightOptions(
+        weight = 3,
+        color = "#00ffff",
+        fillOpacity = 0.8,
+        bringToFront = TRUE
+      )
+    ) %>%
+    # 3. Add a location marker at the polygon center
+    addMarkers(
+      data = centroid,
+      popup = "Location"
+    ) %>%
+    addLayersControl(
+      baseGroups = c("Topo (Esri)", "Satellite (Esri)"),
+      options = layersControlOptions(collapsed = TRUE)
+    ) %>%
+    addMiniMap(
+      tiles = providers$CartoDB.Positron,
+      toggleDisplay = TRUE, minimized = TRUE, position = "bottomright"
+    ) %>%
+    addScaleBar(position = "bottomleft")
+
+} else {
+
+  div(class = "callout",
+      strong("Cannot display data location \u2014 "),
+      "the point cloud/QSM data has no coordinate reference system (CRS) attached."
+  )
+}
+```
+
+# Global Statistics
+
+This report summarizes the QSM processing results. The dataset consists of
+`r Ntree` trees with a cumulative biological volume of `r round(Vtot, 2)` m^3^.
+
+```{r stat-cards}
+stat <- function(label, value, desc) {
+  div(class = "stat-card",
+      div(class = "stat-label", label),
+      div(class = "stat-value", value),
+      div(class = "stat-desc", desc)
+  )
+}
+
+div(class = "stat-grid",
+  stat("Trees", Ntree, "Count of individual trees"),
+  stat("Area", paste(round(area, 1), "m\u00B2"), "Area of the plot"),
+  stat("Density", paste(round(Ntree / area * 10000, 2), "/ ha"), "Trees per hectare"),
+  stat("Basal area", paste(round(ba, 2), "m\u00B2"), "Sum of cross-sectional area at breast height"),
+  stat("Basal area / ha", paste(round(ba / area * 10000, 2), "m\u00B2/ha"), "Basal area per hectare"),
+  stat("Total volume", paste(round(Vtot, 2), "m\u00B3"), "Sum of cylindrical volume (stem + branches)"),
+  stat("Avg. height", paste(round(mean(ans_df$height, na.rm = TRUE), 2), "m"), "Mean vertical height of the stand"),
+  stat("Avg. DBH", paste(round(mean(ans_df$dbh_cm, na.rm = TRUE), 1), "cm"), "Mean diameter at breast height (1.3 m)")
+)
+```
+
+# Allometrics {.tabset}
+
+The tabs below show the relationships between tree metrics derived from the
+Quantitative Structure Models. **Click a point** in any tab (or a row in the
+*Data table* tab) to highlight that tree everywhere on this page — including
+the tree map further down. Double-click a plot to clear the selection. Use
+the slider to filter the trees under study.
+
+```{r allometry-filter}
+filter_slider(
+  id = "volume_filter",
+  label = "Filter by tree volume (m³)",
+  sharedData = sd_trees,
+  column = ~volume,
+  width = "100%"
+)
+```
+
+## Volume vs Diameter
+
+```{r allometry-vol}
+msg_levels <- na.omit(unique(ans_df$Message))
+n_msgs <- length(msg_levels)
+
+# Generate colors dynamically for non-NA messages
+msg_colors <- setNames(scales::hue_pal()(n_msgs), msg_levels)
+
+p1 <- ggplot(sd_trees, aes(x = dbh_cm, y = volume, color = Message,
+                           text = paste0("Tree: ", name, "<br>",
+                                         "Message: ", ifelse(is.na(Message), "None", as.character(Message)), "<br>",
+                                         dbh_cm, " cm \u2014 ", volume, " m\u00B3"))) +
+  geom_point(size = 2, alpha = 0.75) +
+  scale_color_manual(
+    na.value = brand_green,
+    values = msg_colors
+  ) +
+  labs(title = "Tree volume vs diameter", subtitle = "Volume estimated using QSM",
+       x = "Diameter (cm)", y = "Volume (m\u00B3)", color = "Message") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = FALSE
+  )
+```
+
+## Height vs Diameter
+
+```{r allometry-height}
+# Extract distinct non-NA values and generate colors dynamically (if not already run prior to p1)
+msg_levels <- na.omit(unique(ans_df$Message))
+msg_colors <- setNames(scales::hue_pal()(length(msg_levels)), msg_levels)
+
+p2 <- ggplot(sd_trees, aes(x = dbh_cm, y = height, color = Message,
+                           text = paste0("Tree: ", name, "<br>",
+                                         "Message: ", ifelse(is.na(Message), "None", as.character(Message)), "<br>",
+                                         dbh_cm, " cm \u2014 ", height, " m"))) +
+  geom_point(size = 2, alpha = 0.75) +
+  scale_color_manual(
+    na.value = brand_green,
+    values = msg_colors
+  ) +
+  labs(title = "Tree height vs diameter", subtitle = "Height estimated using QSM",
+       x = "Diameter (cm)", y = "Height (m)", color = "Message") +
+  report_theme
+
+ggplotly(p2, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = FALSE
+  )
+```
+
+## Data table
+
+```{r allometry-table}
+datatable(
+  sd_trees,
+  rownames = FALSE,
+  filter = "top", # Will automatically use a multi-select dropdown for factors
+  colnames = c(
+    "Tree" = "name", 
+    "Message" = "Message", 
+    "Volume (m\u00B3)" = "volume",
+    "Height (m)" = "height", 
+    "DBH (cm)" = "dbh_cm"
+  ),
+  options = list(
+    pageLength = 18, 
+    dom = "ftip",
+    columnDefs = list(
+      list(
+        visible = FALSE, 
+        targets = which(names(ans_df) %in% c("dbh", "filename", "lon", "lat")) - 1
+      )
+    )
+  ),
+  class = "display compact stripe"
+)
+```
+
+# Distributions {.tabset}
+
+## Diameter
+
+```{r distribution-diam}
+p1 <- ggplot(ans_df, aes(x = dbh_cm,
+                          text = after_stat(paste0(count, " trees, ", round(x, 1), " cm bin")))) +
+  geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
+  labs(title = "Distribution of tree diameter", subtitle = "Estimated by circle fitting",
+       x = "Diameter (cm)", y = "Count") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 380) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+## Height
+
+```{r distribution-height}
+p2 <- ggplot(ans_df, aes(x = height,
+                          text = after_stat(paste0(count, " trees, ", round(x, 1), " m bin")))) +
+  geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
+  labs(title = "Distribution of tree height", subtitle = "Estimated using QSM",
+       x = "Height (m)", y = "Count") +
+  report_theme
+
+ggplotly(p2, tooltip = "text", height = 380) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+# Contributions
+
+```{r contribution}
+data <- ans_df[order(-ans_df$volume), ]
+data$Tree <- seq_len(nrow(data))
+data$Vcum <- cumsum(data$volume)
+data$Vp   <- data$Vcum / sum(data$volume) * 100
+
+half_vol_idx   <- which(data$Vp >= 50)[1]
+half_vol_value <- data$Vp[half_vol_idx]
+
+sd_contrib <- SharedData$new(data, key = ~name, group = "trees")
+```
+
+<div class="callout">
+The **`r half_vol_idx`** (`r round(half_vol_idx / Ntree * 100)`%) biggest trees represent 50% of the volume.
+The **`r Ntree - half_vol_idx`** (`r round((Ntree - half_vol_idx) / Ntree * 100)`%) smallest trees represent the other 50%.
+</div>
+
+Click a point below to see which tree it is (linked to the table and plots above).
+
+```{r contribution2}
+p1 <- ggplot(sd_contrib, aes(x = Tree, y = Vp,
+                              text = paste0("Tree: ", name, "<br>rank ", Tree, " \u2014 ", round(Vp, 1), "% cumulative"))) +
+  geom_line(color = brand_green, linewidth = 1, group = 1) +
+  geom_point(color = brand_green, size = 1.6) +
+  geom_hline(yintercept = 50, linetype = "dashed", color = mid_gray) +
+  geom_vline(xintercept = half_vol_idx, linetype = "dashed", color = mid_gray) +
+  labs(title = "Cumulative volume of trees",
+       subtitle = "Trees ordered by volume, largest first",
+       x = "Tree rank", y = "Cumulative volume (%)") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+# Tree map
+
+Each tree's diameter footprint is drawn at 2x scale and colored by volume. Scroll to zoom; click a tree for details — the selection stays in sync with the charts and table above.
+
+```{r tree-map, fig.height=5}
+local_xy <- st_coordinates(ans)
+ans_df$x_local <- local_xy[, 1]
+ans_df$y_local <- local_xy[, 2]
+sd_local <- SharedData$new(ans_df, key = ~name, group = "trees")
+
+p <- ggplot(sd_local, aes(x = x_local, y = y_local, size = volume, color = volume,
+                          text = paste0("<b>Tree: ", name, "</b><br>",
+                                        "Volume: ", volume, " m³<br>",
+                                        "Height: ", height, " m<br>",
+                                        "DBH: ", dbh_cm, " cm"))) +
+  geom_point(alpha = 0.75) +
+  scale_color_viridis_c(option = "plasma") +
+  labs(title = "Tree map",
+       x = "X", y = "Y") +
+  report_theme + theme(legend.position = "right")
+
+# Render with plotly_build to process HTML correctly
+p_plotly <- ggplotly(p, tooltip = "text", height = 480) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2)
+
+plotly_build(p_plotly)
+```
+
+<div class="report-footer">
+Generated automatically by r-lidar inc. &middot; `r format(Sys.time(), "%Y-%m-%d %H:%M")`
+</div>

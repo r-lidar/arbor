@@ -17,28 +17,35 @@ run_report = function(args)
   {
     cat("
 Usage:
-  arbor report <input_dir> <output_pdf>
+  arbor report <input.qsf>
+    
+Mandatory:
+  <input.qsf>             Input QSF file
+    
+Options:
+  -epsg 1234              EPSG code to georeference the dataset if missing
 ")
     quit(save = "no", status = 0)
   }
 
-  if (length(args) < 2 || arbor:::has_flag(args, "-h") || arbor:::has_flag(args, "--help")) {
+  if (length(args) < 1 || arbor:::has_flag(args, "-h") || arbor:::has_flag(args, "--help")) {
     usage_report()
   }
 
-  input_dir <- normalizePath(args[1])
-  output_pdf <- normalizePath(args[2], mustWork = FALSE)
+  epsg <- as.numeric(arbor:::get_arg(args, "-epsg", 0))
+  input_qsf <- normalizePath(args[1])
 
-  if (!dir.exists(input_dir)) {
-    stop("Input directory does not exist: ", input_dir)
+  if (!file.exists(input_qsf)) {
+    stop("Input directory does not exist: ", input_qsf)
   }
 
   rmarkdown::render(
-    input  = system.file("bash", "report_template.Rmd", package="arbor"),
-    output_file = basename(output_pdf), # only filename
-    output_dir = dirname(output_pdf), # directory to write to
+    input  = system.file("bash", "report_template_html.Rmd", package="arbor"),
+    output_file = paste0(tools::file_path_sans_ext(input_qsf), ".html"),
+    output_dir = dirname(input_qsf),   # directory to write to
     params = list(
-      idir = input_dir
+      input = input_qsf,
+      epsg = epsg
     ),
     quiet = FALSE
   )
