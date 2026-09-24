@@ -65,89 +65,50 @@ map_qsm_colors <- function(colattr, pal, is_categorical) {
 
 #' @export
 #' @rdname plot
-plot_qsm = function(qsm, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = "auto", ...)
-{
-  default_pal = c("blue", "green", "yellow", "orange", "red")
-  branch_order_pal <- c("#552203","#ad3a01","#e59b16","#fdd63b","#9acd56", "#59ad4b","#1e490e")
-  quality_pal = c("blue", "green", "yellow", "orange", "red")
+plot_qsm <- function(x, add = NULL, color = "branch_order", skeleton = TRUE, cylinder = TRUE, pal = "auto", ...) {
+  if (!is.data.frame(x)) stop("Input must be a data.frame")
 
-  if (!is.data.frame(qsm)) stop("Input must be a data.frame")
-
-  if (identical(pal, "auto")) {
-    pal <- switch(color, branch_order = branch_order_pal, quality = quality_pal, default_pal)
-  }
-
-  if (!is.null(add)) {
-    tx = add[1]; ty = add[2]; tz = 0
-  } else {
-    tx = min(qsm$startX); ty = min(qsm$startY); tz = 0
+  offset <- add
+  if (is.null(offset)) {
+    offset <- c(min(x$startX), min(x$startY))
     rgl::open3d()
   }
 
-  # Apply Translation
-  qsm$startX <- qsm$startX - tx; qsm$startY <- qsm$startY - ty; qsm$startZ <- qsm$startZ - tz
-  qsm$endX   <- qsm$endX - tx;   qsm$endY   <- qsm$endY - ty;   qsm$endZ   <- qsm$endZ - tz
+  pal <- get_qsm_pal(color, pal)
 
-  # Generate Colors (Centralized Logic)
-  if (color %in% names(qsm)) {
+  # Generate Colors for both Mesh and Skeleton
+  if (color %in% names(x)) {
     is_cat <- color %in% c("branch_order", "quality")
-    colors_mapped <- map_qsm_colors(qsm[[color]], pal, is_cat)
+    colors_mapped <- map_qsm_colors(x[[color]], pal, is_cat)
   } else {
-    colors_mapped <- rep("black", nrow(qsm))
+    colors_mapped <- rep("black", nrow(x))
   }
 
   # Render Mesh
-  if (cylinder && "radius" %in% names(qsm)) {
-    # Pass the already computed colors to avoid re-calculation mismatch
-    mesh <- as_mesh(qsm, color, pal, precomputed_colors = colors_mapped)
+  if (cylinder && "radius" %in% names(x)) {
+    mesh <- as_mesh.qsm(x, offset = offset, color = color, pal = pal, precomputed_colors = colors_mapped)
     rgl::shade3d(mesh)
   }
 
   # Render Skeleton
-  if (skeleton && nrow(qsm) > 0) {
-    pts <- matrix(NA, nrow = nrow(qsm) * 2, ncol = 3)
-    pts[seq(1, nrow(pts), 2), ] <- as.matrix(qsm[, c("startX", "startY", "startZ")])
-    pts[seq(2, nrow(pts), 2), ] <- as.matrix(qsm[, c("endX", "endY", "endZ")])
+  if (skeleton && nrow(x) > 0) {
+    # We shift coordinates here strictly for the skeleton plot, since 
+    # as_mesh handles its own shifting internally for the mesh.
+    pts <- matrix(NA, nrow = nrow(x) * 2, ncol = 3)
+    pts[seq(1, nrow(pts), 2), 1] <- x$startX - offset[1]
+    pts[seq(1, nrow(pts), 2), 2] <- x$startY - offset[2]
+    pts[seq(1, nrow(pts), 2), 3] <- x$startZ
+    
+    pts[seq(2, nrow(pts), 2), 1] <- x$endX - offset[1]
+    pts[seq(2, nrow(pts), 2), 2] <- x$endY - offset[2]
+    pts[seq(2, nrow(pts), 2), 3] <- x$endZ
 
     rgl::segments3d(pts, col = rep(colors_mapped, each = 2))
-    rgl::points3d(as.matrix(qsm[, c("startX", "startY", "startZ")]), col = colors_mapped)
+    
+    start_pts <- cbind(x$startX - offset[1], x$startY - offset[2], x$startZ)
+    rgl::points3d(start_pts, col = colors_mapped)
   }
 
   lidR:::.pan3d(2)
-  return(invisible(c(tx, ty)))
-}
-
-as_mesh <- function(qsm, color = "cyl_ID", pal = "auto", precomputed_colors = NULL)
-{
-  if (nrow(qsm) == 0) return(NULL)
-
-  # Use precomputed colors if provided, otherwise compute using the same logic
-  if (!is.null(precomputed_colors)) {
-    colors_mapped <- precomputed_colors
-  } else {
-    if (color %in% names(qsm)) {
-      is_cat <- color %in% c("branch_order", "quality")
-      colors_mapped <- map_qsm_colors(qsm[[color]], pal, is_cat)
-    } else {
-      colors_mapped <- rep("black", nrow(qsm))
-    }
-  }
-
-  mesh_data <- qsm_mesh_cpp(qsm, 16)
-
-  # Align colors with mesh vertices using NodeID (CylID)
-  id = match(mesh_data$NodeID, qsm$cyl_ID)
-  Final_Colors = colors_mapped[id]
-
-  mesh <- rgl::qmesh3d(
-    vertices = mesh_data$vertices,
-    indices  = mesh_data$indices,
-    homogeneous = FALSE
-  )
-
-  mesh$material$color <- Final_Colors
-  mesh$material$specular <- "black"
-  mesh$material$shininess <- 0
-
-  return(mesh)
+  return(invisible(offset))
 }

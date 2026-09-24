@@ -19,41 +19,18 @@
 #' @method plot qsf
 #' @export
 #' @rdname plot
-plot.qsf = function(x, ..., color = "branch_order", pal = "auto", add = NULL)
-{
-  default_pal = c("blue", "green", "yellow", "orange", "red")
-  branch_order_pal <- c("#552203","#ad3a01","#e59b16","#fdd63b","#9acd56", "#59ad4b","#1e490e")
-  quality_pal = c("blue", "green", "yellow", "orange", "red")
+plot.qsf <- function(x, ..., color = "branch_order", pal = "auto", add = NULL) {
+  
+  # Delegate everything to as_mesh.qsf
+  meshes <- as_mesh.qsf(x, offset = add, color = color, pal = pal)
+  applied_offset <- attr(meshes, "offset")
 
-  if (identical(pal, "auto")) {
-    pal <- switch(color, branch_order = branch_order_pal, quality = quality_pal, default_pal)
-  }
-
-  if (!is.null(add)) {
-    tx = add[1]; ty = add[2]; tz = 0
-  } else {
-    tx = min(sapply(x, function(qsm) min(qsm$startX)))
-    ty = min(sapply(x, function(qsm) min(qsm$startY)))
-    tz = min(sapply(x, function(qsm) min(qsm$startZ)))
-  }
-
-  x = lapply(x, function(qsm)
-  {
-    qsm$startX <- qsm$startX - tx
-    qsm$startY <- qsm$startY - ty
-    #qsm$startZ <- qsm$startZ - tz
-    qsm$endX   <- qsm$endX - tx
-    qsm$endY   <- qsm$endY - ty
-    #qsm$endZ   <- qsm$endZ - tz
-    qsm
-  })
-
-  meshes = lapply(x, as_mesh, color, pal)
-  mesches = Filter(Negate(is.null), meshes)
   if (is.null(add)) rgl::open3d()
+  
   rgl::bg3d("black")
-  rgl::shapelist3d(mesches)
+  rgl::shapelist3d(meshes)
   lidR:::.pan3d(2)
-  return(c(tx, ty))
+  
+  return(invisible(applied_offset))
 }
 

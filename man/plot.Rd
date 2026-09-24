@@ -17,7 +17,7 @@
 \method{plot}{qsm}(x, ...)
 
 plot_qsm(
-  qsm,
+  x,
   add = NULL,
   color = "branch_order",
   skeleton = TRUE,
@@ -49,8 +49,6 @@ colorize_trees(las, darken_foliage = TRUE)
 
 \item{add}{A numeric vector for translation offsets. Like in the lidR package.}
 
-\item{qsm}{A QSM}
-
 \item{skeleton, cylinder}{boolean. plot the skeleton or the cylinders or both.}
 
 \item{las}{LAS object}
@@ -62,6 +60,8 @@ colorize_trees(las, darken_foliage = TRUE)
 \item{darken_foliage}{boolean. In addition to one color per tree, the foliage is darkened
 the same color that its corresponding tree to display semantic and instance segmentation in
 one rendering.}
+
+\item{qsm}{A QSM}
 }
 \description{
 Plots the QSM data as a series of connected cylinders, with color-coding based on branch attributes.
