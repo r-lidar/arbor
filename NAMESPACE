@@ -86,6 +86,8 @@ export(segment_semantic)
 export(st_crs)
 export(transfer_attributes)
 export(wood_likelihood)
+exportMethods("%in%")
+importClassesFrom(lidR,LAS)
 importFrom(Rcpp,sourceCpp)
 importFrom(data.table,":=")
 importFrom(sf,

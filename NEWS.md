@@ -59,7 +59,11 @@
 
 ### DOCUMENTATION
 
- 1. Added details about tree excluded by `qsf()`
+ 1. Added details about tree excluded by `qsf()` in the manual page and the [arbor's book](https://r-lidar.github.io/arbor_book/)
+ 
+ 2. New book section about the new [over-fitting solver](https://r-lidar.github.io/arbor_book/instance.html#sec-oversegmentation)
+ 
+ 3. New book section about the [qsf log analysis](https://r-lidar.github.io/arbor_book/qsf.html#sec-log)
 
 # v1.0.0
 

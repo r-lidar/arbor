@@ -9,8 +9,8 @@
 #' with a log entry at all. Each one still takes `...`, so it composes with
 #' the other `qsf_filter()` criteria (`dbh`, `height`, ...) in a single
 #' call. See details section for more in depth details
-#' 
-#' - `qsf_filter_ok()` retains QSMs with no log entry at all. They are assumed to be 
+#'
+#' - `qsf_filter_ok()` retains QSMs with no log entry at all. They are assumed to be
 #'   good QSMs.
 #' - `qsf_filter_sapling()` retains QSMs for which no measurements were performed
 #'   according to the height allometry rules (see [Arbor Book](https://r-lidar.github.io/arbor_book/qsm.html#sec-tinytree)).
@@ -221,3 +221,29 @@ qsf_filter_messages <- function(qsf, code = NULL, ...)
 
   matched
 }
+
+# Promote %in% to an S4 generic (preserving base functionality)
+setGeneric("%in%")
+
+#' Value Matching for \code{qsf} Objects
+#'
+#' Determines if elements of a \code{qsf} object exist within a \code{las} object.
+#'
+#' @param x An object of class \code{LAS}.
+#' @param table An object of class \code{qsf}.
+#'
+#' @return A logical vector indicating matching elements.
+#' @export
+#' @rdname match_infix
+#' @importClassesFrom lidR LAS
+setMethod("%in%", signature(x = "LAS", table = "ANY"),
+  function(x, table) {
+  if (!inherits(table, "qsf")) {
+    stop("The 'table' argument must be an object of class 'qsf'.", call. = FALSE)
+  }
+
+  treeID <- NULL
+  ids <- qsm_treeid(table)
+  x <- lidR::filter_poi(x, treeID %in% ids)
+  return(x)
+})
