@@ -43,6 +43,8 @@
     qsf_filter_broken()      # automatically detected as broken trees.
     # [...] and more
     ```
+    
+  6. `qsf_tree()` produces a more comprehensive output.
 
 ### ENHANCES
 
