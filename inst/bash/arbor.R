@@ -18,12 +18,12 @@ run_report = function(args)
     cat("
 Usage:
   arbor report <input.qsf>
-    
+
 Mandatory:
   <input.qsf>             Input QSF file
-    
+
 Options:
-  -epsg 1234              EPSG code to georeference the dataset if missing
+  -epsg 1234              EPSG code to georeference the dataset if missing or re-project if assigned
 ")
     quit(save = "no", status = 0)
   }

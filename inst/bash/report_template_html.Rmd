@@ -110,23 +110,36 @@ report_theme <- theme_minimal(base_size = 12) +
 ```
 
 ```{r read-qsm}
-# --- DATA LOADING (unchanged from the PDF template) ---
 input <- params$input
 epsg <- params$epsg
 if (!file.exists(input)) stop("Invalid directory")
 
 qsf <- qsf_read(input)
 ans <- qsf_treemap(qsf)
-ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
-if (epsg > 0) st_crs(ans)  <- epsg
 
+has_crs <- !is.na(st_crs(ans))
+
+if (epsg > 0) 
+{
+  if (!has_crs)
+    st_crs(ans) <- epsg
+  else
+    ans <- st_transform(ans, epsg)
+}
+
+has_crs <- !is.na(st_crs(ans))
+
+st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"))
+
+ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
+  
 Vtot  <- sum(ans$volume)
 Ntree <- nrow(ans)
 area  <- st_area(st_as_sfc(st_bbox(ans)))
 area  <- round(area / 50) * 50
 ba    <- sum((ans$dbh / 2)^2 * pi)
 
-has_crs <- !is.na(st_crs(ans))
+
 ```
 
 ```{r shared-data}
