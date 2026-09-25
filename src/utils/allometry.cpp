@@ -133,7 +133,7 @@ std::unique_ptr<Allometry> AllometryDataBase::getAllometry(const std::string& na
     { "Griese2025",         []() { return std::make_unique<Griese2025Allometry>(); } },
     { "Chenge2020",         []() { return std::make_unique<Chenge2020>(); } },
     { "CostaCysneiros2020", []() { return std::make_unique<CostaCysneiros2020>(); } },
-    { "Cacao",              []() { return std::make_unique<CacaoAllometry>(); } }
+    { "Cacao",              []() { return std::make_unique<CacaoAllometry>(); } },
     { "FSMiombio",          []() { return std::make_unique<FSMiombio>(); } }
   };
 
