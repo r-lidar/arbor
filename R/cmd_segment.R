@@ -35,6 +35,7 @@ Options:
   -buffer <m>             Buffer removed from borders [default: 5]
   -fraction <0-1>         Keep random fraction [default: 0.25]
   -epsg 1234              EPSG code to georeference the dataset if missing
+  -bound file.shp         GDAL readable polygon defining the plot boundaries
 
 Export options (enabled by default):
   -no-segmented           Do not write segmented point cloud
@@ -68,6 +69,11 @@ Other:
   buffer           <- as.numeric(get_arg(args, "-buffer", 5))
   fraction         <- as.numeric(get_arg(args, "-fraction", 0.25))
   epsg             <- as.numeric(get_arg(args, "-epsg", 0))
+  fbound           <- get_arg(args, "-bound", NA_character_)
+
+  bound = -buffer
+  if (!is.na(fbound))
+    bound = sf::st_read(fbound, quiet = TRUE)
 
   # Helper for export flags (local to this function)
   export_enabled <- function(name) { !paste0("-no-", name) %in% args }
@@ -168,7 +174,7 @@ Exports
 
   cat("Cleaning segmentation\n")
   las <- flag_small_trees(las, max_height = min_tree_height)
-  las <- flag_buffer(las, see, -buffer)
+  las <- flag_buffer(las, see, bound)
 
   cat("Colorization\n")
   las <- colorize_trees(las)
