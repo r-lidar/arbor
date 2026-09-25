@@ -129,7 +129,7 @@ if (epsg > 0)
 
 has_crs <- !is.na(st_crs(ans))
 
-st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"))
+st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"), quiet = TRUE)
 
 ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
   
