@@ -76,7 +76,7 @@ double Chenge2020::DBH_vs_H(double H) const
 
 double FSMiombio::H_vs_DBH(double dbh) const
 {
-  constexpr double a = 21.947;
+  constexpr double a = 3.19;
   constexpr double b = 0.4187;
 
   return a * std::pow(dbh*100, b);
@@ -84,7 +84,7 @@ double FSMiombio::H_vs_DBH(double dbh) const
 
 double FSMiombio::DBH_vs_H(double H) const
 {
-  constexpr double a = 21.947;
+  constexpr double a = 3.19;
   constexpr double b = 0.4187;
 
   return std::pow(H / a, 1.0 / b)/100;

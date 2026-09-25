@@ -19,22 +19,26 @@ available_allometries <- function()
     model = c(
       "CostaCysneiros2020",
       "Griese2025",
-      "Chenge2020"
+      "Chenge2020",
+      "FSMiombio"
     ),
     country = c(
       "Brazil",
       "Germany",
-      "Nigeria"
+      "Nigeria",
+      "Zambia"
     ),
     color = c(
       "#1b9e77",
       "#d95f02",
-      "#7570b3"
+      "#7570b3",
+      "#8e129e"
     ),
     url = c(
       "https://doi.org/10.1139/cjfr-2020-0060",
       "https://doi.org/10.1038/s41597-025-06421-7",
-      "https://doi.org/10.1016/j.tfp.2020.100051"
+      "https://doi.org/10.1016/j.tfp.2020.100051",
+      "Unpublished r-lidar team"
     ),
     stringsAsFactors = FALSE
   )
