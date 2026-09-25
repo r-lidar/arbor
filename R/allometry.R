@@ -20,7 +20,7 @@ available_allometries <- function()
       "CostaCysneiros2020",
       "Griese2025",
       "Chenge2020",
-      "FSMiombio"
+      "FSMiombo"
     ),
     country = c(
       "Brazil",
@@ -38,7 +38,7 @@ available_allometries <- function()
       "https://doi.org/10.1139/cjfr-2020-0060",
       "https://doi.org/10.1038/s41597-025-06421-7",
       "https://doi.org/10.1016/j.tfp.2020.100051",
-      "Unpublished r-lidar team"
+      "Unpublished, by r-lidar"
     ),
     stringsAsFactors = FALSE
   )

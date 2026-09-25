@@ -74,7 +74,7 @@ double Chenge2020::DBH_vs_H(double H) const
   return std::pow(H / a, 1.0 / b)/100;
 }
 
-double FSMiombio::H_vs_DBH(double dbh) const
+double FSMiombo::H_vs_DBH(double dbh) const
 {
   constexpr double a = 3.19;
   constexpr double b = 0.4187;
@@ -82,7 +82,7 @@ double FSMiombio::H_vs_DBH(double dbh) const
   return a * std::pow(dbh*100, b);
 }
 
-double FSMiombio::DBH_vs_H(double H) const
+double FSMiombo::DBH_vs_H(double H) const
 {
   constexpr double a = 3.19;
   constexpr double b = 0.4187;
@@ -134,7 +134,7 @@ std::unique_ptr<Allometry> AllometryDataBase::getAllometry(const std::string& na
     { "Chenge2020",         []() { return std::make_unique<Chenge2020>(); } },
     { "CostaCysneiros2020", []() { return std::make_unique<CostaCysneiros2020>(); } },
     { "Cacao",              []() { return std::make_unique<CacaoAllometry>(); } },
-    { "FSMiombio",          []() { return std::make_unique<FSMiombio>(); } }
+    { "FSMiombo",           []() { return std::make_unique<FSMiombo>(); } }
   };
 
   auto it = registry.find(name);
