@@ -30,6 +30,7 @@ Mandatory:
 Options:
   -o, --output <dir> Output directory [default: input directory]
   -overwrite         Overwrite existing files
+  -allometry         Choose an allometry name
   -epsg 1234         EPSG code to georeference the dataset if missing
   -qsm               Export QSM [default: on if nothing provided]
   -csv               Export CSV 
@@ -73,6 +74,11 @@ Example:
   crs = sf::NA_crs_
   if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg)) 
   
+  # Parameters
+  allometry = get_arg(args, "-allometry", NULL)
+  params = arbor_parameters_default
+  if (!is.null(allometry)) params$qsm$allometry_name = allometry
+  
   # Formats
   formats <- character()
   if (has_flag(args, "-qsm")) formats <- c(formats, "qsm")
@@ -89,6 +95,7 @@ Input       :", paste(ifiles, collapse = ", "), "
 Output      :", odir, "
 Settings
   Formats   :", paste(formats, collapse = ", "), "
+  Allometry :", params$qsm$allometry_name, "
 =====================================================
 ")
 
@@ -96,7 +103,7 @@ Settings
   las <- lidR::readLAS(ifiles)
 
   cat("Computing QSMs\n")
-  res <- qsf(las)
+  res <- qsf(las, params = params)
 
   if (!is.na(crs))
     st_crs(res) <- crs 

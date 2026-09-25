@@ -40,6 +40,14 @@ public:
   double DBH_vs_H(double H) const override;
 };
 
+class FSMiombio : public Allometry
+{
+public:
+  double H_vs_DBH(double dbh) const override;
+  double DBH_vs_H(double H) const override;
+};
+
+
 class CacaoAllometry : public Allometry
 {
 public:
