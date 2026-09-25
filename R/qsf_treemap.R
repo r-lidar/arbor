@@ -46,6 +46,8 @@ qsf_treemap = function(qsf)
 
   sf::st_sf(
     cbind(meta, sf::st_drop_geometry(ans)),
-    geometry = sf::st_geometry(ans)
+    geometry = sf::st_geometry(ans),
+    agr = "constant",
+    crs = st_crs(qsf)
   )
 }
