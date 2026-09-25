@@ -129,7 +129,7 @@ if (epsg > 0)
 
 has_crs <- !is.na(st_crs(ans))
 
-st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"), quiet = TRUE)
+st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"), quiet = TRUE, append = FALSE)
 
 ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
   
@@ -145,7 +145,7 @@ ba    <- sum((ans$dbh / 2)^2 * pi)
 ```{r shared-data}
 # --- ONE shared dataset feeds every interactive widget below ---------------
 # Clicking a point in any plot, a marker on the tree map, or a row in the
-# table highlights the *same tree* everywhere else, because they all point
+# table highlights the *same tree everywhere else, because they all point
 # back to this single crosstalk group ("trees").
 
 ans_df <- st_drop_geometry(ans)
@@ -245,11 +245,127 @@ div(class = "stat-grid",
 )
 ```
 
+# Carbon Estimate
+
+Total stand volume can be converted into an approximate carbon stock using a
+conversion factor (Mg C per m&sup3; of wood volume), which depends on
+species, wood density, and the carbon fraction of biomass. That factor isn't
+fixed for this dataset yet, use the slider below to explore the estimate
+under different assumptions, and swap in the correct factor for your
+species/region once you have it.
+
+```{r carbon-estimate}
+tagList(
+  div(class = "callout",
+    tags$label(
+      `for` = "carbon-slider",
+      style = "font-weight:600; display:block; margin-bottom:8px;",
+      "Conversion factor: ",
+      tags$span(id = "carbon-factor-display", "0.50"),
+      " Mg C / m\u00B3"
+    ),
+    tags$input(
+      id = "carbon-slider", type = "range",
+      min = "0.05", max = "1", step = "0.01", value = "0.5",
+      style = "width:100%; accent-color:#1C6B3C;"
+    )
+  ),
+  div(class = "stat-grid",
+    stat("Total carbon", tags$span(id = "total-carbon-value", "-"), "Estimated stand carbon stock"),
+    stat("Carbon / ha", tags$span(id = "carbon-per-ha-value", "-"), "Estimated carbon density"),
+    stat("Total volume", paste(round(Vtot, 2), "m\u00B3"), "Reference: total QSM volume (fixed)")
+  ),
+  tags$script(HTML(sprintf("
+    (function() {
+      const vtot = %f;
+      const area = %f;
+      const slider = document.getElementById('carbon-slider');
+      const factorDisplay = document.getElementById('carbon-factor-display');
+      const totalEl = document.getElementById('total-carbon-value');
+      const perHaEl = document.getElementById('carbon-per-ha-value');
+
+      function update() {
+        const factor = parseFloat(slider.value);
+        factorDisplay.textContent = factor.toFixed(2);
+        const total = vtot * factor;
+        const perHa = (total / area) * 10000;
+        totalEl.textContent = total.toFixed(2) + ' Mg';
+        perHaEl.textContent = perHa.toFixed(2) + ' Mg/ha';
+      }
+
+      slider.addEventListener('input', update);
+      update();
+    })();
+  ", Vtot, as.numeric(area))))
+)
+```
+
+# QSM Quality
+
+Each tree carries a `Message` flag from the QSM reconstruction process,
+indicating whether the model completed cleanly or with a warning. The chart
+below shows what share of the **stand's total volume** falls under each flag
+— this matters more than a simple tree count, since a warning on one large
+tree can carry more volume risk than several small ones. Trees with no
+message are grouped under "OK".
+
+```{r qsm-quality}
+qual <- ans_df
+qual$Message <- ifelse(is.na(qual$Message), "OK", as.character(qual$Message))
+
+qual_summary <- aggregate(volume ~ Message, data = qual, FUN = sum)
+qual_summary$n <- as.integer(table(qual$Message)[qual_summary$Message])
+qual_summary$pct <- round(qual_summary$volume / sum(qual_summary$volume) * 100, 1)
+qual_summary <- qual_summary[order(-qual_summary$volume), ]
+
+qual_colors <- c(OK = brand_green)
+other_msgs <- setdiff(qual_summary$Message, "OK")
+if (length(other_msgs) > 0)
+  qual_colors[other_msgs] <- scales::hue_pal()(length(other_msgs))
+qual_colors <- qual_colors[qual_summary$Message]
+
+plot_ly(
+  qual_summary,
+  labels = ~Message,
+  values = ~volume,
+  type = "pie",
+  hole = 0.55,
+  textinfo = "label+percent",
+  customdata = ~n,
+  hovertemplate = paste0(
+    "<b>%{label}</b><br>",
+    "%{value:.2f} m\u00B3 (%{percent})<br>",
+    "%{customdata} trees<extra></extra>"
+  ),
+  marker = list(colors = qual_colors, line = list(color = "white", width = 1.5))
+) %>%
+  layout(
+    title = list(text = "Share of total volume by QSM message", font = list(size = 13)),
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = TRUE,
+    annotations = list(list(
+      text = paste0(round(Vtot, 1), " m\u00B3"),
+      x = 0.5, y = 0.5, font = list(size = 14, color = ink), showarrow = FALSE
+    ))
+  )
+```
+
+```{r qsm-quality-table}
+datatable(
+  qual_summary[, c("Message", "n", "volume", "pct")],
+  rownames = FALSE,
+  colnames = c("Message", "Trees", "Volume (m\u00B3)", "% of total volume"),
+  options = list(dom = "t", pageLength = nrow(qual_summary), ordering = FALSE),
+  class = "display compact stripe"
+) %>%
+  formatRound(columns = "volume", digits = 2)
+```
+
 # Allometrics {.tabset}
 
 The tabs below show the relationships between tree metrics derived from the
 Quantitative Structure Models. **Click a point** in any tab (or a row in the
-*Data table* tab) to highlight that tree everywhere on this page — including
+*Data table* tab) to highlight that tree everywhere on this page, including
 the tree map further down. Double-click a plot to clear the selection. Use
 the slider to filter the trees under study.
 
@@ -325,11 +441,15 @@ ggplotly(p2, tooltip = "text", height = 420) %>%
 
 ## Data table
 
+The table below can be downloaded as CSV or Excel using the buttons above it
+(the export respects any column filters you've applied).
+
 ```{r allometry-table}
 datatable(
   sd_trees,
   rownames = FALSE,
   filter = "top", # Will automatically use a multi-select dropdown for factors
+  extensions = "Buttons",
   colnames = c(
     "Tree" = "name", 
     "Message" = "Message", 
@@ -339,7 +459,11 @@ datatable(
   ),
   options = list(
     pageLength = 18, 
-    dom = "ftip",
+    dom = "Bftip",
+    buttons = list(
+      list(extend = "csv",   text = "Download CSV",   filename = "tree_inventory", exportOptions = list(modifier = list(search = "applied"))),
+      list(extend = "excel", text = "Download Excel", filename = "tree_inventory", exportOptions = list(modifier = list(search = "applied")))
+    ),
     columnDefs = list(
       list(
         visible = FALSE, 
