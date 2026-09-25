@@ -38,11 +38,11 @@ print.qsf <- function(x, ...)
     cat("Coord. ref. : NA\n")
     return(invisible(x))
   }
-  
+
   # number of cylinders
   n_tree <- length(x)
   n_cyl  <- sum(sapply(x, nrow))
-  crs = attr(x, "crs")
+  crs = st_crs(x)
   dbh = qsm_dbh(x)
   ba  = sum(pi*(dbh$dbh/2)^2)
   if (is.null(crs)) crs = sf::NA_crs_

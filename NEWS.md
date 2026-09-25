@@ -59,6 +59,8 @@
 2. Fix: QSM messages were not written in `.qsm` files. They are now recorded 
   properly.
 
+3. Fix: `qsf()` was not propagating the CRS from the point cloud to the QSMs + fix various attribution and access to QSM and QSF CRS with `st_crs()`.
+
 ### DOCUMENTATION
 
  1. Added details about tree excluded by `qsf()` in the manual page and the [arbor's book](https://r-lidar.github.io/arbor_book/)

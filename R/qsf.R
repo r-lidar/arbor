@@ -39,6 +39,8 @@ qsf <- function(las, min_height = 2, params = arbor_parameters_default)
   for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]
   res <- as_qsf(res)
+  st_crs(res) <- st_crs(las)
+  res <- as_qsf(res)
   res
 }
 

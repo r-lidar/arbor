@@ -39,6 +39,7 @@ st_crs.qsm = function(x, ...)
   if (is.null(crs)) crs <- sf::NA_crs_
   else if (crs == "") crs <- sf::NA_crs_
   else crs <- sf::st_crs(crs)
+  crs
 }
 
 #' @export

@@ -6,6 +6,11 @@ qsf_obj <- qsf(tree)
 
 sink()
 
+test_that("qsf records the CRS", {
+  expect_equal(st_crs(qsf_obj)$Name, "NAD83 / MTM zone 7")
+  expect_equal(st_crs(qsf_obj[[1]])$Name, "NAD83 / MTM zone 7")
+})
+
 test_that("qsf produces stats with required columns", {
   stats <- qsm_stats(qsf_obj)
 
