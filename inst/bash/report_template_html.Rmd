@@ -547,30 +547,121 @@ ggplotly(p1, tooltip = "text", height = 420) %>%
 # Tree map
 
 Each tree's diameter footprint is drawn at 2x scale and colored by volume. Scroll to zoom; click a tree for details — the selection stays in sync with the charts and table above.
-
 ```{r tree-map, fig.height=5}
 local_xy <- st_coordinates(ans)
 ans_df$x_local <- local_xy[, 1]
 ans_df$y_local <- local_xy[, 2]
+
+# --- Pre-compute the three "color by" options -----------------------------
+# Volume / Height are continuous -> Viridis colorscale + colorbar.
+# Message is discrete -> a fixed hex color per tree, colorbar hidden.
+# All three live on ONE trace; the buttons below just restyle/relayout it,
+# so the crosstalk selection group never has to be rebuilt.
+msg_lbl <- ifelse(is.na(ans_df$Message), "OK", as.character(ans_df$Message))
+msg_levels <- c("OK", sort(setdiff(unique(msg_lbl), "OK")))
+msg_pal <- setNames(
+  c(brand_green, scales::hue_pal()(max(length(msg_levels) - 1, 0))),
+  msg_levels
+)
+ans_df$Message_lbl <- msg_lbl
+ans_df$msg_color   <- unname(msg_pal[msg_lbl])
+
+ans_df$hover_text <- paste0(
+  "<b>Tree: ", ans_df$name, "</b><br>",
+  "Volume: ", ans_df$volume, " m\u00B3<br>",
+  "Height: ", ans_df$height, " m<br>",
+  "DBH: ", ans_df$dbh_cm, " cm<br>",
+  "Message: ", ans_df$Message_lbl
+)
+
 sd_local <- SharedData$new(ans_df, key = ~name, group = "trees")
 
-p <- ggplot(sd_local, aes(x = x_local, y = y_local, size = volume, color = volume,
-                          text = paste0("<b>Tree: ", name, "</b><br>",
-                                        "Volume: ", volume, " m³<br>",
-                                        "Height: ", height, " m<br>",
-                                        "DBH: ", dbh_cm, " cm"))) +
-  geom_point(alpha = 0.75) +
-  scale_color_viridis_c(option = "plasma") +
-  labs(title = "Tree map",
-       x = "X", y = "Y") +
-  report_theme + theme(legend.position = "right")
+vol_range    <- range(ans_df$volume, na.rm = TRUE)
+height_range <- range(ans_df$height, na.rm = TRUE)
+size_ref     <- 2 * max(ans_df$volume, na.rm = TRUE) / (26^2)
+
+p <- plot_ly(
+  data = sd_local,
+  x = ~x_local, y = ~y_local,
+  type = "scatter", mode = "markers",
+  text = ~hover_text, hoverinfo = "text",
+  height = 480,
+  marker = list(
+    color = ~volume,
+    colorscale = "Viridis",
+    cmin = vol_range[1], cmax = vol_range[2],
+    showscale = TRUE,
+    colorbar = list(title = list(text = "Volume (m\u00B3)")),
+    size = ~volume, sizemode = "area",
+    sizeref = size_ref, sizemin = 4,
+    line = list(color = "white", width = 0.4),
+    opacity = 0.75
+  )
+) %>%
+  highlight(
+    on = "plotly_click", off = "plotly_doubleclick",
+    color = accent_amber, opacityDim = 0.2
+  ) %>%
+  layout(
+    title = list(text = "Tree map", font = list(size = 13)),
+    xaxis = list(title = "X"),
+    yaxis = list(title = "Y"),
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    updatemenus = list(
+      list(
+        type = "buttons", direction = "right", active = 0,
+        x = 1, xanchor = "right",
+        y = 1.15, yanchor = "top",
+        pad = list(r = 4, t = 4),
+        buttons = list(
+          list(
+            label = "Volume",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"               = list(ans_df$volume),
+                "marker.colorscale"          = list("Viridis"),
+                "marker.cmin"                = list(vol_range[1]),
+                "marker.cmax"                = list(vol_range[2]),
+                "marker.showscale"           = list(TRUE),
+                "marker.colorbar.title.text" = list("Volume (m\u00B3)")
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          ),
+          list(
+            label = "Height",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"               = list(ans_df$height),
+                "marker.colorscale"          = list("Viridis"),
+                "marker.cmin"                = list(height_range[1]),
+                "marker.cmax"                = list(height_range[2]),
+                "marker.showscale"           = list(TRUE),
+                "marker.colorbar.title.text" = list("Height (m)")
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          ),
+          list(
+            label = "Message",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"     = list(ans_df$msg_color),
+                "marker.showscale" = list(FALSE)
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          )
+        )
+      )
+    )
+  )
 
 # Render with plotly_build to process HTML correctly
-p_plotly <- ggplotly(p, tooltip = "text", height = 480) %>%
-  highlight(on = "plotly_click", off = "plotly_doubleclick",
-            color = accent_amber, opacityDim = 0.2)
-
-plotly_build(p_plotly)
+plotly_build(p)
 ```
 
 <div class="report-footer">
