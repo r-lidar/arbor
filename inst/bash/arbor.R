@@ -23,6 +23,7 @@ Mandatory:
   <input.qsf>             Input QSF file
 
 Options:
+  -o                      Path to exported html file
   -target_epsg 1234       EPSG code to georeference the dataset if missing
 ")
     quit(save = "no", status = 0)
@@ -33,7 +34,21 @@ Options:
   }
 
   target_epsg <- as.numeric(arbor:::get_arg(args, "-target_epsg", 0))
-  input_qsf <- normalizePath(args[1])
+  output      <- arbor:::get_arg(args, "-o", "")
+  input_qsf   <- normalizePath(args[1])
+
+  if (output == "")
+  {
+    if (dir.exists(input_qsf)) {
+      # Places <folder_name>.html INSIDE the directory
+      output <- file.path(input_qsf, paste0(basename(input_qsf), ".html"))
+    } else {
+      # Standard behavior for file paths
+      output <- paste0(tools::file_path_sans_ext(input_qsf), ".html")
+    }
+  }
+
+  output = normalizePath(output, mustWork = FALSE)
 
   if (!file.exists(input_qsf)) {
     stop("Input directory does not exist: ", input_qsf)
@@ -41,11 +56,12 @@ Options:
 
   rmarkdown::render(
     input  = system.file("bash", "report_template_html.Rmd", package="arbor"),
-    output_file = paste0(tools::file_path_sans_ext(input_qsf), ".html"),
-    output_dir = dirname(input_qsf),   # directory to write to
+    output_file = basename(output),
+    output_dir = dirname(output),   # directory to write to
     params = list(
       input = input_qsf,
-      target_epsg = target_epsg
+      target_epsg = target_epsg,
+      output = output
     ),
     quiet = FALSE
   )

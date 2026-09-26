@@ -18,6 +18,7 @@ output:
     self_contained: true
 params:
   input: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.qsf"
+  output: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.html"
   target_epsg: 32619
 ---
 
@@ -39,6 +40,7 @@ library(plotly)
 library(DT)
 library(crosstalk)
 library(htmltools)
+library(jsonlite)
 
 # --- ACCURATE DATUM TRANSFORMS, WITH A SAFETY NET -----------------------
 # NAD27 (the datum under EPSG:32098) needs an NTv2 grid file for an accurate
@@ -111,10 +113,22 @@ report_theme <- theme_minimal(base_size = 12) +
 
 ```{r read-qsm}
 input <- params$input
+output_file <- params$output
 target_epsg <- params$target_epsg
-if (!file.exists(input)) stop("Invalid directory")
 
-qsf <- qsf_read(input)
+if (file.info(input)$isdir)
+{
+  f <- list.files(input, pattern = "qsf", recursive = T, full.names = T)
+  if(length(f) == 0) stop("No .qsf file detected in this directory")
+  ans <- lapply(f, arbor::qsf_read)
+  qsf <- do.call(c, ans)
+  qsf <- arbor:::as_qsf(qsf)
+} else if (file.exists(input)) {
+  qsf <- qsf_read(input)
+} else {
+   stop("Invalid file or directory")
+}
+
 ans <- qsf_treemap(qsf)
 
 has_crs <- !is.na(st_crs(ans))
@@ -129,7 +143,8 @@ if (target_epsg > 0)
 
 has_crs <- !is.na(st_crs(ans))
 
-st_write(ans, paste0(tools::file_path_sans_ext(input), ".gpkg"), quiet = TRUE, append = FALSE)
+ogpkg = paste0(tools::file_path_sans_ext(output_file), ".gpkg")
+st_write(ans, ogpkg, quiet = TRUE, append = FALSE)
 
 ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
   
@@ -138,15 +153,16 @@ Ntree <- nrow(ans)
 area  <- st_area(st_as_sfc(st_bbox(ans)))
 area  <- round(area / 50) * 50
 ba    <- sum((ans$dbh / 2)^2 * pi)
-
-
 ```
 
 ```{r shared-data}
 # --- ONE shared dataset feeds every interactive widget below ---------------
 # Clicking a point in any plot, a marker on the tree map, or a row in the
 # table highlights the *same tree everywhere else, because they all point
-# back to this single crosstalk group ("trees").
+# back to this single crosstalk group ("trees"). The volume slider and the
+# status checkboxes at the top of the report (see "Filters" below) act on
+# this same group too, so they subset every linked plot, map and table in
+# sync -- including the Global Statistics cards, via a small JS listener.
 
 ans_df <- st_drop_geometry(ans)
 ans_df$dbh_cm <- round(ans_df$dbh * 100, 1)
@@ -157,13 +173,24 @@ if (has_crs) {
   ans_df$lat <- coords[, 2]
 }
 
+# Normalize the QSM "Message" flag once: missing values become "OK", and we
+# fix a stable factor level order + color palette (OK is always brand green)
+# that every chart/table/checkbox below reuses. The column stays named
+# "Message" in code -- only the labels shown to the reader say "Status".
+ans_df$Message <- ifelse(is.na(ans_df$Message), "OK", as.character(ans_df$Message))
+status_levels  <- c("OK", sort(setdiff(unique(ans_df$Message), "OK")))
+status_colors  <- setNames(
+  c(brand_green, scales::hue_pal()(max(length(status_levels) - 1, 0))),
+  status_levels
+)
+ans_df$Message <- factor(ans_df$Message, levels = status_levels)
+
 sd_trees <- SharedData$new(ans_df, key = ~name, group = "trees")
 ```
 
 # Location
 
-Interactive map of the plot — scroll to zoom, drag to pan. The inset in the
-bottom-right corner shows the wider region for context (click it to expand).
+Interactive map of the plot: scroll to zoom, drag to pan.
 
 ```{r world-map, fig.height=5}
 if (has_crs) {
@@ -204,10 +231,6 @@ if (has_crs) {
       baseGroups = c("Topo (Esri)", "Satellite (Esri)"),
       options = layersControlOptions(collapsed = TRUE)
     ) %>%
-    addMiniMap(
-      tiles = providers$CartoDB.Positron,
-      toggleDisplay = TRUE, minimized = TRUE, position = "bottomright"
-    ) %>%
     addScaleBar(position = "bottomleft")
 
 } else {
@@ -219,29 +242,124 @@ if (has_crs) {
 }
 ```
 
+# Filters
+
+Use the controls below to focus the report on a subset of trees. Both
+controls act on the **same set of trees** and immediately update every
+chart, map and table below.
+
+```{r filters-slider}
+vol_range <- range(ans_df$volume, na.rm = TRUE)
+vol_step  <- signif(diff(vol_range) / 500, 2)
+if (!is.finite(vol_step) || vol_step <= 0) vol_step <- 0.001
+
+filter_slider(
+  id = "volume_filter",
+  label = "Filter by tree volume (m³)",
+  sharedData = sd_trees,
+  column = ~volume,
+  step = vol_step,
+  width = "100%"
+)
+```
+
+```{r filters-status}
+filter_checkbox(
+  id = "status_filter",
+  label = "Filter by status",
+  sharedData = sd_trees,
+  group = ~Message,
+  inline = TRUE
+)
+```
+
 # Global Statistics
 
 This report summarizes the QSM processing results. The dataset consists of
 `r Ntree` trees with a cumulative biological volume of `r round(Vtot, 2)` m^3^.
 
 ```{r stat-cards}
-stat <- function(label, value, desc) {
+stat <- function(label, value, desc, id = NULL) {
   div(class = "stat-card",
       div(class = "stat-label", label),
-      div(class = "stat-value", value),
+      div(class = "stat-value", if (is.null(id)) value else tags$span(id = id, value)),
       div(class = "stat-desc", desc)
   )
 }
 
-div(class = "stat-grid",
-  stat("Trees", Ntree, "Count of individual trees"),
-  stat("Area", paste(round(area, 1), "m\u00B2"), "Area of the plot"),
-  stat("Density", paste(round(Ntree / area * 10000, 2), "/ ha"), "Trees per hectare"),
-  stat("Basal area", paste(round(ba, 2), "m\u00B2"), "Sum of cross-sectional area at breast height"),
-  stat("Basal area / ha", paste(round(ba / area * 10000, 2), "m\u00B2/ha"), "Basal area per hectare"),
-  stat("Total volume", paste(round(Vtot, 2), "m\u00B3"), "Sum of cylindrical volume (stem + branches)"),
-  stat("Avg. height", paste(round(mean(ans_df$height, na.rm = TRUE), 2), "m"), "Mean vertical height of the stand"),
-  stat("Avg. DBH", paste(round(mean(ans_df$dbh_cm, na.rm = TRUE), 1), "cm"), "Mean diameter at breast height (1.3 m)")
+tagList(
+  div(class = "stat-grid",
+    stat("Trees", Ntree, "Count of individual trees", id = "stat-trees"),
+    stat("Area", paste(round(area, 1), "m\u00B2"),
+         "Area of the plot (fixed \u2014 the surveyed footprint doesn't shrink when you filter trees)"),
+    stat("Density", paste(round(Ntree / area * 10000, 2), "/ ha"), "Trees per hectare", id = "stat-density"),
+    stat("Basal area", paste(round(ba, 2), "m\u00B2"), "Sum of cross-sectional area at breast height", id = "stat-basal-area"),
+    stat("Basal area / ha", paste(round(ba / area * 10000, 2), "m\u00B2/ha"), "Basal area per hectare", id = "stat-basal-area-ha"),
+    stat("Total volume", paste(round(Vtot, 2), "m\u00B3"), "Sum of cylindrical volume (stem + branches)", id = "stat-total-volume"),
+    stat("Avg. height", paste(round(mean(ans_df$height, na.rm = TRUE), 2), "m"), "Mean vertical height of the stand", id = "stat-avg-height"),
+    stat("Avg. DBH", paste(round(mean(ans_df$dbh_cm, na.rm = TRUE), 1), "cm"), "Mean diameter at breast height (1.3 m)", id = "stat-avg-dbh")
+  ),
+  tags$script(
+    id = "trees-data-json", type = "application/json",
+    HTML(jsonlite::toJSON(ans_df[, c("name", "volume", "height", "dbh")], digits = 8))
+  ),
+  tags$script(HTML(sprintf("
+    (function() {
+      const totalArea = %f;
+      const dataEl = document.getElementById('trees-data-json');
+      const allTrees = JSON.parse(dataEl.textContent);
+
+      function computeStats(subset) {
+        let n = subset.length, vol = 0, ba = 0, height = 0, dbhCm = 0;
+        subset.forEach(function(t) {
+          vol += t.volume;
+          ba  += Math.PI * Math.pow(t.dbh / 2, 2);
+          height += t.height;
+          dbhCm += t.dbh * 100;
+        });
+        return {
+          n: n, volume: vol, ba: ba,
+          avgHeight: n > 0 ? height / n : 0,
+          avgDbh: n > 0 ? dbhCm / n : 0
+        };
+      }
+
+      function render(subset) {
+        const s = computeStats(subset);
+        document.getElementById('stat-trees').textContent = s.n;
+        document.getElementById('stat-density').textContent = (s.n / totalArea * 10000).toFixed(2) + ' / ha';
+        document.getElementById('stat-basal-area').textContent = s.ba.toFixed(2) + ' m\u00B2';
+        document.getElementById('stat-basal-area-ha').textContent = (s.ba / totalArea * 10000).toFixed(2) + ' m\u00B2/ha';
+        document.getElementById('stat-total-volume').textContent = s.volume.toFixed(2) + ' m\u00B3';
+        document.getElementById('stat-avg-height').textContent = s.avgHeight.toFixed(2) + ' m';
+        document.getElementById('stat-avg-dbh').textContent = s.avgDbh.toFixed(1) + ' cm';
+      }
+
+      function applyFilterKeys(keys) {
+        if (keys === null || typeof keys === 'undefined') {
+          render(allTrees);
+        } else {
+          const keySet = {};
+          keys.forEach(function(k) { keySet[k] = true; });
+          render(allTrees.filter(function(t) { return keySet[t.name]; }));
+        }
+      }
+
+      // Crosstalk combines the volume slider and the status checkboxes into
+      // one intersected 'filter' variable per group, so a single listener
+      // here stays correct no matter how many filter widgets are active.
+      function bindWhenReady() {
+        if (window.crosstalk && crosstalk.group) {
+          const filterVar = crosstalk.group('trees').var('filter');
+          filterVar.on('change', function(e) { applyFilterKeys(e.value); });
+          applyFilterKeys(filterVar.get());
+        } else {
+          setTimeout(bindWhenReady, 50);
+        }
+      }
+      bindWhenReady();
+    })();
+  ", as.numeric(area))))
 )
 ```
 
@@ -302,27 +420,22 @@ tagList(
 
 # QSM Quality
 
-Each tree carries a `Message` flag from the QSM reconstruction process,
+Each tree carries a status flag from the QSM reconstruction process,
 indicating whether the model completed cleanly or with a warning. The chart
-below shows what share of the **stand's total volume** falls under each flag
-— this matters more than a simple tree count, since a warning on one large
-tree can carry more volume risk than several small ones. Trees with no
-message are grouped under "OK".
+below shows what share of the **stand's total volume** falls under each
+status — this matters more than a simple tree count, since a warning on one
+large tree can carry more volume risk than several small ones. Trees with no
+status recorded are grouped under "OK".
 
 ```{r qsm-quality}
 qual <- ans_df
-qual$Message <- ifelse(is.na(qual$Message), "OK", as.character(qual$Message))
 
 qual_summary <- aggregate(volume ~ Message, data = qual, FUN = sum)
-qual_summary$n <- as.integer(table(qual$Message)[qual_summary$Message])
+qual_summary$n <- as.integer(table(qual$Message)[as.character(qual_summary$Message)])
 qual_summary$pct <- round(qual_summary$volume / sum(qual_summary$volume) * 100, 1)
 qual_summary <- qual_summary[order(-qual_summary$volume), ]
 
-qual_colors <- c(OK = brand_green)
-other_msgs <- setdiff(qual_summary$Message, "OK")
-if (length(other_msgs) > 0)
-  qual_colors[other_msgs] <- scales::hue_pal()(length(other_msgs))
-qual_colors <- qual_colors[qual_summary$Message]
+qual_colors <- status_colors[as.character(qual_summary$Message)]
 
 plot_ly(
   qual_summary,
@@ -330,6 +443,7 @@ plot_ly(
   values = ~volume,
   type = "pie",
   hole = 0.55,
+  rotation = 90, # <-- Add this to rotate the starting point to the right
   textinfo = "label+percent",
   customdata = ~n,
   hovertemplate = paste0(
@@ -340,7 +454,7 @@ plot_ly(
   marker = list(colors = qual_colors, line = list(color = "white", width = 1.5))
 ) %>%
   layout(
-    title = list(text = "Share of total volume by QSM message", font = list(size = 13)),
+    title = list(text = "Share of total volume by status", font = list(size = 13)),
     font = list(family = "IBM Plex Sans, sans-serif"),
     showlegend = TRUE,
     annotations = list(list(
@@ -354,7 +468,7 @@ plot_ly(
 datatable(
   qual_summary[, c("Message", "n", "volume", "pct")],
   rownames = FALSE,
-  colnames = c("Message", "Trees", "Volume (m\u00B3)", "% of total volume"),
+  colnames = c("Status", "Trees", "Volume (m\u00B3)", "% of total volume"),
   options = list(dom = "t", pageLength = nrow(qual_summary), ordering = FALSE),
   class = "display compact stripe"
 ) %>%
@@ -366,39 +480,20 @@ datatable(
 The tabs below show the relationships between tree metrics derived from the
 Quantitative Structure Models. **Click a point** in any tab (or a row in the
 *Data table* tab) to highlight that tree everywhere on this page, including
-the tree map further down. Double-click a plot to clear the selection. Use
-the slider to filter the trees under study.
-
-```{r allometry-filter}
-filter_slider(
-  id = "volume_filter",
-  label = "Filter by tree volume (m³)",
-  sharedData = sd_trees,
-  column = ~volume,
-  width = "100%"
-)
-```
+the tree map further down. Double-click a plot to clear the selection. The
+volume and status filters near the top of this report also apply here.
 
 ## Volume vs Diameter
 
 ```{r allometry-vol}
-msg_levels <- na.omit(unique(ans_df$Message))
-n_msgs <- length(msg_levels)
-
-# Generate colors dynamically for non-NA messages
-msg_colors <- setNames(scales::hue_pal()(n_msgs), msg_levels)
-
 p1 <- ggplot(sd_trees, aes(x = dbh_cm, y = volume, color = Message,
                            text = paste0("Tree: ", name, "<br>",
-                                         "Message: ", ifelse(is.na(Message), "None", as.character(Message)), "<br>",
+                                         "Status: ", as.character(Message), "<br>",
                                          dbh_cm, " cm \u2014 ", volume, " m\u00B3"))) +
   geom_point(size = 2, alpha = 0.75) +
-  scale_color_manual(
-    na.value = brand_green,
-    values = msg_colors
-  ) +
+  scale_color_manual(values = status_colors) +
   labs(title = "Tree volume vs diameter", subtitle = "Volume estimated using QSM",
-       x = "Diameter (cm)", y = "Volume (m\u00B3)", color = "Message") +
+       x = "Diameter (cm)", y = "Volume (m\u00B3)", color = "Status") +
   report_theme
 
 ggplotly(p1, tooltip = "text", height = 420) %>%
@@ -413,21 +508,14 @@ ggplotly(p1, tooltip = "text", height = 420) %>%
 ## Height vs Diameter
 
 ```{r allometry-height}
-# Extract distinct non-NA values and generate colors dynamically (if not already run prior to p1)
-msg_levels <- na.omit(unique(ans_df$Message))
-msg_colors <- setNames(scales::hue_pal()(length(msg_levels)), msg_levels)
-
 p2 <- ggplot(sd_trees, aes(x = dbh_cm, y = height, color = Message,
                            text = paste0("Tree: ", name, "<br>",
-                                         "Message: ", ifelse(is.na(Message), "None", as.character(Message)), "<br>",
+                                         "Status: ", as.character(Message), "<br>",
                                          dbh_cm, " cm \u2014 ", height, " m"))) +
   geom_point(size = 2, alpha = 0.75) +
-  scale_color_manual(
-    na.value = brand_green,
-    values = msg_colors
-  ) +
+  scale_color_manual(values = status_colors) +
   labs(title = "Tree height vs diameter", subtitle = "Height estimated using QSM",
-       x = "Diameter (cm)", y = "Height (m)", color = "Message") +
+       x = "Diameter (cm)", y = "Height (m)", color = "Status") +
   report_theme
 
 ggplotly(p2, tooltip = "text", height = 420) %>%
@@ -452,7 +540,7 @@ datatable(
   extensions = "Buttons",
   colnames = c(
     "Tree" = "name", 
-    "Message" = "Message", 
+    "Status" = "Message", 
     "Volume (m\u00B3)" = "volume",
     "Height (m)" = "height", 
     "DBH (cm)" = "dbh_cm"
@@ -480,7 +568,7 @@ datatable(
 ## Diameter
 
 ```{r distribution-diam}
-p1 <- ggplot(ans_df, aes(x = dbh_cm,
+p1 <- ggplot(sd_trees, aes(x = dbh_cm,
                           text = after_stat(paste0(count, " trees, ", round(x, 1), " cm bin")))) +
   geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
   labs(title = "Distribution of tree diameter", subtitle = "Estimated by circle fitting",
@@ -494,7 +582,7 @@ ggplotly(p1, tooltip = "text", height = 380) %>%
 ## Height
 
 ```{r distribution-height}
-p2 <- ggplot(ans_df, aes(x = height,
+p2 <- ggplot(sd_trees, aes(x = height,
                           text = after_stat(paste0(count, " trees, ", round(x, 1), " m bin")))) +
   geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
   labs(title = "Distribution of tree height", subtitle = "Estimated using QSM",
@@ -554,24 +642,18 @@ ans_df$y_local <- local_xy[, 2]
 
 # --- Pre-compute the three "color by" options -----------------------------
 # Volume / Height are continuous -> Viridis colorscale + colorbar.
-# Message is discrete -> a fixed hex color per tree, colorbar hidden.
+# Status is discrete -> a fixed hex color per tree, colorbar hidden (uses
+# the same status_colors palette as every other chart in this report).
 # All three live on ONE trace; the buttons below just restyle/relayout it,
 # so the crosstalk selection group never has to be rebuilt.
-msg_lbl <- ifelse(is.na(ans_df$Message), "OK", as.character(ans_df$Message))
-msg_levels <- c("OK", sort(setdiff(unique(msg_lbl), "OK")))
-msg_pal <- setNames(
-  c(brand_green, scales::hue_pal()(max(length(msg_levels) - 1, 0))),
-  msg_levels
-)
-ans_df$Message_lbl <- msg_lbl
-ans_df$msg_color   <- unname(msg_pal[msg_lbl])
+ans_df$msg_color <- unname(status_colors[as.character(ans_df$Message)])
 
 ans_df$hover_text <- paste0(
   "<b>Tree: ", ans_df$name, "</b><br>",
   "Volume: ", ans_df$volume, " m\u00B3<br>",
   "Height: ", ans_df$height, " m<br>",
   "DBH: ", ans_df$dbh_cm, " cm<br>",
-  "Message: ", ans_df$Message_lbl
+  "Status: ", as.character(ans_df$Message)
 )
 
 sd_local <- SharedData$new(ans_df, key = ~name, group = "trees")
@@ -645,7 +727,7 @@ p <- plot_ly(
             )
           ),
           list(
-            label = "Message",
+            label = "Status",
             method = "update",
             args = list(
               list(
