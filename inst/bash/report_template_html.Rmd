@@ -18,7 +18,7 @@ output:
     self_contained: true
 params:
   input: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.qsf"
-  epsg: 32619
+  target_epsg: 32619
 ---
 
 ```{r setup, include=FALSE}
@@ -111,7 +111,7 @@ report_theme <- theme_minimal(base_size = 12) +
 
 ```{r read-qsm}
 input <- params$input
-epsg <- params$epsg
+target_epsg <- params$target_epsg
 if (!file.exists(input)) stop("Invalid directory")
 
 qsf <- qsf_read(input)
@@ -119,12 +119,12 @@ ans <- qsf_treemap(qsf)
 
 has_crs <- !is.na(st_crs(ans))
 
-if (epsg > 0) 
+if (target_epsg > 0) 
 {
   if (!has_crs)
-    st_crs(ans) <- epsg
+    st_crs(ans) <- target_epsg
   else
-    ans <- st_transform(ans, epsg)
+    ans <- st_transform(ans, target_epsg)
 }
 
 has_crs <- !is.na(st_crs(ans))

@@ -1,18 +1,18 @@
 # @file cmd_qsm.R
 # Project: Arbor
-# 
+#
 # Copyright (C) 2026 Jean-Romain Roussel (r-lidar) <info @ r-lidar.com>
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -31,9 +31,9 @@ Options:
   -o, --output <dir> Output directory [default: input directory]
   -overwrite         Overwrite existing files
   -allometry         Choose an allometry name
-  -epsg 1234         EPSG code to georeference the dataset if missing
+  -set_epsg 1234     EPSG code to georeference the dataset if missing
   -qsm               Export QSM [default: on if nothing provided]
-  -csv               Export CSV 
+  -csv               Export CSV
   -obj               Export OBJ
   -ply               Export PLY
 
@@ -69,19 +69,19 @@ Example:
   out_flag <- get_arg(args, "-o")
   if (is.null(out_flag)) out_flag <- get_arg(args, "--output")
   if (!is.null(out_flag)) odir <- normalizePath(out_flag, mustWork = FALSE)
-  
-  epsg <- as.numeric(get_arg(args, "-epsg", 0))
+
+  epsg <- as.numeric(get_arg(args, "-set_epsg", 0))
   crs = sf::NA_crs_
-  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg)) 
-  
+  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg))
+
   # Parameters
   allometry = get_arg(args, "-allometry", NULL)
   params = arbor_parameters_default
   if (!is.null(allometry)) params$qsm$allometry_name = allometry
-  
+
   # Formats
   formats <- character()
-  if (has_flag(args, "-qsm")) formats <- c(formats, "qsm")
+  #if (has_flag(args, "-qsm")) formats <- c(formats, "qsm")
   if (has_flag(args, "-csv")) formats <- c(formats, "csv")
   if (has_flag(args, "-obj")) formats <- c(formats, "obj")
   if (has_flag(args, "-ply")) formats <- c(formats, "ply")
@@ -106,8 +106,17 @@ Settings
   res <- qsf(las, params = params)
 
   if (!is.na(crs))
-    st_crs(res) <- crs 
+    st_crs(res) <- crs
 
   cat("Writing QSMs\n")
-  qsf_write(res, odir, formats)
+  qsf_file = paste0(tools::file_path_sans_ext(ifiles), ".qsf")
+  qsf_write(res, qsf_file)
+
+  if (length(formats)> 0)
+    qsf_write(res, odir, formats)
+
+  invisible(list(
+    dir      = odir,
+    qsf_file = qsf_file
+  ))
 }
