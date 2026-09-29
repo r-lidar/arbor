@@ -29,6 +29,14 @@
 #' @importFrom sf st_crs<-
 #' @name st_crs
 #' @md
+#' @examples
+#' f <- system.file("extdata", "qsm/tree_12.qsm", package="arbor")
+#' qsm <- qsm_read(f)
+#' sf::st_crs(qsm) <- 32619
+#'
+#' f <- system.file("extdata", "oak-plantation.qsf", package="arbor")
+#' oak <- qsf_read(f)
+#' sf::st_crs(oak) <- 32619
 NULL
 
 #' @export
@@ -70,4 +78,99 @@ clean_crs <- function(crs)
   crs <- gsub("\\s+", " ", crs)
   crs <- gsub("\\s*([\\[\\],])\\s*", "\\1", crs)
   trimws(crs)
+}
+
+
+#' Transform the coordinates of a QSM or a QSF to a new CRS
+#'
+#' Method for [sf::st_transform()] applied to `qsm` and `qsf` objects. The start
+#' and end points of every cylinder are transformed to the target coordinate
+#' reference system. The CRS of the returned object is updated accordingly.
+#'
+#' @param x An object of class `qsm` or `qsf`.
+#' @param crs Target coordinate reference system: an object of class `crs`, or
+#'   anything accepted by [sf::st_crs()]
+#' @param ... Additional arguments passed to [sf::st_transform()].
+#'
+#' @return An object of the same class as `x` with the columns transformed, and with
+#'   its CRS set to `crs`.
+#'
+#' @examples
+#' f <- system.file("extdata", "qsm/tree_12.qsm", package="arbor")
+#' qsm <- qsm_read(f)
+#' sf::st_crs(qsm) <- 32619
+#' qsm2 <- sf::st_transform(qsm, 2949)
+#' sf::st_crs(qsm2)
+#' qsm2
+#'
+#' f <- system.file("extdata", "oak-plantation.qsf", package="arbor")
+#' oak <- qsf_read(f)
+#' sf::st_crs(oak) <- 32619
+#' oak2 <- sf::st_transform(oak, 2949)
+#' sf::st_crs(oak2)
+#' @seealso [sf::st_transform()], [sf::st_crs()]
+#' @name st_transform
+#' @importFrom sf st_transform
+NULL
+
+#' @rdname st_transform
+#' @method st_transform qsm
+#' @export
+st_transform.qsm <- function(x, crs, ...)
+{
+  src_crs <- sf::st_crs(x)
+
+  if (is.na(src_crs))
+    stop("Cannot transform a qsm with a missing CRS. Set it first with `sf::st_crs(x) <- `.", call. = FALSE)
+
+  if (missing(crs))
+    stop("Argument 'crs' is missing.", call. = FALSE)
+
+  dst_crs <- sf::st_crs(crs)
+
+  if (is.na(dst_crs))
+    stop("The target 'crs' is missing or invalid.", call. = FALSE)
+
+  if (isTRUE(sf::st_is_longlat(dst_crs)))
+    warning("Transforming to a geographic CRS: radius and length attributes are not converted and remain in the original units.", call. = FALSE)
+
+  n <- nrow(x)
+
+  if (n > 0L)
+  {
+    # Start and end points are stacked so that a single transformation is done
+    pts <- data.frame(
+      X = c(x[["startX"]], x[["endX"]]),
+      Y = c(x[["startY"]], x[["endY"]]),
+      Z = c(x[["startZ"]], x[["endZ"]]))
+
+    pts <- sf::st_as_sf(pts, coords = c("X", "Y", "Z"), crs = src_crs)
+    pts <- sf::st_transform(pts, dst_crs, ...)
+    xyz <- sf::st_coordinates(pts)
+    xyz <- round(xyz, 3)
+
+    i <- seq_len(n)
+    x[["startX"]] <- xyz[i, "X"]
+    x[["startY"]] <- xyz[i, "Y"]
+    x[["startZ"]] <- xyz[i, "Z"]
+    x[["endX"]]   <- xyz[n + i, "X"]
+    x[["endY"]]   <- xyz[n + i, "Y"]
+    x[["endZ"]]   <- xyz[n + i, "Z"]
+  }
+
+  sf::st_crs(x) <- dst_crs
+  return(x)
+}
+
+#' @rdname st_transform
+#' @method st_transform qsf
+#' @export
+st_transform.qsf <- function(x, crs, ...)
+{
+  if (missing(crs))
+    stop("Argument 'crs' is missing.", call. = FALSE)
+
+  # x[] <- keeps the attributes and the class of the list
+  x[] <- lapply(x, st_transform.qsm, crs = crs, ...)
+  return(x)
 }

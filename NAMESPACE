@@ -26,6 +26,8 @@ S3method(qsm_volume,qsf)
 S3method(qsm_volume,qsm)
 S3method(st_crs,qsf)
 S3method(st_crs,qsm)
+S3method(st_transform,qsf)
+S3method(st_transform,qsm)
 export(ARBORBUFFER)
 export(ARBORLOW)
 export(ARBORTREE)
@@ -92,6 +94,7 @@ importFrom(Rcpp,sourceCpp)
 importFrom(data.table,":=")
 importFrom(sf,
   "st_crs<-",
-  st_crs
+  st_crs,
+  st_transform
 )
 useDynLib(arbor, .registration = TRUE)

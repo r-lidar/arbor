@@ -1,4 +1,16 @@
-# v1.1.0
+# v1.2.0
+
+
+### NEW FEATURES
+
+- New functions `st_transform()` for qsm and qsf objects
+
+### DOCUMENTATION
+ 
+ - Enhance documentation of `qsm_read()` with examples
+ - Enhance documentation of `st_crs()` with examples
+
+### v1.1.0
 
 Fix: CRS assignment with `st_crs()<-` was not returning objects with qsm and qsf classes
 
