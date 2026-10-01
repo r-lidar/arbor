@@ -23,6 +23,7 @@
 #include "fitting_types.h"
 #include <cstdint>
 #include <vector>
+#include <random>
 
 namespace arbor::utils::fitting {
 
@@ -52,6 +53,17 @@ public:
 
 protected:
   double m_zmean = 0.0;   // mean Z of the input cloud, set at the top of each fit()
+};
+
+class deterministic_uniform_int_distribution
+{
+public:
+    deterministic_uniform_int_distribution(int lo, int hi) : m_lo(lo), m_range(static_cast<uint32_t>(hi - lo + 1)){}
+    int operator()(std::mt19937& rng){ return m_lo + static_cast<int>(rng() % m_range); }
+
+private:
+    int m_lo;
+    uint32_t m_range;
 };
 
 // ---------------------------------------------------------------------------

@@ -222,7 +222,8 @@ CircleModel MultiCircleFitter::fit_circle_ransac(
   const int n = static_cast<int>(indices.size());
   if (n < 3) return best;
 
-  std::uniform_int_distribution<int> dist(0, n - 1);
+  //std::uniform_int_distribution<int> dist(0, n - 1);
+  deterministic_uniform_int_distribution dist(0, n - 1);
   int max_inliers           = 0;
   const int early_exit_thr  = static_cast<int>(m_early_exit_ratio * n);
 
