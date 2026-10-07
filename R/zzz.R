@@ -34,8 +34,8 @@
 .onAttach <- function(libname, pkgname)
 {
   check_update()
-  threads <- data.table::getDTthreads()
-  if (threads == 1) packageStartupMessage("This version of Arbor has no multicore support.")
+  threads = getThreads()
+  if (threads == 1 && interactive()) packageStartupMessage("This version of Arbor has no multicore support.")
 }
 
 # Check if the package has more recent version
