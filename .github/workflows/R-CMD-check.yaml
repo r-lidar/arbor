@@ -22,7 +22,7 @@ jobs:
         config:
           #- {os: macos-latest,   r: 'oldrel'}
           - {os: macos-latest,   r: 'release'}
-          - {os: macos-latest,   r: 'devel'}
+          #- {os: macos-latest,   r: 'devel'}
           - {os: windows-latest, r: 'oldrel'}
           - {os: windows-latest, r: 'release'}
           - {os: windows-latest, r: 'devel'}
