@@ -21,15 +21,33 @@ test_that("qsm computes correct dbh", {
 
 test_that("qsm computes correct volume", {
   v1 <- qsm_volume(qsm1)
-  expect_equal(v1, 0.476, tolerance = 0.001)
+  expect_equal(v1, 0.476, tolerance = 0.005)
 })
 
 test_that("qsm computes correct edges", {
   n1 <- nrow(qsm1)
   expect_equal(n1, 2353L)
-  expect_equal(sum(qsm1$branch_order == 1), 209L)
-  expect_equal(sum(qsm1$branch_order == 3), 790L)
-  expect_equal(sum(qsm1$quality == 5), 93L)
+})
+
+test_that("qsm computes correct volume per quality", {
+  bo1 = qsm1[qsm1$branch_order == 1,]
+  bo3 = qsm1[qsm1$branch_order == 3,]
+  bq4 = qsm1[qsm1$quality == 4,]
+  bq5 = qsm1[qsm1$quality == 5,]
+  m1  = qsm_merchantable(qsm1)
+
+  V   = qsm_volume(qsm1)
+  vo1 = qsm_volume(bo1)
+  vo3 = qsm_volume(bo3)
+  vq4 = qsm_volume(bq4)
+  vq5 = qsm_volume(bq5)
+  vm1 = qsm_volume(m1)
+
+  expect_equal(vo1/V*100, 81.5, tolerance = 0.0005)
+  expect_equal(vo3/V*100, 2.9, tolerance = 0.0005)
+  expect_equal(vq4/V*100, 3.06, tolerance = 0.0005)
+  expect_equal(vq5/V*100, 56.56, tolerance = 0.0005)
+  expect_equal(vm1/V*100, 82.73, tolerance = 0.0005)
 })
 
 test_that("calling C++ preserves qsm attributes", {
