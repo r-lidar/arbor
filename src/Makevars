@@ -18,7 +18,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./R
 
 # OpenMP support
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -ffp-contract=off
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS)
 
 # Explicit list of object files (POSIX compliant)
