@@ -1,0 +1,318 @@
+/* ==========================================================================
+   custom.css — Forest Inventory Report (interactive HTML)
+   Brand: r-lidar inc.  Primary green pulled from preamble.tex (#1C6B3C)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+  --brand-green:       #1C6B3C;
+  --brand-green-dark:  #123F23;
+  --brand-green-tint:  #E9F1EC;
+  --accent-amber:      #C77B3B;  /* click/selection highlight — bark tone */
+  --ink:               #2B2B28;
+  --mid:               #6B6963;
+  --line:              #DAD7CC;
+  --paper:             #FBFAF6;
+  --paper-alt:         #F3F1E9;
+
+  --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.main-container { max-width: 1180px; }
+
+p { max-width: 74ch; }
+
+a { color: var(--brand-green-dark); }
+a:hover { color: var(--accent-amber); }
+
+/* A slim fixed band on the left edge — a quiet nod to the printed report's
+   3cm brand sidebar, without eating into the page width on screen. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0;
+  width: 8px; height: 100vh;
+  background: var(--brand-green);
+  z-index: 1000;
+}
+
+/* --------------------------------------------------------------------------
+   Title block (pandoc's #header) — the on-screen equivalent of the
+   fancyhdr band + title page in the PDF version.
+   -------------------------------------------------------------------------- */
+#header {
+  background: linear-gradient(155deg, var(--brand-green) 0%, var(--brand-green-dark) 100%);
+  color: #fff;
+  padding: 2.6rem 3rem;
+  margin: 1rem 0 2.5rem 0;
+  border-radius: 3px;
+}
+
+#header .title {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 2.1rem;
+  color: #fff;
+  margin-bottom: 0.2rem;
+}
+
+#header .subtitle {
+  font-weight: 400;
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.85);
+  margin-top: 0;
+}
+
+#header .author,
+#header .date {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.75);
+  margin-top: 0.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   Headings
+   -------------------------------------------------------------------------- */
+h1 {
+  color: var(--brand-green);
+  font-weight: 700;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.45rem;
+  margin-top: 3.2rem;
+}
+
+h2 {
+  color: var(--brand-green-dark);
+  font-weight: 600;
+  margin-top: 2.2rem;
+}
+
+h3 { color: var(--ink); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   Floating table of contents
+   -------------------------------------------------------------------------- */
+#TOC {
+  background: var(--paper-alt);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1rem 0.5rem;
+  font-size: 0.88rem;
+}
+
+#TOC .header { font-family: var(--sans); }
+
+#TOC a { color: var(--mid); }
+#TOC a:hover { color: var(--brand-green); }
+
+#TOC li.active > a,
+#TOC .tocify-item.active > a {
+  color: var(--brand-green);
+  font-weight: 600;
+  border-left: 3px solid var(--brand-green);
+  padding-left: calc(1em - 3px) !important;
+  background: rgba(28,107,60,0.06);
+}
+
+/* --------------------------------------------------------------------------
+   Tabsets — used to switch between graphs within a section
+   -------------------------------------------------------------------------- */
+.nav-tabs {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.25rem;
+}
+
+.nav-tabs > li > a {
+  color: var(--mid);
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  border-radius: 0;
+  padding: 0.55rem 1.1rem;
+}
+
+.nav-tabs > li > a:hover {
+  color: var(--brand-green);
+  background: var(--brand-green-tint);
+  border-bottom: 2px solid var(--line);
+}
+
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover,
+.nav-tabs > li.active > a:focus {
+  color: var(--brand-green);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--brand-green);
+}
+
+.tab-content { padding-top: 1.6rem; }
+
+/* --------------------------------------------------------------------------
+   Stat cards (Global Statistics section)
+   -------------------------------------------------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  margin: 1.6rem 0 2.6rem 0;
+}
+
+.stat-card {
+  background: var(--paper);
+  padding: 1.15rem 1.25rem;
+  border-top: 3px solid var(--brand-green);
+}
+
+.stat-card .stat-label {
+  font-size: 0.78rem;
+  color: var(--mid);
+  margin-bottom: 0.4rem;
+}
+
+.stat-card .stat-value {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 1.55rem;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.stat-card .stat-desc {
+  font-size: 0.76rem;
+  color: var(--mid);
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Prose callouts (e.g. the "50% of volume" sentence)
+   -------------------------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent-amber);
+  background: var(--paper-alt);
+  padding: 0.9rem 1.2rem;
+  font-size: 0.96rem;
+  margin: 1.2rem 0 1.8rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   DT tables
+   -------------------------------------------------------------------------- */
+.dataTables_wrapper { font-size: 0.88rem; margin-top: 0.5rem; }
+
+table.dataTable thead th {
+  color: #fff;
+  background: var(--brand-green);
+  border-bottom: none !important;
+  font-weight: 600;
+}
+
+table.dataTable.stripe tbody tr.odd,
+table.dataTable.display tbody tr.odd { background: var(--paper-alt); }
+
+table.dataTable tbody tr.selected,
+table.dataTable tbody tr.active {
+  background: rgba(199,123,59,0.18) !important;
+}
+
+.dataTables_filter input, .dataTables_length select {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   crosstalk filter widgets
+   -------------------------------------------------------------------------- */
+.crosstalk-input {
+  font-size: 0.85rem;
+  margin: 0.5rem 0 1.4rem 0;
+  color: var(--mid);
+}
+
+.crosstalk-input .control-label { color: var(--ink); font-weight: 500; }
+
+.js-irs-0 .irs-bar, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-single {
+  background: var(--brand-green) !important;
+  border-color: var(--brand-green) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Leaflet
+   -------------------------------------------------------------------------- */
+.leaflet-container {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: var(--sans);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+.leaflet-popup-content { font-size: 0.85rem; line-height: 1.5; }
+.leaflet-popup-content strong { color: var(--brand-green-dark); }
+
+.leaflet-bar a { color: var(--ink); }
+.leaflet-bar a:hover { color: var(--brand-green); }
+
+/* --------------------------------------------------------------------------
+   Plotly — align tooltip typography with the report
+   -------------------------------------------------------------------------- */
+.plotly .hoverlayer .hovertext text { font-family: var(--sans) !important; }
+.js-plotly-plot .plotly { border-radius: 3px; }
+
+/* --------------------------------------------------------------------------
+   Code folding buttons (kept quiet — this is a report, not a code notebook)
+   -------------------------------------------------------------------------- */
+.code-folding-btn { border-color: var(--line); color: var(--mid); }
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--mid);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive / accessibility
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  body::before { width: 5px; }
+  #header { padding: 1.8rem 1.6rem; }
+  #header .title { font-size: 1.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
+}
+
+a:focus-visible, .nav-tabs > li > a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
+}

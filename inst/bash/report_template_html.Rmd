@@ -1,0 +1,1025 @@
+---
+title: "Forest Inventory Report"
+subtitle: "Automatic report"
+author: "By r-lidar inc."
+date: "`r {Sys.setlocale('LC_TIME', 'C'); format(Sys.time(), '%B %d, %Y')}`"
+output:
+  html_document:
+    theme: default           # minimal base theme; custom.css overrides its look
+    css: custom.css
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 2
+    number_sections: false
+    code_folding: hide
+    fig_caption: true
+    self_contained: true
+params:
+  input: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.qsf"
+  output: "/home/jr/R packages/r-lidar-lab/arbor/inst/extdata/oak-plantation.html"
+  target_epsg: 32619
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = 'center'
+)
+
+library(ggplot2)
+library(arbor)
+library(data.table)
+library(sf)
+library(scales)
+library(leaflet)
+library(plotly)
+library(DT)
+library(crosstalk)
+library(htmltools)
+library(jsonlite)
+
+# --- ACCURATE DATUM TRANSFORMS, WITH A SAFETY NET -----------------------
+# NAD27 (the datum under EPSG:32098) needs an NTv2 grid file for an accurate
+# shift to WGS84; that grid isn't bundled with sf, only fetchable from the
+# PROJ CDN. If this machine can't actually reach that CDN, telling PROJ to
+# prefer the grid-based pipeline (sf_proj_network(TRUE)) backfires: PROJ
+# still picks that pipeline, the grid never downloads, and every point
+# comes back degenerate instead of falling back gracefully - which is what
+# pushes everything to the pole in a Lambert Conformal Conic projection.
+# So: try the accurate transform, but verify the result actually lands in
+# Quebec before trusting it; if not, disable network mode and redo it with
+# whatever grids/approximation are available locally instead.
+qc_bbox_wgs84 <- c(xmin = -80, xmax = -55, ymin = 44, ymax = 63)
+
+safe_transform_to_wgs84 <- function(x) {
+  transform_and_check <- function(x) {
+    xy <- sf::st_coordinates(sf::st_transform(x, 4326))
+    ok <- xy[, 1] >= qc_bbox_wgs84["xmin"] & xy[, 1] <= qc_bbox_wgs84["xmax"] &
+          xy[, 2] >= qc_bbox_wgs84["ymin"] & xy[, 2] <= qc_bbox_wgs84["ymax"]
+    list(xy = xy, ok = all(ok))
+  }
+
+  tryCatch(sf::sf_proj_network(TRUE), error = function(e) invisible(NULL))
+  res <- transform_and_check(x)
+
+  if (!res$ok) {
+    warning(
+      "Network datum grid produced points outside Quebec - probably ",
+      "unreachable from this machine. Falling back to the local ",
+      "(less accurate, ~10-100 m) NAD27->WGS84 approximation.",
+      call. = FALSE
+    )
+    sf::sf_proj_network(FALSE)
+    res <- transform_and_check(x)
+    if (!res$ok)
+      warning(
+        "Points are still outside Quebec even with the local fallback. ",
+        "This points to the source X/Y values themselves not being real ",
+        "EPSG:32098 (NAD27 / Quebec Lambert) coordinates - check the raw ",
+        "X_root/Y_root against the CRS's valid range (easting roughly ",
+        "-900,000 to 900,000 m, northing roughly 110,000 to 2,112,000 m).",
+        call. = FALSE
+      )
+  }
+
+  res$xy
+}
+```
+
+```{r brand-palette}
+# Keep this in sync with the :root variables in custom.css
+brand_green   <- "#1C6B3C"
+brand_green_d <- "#123F23"
+accent_amber  <- "#C77B3B"   # used for click/selection highlight
+ink           <- "#2B2B28"
+mid_gray      <- "#6B6963"
+
+report_theme <- theme_minimal(base_size = 12) +
+  theme(
+    plot.title    = element_text(size = 13, face = "bold", margin = margin(b = 6)),
+    plot.subtitle = element_text(size = 10, color = mid_gray, face = "italic"),
+    axis.title    = element_text(size = 11, face = "bold"),
+    axis.text     = element_text(size = 10, color = mid_gray),
+    panel.grid.major = element_line(color = "grey90", linewidth = 0.4),
+    panel.grid.minor = element_blank(),
+    legend.position  = "none",
+    plot.background  = element_rect(fill = "white", color = NA)
+  )
+```
+
+```{r read-qsm}
+input <- params$input
+output_file <- params$output
+target_epsg <- params$target_epsg
+
+if (file.info(input)$isdir)
+{
+  f <- list.files(input, pattern = "qsf", recursive = T, full.names = T)
+  if(length(f) == 0) stop("No .qsf file detected in this directory")
+  ans <- lapply(f, arbor::qsf_read)
+  qsf <- do.call(c, ans)
+  qsf <- arbor:::as_qsf(qsf)
+} else if (file.exists(input)) {
+  qsf <- qsf_read(input)
+} else {
+   stop("Invalid file or directory")
+}
+
+ans <- qsf_treemap(qsf)
+
+has_crs <- !is.na(st_crs(ans))
+
+if (target_epsg > 0) 
+{
+  if (!has_crs)
+    st_crs(ans) <- target_epsg
+  else
+    ans <- st_transform(ans, target_epsg)
+}
+
+has_crs <- !is.na(st_crs(ans))
+
+ogpkg = paste0(tools::file_path_sans_ext(output_file), ".gpkg")
+st_write(ans, ogpkg, quiet = TRUE, append = FALSE)
+
+ans <- dplyr::rename(ans, name = Name, volume = V, height = H, dbh = DBH)
+  
+Vtot  <- sum(ans$volume)
+Ntree <- nrow(ans)
+area  <- st_area(st_as_sfc(st_bbox(ans)))
+area  <- round(area / 50) * 50
+ba    <- sum((ans$dbh / 2)^2 * pi)
+```
+
+```{r shared-data}
+# --- ONE shared dataset feeds every interactive widget below ---------------
+# Clicking a point in any plot, a marker on the tree map, or a row in the
+# table highlights the *same tree everywhere else, because they all point
+# back to this single crosstalk group ("trees"). The volume slider, the DBH
+# slider, and the status filter at the top of the report (see "Filters"
+# below) act on this same group too, so they subset every linked plot, map
+# and table in sync -- including the Global Statistics cards, the Carbon
+# Estimate section, and the QSM Quality chart/table, via small JS listeners
+# that all register against a shared `window.__treeApp` helper (see the
+# hidden "js-bootstrap" chunk right after this one).
+
+ans_df <- st_drop_geometry(ans)
+ans_df$dbh_cm <- round(ans_df$dbh * 100, 1)
+
+if (has_crs) {
+  coords <- safe_transform_to_wgs84(ans)
+  ans_df$lon <- coords[, 1]
+  ans_df$lat <- coords[, 2]
+}
+
+# Normalize the QSM "Message" flag once: missing values become "OK", and we
+# fix a stable factor level order + color palette (OK is always brand green)
+# that every chart/table/checkbox below reuses. The column stays named
+# "Message" in code -- only the labels shown to the reader say "Status".
+ans_df$Message <- ifelse(is.na(ans_df$Message), "OK", as.character(ans_df$Message))
+status_levels  <- c("OK", sort(setdiff(unique(ans_df$Message), "OK")))
+status_colors  <- setNames(
+  c(brand_green, scales::hue_pal()(max(length(status_levels) - 1, 0))),
+  status_levels
+)
+ans_df$Message <- factor(ans_df$Message, levels = status_levels)
+
+# Volume-weighted breakdown by status, computed once here (on the full,
+# unfiltered dataset) so it can drive both the QSM Quality section and the
+# data-quality warning banner at the very top of the report.
+qual_summary <- aggregate(volume ~ Message, data = ans_df, FUN = sum)
+qual_summary$n <- as.integer(table(ans_df$Message)[as.character(qual_summary$Message)])
+qual_summary$pct <- round(qual_summary$volume / sum(qual_summary$volume) * 100, 1)
+qual_summary <- qual_summary[order(-qual_summary$volume), ]
+qual_colors <- status_colors[as.character(qual_summary$Message)]
+
+# If a large share of the stand's volume comes from trees that couldn't be
+# measured reliably, flag it prominently at the top of the report rather
+# than leaving it buried in the QSM Quality section further down.
+novalid_label        <- "No valid measure"
+novalid_idx          <- which(as.character(qual_summary$Message) == novalid_label)
+novalid_pct          <- if (length(novalid_idx) == 1) qual_summary$pct[novalid_idx] else 0
+show_novalid_warning <- isTRUE(novalid_pct > 20)
+
+sd_trees <- SharedData$new(ans_df, key = ~name, group = "trees")
+```
+
+```{r quality-warning}
+tagList(
+  tags$style(HTML(paste0(
+    ".callout-warning {",
+    "border-left: 4px solid #C0392B;",
+    "background: #FBEAEA;",
+    "color: #7A1F1F;",
+    "padding: 12px 16px;",
+    "border-radius: 4px;",
+    "margin-bottom: 18px;",
+    "}"
+  ))),
+  if (show_novalid_warning) {
+    div(class = "callout callout-warning",
+        strong("\u26A0 Data quality warning \u2014 "),
+        sprintf(
+          paste0(
+            "%s%% of total stand volume comes from trees flagged \u201c%s\u201d ",
+            "by the QSM reconstruction (warning threshold: 20%%). Volume, ",
+            "carbon, and allometric results below should be interpreted with ",
+            "caution until these trees are re-measured, corrected, or excluded."
+          ),
+          format(novalid_pct, nsmall = 1), novalid_label
+        )
+    )
+  }
+)
+```
+
+```{r js-bootstrap}
+# --- SHARED REACTIVITY LAYER ------------------------------------------------
+# Everything that needs to react to the volume/DBH/status filters (Global
+# Statistics cards, Carbon Estimate, QSM Quality) shares one copy of the
+# tree-level data and one crosstalk listener, exposed as `window.__treeApp`.
+# Each section below simply calls `window.__treeApp.register(fn)` with its
+# own render function; `fn` is called once immediately (with whatever subset
+# is currently in view) and again every time the filters change.
+tagList(
+  tags$script(
+    id = "tree-report-data", type = "application/json",
+    HTML(jsonlite::toJSON(ans_df[, c("name", "volume", "height", "dbh", "dbh_cm", "Message")], digits = 8))
+  ),
+  tags$script(
+    id = "tree-report-colors", type = "application/json",
+    HTML(jsonlite::toJSON(as.list(status_colors)))
+  ),
+  tags$script(HTML(paste0('
+    (function() {
+      window.__treeApp = window.__treeApp || {};
+      var app = window.__treeApp;
+      app.allTrees = JSON.parse(document.getElementById("tree-report-data").textContent);
+      app.statusColors = JSON.parse(document.getElementById("tree-report-colors").textContent);
+      app.totalArea = ', as.numeric(area), ';
+      app.totalVolume = ', Vtot, ';
+      app.renderers = [];
+      app.currentSubset = app.allTrees;
+
+      app.register = function(fn) {
+        app.renderers.push(fn);
+        fn(app.currentSubset);
+      };
+
+      app.runAll = function(keys) {
+        var subset;
+        if (keys === null || typeof keys === "undefined") {
+          subset = app.allTrees;
+        } else {
+          var keySet = {};
+          keys.forEach(function(k) { keySet[k] = true; });
+          subset = app.allTrees.filter(function(t) { return keySet[t.name]; });
+        }
+        app.currentSubset = subset;
+        app.renderers.forEach(function(fn) { fn(subset); });
+      };
+
+      (function bindWhenReady() {
+        if (window.crosstalk && crosstalk.group) {
+          var filterVar = crosstalk.group("trees").var("filter");
+          filterVar.on("change", function(e) { app.runAll(e.value); });
+          app.runAll(filterVar.get());
+        } else {
+          setTimeout(bindWhenReady, 50);
+        }
+      })();
+    })();
+  ')))
+)
+```
+
+# Location
+
+Interactive map of the plot: scroll to zoom, drag to pan.
+
+```{r world-map, fig.height=5}
+if (has_crs) {
+
+  hull <- st_convex_hull(st_union(st_zm(ans)))
+  hull <- st_as_sf(hull)
+  hull <- st_transform(hull, 4326)
+
+  # 1. Compute the centroid point for the marker
+  centroid <- st_centroid(hull)
+  coords <- st_coordinates(centroid)
+  lng <- coords[1]
+  lat <- coords[2]
+
+  leaflet(width = "100%", height = 480) %>%
+    # 2. Set custom world view zoom (zoom level 2 gives a macro view)
+    setView(lng = lng, lat = lat, zoom = 4) %>% 
+    addProviderTiles(providers$Esri.WorldTopoMap, group = "Topo (Esri)") %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "Satellite (Esri)") %>%
+    addPolygons(
+      data = hull,
+      weight = 2,
+      color = "#ffffff",
+      fillOpacity = 0.6,
+      highlightOptions = highlightOptions(
+        weight = 3,
+        color = "#00ffff",
+        fillOpacity = 0.8,
+        bringToFront = TRUE
+      )
+    ) %>%
+    # 3. Add a location marker at the polygon center
+    addMarkers(
+      data = centroid,
+      popup = "Location"
+    ) %>%
+    addLayersControl(
+      baseGroups = c("Topo (Esri)", "Satellite (Esri)"),
+      options = layersControlOptions(collapsed = TRUE)
+    ) %>%
+    addScaleBar(position = "bottomleft")
+
+} else {
+
+  div(class = "callout",
+      strong("Cannot display data location \u2014 "),
+      "the point cloud/QSM data has no coordinate reference system (CRS) attached."
+  )
+}
+```
+
+# Filters
+
+Use the controls below to focus the report on a subset of trees. All three
+controls act on the **same set of trees** and immediately update every
+chart, map, table, and summary card below -- including the Carbon Estimate
+and QSM Quality sections.
+
+```{r filters-slider}
+vol_range <- range(ans_df$volume, na.rm = TRUE)
+vol_step  <- signif(diff(vol_range) / 500, 2)
+if (!is.finite(vol_step) || vol_step <= 0) vol_step <- 0.001
+
+filter_slider(
+  id = "volume_filter",
+  label = "Filter by tree volume (m\u00B3)",
+  sharedData = sd_trees,
+  column = ~volume,
+  step = vol_step,
+  width = "100%"
+)
+```
+
+```{r filters-dbh}
+dbh_range <- range(ans_df$dbh_cm, na.rm = TRUE)
+dbh_step  <- signif(diff(dbh_range) / 500, 2)
+if (!is.finite(dbh_step) || dbh_step <= 0) dbh_step <- 0.1
+
+filter_slider(
+  id = "dbh_filter",
+  label = "Filter by DBH (cm)",
+  sharedData = sd_trees,
+  column = ~dbh_cm,
+  step = dbh_step,
+  width = "100%"
+)
+```
+
+```{r filters-status}
+tagList(
+  tags$style(HTML(paste0(
+    '.crosstalk-input-checkboxgroup .checkbox, ',
+    '.crosstalk-input-checkboxgroup .checkbox-inline { display: inline-flex; margin: 4px 8px 4px 0; } ',
+    '.crosstalk-input-checkboxgroup label { display: inline-flex; align-items: center; gap: 7px; ',
+    'padding: 6px 14px; border-radius: 999px; border: 1.5px solid #ddd; background: #f7f7f5; ',
+    'cursor: pointer; font-size: 13px; font-weight: 500; color: #2B2B28; ',
+    'transition: background .15s ease, border-color .15s ease, color .15s ease; user-select: none; } ',
+    '.crosstalk-input-checkboxgroup input[type="checkbox"] { position: absolute; opacity: 0; ',
+    'width: 1px; height: 1px; pointer-events: none; } ',
+    '.crosstalk-input-checkboxgroup label::before { content: ""; width: 9px; height: 9px; ',
+    'border-radius: 50%; background: var(--pill-color, #999); flex: none; } ',
+    '.crosstalk-input-checkboxgroup label:has(input:checked) { background: var(--pill-color, #1C6B3C); ',
+    'border-color: var(--pill-color, #1C6B3C); color: #fff; } ',
+    '.crosstalk-input-checkboxgroup label:has(input:checked)::before { background: #fff; }'
+  ))),
+  filter_checkbox(
+    id = "status_filter",
+    label = "Filter by status",
+    sharedData = sd_trees,
+    group = ~Message,
+    inline = TRUE
+  ),
+  tags$script(HTML(paste0('
+    (function() {
+      var colors = ', jsonlite::toJSON(as.list(status_colors)), ';
+      function colorize() {
+        var container = document.getElementById("status_filter");
+        if (!container) { return; }
+        var labels = container.querySelectorAll("label");
+        labels.forEach(function(lab) {
+          var valueSpan = lab.querySelector(".crosstalk-input-checkboxgroup-value");
+          var text = valueSpan ? valueSpan.textContent.trim()
+                                : lab.textContent.replace(/\\(\\d+\\)\\s*$/, "").trim();
+          if (colors[text]) {
+            lab.style.setProperty("--pill-color", colors[text]);
+          }
+        });
+      }
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        setTimeout(colorize, 200);
+      } else {
+        document.addEventListener("DOMContentLoaded", function() { setTimeout(colorize, 200); });
+      }
+    })();
+  ')))
+)
+```
+
+# Global Statistics
+
+This report summarizes the QSM processing results. The dataset consists of
+`r Ntree` trees with a cumulative biological volume of `r round(Vtot, 2)` m^3^.
+
+```{r stat-cards}
+stat <- function(label, value, desc, id = NULL) {
+  div(class = "stat-card",
+      div(class = "stat-label", label),
+      div(class = "stat-value", if (is.null(id)) value else tags$span(id = id, value)),
+      div(class = "stat-desc", desc)
+  )
+}
+
+tagList(
+  div(class = "stat-grid",
+    stat("Trees", Ntree, "Count of individual trees", id = "stat-trees"),
+    stat("Area", paste(round(area, 1), "m\u00B2"),
+         "Area of the plot (fixed \u2014 the surveyed footprint doesn't shrink when you filter trees)"),
+    stat("Density", paste(round(Ntree / area * 10000, 2), "/ ha"), "Trees per hectare", id = "stat-density"),
+    stat("Basal area", paste(round(ba, 2), "m\u00B2"), "Sum of cross-sectional area at breast height", id = "stat-basal-area"),
+    stat("Basal area / ha", paste(round(ba / area * 10000, 2), "m\u00B2/ha"), "Basal area per hectare", id = "stat-basal-area-ha"),
+    stat("Total volume", paste(round(Vtot, 2), "m\u00B3"), "Sum of cylindrical volume (stem + branches)", id = "stat-total-volume"),
+    stat("Avg. height", paste(round(mean(ans_df$height, na.rm = TRUE), 2), "m"), "Mean vertical height of the stand", id = "stat-avg-height"),
+    stat("Avg. DBH", paste(round(mean(ans_df$dbh_cm, na.rm = TRUE), 1), "cm"), "Mean diameter at breast height (1.3 m)", id = "stat-avg-dbh")
+  ),
+  tags$script(HTML('
+    (function() {
+      function computeStats(subset) {
+        var n = subset.length, vol = 0, ba = 0, height = 0, dbhCm = 0;
+        subset.forEach(function(t) {
+          vol += t.volume;
+          ba  += Math.PI * Math.pow(t.dbh / 2, 2);
+          height += t.height;
+          dbhCm += t.dbh * 100;
+        });
+        return {
+          n: n, volume: vol, ba: ba,
+          avgHeight: n > 0 ? height / n : 0,
+          avgDbh: n > 0 ? dbhCm / n : 0
+        };
+      }
+
+      function render(subset) {
+        var app = window.__treeApp;
+        var s = computeStats(subset);
+        document.getElementById("stat-trees").textContent = s.n;
+        document.getElementById("stat-density").textContent =
+          (app.totalArea > 0 ? (s.n / app.totalArea * 10000) : 0).toFixed(2) + " / ha";
+        document.getElementById("stat-basal-area").textContent = s.ba.toFixed(2) + " m\u00B2";
+        document.getElementById("stat-basal-area-ha").textContent =
+          (app.totalArea > 0 ? (s.ba / app.totalArea * 10000) : 0).toFixed(2) + " m\u00B2/ha";
+        document.getElementById("stat-total-volume").textContent = s.volume.toFixed(2) + " m\u00B3";
+        document.getElementById("stat-avg-height").textContent = s.avgHeight.toFixed(2) + " m";
+        document.getElementById("stat-avg-dbh").textContent = s.avgDbh.toFixed(1) + " cm";
+      }
+
+      function waitForApp() {
+        if (window.__treeApp && window.__treeApp.register) {
+          window.__treeApp.register(render);
+        } else {
+          setTimeout(waitForApp, 50);
+        }
+      }
+      waitForApp();
+    })();
+  '))
+)
+```
+
+# Carbon Estimate
+
+Total stand volume can be converted into an approximate carbon stock using a
+conversion factor (Mg C per m&sup3; of wood volume), which depends on
+species, wood density, and the carbon fraction of biomass. That factor isn't
+fixed for this dataset yet, use the slider below to explore the estimate
+under different assumptions, and swap in the correct factor for your
+species/region once you have it. The estimate below updates automatically
+to use only the trees currently passing the filters above.
+
+```{r carbon-estimate}
+tagList(
+  div(class = "callout",
+    tags$label(
+      `for` = "carbon-slider",
+      style = "font-weight:600; display:block; margin-bottom:8px;",
+      "Conversion factor: ",
+      tags$span(id = "carbon-factor-display", "0.50"),
+      " Mg C / m\u00B3"
+    ),
+    tags$input(
+      id = "carbon-slider", type = "range",
+      min = "0.05", max = "1", step = "0.01", value = "0.5",
+      style = "width:100%; accent-color:#1C6B3C;"
+    )
+  ),
+  div(class = "stat-grid",
+    stat("Total carbon", tags$span(id = "total-carbon-value", "-"), "Estimated carbon stock for the trees currently in view"),
+    stat("Carbon / ha", tags$span(id = "carbon-per-ha-value", "-"), "Estimated carbon density (uses the fixed plot area)"),
+    stat("Volume in view", tags$span(id = "carbon-ref-volume", paste(round(Vtot, 2), "m\u00B3")), "Sum of QSM volume for trees passing the current filters")
+  ),
+  tags$script(HTML(paste0('
+    (function() {
+      var totalArea = ', as.numeric(area), ';
+      var currentVol = ', Vtot, ';
+      var slider = document.getElementById("carbon-slider");
+      var factorDisplay = document.getElementById("carbon-factor-display");
+      var totalEl = document.getElementById("total-carbon-value");
+      var perHaEl = document.getElementById("carbon-per-ha-value");
+      var volEl = document.getElementById("carbon-ref-volume");
+
+      function update() {
+        var factor = parseFloat(slider.value);
+        factorDisplay.textContent = factor.toFixed(2);
+        var total = currentVol * factor;
+        var perHa = totalArea > 0 ? (total / totalArea) * 10000 : 0;
+        totalEl.textContent = total.toFixed(2) + " Mg";
+        perHaEl.textContent = perHa.toFixed(2) + " Mg/ha";
+        volEl.textContent = currentVol.toFixed(2) + " m\u00B3";
+      }
+
+      update();
+      slider.addEventListener("input", update);
+
+      function waitForApp() {
+        if (window.__treeApp && window.__treeApp.register) {
+          window.__treeApp.register(function(subset) {
+            currentVol = subset.reduce(function(s, t) { return s + t.volume; }, 0);
+            update();
+          });
+        } else {
+          setTimeout(waitForApp, 50);
+        }
+      }
+      waitForApp();
+    })();
+  ')))
+)
+```
+
+# QSM Quality
+
+Each tree carries a status flag from the QSM reconstruction process,
+indicating whether the model completed cleanly or with a warning. The chart
+below shows what share of the **stand's total volume** falls under each
+status — this matters more than a simple tree count, since a warning on one
+large tree can carry more volume risk than several small ones. Trees with no
+status recorded are grouped under "OK". This chart and table update
+automatically to reflect the filters selected above.
+
+```{r qsm-quality}
+p <- plot_ly(
+  qual_summary,
+  labels = ~Message,
+  values = ~volume,
+  type = "pie",
+  hole = 0.55,
+  rotation = 90,
+  textinfo = "label+percent",
+  customdata = ~n,
+  hovertemplate = paste0(
+    "<b>%{label}</b><br>",
+    "%{value:.2f} m\u00B3 (%{percent})<br>",
+    "%{customdata} trees<extra></extra>"
+  ),
+  marker = list(colors = qual_colors, line = list(color = "white", width = 1.5))
+) %>%
+  layout(
+    title = list(text = "Share of total volume by status", font = list(size = 13)),
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = FALSE,
+    annotations = list(list(
+      text = paste0(round(Vtot, 1), " m\u00B3"),
+      x = 0.5, y = 0.5, font = list(size = 14, color = ink), showarrow = FALSE
+    ))
+  )
+
+p$elementId <- "qsm-quality-donut"
+p
+```
+
+```{r qsm-quality-table}
+tagList(
+  tags$style(HTML(paste0(
+    '.qsm-status-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; } ',
+    '.qsm-status-table th, .qsm-status-table td { padding: 6px 10px; border-bottom: 1px solid #eee; text-align: left; } ',
+    '.qsm-status-table thead th { border-bottom: 2px solid #ccc; font-weight: 600; } ',
+    '.qsm-status-table tbody tr:nth-child(even) { background: #fafafa; }'
+  ))),
+  tags$table(class = "qsm-status-table",
+    tags$thead(
+      tags$tr(
+        tags$th("Status"), tags$th("Trees"), tags$th("Volume (m\u00B3)"), tags$th("% of total volume")
+      )
+    ),
+    tags$tbody(
+      id = "qsm-quality-tbody",
+      lapply(seq_len(nrow(qual_summary)), function(i) {
+        tags$tr(
+          tags$td(as.character(qual_summary$Message[i])),
+          tags$td(qual_summary$n[i]),
+          tags$td(sprintf("%.2f", qual_summary$volume[i])),
+          tags$td(sprintf("%.1f", qual_summary$pct[i]))
+        )
+      })
+    )
+  ),
+  tags$script(HTML(paste0('
+    (function() {
+      var statusColors = ', jsonlite::toJSON(as.list(status_colors)), ';
+      var levels = Object.keys(statusColors);
+      var tbody = document.getElementById("qsm-quality-tbody");
+      var donutId = "qsm-quality-donut";
+      var inkColor = "', ink, '";
+
+      function computeSummary(subset) {
+        var byLevel = {};
+        levels.forEach(function(l) { byLevel[l] = { n: 0, volume: 0 }; });
+        subset.forEach(function(t) {
+          var m = t.Message || "OK";
+          if (!byLevel[m]) { byLevel[m] = { n: 0, volume: 0 }; }
+          byLevel[m].n += 1;
+          byLevel[m].volume += t.volume;
+        });
+        var totalVol = subset.reduce(function(s, t) { return s + t.volume; }, 0);
+        var rows = levels
+          .map(function(l) {
+            return {
+              message: l,
+              n: byLevel[l].n,
+              volume: byLevel[l].volume,
+              pct: totalVol > 0 ? (byLevel[l].volume / totalVol * 100) : 0
+            };
+          })
+          .filter(function(r) { return r.n > 0; })
+          .sort(function(a, b) { return b.volume - a.volume; });
+        return { rows: rows, totalVol: totalVol };
+      }
+
+      function renderTable(rows) {
+        while (tbody.firstChild) { tbody.removeChild(tbody.firstChild); }
+        if (rows.length === 0) {
+          var tr = document.createElement("tr");
+          var td = document.createElement("td");
+          td.setAttribute("colspan", "4");
+          td.style.textAlign = "center";
+          td.style.color = "#6B6963";
+          td.textContent = "No trees match the current filters";
+          tr.appendChild(td);
+          tbody.appendChild(tr);
+          return;
+        }
+        rows.forEach(function(r) {
+          var tr = document.createElement("tr");
+          [r.message, r.n, r.volume.toFixed(2), r.pct.toFixed(1)].forEach(function(val) {
+            var td = document.createElement("td");
+            td.textContent = val;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderDonut(rows, totalVol) {
+        var gd = document.getElementById(donutId);
+        if (!gd || !window.Plotly) { return; }
+        Plotly.react(gd, [{
+          type: "pie",
+          labels: rows.map(function(r) { return r.message; }),
+          values: rows.map(function(r) { return r.volume; }),
+          hole: 0.55,
+          rotation: 90,
+          textinfo: "label+percent",
+          customdata: rows.map(function(r) { return r.n; }),
+          hovertemplate: "<b>%{label}</b><br>%{value:.2f} m\u00B3 (%{percent})<br>%{customdata} trees<extra></extra>",
+          marker: {
+            colors: rows.map(function(r) { return statusColors[r.message]; }),
+            line: { color: "white", width: 1.5 }
+          }
+        }], {
+          title: { text: "Share of total volume by status", font: { size: 13 } },
+          font: { family: "IBM Plex Sans, sans-serif" },
+          showlegend: true,
+          annotations: [{
+            text: totalVol.toFixed(1) + " m\u00B3",
+            x: 0.5, y: 0.5,
+            font: { size: 14, color: inkColor },
+            showarrow: false
+          }]
+        });
+      }
+
+      function render(subset) {
+        var res = computeSummary(subset);
+        renderDonut(res.rows, res.totalVol);
+        renderTable(res.rows);
+      }
+
+      function waitForApp() {
+        if (window.__treeApp && window.__treeApp.register) {
+          window.__treeApp.register(render);
+        } else {
+          setTimeout(waitForApp, 50);
+        }
+      }
+      waitForApp();
+    })();
+  ')))
+)
+```
+
+# Allometrics {.tabset}
+
+The tabs below show the relationships between tree metrics derived from the
+Quantitative Structure Models. **Click a point** in any tab (or a row in the
+*Data table* tab) to highlight that tree everywhere on this page, including
+the tree map further down. Double-click a plot to clear the selection. The
+volume, DBH, and status filters near the top of this report also apply here.
+
+## Volume vs Diameter
+
+```{r allometry-vol}
+p1 <- ggplot(sd_trees, aes(x = dbh_cm, y = volume, color = Message,
+                           text = paste0("Tree: ", name, "<br>",
+                                         "Status: ", as.character(Message), "<br>",
+                                         dbh_cm, " cm \u2014 ", volume, " m\u00B3"))) +
+  geom_point(size = 2, alpha = 0.75) +
+  scale_color_manual(values = status_colors) +
+  labs(title = "Tree volume vs diameter", subtitle = "Volume estimated using QSM",
+       x = "Diameter (cm)", y = "Volume (m\u00B3)", color = "Status") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = FALSE
+  )
+```
+
+## Height vs Diameter
+
+```{r allometry-height}
+p2 <- ggplot(sd_trees, aes(x = dbh_cm, y = height, color = Message,
+                           text = paste0("Tree: ", name, "<br>",
+                                         "Status: ", as.character(Message), "<br>",
+                                         dbh_cm, " cm \u2014 ", height, " m"))) +
+  geom_point(size = 2, alpha = 0.75) +
+  scale_color_manual(values = status_colors) +
+  labs(title = "Tree height vs diameter", subtitle = "Height estimated using QSM",
+       x = "Diameter (cm)", y = "Height (m)", color = "Status") +
+  report_theme
+
+ggplotly(p2, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    showlegend = FALSE
+  )
+```
+
+## Data table
+
+The table below can be downloaded as CSV or Excel using the buttons above it
+(the export respects any column filters you've applied).
+
+```{r allometry-table}
+datatable(
+  sd_trees,
+  rownames = FALSE,
+  filter = "top", # Will automatically use a multi-select dropdown for factors
+  extensions = "Buttons",
+  colnames = c(
+    "Tree" = "name", 
+    "Status" = "Message", 
+    "Volume (m\u00B3)" = "volume",
+    "Height (m)" = "height", 
+    "DBH (cm)" = "dbh_cm"
+  ),
+  options = list(
+    pageLength = 18, 
+    dom = "Bftip",
+    buttons = list(
+      list(extend = "csv",   text = "Download CSV",   filename = "tree_inventory", exportOptions = list(modifier = list(search = "applied"))),
+      list(extend = "excel", text = "Download Excel", filename = "tree_inventory", exportOptions = list(modifier = list(search = "applied")))
+    ),
+    columnDefs = list(
+      list(
+        visible = FALSE, 
+        targets = which(names(ans_df) %in% c("dbh", "filename", "lon", "lat")) - 1
+      )
+    )
+  ),
+  class = "display compact stripe"
+)
+```
+
+# Distributions {.tabset}
+
+## Diameter
+
+```{r distribution-diam}
+p1 <- ggplot(sd_trees, aes(x = dbh_cm,
+                          text = after_stat(paste0(count, " trees, ", round(x, 1), " cm bin")))) +
+  geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
+  labs(title = "Distribution of tree diameter", subtitle = "Estimated by circle fitting",
+       x = "Diameter (cm)", y = "Count") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 380) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+## Height
+
+```{r distribution-height}
+p2 <- ggplot(sd_trees, aes(x = height,
+                          text = after_stat(paste0(count, " trees, ", round(x, 1), " m bin")))) +
+  geom_histogram(bins = 30, fill = brand_green, col = "white", alpha = 0.9) +
+  labs(title = "Distribution of tree height", subtitle = "Estimated using QSM",
+       x = "Height (m)", y = "Count") +
+  report_theme
+
+ggplotly(p2, tooltip = "text", height = 380) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+# Contributions
+
+```{r contribution}
+data <- ans_df[order(-ans_df$volume), ]
+data$Tree <- seq_len(nrow(data))
+data$Vcum <- cumsum(data$volume)
+data$Vp   <- data$Vcum / sum(data$volume) * 100
+
+half_vol_idx   <- which(data$Vp >= 50)[1]
+half_vol_value <- data$Vp[half_vol_idx]
+
+sd_contrib <- SharedData$new(data, key = ~name, group = "trees")
+```
+
+<div class="callout">
+The **`r half_vol_idx`** (`r round(half_vol_idx / Ntree * 100)`%) biggest trees represent 50% of the volume.
+The **`r Ntree - half_vol_idx`** (`r round((Ntree - half_vol_idx) / Ntree * 100)`%) smallest trees represent the other 50%.
+</div>
+
+Click a point below to see which tree it is (linked to the table and plots above).
+
+```{r contribution2}
+p1 <- ggplot(sd_contrib, aes(x = Tree, y = Vp,
+                              text = paste0("Tree: ", name, "<br>rank ", Tree, " \u2014 ", round(Vp, 1), "% cumulative"))) +
+  geom_line(color = brand_green, linewidth = 1, group = 1) +
+  geom_point(color = brand_green, size = 1.6) +
+  geom_hline(yintercept = 50, linetype = "dashed", color = mid_gray) +
+  geom_vline(xintercept = half_vol_idx, linetype = "dashed", color = mid_gray) +
+  labs(title = "Cumulative volume of trees",
+       subtitle = "Trees ordered by volume, largest first",
+       x = "Tree rank", y = "Cumulative volume (%)") +
+  report_theme
+
+ggplotly(p1, tooltip = "text", height = 420) %>%
+  highlight(on = "plotly_click", off = "plotly_doubleclick",
+            color = accent_amber, opacityDim = 0.2) %>%
+  layout(font = list(family = "IBM Plex Sans, sans-serif"))
+```
+
+# Tree map
+
+Each tree's diameter footprint is drawn at 2x scale and colored by volume. Scroll to zoom; click a tree for details — the selection stays in sync with the charts and table above.
+```{r tree-map, fig.height=5}
+local_xy <- st_coordinates(ans)
+ans_df$x_local <- local_xy[, 1]
+ans_df$y_local <- local_xy[, 2]
+
+# --- Pre-compute the three "color by" options -----------------------------
+# Volume / Height are continuous -> Viridis colorscale + colorbar.
+# Status is discrete -> a fixed hex color per tree, colorbar hidden (uses
+# the same status_colors palette as every other chart in this report).
+# All three live on ONE trace; the buttons below just restyle/relayout it,
+# so the crosstalk selection group never has to be rebuilt.
+ans_df$msg_color <- unname(status_colors[as.character(ans_df$Message)])
+
+ans_df$hover_text <- paste0(
+  "<b>Tree: ", ans_df$name, "</b><br>",
+  "Volume: ", ans_df$volume, " m\u00B3<br>",
+  "Height: ", ans_df$height, " m<br>",
+  "DBH: ", ans_df$dbh_cm, " cm<br>",
+  "Status: ", as.character(ans_df$Message)
+)
+
+sd_local <- SharedData$new(ans_df, key = ~name, group = "trees")
+
+vol_range    <- range(ans_df$volume, na.rm = TRUE)
+height_range <- range(ans_df$height, na.rm = TRUE)
+size_ref     <- 2 * max(ans_df$volume, na.rm = TRUE) / (26^2)
+
+p <- plot_ly(
+  data = sd_local,
+  x = ~x_local, y = ~y_local,
+  type = "scatter", mode = "markers",
+  text = ~hover_text, hoverinfo = "text",
+  height = 480,
+  marker = list(
+    color = ~volume,
+    colorscale = "Viridis",
+    cmin = vol_range[1], cmax = vol_range[2],
+    showscale = TRUE,
+    colorbar = list(title = list(text = "Volume (m\u00B3)")),
+    size = ~volume, sizemode = "area",
+    sizeref = size_ref, sizemin = 4,
+    line = list(color = "white", width = 0.4),
+    opacity = 0.75
+  )
+) %>%
+  highlight(
+    on = "plotly_click", off = "plotly_doubleclick",
+    color = accent_amber, opacityDim = 0.2
+  ) %>%
+  layout(
+    title = list(text = "Tree map", font = list(size = 13)),
+    xaxis = list(title = "X"),
+    yaxis = list(title = "Y"),
+    font = list(family = "IBM Plex Sans, sans-serif"),
+    updatemenus = list(
+      list(
+        type = "buttons", direction = "right", active = 0,
+        x = 1, xanchor = "right",
+        y = 1.15, yanchor = "top",
+        pad = list(r = 4, t = 4),
+        buttons = list(
+          list(
+            label = "Volume",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"               = list(ans_df$volume),
+                "marker.colorscale"          = list("Viridis"),
+                "marker.cmin"                = list(vol_range[1]),
+                "marker.cmax"                = list(vol_range[2]),
+                "marker.showscale"           = list(TRUE),
+                "marker.colorbar.title.text" = list("Volume (m\u00B3)")
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          ),
+          list(
+            label = "Height",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"               = list(ans_df$height),
+                "marker.colorscale"          = list("Viridis"),
+                "marker.cmin"                = list(height_range[1]),
+                "marker.cmax"                = list(height_range[2]),
+                "marker.showscale"           = list(TRUE),
+                "marker.colorbar.title.text" = list("Height (m)")
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          ),
+          list(
+            label = "Status",
+            method = "update",
+            args = list(
+              list(
+                "marker.color"     = list(ans_df$msg_color),
+                "marker.showscale" = list(FALSE)
+              ),
+              list(title = list(text = "Tree map"))
+            )
+          )
+        )
+      )
+    )
+  )
+
+# Render with plotly_build to process HTML correctly
+plotly_build(p)
+```
+
+<div class="report-footer">
+Generated automatically by r-lidar inc. &middot; `r format(Sys.time(), "%Y-%m-%d %H:%M")`
+</div>

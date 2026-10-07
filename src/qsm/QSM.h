@@ -126,6 +126,7 @@ public:
   void read(const std::string& filename);
   void write(const std::string& filename, bool binary = true) const;
   void validate() const;
+  void repair_multiroot();
   NodeID find_root_node() const;
   QSM stem() const;
   QSM merchantable(double min_radius, double min_axis_length = 1.0) const;

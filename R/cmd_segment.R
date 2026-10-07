@@ -34,12 +34,12 @@ Options:
   -height <m>             Remove trees smaller than this [default: 2]
   -buffer <m>             Buffer removed from borders [default: 5]
   -fraction <0-1>         Keep random fraction [default: 0.25]
-  -epsg 1234              EPSG code to georeference the dataset if missing
+  -set_epsg 1234          EPSG code to georeference the dataset if missing
+  -bound file.shp         GDAL readable polygon defining the plot boundaries
 
 Export options (enabled by default):
   -no-segmented           Do not write segmented point cloud
   -no-trees               Do not write all trees
-  -no-valid-trees         Do not write valid trees
   -no-dtm                 Do not write DTM raster
 
 Other:
@@ -67,7 +67,14 @@ Other:
   min_tree_height  <- as.numeric(get_arg(args, "-height", 2))
   buffer           <- as.numeric(get_arg(args, "-buffer", 5))
   fraction         <- as.numeric(get_arg(args, "-fraction", 0.25))
-  epsg             <- as.numeric(get_arg(args, "-epsg", 0))
+  epsg             <- as.numeric(get_arg(args, "-set_epsg", 0))
+  fbound           <- get_arg(args, "-bound", NA_character_)
+
+  bound = -buffer
+  if (!is.na(fbound))
+  {
+    bound = sf::st_read(fbound, quiet = TRUE)
+  }
 
   # Helper for export flags (local to this function)
   export_enabled <- function(name) { !paste0("-no-", name) %in% args }
@@ -98,7 +105,12 @@ Other:
   its_dir         <- file.path(dirname(base), "its")
 
   crs = sf::NA_crs_
-  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg)) 
+  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg))
+
+  if (is.numeric(bound))
+    boundstr = buffer
+  else
+    boundstr = "spatial polygon"
 
   # --- Configuration Log ---
   cat("
@@ -107,12 +119,11 @@ Input file             :", input, "
 Settings
   Cut above ground (m) :", cut_above_ground, "
   Min tree height (m)  :", min_tree_height, "
-  Border buffer (m)    :", buffer, "
+  Border buffer (m)    :", boundstr, "
   Filter               :", filter_str, "
 Exports
   Segmented cloud      :", export_segmented, "
   All trees            :", export_trees, "
-  Valid trees          :", export_valid_trees, "
   DTM                  :", export_dtm, "
 ====================================================
 ")
@@ -124,8 +135,17 @@ Exports
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
   gc()
 
-  if (!is.na(crs)) st_crs(las) <- crs
-    
+  if (!is.na(crs))
+  {
+    st_crs(las) <- crs
+  }
+
+  if (!is.numeric(bound))
+  {
+    sf::st_crs(bound) <- sf::st_crs(las)
+  }
+
+
   cat("Hybrid homogeneization\n")
   las <- hybrid_homogeneization(las)
   gc()
@@ -168,7 +188,7 @@ Exports
 
   cat("Cleaning segmentation\n")
   las <- flag_small_trees(las, max_height = min_tree_height)
-  las <- flag_buffer(trees, las, -buffer)
+  las <- flag_buffer(las, see, bound)
 
   cat("Colorization\n")
   las <- colorize_trees(las)
@@ -181,4 +201,12 @@ Exports
   if (export_trees)       lidR::writeLAS(trees, out_trees)
   if (export_dtm)         terra::writeRaster(dtm, out_dtm, overwrite = TRUE)
   if (export_dtm_mesh)    write_raster_to_obj(dtm, out_dtm_mesh)
+
+  invisible(list(
+    dir        = odir,
+    segmented  = if (export_segmented) out_segmented else NA_character_,
+    trees      = if (export_trees)     out_trees     else NA_character_,
+    dtm        = if (export_dtm)       out_dtm       else NA_character_,
+    dtm_mesh   = if (export_dtm_mesh)  out_dtm_mesh  else NA_character_
+  ))
 }

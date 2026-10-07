@@ -39,6 +39,7 @@ st_crs.qsm = function(x, ...)
   if (is.null(crs)) crs <- sf::NA_crs_
   else if (crs == "") crs <- sf::NA_crs_
   else crs <- sf::st_crs(crs)
+  crs
 }
 
 #' @export
@@ -51,14 +52,15 @@ st_crs.qsf = function(x, ...)
 
 #' @export
 #' @rdname st_crs
-`st_crs<-.qsm` = function(x, value) { attr(x, "crs") = clean_crs(sf::st_crs(value)) ; x }
+`st_crs<-.qsm` = function(x, value) { attr(x, "crs") = clean_crs(sf::st_crs(value)) ; as_qsm(x) }
 
 #' @export
 #' @rdname st_crs
 `st_crs<-.qsf` = function(x, value)
 {
   wkt = clean_crs(sf::st_crs(value))
-  lapply(x, function(y) { attr(y, "crs") = wkt ; y })
+  y <- lapply(x, function(y) { attr(y, "crs") = wkt ; y })
+  as_qsf(y)
 }
 
 clean_crs <- function(crs)

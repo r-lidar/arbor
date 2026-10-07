@@ -246,6 +246,26 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// C_match_instances
+Rcpp::List C_match_instances(Rcpp::DataFrame df);
+RcppExport SEXP _arbor_C_match_instances(SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_match_instances(df));
+    return rcpp_result_gen;
+END_RCPP
+}
+// C_merge_instances
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df);
+RcppExport SEXP _arbor_C_merge_instances(SEXP match_resultSEXP, SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::List >::type match_result(match_resultSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    C_merge_instances(match_result, df);
+    return R_NilValue;
+END_RCPP
+}
 // generate_cage_cpp
 Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
 RcppExport SEXP _arbor_generate_cage_cpp(SEXP circlesSEXP, SEXP decimationSEXP) {
@@ -349,6 +369,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_autorepair_cpp
+Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df);
+RcppExport SEXP _arbor_qsm_autorepair_cpp(SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_autorepair_cpp(df));
+    return rcpp_result_gen;
+END_RCPP
+}
 // read_adtree_skeleton
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
@@ -401,6 +431,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type binary(binarySEXP);
     qsf_write_cpp(x, dir, format, binary);
     return R_NilValue;
+END_RCPP
+}
+// qsf_read_cpp
+Rcpp::List qsf_read_cpp(std::string filename);
+RcppExport SEXP _arbor_qsf_read_cpp(SEXP filenameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsf_read_cpp(filename));
+    return rcpp_result_gen;
 END_RCPP
 }
 // ransac_circle_cpp
@@ -531,6 +571,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
     {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
     {"_arbor_C_fix_small_isolated_low_clusters", (DL_FUNC) &_arbor_C_fix_small_isolated_low_clusters, 3},
+    {"_arbor_C_match_instances", (DL_FUNC) &_arbor_C_match_instances, 1},
+    {"_arbor_C_merge_instances", (DL_FUNC) &_arbor_C_merge_instances, 2},
     {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
     {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
@@ -540,11 +582,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_dbh_cpp", (DL_FUNC) &_arbor_qsm_dbh_cpp, 2},
     {"_arbor_qsm_stem_cpp", (DL_FUNC) &_arbor_qsm_stem_cpp, 1},
     {"_arbor_qsm_merchantable_cpp", (DL_FUNC) &_arbor_qsm_merchantable_cpp, 3},
+    {"_arbor_qsm_autorepair_cpp", (DL_FUNC) &_arbor_qsm_autorepair_cpp, 1},
     {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsm_get_cylID", (DL_FUNC) &_arbor_qsm_get_cylID, 2},
     {"_arbor_allometry", (DL_FUNC) &_arbor_allometry, 1},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
+    {"_arbor_qsf_read_cpp", (DL_FUNC) &_arbor_qsf_read_cpp, 1},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 5},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},

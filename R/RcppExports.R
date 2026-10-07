@@ -85,6 +85,14 @@ C_fix_small_isolated_low_clusters <- function(df, res = 0.05, min_size = 200L) {
     invisible(.Call(`_arbor_C_fix_small_isolated_low_clusters`, df, res, min_size))
 }
 
+C_match_instances <- function(df) {
+    .Call(`_arbor_C_match_instances`, df)
+}
+
+C_merge_instances <- function(match_result, df) {
+    invisible(.Call(`_arbor_C_merge_instances`, match_result, df))
+}
+
 generate_cage_cpp <- function(circles, decimation) {
     .Call(`_arbor_generate_cage_cpp`, circles, decimation)
 }
@@ -121,6 +129,10 @@ qsm_merchantable_cpp <- function(df, merchantable_radius, merchantable_length) {
     .Call(`_arbor_qsm_merchantable_cpp`, df, merchantable_radius, merchantable_length)
 }
 
+qsm_autorepair_cpp <- function(df) {
+    .Call(`_arbor_qsm_autorepair_cpp`, df)
+}
+
 read_adtree_skeleton <- function(filename) {
     .Call(`_arbor_read_adtree_skeleton`, filename)
 }
@@ -139,6 +151,10 @@ allometry <- function(name) {
 
 qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
+}
+
+qsf_read_cpp <- function(filename) {
+    .Call(`_arbor_qsf_read_cpp`, filename)
 }
 
 ransac_circle_cpp <- function(x, num_iterations = 100L, inlier_threshold = 0.01, early_exit = 1.0) {

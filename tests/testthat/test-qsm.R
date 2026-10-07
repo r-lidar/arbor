@@ -61,3 +61,46 @@ test_that("invalid qsm throws error on write", {
   hqsm <- qsm1[qsm1$quality > 3, ]
   expect_error(qsm_write(hqsm, fqsm), "Graph is disconnected")
 })
+
+test_that("invalid qsm generate a placeholder", {
+  f <- system.file("extdata", "tree_6307.laz", package = "arbor")
+  las = lidR::readLAS(f)
+  sink(tempfile())
+  q = expect_warning(qsm(las))
+  sink()
+  expect_equal(nrow(q), 1)
+  expect_equal(qsm_dbh(q)$dbh, 0)
+  q
+})
+
+
+test_that("Topology issues auto repair attempt", {
+
+  sink(tempfile())
+  qsm_multi_root <- data.frame(
+    startX = c(0, 0, 1),
+    startY = c(0, 0, 0),
+    startZ = c(0, 1, 1),
+    endX   = c(0, 0, 1),
+    endY   = c(0, 0, 0),
+    endZ   = c(1, 2, 2),
+    cyl_ID    = c(2L, 3L, 5L),   # target node
+    parent_ID = c(1L, 2L, 4L),   # source node
+    axis_ID      = c(1L, 1L, 2L),
+    branch_order = c(0L, 0L, 1L),
+    radius         = c(0.20, 0.15, 0.05),
+    dist_to_root   = c(1, 2, 1),
+    subtree_length = c(2, 1, 1),
+    quality        = c(4L, 4L, 4L),
+    stringsAsFactors = FALSE
+  )
+
+  x = arbor:::as_qsm(qsm_multi_root)
+  expect_error(print(x), "Graph validation failed")
+
+  qsm_multi_root_fixed = arbor:::qsm_autorepair_cpp(qsm_multi_root)
+
+  x = arbor:::as_qsm(qsm_multi_root_fixed)
+  expect_error(print(x), NA)
+  sink(NULL)
+})

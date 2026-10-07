@@ -18,15 +18,20 @@
 
 #' Quantitative Structural Forest
 #'
-#' Batch processing of QSM models with parallel execution.
+#' Batch processing of QSM models with parallel execution. Trees that are flagged with
+#' \link{flag_buffer} or \link{flag_small_trees} are excluded from the computation.
+#' See also the [Arbor book](https://r-lidar.github.io/arbor_book/) for more details.
 #'
-#' @param las A point cloud with semantic and instance segmentation computed
-#' @param min_height numeric. Default: any instance higher than 2 m generates a QSMs
-#' @param params list See \link{parameters}.
-#' @return A qsf object
+#' @param las A point cloud with semantic and instance segmentation computed.
+#' @param min_height numeric. Default: any instance higher than 2 m generates a QSM. This is
+#' pretty equivalent to \link{flag_small_trees}, but forces a height limit even if the user
+#' did not call \link{flag_small_trees}, thus ensuring that no QSM lower than 2 m is computed.
+#' @param params list. See \link{parameters}.
+#' @return A qsf object.
 #'
 #' @export
-#' @seealso  \link{qsm}
+#' @md
+#' @seealso \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
   if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
@@ -34,7 +39,22 @@ qsf <- function(las, min_height = 2, params = arbor_parameters_default)
   for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]
   res <- as_qsf(res)
-  res
+  st_crs(res) <- st_crs(las)
+  res <- as_qsf(res)
+
+  tmp <- qsf_filter_errors(res)
+  if (length(tmp) > 0)
+    message("Some QSMs have errors. Use qsf_log() to inspect the affected QSMs.")
+
+  tmp <- qsf_filter(res, code = "W5")
+  if (length(tmp) > 0)
+    message("Some QSMs have automatically diagnosed diameter anomalies. Use qsf_log() to inspect the affected QSMs.")
+
+  tmp <- qsf_filter(res, code = "W2")
+  if (length(tmp) > 0)
+    message("Some QSMs were built without measurements. Use qsf_log() to inspect the affected QSMs.")
+
+  return(res)
 }
 
 as_qsf <- function(x)
@@ -51,50 +71,20 @@ as_qsf <- function(x)
   x
 }
 
-#' QSF log
+#' Subset a qsf object
 #'
-#' Use qsf_log after \link{qsf} to get the logs
+#' Subsets a `qsf` object while preserving its class.
 #'
-#' @param qsf qsf
+#' @param x A `qsf` object.
+#' @param i Index specifying the elements to extract.
+#' @param ... Additional arguments passed to `[`.
+#'
+#' @return A `qsf` object containing the selected QSMs.
+#'
 #' @export
-qsf_log = function(qsf)
+`[.qsf` <- function(x, i, ...)
 {
-  # 1. Extract messages from attributes
-  messages = lapply(qsf, function(x) attr(x, "message"))
-
-  # 2. Identify and subset non-empty messages
-  keep_idx <- which(sapply(messages, length) > 0)
-  clean_list <- unlist(messages[keep_idx])
-
-  # 3. Extract tags: catches everything between the first []
-  # We use a simple sapply to ensure we get a vector of the same length as clean_list
-  warn_tags <- sapply(clean_list, function(x) {
-    if (!grepl("\\[.*?\\]", x)) return(NA)
-    sub(".*\\[(.*?)\\].*", "\\1", x)
-  })
-  # 4. Create the structured list
-  unique_tags <- unique(warn_tags)
-
-  final_output <- lapply(unique_tags, function(tag)
-  {
-    # Find which messages belong to this tag
-    match_mask <- !is.na(warn_tags) & (warn_tags == tag)
-
-    matches <- clean_list[match_mask]
-    original_indices <- keep_idx[match_mask]
-
-    # 5. SIMPLIFIED MESSAGE: No regex escaping needed!
-    # Using fixed = TRUE treats 'tag' as plain text, not a regex pattern.
-    raw_msg <- matches[1]
-    generic_msg <- trimws(gsub(tag, "", raw_msg, fixed = TRUE))
-
-    list(
-      type = tag,
-      index = unname(original_indices),
-      treeID = as.integer(names(matches))
-    )
-  })
-
-  # Name the list elements by their tag (e.g., "[No valid measure]")
-  final_output
+y <- NextMethod("[")
+class(y) <- class(x)
+y
 }

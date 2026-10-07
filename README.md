@@ -10,6 +10,8 @@ Arbor is a production-grade C++ library for large-scale processing of forest mob
 
 It handles real-world, noisy data, leaf-on scans, automatically without requiring parameter tuning or manual intervention and can produce up to 1.000 QSMs per minute
 
+The internal algorithm follows a classical, rule-based approach rather than a learning-based one. It does not use deep learning, AI models, or training data. Consequently, it does not depend on the characteristics of a particular training dataset and can be applied directly to new datasets without retraining.
+
 <p align="center">
   <a href="https://youtu.be/uvsoBODrmpw" title="Arbor demo - Click to Watch!">
     <img src="man/figures/yt-play-readme.png" alt="Arbor demo">
@@ -52,7 +54,7 @@ las <- wood_likelihood(las)
 las <- segment_semantic(las)
 see <- find_seeds(las)
 las <- segment_instance(las, see)
-las <- flag_buffer(las, see, -0.75)
+las <- flag_buffer(las, see, -0.75) # don't use 0.75 in real data
 las <- flag_small_trees(las, 1)
 qsf <- qsf(las)
 

@@ -130,6 +130,12 @@ Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
   );
 }
 
+Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df)
+{
+  QSM qsm = as_qsm(df, true);
+  return(as_dataframe(qsm));
+}
+
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
 {
   Rcpp::IntegerVector iter = data["iter"];
@@ -356,6 +362,19 @@ void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binar
 {
   QSF qsf = as_qsf(x);
   qsf.write(dir, format, binary);
+}
+
+Rcpp::List qsf_read_cpp(std::string filename)
+{
+  QSF qsf = QSF::read(filename);
+
+  Rcpp::List output;
+  for (const auto& item : qsf.get_qsm_map())
+  {
+    output[std::to_string(item.first)] = as_dataframe(item.second);
+  }
+
+  return output;
 }
 
 Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3)

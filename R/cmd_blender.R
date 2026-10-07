@@ -162,7 +162,7 @@ Settings
 
   # --- Exports ---
   cat("Export qsf\n")
-  qsf_write(qsf, its_dir, formats = "obj")
+  qsf_write(qsf, its_dir, format = "obj")
 
   cat("Export rings\n")
   write_cylinders_to_obj(rings, out_rings)

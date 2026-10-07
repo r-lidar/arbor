@@ -86,14 +86,25 @@ keep_small_trees = function(las, max_height = 2)
 #' @importFrom data.table :=
 flag_buffer = function(las, seeds, buffer = -5)
 {
-  if (buffer > 0) stop("'buffer' must be negative.")
+  if (is.numeric(buffer))
+  {
+    if (buffer > 0) 
+      stop("'buffer' must be negative.")
+  }
 
   UserData <- NULL
 
-  if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
+  if (!"treeID" %in% names(las))   
+  {
+    stop("Input point cloud must have an attribute 'treeID'")
+  }
+
   if (!missing(seeds))
   {
-    if (!"treeID" %in% names(seeds)) stop("Input seeds must have an attribute 'treeID'")
+    if (!"treeID" %in% names(seeds)) 
+    {
+      stop("Input seeds must have an attribute 'treeID'")
+    }
   }
 
   # Avoid NOTES
@@ -167,5 +178,5 @@ flag_buffer = function(las, seeds, buffer = -5)
   las@data[UserData == ARBORBUFFER, UserData := ARBORTREE] # revert previous
   las@data[!treeID %in% valid_seeds$treeID & UserData != ARBORLOW, UserData := ARBORBUFFER]
   return(las)
-}
+  }
 

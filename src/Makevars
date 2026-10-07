@@ -14,8 +14,8 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./vendor \
   -I./vendor/ptd \
   -I./vendor/libqsm \
-  -I./R \
-  -I/usr/include/eigen3
+  -I./vendor/libqsf \
+  -I./R
 
 # OpenMP support
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
@@ -31,6 +31,7 @@ OBJECTS = \
   vendor/hporro/index.o \
   vendor/dbscan/dbscan.o \
   vendor/libqsm/libqsm.o \
+  vendor/libqsf/libqsf.o \
   experimental/qsm_distance.o \
   experimental/extrat_context.o \
   qsf/QSF.o \
@@ -49,6 +50,7 @@ OBJECTS = \
   segment/GraphBuilder.o \
   segment/segment_instance_api.o \
   segment/segment_ground_api.o \
+  segment/segment_overfitting.o \
   RcppAutoExport.o \
   dtm/dtm.o \
   utils/services.o \

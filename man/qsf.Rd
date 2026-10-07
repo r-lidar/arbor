@@ -7,17 +7,21 @@
 qsf(las, min_height = 2, params = arbor_parameters_default)
 }
 \arguments{
-\item{las}{A point cloud with semantic and instance segmentation computed}
+\item{las}{A point cloud with semantic and instance segmentation computed.}
 
-\item{min_height}{numeric. Default: any instance higher than 2 m generates a QSMs}
+\item{min_height}{numeric. Default: any instance higher than 2 m generates a QSM. This is
+pretty equivalent to \link{flag_small_trees}, but forces a height limit even if the user
+did not call \link{flag_small_trees}, thus ensuring that no QSM lower than 2 m is computed.}
 
-\item{params}{list See \link{parameters}.}
+\item{params}{list. See \link{parameters}.}
 }
 \value{
-A qsf object
+A qsf object.
 }
 \description{
-Batch processing of QSM models with parallel execution.
+Batch processing of QSM models with parallel execution. Trees that are flagged with
+\link{flag_buffer} or \link{flag_small_trees} are excluded from the computation.
+See also the \href{https://r-lidar.github.io/arbor_book/}{Arbor book} for more details.
 }
 \seealso{
 \link{qsm}

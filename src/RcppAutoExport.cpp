@@ -95,6 +95,12 @@ Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
 //[[Rcpp::export(rng = false)]]
 void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::List C_match_instances(Rcpp::DataFrame df);
+
+//[[Rcpp::export(rng = false)]]
+void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df);
+
 // ========================
 // SEEDS
 // ========================
@@ -133,6 +139,9 @@ Rcpp::DataFrame qsm_stem_cpp(Rcpp::DataFrame df);
 Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_radius, double merchantable_length);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);
 
 //[[Rcpp::export(rng = false)]]
@@ -155,6 +164,9 @@ Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
 
 //[[Rcpp::export(rng = false)]]
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List qsf_read_cpp(std::string filename);
 
 // ========================
 // FITTING

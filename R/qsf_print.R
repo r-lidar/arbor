@@ -28,10 +28,21 @@
 #' @export
 print.qsf <- function(x, ...)
 {
+  # Handle empty object case
+  if (length(x) == 0) {
+    cat("QSF\n")
+    cat("Trees       : 0\n")
+    cat("Cylinders   : 0\n")
+    cat("Basal area  : 0.00 m\u00b2\n")
+    cat("Volume      : 0.00 m\u00b3\n")
+    cat("Coord. ref. : NA\n")
+    return(invisible(x))
+  }
+
   # number of cylinders
   n_tree <- length(x)
   n_cyl  <- sum(sapply(x, nrow))
-  crs = attr(x, "crs")
+  crs = st_crs(x)
   dbh = qsm_dbh(x)
   ba  = sum(pi*(dbh$dbh/2)^2)
   if (is.null(crs)) crs = sf::NA_crs_
