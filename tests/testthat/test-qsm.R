@@ -19,6 +19,19 @@ test_that("qsm computes correct dbh", {
   expect_equal(dbh2.0$dbh, 0.226, tolerance = 0.005)
 })
 
+test_that("qsm computes correct volume", {
+  v1 <- qsm_volume(qsm1)
+  expect_equal(v1, 0.476, tolerance = 0.001)
+})
+
+test_that("qsm computes correct edges", {
+  n1 <- nrow(qsm1)
+  expect_equal(n1, 2353L)
+  expect_equal(sum(qsm1$branch_order == 1), 209L)
+  expect_equal(sum(qsm1$branch_order == 3), 790L)
+  expect_equal(sum(qsm1$quality == 5), 93L)
+})
+
 test_that("calling C++ preserves qsm attributes", {
   attr(qsm1, "id") <- 2L
   attr(qsm1, "name") <- "BOUJ45"
@@ -45,11 +58,8 @@ test_that("write and read preserve qsm", {
   expect_equal(v1, v3, tolerance = 0.002)
   expect_equal(qsm1$radius, qsm2$radius)
   expect_equal(qsm1$branch_order, qsm2$branch_order)
-  expect_equal(sum(qsm1$branch_order == 1), 209L)
-  expect_equal(sum(qsm1$branch_order == 3), 790L)
   expect_equal(sum(qsm3$branch_order == 1), sum(qsm1$branch_order == 1))
   expect_equal(sum(qsm3$branch_order == 3), sum(qsm1$branch_order == 3))
-  expect_equal(sum(qsm1$quality == 5), 93L)
   expect_equal(sum(qsm3$quality == 5), sum(qsm1$quality == 5))
   expect_equal(attr(qsm2, "id"), 2L)
   expect_equal(attr(qsm2, "name"), "BOUJ45")
