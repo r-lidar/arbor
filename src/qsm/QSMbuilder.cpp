@@ -241,7 +241,15 @@ void QSMbuilder::build(const PointCloud& tree)
 
   shift(tx, ty, tz);
 
-  graph.validate();
+  try
+  {
+    graph.validate();
+  }
+  catch (const MultipleRootsError&)
+  {
+    graph.repair_multiroot();
+    graph.validate();
+  }
 }
 
 // Build axis_id -> edge IDs map, with each vector sorted root-to-tip (descending subtree_length).

@@ -15,8 +15,39 @@ test_that("qsm computes correct dbh", {
   dbh1.3 <- qsm_dbh(qsm1, bh = 1.3)
   dbh2.0 <- qsm_dbh(qsm1, bh = 2.0)
 
-  expect_equal(dbh1.3$dbh, 0.2228, tolerance = 0.005)
-  expect_equal(dbh2.0$dbh, 0.2093, tolerance = 0.005)
+  expect_equal(dbh1.3$dbh, 0.22, tolerance = 0.005)
+  expect_equal(dbh2.0$dbh, 0.226, tolerance = 0.005)
+})
+
+test_that("qsm computes correct volume", {
+  v1 <- qsm_volume(qsm1)
+  expect_equal(v1, 0.476, tolerance = 0.005)
+})
+
+test_that("qsm computes correct edges", {
+  n1 <- nrow(qsm1)
+  expect_equal(n1, 2353L)
+})
+
+test_that("qsm computes correct volume per quality", {
+  bo1 = qsm1[qsm1$branch_order == 1,]
+  bo3 = qsm1[qsm1$branch_order == 3,]
+  bq4 = qsm1[qsm1$quality == 4,]
+  bq5 = qsm1[qsm1$quality == 5,]
+  m1  = qsm_merchantable(qsm1)
+
+  V   = qsm_volume(qsm1)
+  vo1 = qsm_volume(bo1)
+  vo3 = qsm_volume(bo3)
+  vq4 = qsm_volume(bq4)
+  vq5 = qsm_volume(bq5)
+  vm1 = qsm_volume(m1)
+
+  expect_equal(vo1/V*100, 81.39, tolerance = 0.0002)
+  expect_equal(vo3/V*100, 3.086, tolerance = 0.0002)
+  expect_equal(vq4/V*100, 3.059, tolerance = 0.0002)
+  expect_equal(vq5/V*100, 56.99, tolerance = 0.0002)
+  expect_equal(vm1/V*100, 82.70, tolerance = 0.0002)
 })
 
 test_that("calling C++ preserves qsm attributes", {
@@ -45,10 +76,9 @@ test_that("write and read preserve qsm", {
   expect_equal(v1, v3, tolerance = 0.002)
   expect_equal(qsm1$radius, qsm2$radius)
   expect_equal(qsm1$branch_order, qsm2$branch_order)
-  expect_equal(sum(qsm1$branch_order == 3), 823L)
-  expect_equal(sum(qsm3$branch_order == 3), 823L)
-  expect_equal(sum(qsm1$quality == 5), 93L)
-  expect_equal(sum(qsm3$quality == 5), 93L)
+  expect_equal(sum(qsm3$branch_order == 1), sum(qsm1$branch_order == 1))
+  expect_equal(sum(qsm3$branch_order == 3), sum(qsm1$branch_order == 3))
+  expect_equal(sum(qsm3$quality == 5), sum(qsm1$quality == 5))
   expect_equal(attr(qsm2, "id"), 2L)
   expect_equal(attr(qsm2, "name"), "BOUJ45")
   expect_equal(sf::st_crs(qsm2)$Name, "NAD83 / MTM zone 7")
@@ -69,4 +99,36 @@ test_that("invalid qsm generate a placeholder", {
   expect_equal(nrow(q), 1)
   expect_equal(qsm_dbh(q)$dbh, 0)
   q
+})
+
+
+test_that("Topology issues auto repair attempt", {
+
+  sink(tempfile())
+  qsm_multi_root <- data.frame(
+    startX = c(0, 0, 1),
+    startY = c(0, 0, 0),
+    startZ = c(0, 1, 1),
+    endX   = c(0, 0, 1),
+    endY   = c(0, 0, 0),
+    endZ   = c(1, 2, 2),
+    cyl_ID    = c(2L, 3L, 5L),   # target node
+    parent_ID = c(1L, 2L, 4L),   # source node
+    axis_ID      = c(1L, 1L, 2L),
+    branch_order = c(0L, 0L, 1L),
+    radius         = c(0.20, 0.15, 0.05),
+    dist_to_root   = c(1, 2, 1),
+    subtree_length = c(2, 1, 1),
+    quality        = c(4L, 4L, 4L),
+    stringsAsFactors = FALSE
+  )
+
+  x = arbor:::as_qsm(qsm_multi_root)
+  expect_error(print(x), "Graph validation failed")
+
+  qsm_multi_root_fixed = arbor:::qsm_autorepair_cpp(qsm_multi_root)
+
+  x = arbor:::as_qsm(qsm_multi_root_fixed)
+  expect_error(print(x), NA)
+  sink(NULL)
 })

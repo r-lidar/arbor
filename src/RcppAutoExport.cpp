@@ -23,6 +23,14 @@
 #ifdef USING_R
 
 #include <Rcpp.h>
+#include "myomp.h"
+
+
+//[[Rcpp::export(rng = false)]]
+int getThreads()
+{
+  return omp_get_max_threads();
+}
 
 // =======================
 // PRE-PROCESSING
@@ -137,6 +145,9 @@ Rcpp::DataFrame qsm_stem_cpp(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_radius, double merchantable_length);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame read_adtree_skeleton(std::string filename);

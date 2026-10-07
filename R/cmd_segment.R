@@ -108,7 +108,7 @@ Other:
   if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg))
 
   if (is.numeric(bound))
-    boundstr = boundstr
+    boundstr = buffer
   else
     boundstr = "spatial polygon"
 

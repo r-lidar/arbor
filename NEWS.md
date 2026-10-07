@@ -1,6 +1,5 @@
 # v1.2.0
 
-
 ### NEW FEATURES
 
 - New functions `st_transform()` for qsm and qsf objects
@@ -10,7 +9,12 @@
  - Enhance documentation of `qsm_read()` with examples
  - Enhance documentation of `st_crs()` with examples
 
-### v1.1.0
+# v1.1.2
+
+- Enhancement: `qsf()` now checks QSM logs before returning and issues warnings when potential issues are detected, prompting users to inspect the results with `qsf_log()`.
+- Enhancement: `qsm()` now attempts to automatically repair some very rare topology issues, preventing `qsf()` from failing on certain edge cases.
+
+# v1.1.1
 
 Fix: CRS assignment with `st_crs()<-` was not returning objects with qsm and qsf classes
 

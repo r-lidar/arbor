@@ -129,7 +129,7 @@ Rcpp::DataFrame as_dataframe(const PointCloud& cloud)
   return df;
 }
 
-QSM as_qsm(Rcpp::DataFrame df)
+QSM as_qsm(Rcpp::DataFrame df, bool autorepair)
 {
   // --- mandatory columns ---
   const char* required[] = {
@@ -233,8 +233,23 @@ QSM as_qsm(Rcpp::DataFrame df)
     graph.add_edge(src, tgt, ed);
   }
 
-  graph.validate();
-
+  if (!autorepair)
+  {
+    graph.validate();
+  }
+  else 
+  {
+    try
+    {
+      graph.validate();
+    }
+    catch (const MultipleRootsError&)
+    {
+      graph.repair_multiroot();
+      graph.validate();
+    }
+  }
+  
   return graph;
 }
 

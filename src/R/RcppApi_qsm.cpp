@@ -130,6 +130,12 @@ Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist)
   );
 }
 
+Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df)
+{
+  QSM qsm = as_qsm(df, true);
+  return(as_dataframe(qsm));
+}
+
 Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d)
 {
   Rcpp::IntegerVector iter = data["iter"];

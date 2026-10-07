@@ -22,6 +22,7 @@
 #define DIRECTED_GRAPH_H
 
 #include <map>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
@@ -29,6 +30,13 @@
 
 using NodeID = int;
 using EdgeID = int;
+
+// Thrown by validate() when the graph has more than one root.
+class MultipleRootsError : public std::runtime_error
+{
+public:
+  explicit MultipleRootsError(const std::string& msg) : std::runtime_error(msg) {}
+};
 
 // Generic directed graph with typed node and edge data.
 // NodeID and EdgeID are integers, auto-incremented from 1.
@@ -62,6 +70,17 @@ public:
 
   void remove_node(NodeID id)
   {
+    if (!has_node(id)) return;
+
+    // Copy the incident edge lists: remove_edge() modifies outgoing_/incoming_,
+    // so iterating over the live vectors would invalidate the iteration.
+    // A self-loop appears in both lists; remove_edge() ignores an already-removed id.
+    const std::vector<EdgeID> out = outgoing_edges(id);
+    const std::vector<EdgeID> inc = incoming_edges(id);
+
+    for (EdgeID eid : out) remove_edge(eid);
+    for (EdgeID eid : inc) remove_edge(eid);
+
     nodes_.erase(id);
     outgoing_.erase(id);
     incoming_.erase(id);
@@ -136,6 +155,15 @@ public:
     return edges_.at(inc[0]).source;
   }
 
+  std::vector<NodeID> roots() const
+  {
+    std::vector<NodeID> r;
+    for (const auto& kv : nodes_)
+      if (incoming_edges(kv.first).empty())
+        r.push_back(kv.first);
+    return r;
+  }
+
   // ---- Graph validity ----
 
   /**
@@ -167,7 +195,7 @@ public:
     }
     if (roots.size() > 1)
     {
-      throw std::runtime_error("Graph validation failed: Multiple roots found. Graph is disconnected.");
+      throw MultipleRootsError("Graph validation failed: Multiple roots found. Graph is disconnected.");
     }
 
     NodeID root = roots.front();

@@ -18,6 +18,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <map>
 #include <unordered_map>
 #include <vector>
 #include <tuple>
@@ -44,10 +45,10 @@ struct ClusterCenter
   bool done = false;
 };
 
-struct pair_hash
+/*struct pair_hash
 {
   std::size_t operator()(const std::pair<int,int>& p) const { return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1); }
-};
+};*/
 
 // Adaptor: nanoflann reads directly from our vector
 struct CenterCloud
@@ -69,7 +70,8 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
   // Step 1: group points and compute centers
   // ----------------------------------------
   typedef std::pair<int,int> ClusterKey;
-  std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
+  //std::unordered_map<ClusterKey, std::vector<int>, pair_hash> cluster_indices;
+  std::map<ClusterKey, std::vector<int>> cluster_indices;
   for (size_t i = 0, n = pc.size(); i < n; ++i)
   {
     cluster_indices[iter_cluster[i]].push_back((int)i);
@@ -153,12 +155,12 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
 
   // Step 3: min-heap for fast "undone center with smallest iter" lookup
   // -----------------------------------------------------------------
-  auto heap_cmp = [](ClusterCenter* a, ClusterCenter* b){ return a->iter > b->iter; };
+  auto heap_cmp = [](ClusterCenter* a, ClusterCenter* b){ return a->iter != b->iter ? a->iter > b->iter : a->id > b->id; };
   std::priority_queue<ClusterCenter*,  std::vector<ClusterCenter*>, decltype(heap_cmp)> minHeap(heap_cmp);
 
   // Step 4: find initial root (min Z)
   // ---------------------------------
-  ClusterCenter* root = &*std::min_element(centers.begin(), centers.end(), [](const ClusterCenter& a, const ClusterCenter& b){ return a.z < b.z; });
+  ClusterCenter* root = &*std::min_element(centers.begin(), centers.end(), [](const ClusterCenter& a, const ClusterCenter& b){ return a.z < b.z - 1e-9 || (std::abs(a.z - b.z) <= 1e-9 && a.id < b.id); });
 
   root->done = true;
 
@@ -174,7 +176,7 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
   id = 1; // Resetting incremental edge ID counter
 
   nanoflann::SearchParameters search_params;
-  search_params.sorted = false;
+  search_params.sorted = true;
 
   // Step 5: greedy chain growing loop
   // ---------------------------------
@@ -191,7 +193,8 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
     {
       ClusterCenter* c = &centers[idx];
       if (c->done || c->iter <= root->iter) continue;
-      if (d2 < bestD2) { bestD2 = d2; newRoot = c; }
+      const double tol = 1e-12 * std::max(1.0, max_d2);
+      if (!newRoot || d2 < bestD2 - tol || (d2 <= bestD2 + tol && c->id < newRoot->id)) { bestD2 = std::min(bestD2, d2); newRoot = c; }
     }
 
     if (newRoot)
@@ -232,7 +235,7 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
         if (!c.done) continue;
         double dx = c.x - orphan->x, dy = c.y - orphan->y, dz = c.z - orphan->z;
         double d  = dx*dx + dy*dy + dz*dz;
-        if (d < bestDist) { bestDist = d; nearestDone = &c; }
+        if (d < bestDist - 1e-12) { bestDist = d; nearestDone = &c; }
       }
 
       if (!nearestDone) break;

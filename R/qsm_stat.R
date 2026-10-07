@@ -159,7 +159,7 @@ qsm_stats.qsf <- function(qs, ..., display = FALSE)
   res <- Filter(Negate(is.null), res)
   if (length(res) == 0) return(NULL)
 
-  res <- data.table::rbindlist(res, idcol = "treeID")
+  res <- data.table::rbindlist(res)
 
   if (display) {
     message("Display not supported for qsf (global stats only).")

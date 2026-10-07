@@ -41,7 +41,20 @@ qsf <- function(las, min_height = 2, params = arbor_parameters_default)
   res <- as_qsf(res)
   st_crs(res) <- st_crs(las)
   res <- as_qsf(res)
-  res
+
+  tmp <- qsf_filter_errors(res)
+  if (length(tmp) > 0)
+    message("Some QSMs have errors. Use qsf_log() to inspect the affected QSMs.")
+
+  tmp <- qsf_filter(res, code = "W5")
+  if (length(tmp) > 0)
+    message("Some QSMs have automatically diagnosed diameter anomalies. Use qsf_log() to inspect the affected QSMs.")
+
+  tmp <- qsf_filter(res, code = "W2")
+  if (length(tmp) > 0)
+    message("Some QSMs were built without measurements. Use qsf_log() to inspect the affected QSMs.")
+
+  return(res)
 }
 
 as_qsf <- function(x)
