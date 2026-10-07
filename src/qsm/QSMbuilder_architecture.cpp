@@ -164,43 +164,57 @@ void QSMbuilder::assign_subtree_ids(int edge_id, int current_axis_id, int curren
   const auto& child_eids = graph.outgoing_edges(graph.edge(edge_id).target);
   if (child_eids.empty()) return;
 
-  int main_child = -1;
-  double best_score     = -1e300;
-  double best_secondary = -1e300;
+  // Tolerances are far above float resolution and FMA/libm noise so that the
+  // choice of the main child is identical across compilers and architectures.
+  constexpr double TOL = 1e-4;
 
-  for (int child_eid : child_eids)
+  // Visit children in edge id order so ties never depend on insertion order.
+  std::vector<int> ordered(child_eids.begin(), child_eids.end());
+  std::sort(ordered.begin(), ordered.end());
+
+  int main_child = -1;
+  double best_score     = 0.0;
+  double best_secondary = 0.0;
+
+  for (int child_eid : ordered)
   {
     const auto& child_einfo = graph.edge(child_eid);
     const QSMEdge& ced = child_einfo.data;
-    bool is_better = false;
+    const QSMNode& src = graph.node(child_einfo.source);
+    const QSMNode& tgt = graph.node(child_einfo.target);
+
+    double child_len = ced.length(src, tgt);
+    double score, secondary, tol;
 
     if (use_volume)
     {
-      double child_vol = ced.volume(graph.node(child_einfo.source), graph.node(child_einfo.target));
-      double current_vol = ced.subtree_volume + child_vol;
-      if (current_vol > best_score)
-      {
-        is_better  = true;
-        best_score = current_vol;
-      }
+      score     = ced.subtree_volume + ced.volume(src, tgt);
+      secondary = ced.subtree_length + child_len;
+      tol       = TOL * std::max(1.0, std::abs(best_score));
     }
     else
     {
-      double z         = ced.subtree_max_endZ;
-      double child_len = ced.length(graph.node(child_einfo.source), graph.node(child_einfo.target));
-      double secondary = ced.subtree_length + child_len;
-
-      if (z > best_score + Z_EPS ||
-          (std::abs(z - best_score) <= Z_EPS && secondary > best_secondary))
-      {
-        is_better      = true;
-        best_score     = z;
-        best_secondary = secondary;
-      }
+      score     = ced.subtree_max_endZ;
+      secondary = ced.subtree_length + child_len;
+      tol       = TOL;
     }
 
+    bool is_better;
+    if (main_child < 0)
+      is_better = true;
+    else if (score > best_score + tol)
+      is_better = true;
+    else if (std::abs(score - best_score) <= tol)
+      is_better = secondary > best_secondary + TOL; // ties: lowest edge id wins (ordered)
+    else
+      is_better = false;
+
     if (is_better)
-      main_child = child_eid;
+    {
+      main_child     = child_eid;
+      best_score     = score;
+      best_secondary = secondary;
+    }
   }
 
   for (int child_eid : child_eids)
