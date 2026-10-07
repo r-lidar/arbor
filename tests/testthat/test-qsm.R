@@ -43,11 +43,11 @@ test_that("qsm computes correct volume per quality", {
   vq5 = qsm_volume(bq5)
   vm1 = qsm_volume(m1)
 
-  expect_equal(vo1/V*100, 81.5, tolerance = 0.0005)
-  expect_equal(vo3/V*100, 2.9, tolerance = 0.0005)
-  expect_equal(vq4/V*100, 3.06, tolerance = 0.0005)
-  expect_equal(vq5/V*100, 56.56, tolerance = 0.0005)
-  expect_equal(vm1/V*100, 82.73, tolerance = 0.0005)
+  expect_equal(vo1/V*100, 81.39, tolerance = 0.0002)
+  expect_equal(vo3/V*100, 3.086, tolerance = 0.0002)
+  expect_equal(vq4/V*100, 3.058, tolerance = 0.0002)
+  expect_equal(vq5/V*100, 56.99, tolerance = 0.0002)
+  expect_equal(vm1/V*100, 82.70, tolerance = 0.0002)
 })
 
 test_that("calling C++ preserves qsm attributes", {
