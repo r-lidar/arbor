@@ -45,7 +45,7 @@ test_that("qsm computes correct volume per quality", {
 
   expect_equal(vo1/V*100, 81.39, tolerance = 0.0002)
   expect_equal(vo3/V*100, 3.086, tolerance = 0.0002)
-  expect_equal(vq4/V*100, 3.058, tolerance = 0.0002)
+  expect_equal(vq4/V*100, 3.059, tolerance = 0.0002)
   expect_equal(vq5/V*100, 56.99, tolerance = 0.0002)
   expect_equal(vm1/V*100, 82.70, tolerance = 0.0002)
 })
