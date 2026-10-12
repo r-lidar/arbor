@@ -50,7 +50,6 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   builder.set_wood(wood);
   builder.add_core_layer(core);
   builder.add_seed_layer(core, seeds);
-  builder.add_master_seed_layer();
   builder.fix_directed_reachability(core);
   return builder.get_graph();
 }
@@ -130,38 +129,33 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   size_t num_raw_pts = core.size();
   size_t num_points  = dec.size();
-  size_t num_seeds   = seeds.size();
 
   ServiceLocator::logger()("Constructing the graph (2/4)");
 
   // Build graph
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
-  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
-
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
-  // Indexes of the seeds in the graph
-  Graph::NodeIDs seeds_ids(num_seeds);
-  std::iota(seeds_ids.begin(), seeds_ids.end(), num_points);
+  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
 
   ServiceLocator::logger()("Pathfinder (3/4)");
 
   // Retrieve the closest seed for each point
   std::vector<double> distances;
-  Graph::NodeIDs closest_nodeids;
-  graph->shortest_paths_from_node(seeds_ids, distances, closest_nodeids);
+  Graph::NodeIDs closest_seed;
+  graph->shortest_paths_from_sources(distances, closest_seed);
 
   delete graph;
 
-  if (closest_nodeids.size() != num_points+num_seeds+1) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
+  if (closest_seed.size() != num_points) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
 
   // Remap seed index -> seed id for each decimated point
   Graph::NodeIDs treeID(num_points, -1);
   for (size_t i = 0 ; i < num_points ; i++)
   {
-    Graph::NodeId id = closest_nodeids[i];
-    if (id != -1) treeID[i] = static_cast<Graph::NodeId>(seeds.get_treeid(id-num_points));
+    Graph::NodeId id = closest_seed[i];
+    if (id != Graph::NO_NODE) treeID[i] = static_cast<Graph::NodeId>(seeds.get_treeid(id));
   }
 
   ServiceLocator::logger()("Assigning tree IDs to the dense point cloud (4/4)");
@@ -227,19 +221,17 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   GraphBuilder builder(params);
   builder.add_core_layer(core);
   builder.add_seed_layer(core, dtm);
-  builder.add_master_seed_layer();
   builder.fix_directed_reachability2(core);
 
   Graph* graph = builder.get_graph();
   if (graph == nullptr)
     throw std::runtime_error("dist2root(): failed to build graph (null pointer).");
 
-  // Run Dijkstra from master seed
+  // Run Dijkstra from the seeds
   ServiceLocator::logger()(" Dijkstra pathfinder");
 
-  int master_id = builder.get_range_master().second;
   Graph::NodeIDs settle_order;
-  Graph::GraphCache cache = graph->compute_distances(master_id, &settle_order);
+  Graph::GraphCache cache = graph->compute_distances(&settle_order);
   const auto& graph_distances = cache.first;
   const auto& predecessors = cache.second;
 
@@ -252,27 +244,23 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
 
   std::vector<float> euclidean_distance_to_root(num_points, -1.0);
 
-  const Graph::NodeId NO_PRED = -1;
+  const Graph::NodeId NO_PRED = Graph::NO_NODE;
 
   // Precompute per-node euclidean contribution (from node -> its predecessor) O(N) point fetches total
   std::vector<float> edge_euclidean(num_points, 0.0);
   for (size_t i = 0; i < num_points; ++i)
   {
     if (graph_distances[i] == std::numeric_limits<Graph::Cost>::infinity()) continue;
-    if (i >= predecessors.size()) continue;
 
+    // Nodes without predecessor are connected to a seed: they are roots
     Graph::NodeId prev = predecessors[i];
-
     if (prev == NO_PRED) continue;
 
-    if (prev < static_cast<Graph::NodeId>(num_points))
-    {
-      double c[3], p[3];
-      core.get_point(i, c);
-      core.get_point(prev, p);
-      const double dx = c[0]-p[0], dy = c[1]-p[1], dz = c[2]-p[2];
-      edge_euclidean[i] = static_cast<float>(std::sqrt(dx*dx + dy*dy + dz*dz));
-    }
+    double c[3], p[3];
+    core.get_point(i, c);
+    core.get_point(prev, p);
+    const double dx = c[0]-p[0], dy = c[1]-p[1], dz = c[2]-p[2];
+    edge_euclidean[i] = static_cast<float>(std::sqrt(dx*dx + dy*dy + dz*dz));
   }
 
   // Accumulate along the tree using memoization
@@ -280,9 +268,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   // node's predecessor is always processed before the node itself. Only reached nodes are in it.
   for (Graph::NodeId idx : settle_order)
   {
-    if (idx >= num_points) continue; // seeds and master node
-
-    Graph::NodeId prev = (idx < predecessors.size()) ? predecessors[idx] : NO_PRED;
+    Graph::NodeId prev = predecessors[idx];
 
     if (prev == NO_PRED)
     {
@@ -290,8 +276,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
       continue;
     }
 
-    double parent_dist = (prev < static_cast<Graph::NodeId>(num_points)) ? euclidean_distance_to_root[prev] : 0.0;
-    euclidean_distance_to_root[idx] = parent_dist + edge_euclidean[idx];
+    euclidean_distance_to_root[idx] = euclidean_distance_to_root[prev] + edge_euclidean[idx];
   }
 
   return euclidean_distance_to_root;

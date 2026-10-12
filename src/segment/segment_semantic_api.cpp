@@ -23,6 +23,7 @@
 #include "GraphBuilder.h"
 #include "Grid3D.h"
 
+#include <limits>
 #include <numeric>
 
 namespace arbor::segment {
@@ -34,7 +35,6 @@ Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, c
   builder.add_core_layer(core);
   builder.add_target_layer(core, targets);
   builder.add_seed_layer(core, dtm);
-  builder.add_master_seed_layer();
   builder.fix_directed_reachability(core);
   return builder.get_graph();
 }
@@ -60,26 +60,25 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   // Build graph
   Graph* graph = build_semantic_graph(dec, targets, dtm, params);
 
-  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
-  ServiceLocator::logger()(" Graph nodes: " + std::to_string(graph->adjacency_list.size()));
+  if (graph == nullptr) throw std::runtime_error("accumulate_passages: Failed to build graph (null pointer returned).");
 
-  if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
+  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
+  ServiceLocator::logger()(" Graph nodes: " + std::to_string(graph->size()));
 
   size_t num_raw_points = core.size();
   size_t num_points = dec.size();
-  size_t num_target = targets.size();
 
-  int master_id = num_points + num_target + dtm.size();
+  // Targets are not graph nodes: each one hangs off its nearest core node with a zero cost
+  Graph::NodeIDs target_anchors = std::move(graph->target_anchors);
 
   ServiceLocator::logger()("Graph resolution (4/10)");
 
-  // Precompute Dijkstra distances from the master seed, keeping the settle order
+  // Precompute Dijkstra distances from the seeds, keeping the settle order
   Graph::NodeIDs settle_order;
-  Graph::GraphCache cache = graph->compute_distances(master_id, &settle_order);
+  Graph::GraphCache cache = graph->compute_distances(&settle_order);
 
-  // The graph's adjacency list is no longer needed, free it before the
+  // The graph is no longer needed, free it before the
   // passage accumulation to reduce peak memory.
-  size_t num_nodes = graph->adjacency_list.size();
   delete graph;
 
   ServiceLocator::logger()("  Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
@@ -87,21 +86,24 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   ServiceLocator::logger()("Accumulating passages (5/10)");
 
   // The passage of a node is the number of target paths going through it, i.e. the number
-  // of targets in its subtree of the shortest-path tree. Each target starts with a count of 1,
+  // of targets in its subtree of the shortest-path tree. Each target counts 1 on its anchor,
   // then counts are pushed to predecessors in reverse settle order, so a node's subtree is
   // complete before it is added to its parent. O(N) instead of one path walk per target.
-  // Unreachable targets are never settled and therefore contribute nothing, as before.
+  // Dropped targets and targets whose anchor is unreachable contribute nothing.
+  const Graph::DistanceVector& distances = cache.first;
   const Graph::PredecessorVector& predecessors = cache.second;
-  const Graph::NodeId NO_PRED = -1;
 
-  std::vector<int> subtree_count(num_nodes, 0);
-  for (size_t i = 0; i < num_target; ++i)
-    subtree_count[num_points + i] = 1;
+  std::vector<int> passage(num_points, 0);
+  for (Graph::NodeId anchor : target_anchors)
+  {
+    if (anchor != Graph::NO_NODE && distances[anchor] != std::numeric_limits<Graph::Cost>::infinity())
+      passage[anchor] += 1;
+  }
 
   for (auto it = settle_order.rbegin(); it != settle_order.rend(); ++it)
   {
     Graph::NodeId pred = predecessors[*it];
-    if (pred != NO_PRED) subtree_count[pred] += subtree_count[*it];
+    if (pred != Graph::NO_NODE) passage[pred] += passage[*it];
   }
 
   // Release the cache: both vectors need clear + shrink_to_fit to actually
@@ -111,9 +113,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   cache.second.clear();
   cache.second.shrink_to_fit();
   Graph::NodeIDs().swap(settle_order);
-
-  std::vector<int> passage(subtree_count.begin(), subtree_count.begin() + num_points);
-  std::vector<int>().swap(subtree_count);
+  Graph::NodeIDs().swap(target_anchors);
 
   // Transfer passage values from dec back to core.
   // Points not in dec keep the default value of 0.

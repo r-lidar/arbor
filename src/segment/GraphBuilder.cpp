@@ -24,7 +24,10 @@
 
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
+#include <climits>
 #include <cmath>
+#include <limits>
 
 namespace arbor::segment {
 
@@ -32,7 +35,6 @@ GraphBuilder::GraphBuilder(const settings::GraphParameters& p)
 {
   params = p;
   set_angle_penalty(p.angle_penalty);  // validate
-  graph = new Graph();
 }
 
 GraphBuilder::~GraphBuilder() { if (graph_owner) delete graph; }
@@ -63,10 +65,7 @@ void GraphBuilder::set_angle_penalty(const std::vector<float>& x)
 
 void GraphBuilder::add_core_layer(const PointCloud& core)
 {
-  if (total_core_nodes > 0)   throw std::runtime_error("Core layer already populated");
-  if (total_target_nodes > 0) throw std::runtime_error("Core layer must be populated first");
-  if (total_seed_nodes > 0)   throw std::runtime_error("Core layer must be populated first");
-  if (total_master_nodes > 0) throw std::runtime_error("Core layer must be populated first");
+  if (graph != nullptr) throw std::runtime_error("Core layer already populated");
 
   // +1 because nanoflann's kNN includes the query point itself
   params.k++;
@@ -74,12 +73,12 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   int n_points = core.size();
   bool use_wood = wood.size() > 0;
 
-  offset_points    = 0;
   total_core_nodes = n_points;
-  total_nodes      = n_points;
 
-  graph->ensure_size(total_nodes);
-  graph->reserve_edges(params.k);
+  // At most k-1 edges per node: the query point itself is skipped. It can only be missing from
+  // its own kNN if k other points share its exact position, and those are skipped as well.
+  const int stride = std::max(1, params.k - 1);
+  graph = new Graph(n_points, stride);
 
   core.build_index(); // no op if already built
 
@@ -88,10 +87,8 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
     std::vector<unsigned int> idx(params.k);
     std::vector<double> dist(params.k);
 
-    // Thread-local storage for edges
-    std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> local_edges;
-
-    // For each point we connect to its knn. The current point is 'from'.
+    // For each point we connect to its knn. The current point is 'from'. Each thread writes
+    // only the rows of the points it processes, so no synchronization is needed.
     #pragma omp for schedule(static)
     for (int from = 0; from < n_points; ++from)
     {
@@ -99,8 +96,11 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
       core.get_point(from, q);
       core.knn(q, params.k, idx, dist);
 
+      Graph::Node* row = graph->row(from);
+      int degree = 0;
+
       // For each neighbour, compute the cost to connect from -> to
-      for (int j = 0; j < params.k; ++j)
+      for (int j = 0; j < params.k && degree < stride; ++j)
       {
         int to = idx[j];
         if (to == from) continue;               // skip self (0-nn)
@@ -134,57 +134,45 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
           else if (is_wood1 && !is_wood2)  cost *= params.wood2leaf;
         }
 
-        local_edges.emplace_back(from, to, cost);
+        row[degree++] = {static_cast<Graph::NodeId>(to), cost};
       }
-    }
-
-    // Parallel reduction: merge thread-local edges into the shared graph
-    #pragma omp critical
-    {
-      for (auto& e : local_edges)
-        graph->add_edge(std::get<0>(e), std::get<1>(e), std::get<2>(e));
     }
   }
 }
 
 // ---------------------------------------------------------
-// 2. Target Layer (core point -> target node)
+// 2. Target Layer (core point -> target)
 // ---------------------------------------------------------
 
-// Each target point is connected to its nearest core point with cost 0.
+// Each target point hangs off its nearest core point with cost 0. Targets are leaves, so they
+// are not stored as nodes: only the nearest core point (anchor) is recorded.
 
 void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& target)
 {
   if (total_target_nodes > 0) throw std::runtime_error("Target layer already populated");
-  if (total_core_nodes == 0)  throw std::runtime_error("Target layer must be populated after core layer");
-  if (total_seed_nodes > 0)   throw std::runtime_error("Target layer must be populated before seed layer");
-  if (total_master_nodes > 0) throw std::runtime_error("Target layer must be populated before master layer");
+  if (graph == nullptr)       throw std::runtime_error("Target layer must be populated after core layer");
 
   int n_target = target.size();
-
-  offset_targets     = total_nodes;
-  total_target_nodes = n_target;     // fixed: was incorrectly set to core.size()
-  total_nodes       += n_target;
-
-  graph->ensure_size(total_nodes);
-  graph->reserve_edges(params.k);
+  total_target_nodes = n_target;
 
   core.build_index(); // no op if already built
 
-  // Reuse the KD-tree built in add_core_layer
-  std::vector<unsigned int> idx(params.k);
-  std::vector<double> dist(params.k);
+  Graph::NodeIDs& anchors = graph->target_anchors;
+  anchors.assign(n_target, Graph::NO_NODE);
 
-  for (int i = 0; i < n_target; ++i)
+  #pragma omp parallel
   {
-    double q[3];
-    target.get_point(i, q);
-    core.knn(q, params.k, idx, dist);
+    std::vector<unsigned int> idx(1);
+    std::vector<double> dist(1);
 
-    // Zero-cost edge from the nearest core point to this target node
-    int from = idx[0];
-    int to   = i + offset_targets;
-    graph->add_edge(from, to, 0.0f);
+    #pragma omp for schedule(static)
+    for (int i = 0; i < n_target; ++i)
+    {
+      double q[3];
+      target.get_point(i, q);
+      core.knn(q, 1, idx, dist);
+      anchors[i] = idx[0];
+    }
   }
 }
 
@@ -192,100 +180,133 @@ void GraphBuilder::add_target_layer(const PointCloud& core, const PointCloud& ta
 // 3. Seed Layer (seed -> core points)
 // ---------------------------------------------------------
 
+// Seeds are not stored as nodes either. With the master seed connected to every seed at cost 0,
+// a shortest path starts at the seed offering the cheapest connection to its first core node.
+// So each core node reached by a seed becomes a Dijkstra source with the cheapest seed cost.
+
 void GraphBuilder::add_seed_layer(const PointCloud& core, const PointCloud& seeds)
 {
-  if (total_seed_nodes > 0)   throw std::runtime_error("Seed layer already populated");
-  if (total_core_nodes == 0)  throw std::runtime_error("Seed layer must be populated after core layer");
-  if (total_master_nodes > 0) throw std::runtime_error("Seed layer must be populated before master layer");
+  if (total_seed_nodes > 0) throw std::runtime_error("Seed layer already populated");
+  if (graph == nullptr)     throw std::runtime_error("Seed layer must be populated after core layer");
 
-  int k        = params.k_seed;
-  int n_points = seeds.size();
+  const int k        = params.k_seed;
+  const int n_points = seeds.size();
+  const size_t n_core = total_core_nodes;
 
-  offset_seeds     = total_nodes;
   total_seed_nodes = n_points;
-  total_nodes     += n_points;
-
-  graph->ensure_size(total_nodes);
-  graph->reserve_edges(k);
 
   core.build_index(); // no op if already built
 
-  // Reuse the KD-tree built in add_core_layer
-  std::vector<unsigned int> idx(k);
-  std::vector<double> dist(k);
+  std::vector<Graph::Cost> best_cost(n_core, std::numeric_limits<Graph::Cost>::infinity());
+  Graph::NodeIDs best_seed(n_core, Graph::NO_NODE);
 
-  for (int i = 0; i < n_points; ++i)
+  // kNN queries run in parallel by chunks, then the candidates are reduced sequentially in seed
+  // order so that ties are resolved exactly as in a sequential search (first seed wins).
+  const int chunk = 4096;
+  std::vector<unsigned int> chunk_idx(static_cast<size_t>(chunk) * k);
+  std::vector<Graph::Cost> chunk_cost(static_cast<size_t>(chunk) * k);
+
+  for (int start = 0; start < n_points; start += chunk)
   {
-    double q[3];
-    seeds.get_point(i, q);
-    core.knn(q, k, idx, dist);
+    const int end = std::min(start + chunk, n_points);
 
-    for (int j = 0; j < k; ++j)
+    #pragma omp parallel
     {
-      float cost = std::sqrt(dist[j]);
-      cost = std::pow(cost, params.power);
-      int from = i + offset_seeds;
-      int to   = idx[j];
-      graph->add_edge(from, to, cost);
+      std::vector<unsigned int> idx(k);
+      std::vector<double> dist(k);
+
+      #pragma omp for schedule(static)
+      for (int i = start; i < end; ++i)
+      {
+        double q[3];
+        seeds.get_point(i, q);
+        core.knn(q, k, idx, dist);
+
+        size_t offset = static_cast<size_t>(i - start) * k;
+        for (int j = 0; j < k; ++j)
+        {
+          float cost = std::sqrt(dist[j]);
+          cost = std::pow(cost, params.power);
+          chunk_idx[offset + j]  = idx[j];
+          chunk_cost[offset + j] = cost;
+        }
+      }
     }
+
+    for (int i = start; i < end; ++i)
+    {
+      size_t offset = static_cast<size_t>(i - start) * k;
+      for (int j = 0; j < k; ++j)
+      {
+        unsigned int to = chunk_idx[offset + j];
+        if (chunk_cost[offset + j] < best_cost[to])
+        {
+          best_cost[to] = chunk_cost[offset + j];
+          best_seed[to] = i;
+        }
+      }
+    }
+  }
+
+  graph->sources.clear();
+  for (size_t i = 0; i < n_core; ++i)
+  {
+    if (best_seed[i] != Graph::NO_NODE)
+      graph->sources.push_back({static_cast<Graph::NodeId>(i), best_cost[i], best_seed[i]});
   }
 }
 
 // ---------------------------------------------------------
-// 4. Master Seed Layer (master -> all seeds, cost 0)
+// 4. Fix gap and unreachable points
 // ---------------------------------------------------------
 
-void GraphBuilder::add_master_seed_layer()
+std::vector<bool> GraphBuilder::reachable_from_sources() const
 {
-  if (total_master_nodes > 0) throw std::runtime_error("Master layer already populated");
-  if (total_core_nodes == 0)  throw std::runtime_error("Master layer must be populated after core layer");
-  if (total_seed_nodes == 0)  throw std::runtime_error("Seed layer must be populated before master layer");
+  const size_t N = graph->size();
+  std::vector<bool> reachable(N, false);
+  std::vector<Graph::NodeId> stack;
+  stack.reserve(N);
 
-  offset_master      = total_nodes;
-  total_master_nodes = 1;
-  total_nodes       += 1;
+  for (const Graph::Source& s : graph->sources)
+  {
+    if (!reachable[s.node])
+    {
+      reachable[s.node] = true;
+      stack.push_back(s.node);
+    }
+  }
 
-  graph->ensure_size(total_nodes);
-  graph->reserve_edges(total_seed_nodes);
+  while (!stack.empty())
+  {
+    Graph::NodeId u = stack.back(); stack.pop_back();
+    graph->for_each_edge(u, [&](const Graph::Node& e)
+    {
+      if (!reachable[e.destination])
+      {
+        reachable[e.destination] = true;
+        stack.push_back(e.destination);
+      }
+    });
+  }
 
-  for (int i = 0; i < total_seed_nodes; ++i)
-    graph->add_edge(offset_master, offset_seeds + i, 0.0f);
+  return reachable;
 }
-
-// ---------------------------------------------------------
-// 5. Fix gap and unreachable points
-// ---------------------------------------------------------
 
 void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 {
   ServiceLocator::logger()(" Test directed reachability");
 
-  const Graph::NodeId source = get_range_master().second;
+  if (graph == nullptr)       throw std::runtime_error("Reachability must be fixed after core layer");
+  if (total_seed_nodes == 0)  throw std::runtime_error("Reachability must be fixed after seed layer");
+
   const size_t N = static_cast<size_t>(total_core_nodes);
 
   if (N < 2) return;
 
-  // DFS from master seed: returns core node IDs unreachable from source
+  // Traversal from the sources: returns core node IDs unreachable from them
   auto find_isolated = [&]() -> std::vector<Graph::NodeId>
   {
-    const size_t total = graph->adjacency_list.size();
-    std::vector<bool> reachable(total, false);
-    std::vector<Graph::NodeId> stack;
-    stack.reserve(total);
-    stack.push_back(source);
-    reachable[source] = true;
-
-    while (!stack.empty())
-    {
-      Graph::NodeId u = stack.back(); stack.pop_back();
-      for (const auto& e : graph->adjacency_list[u])
-      {
-        if (e.destination >= 0 && !reachable[e.destination])
-        {
-          reachable[e.destination] = true; stack.push_back(e.destination);
-        }
-      }
-    }
+    std::vector<bool> reachable = reachable_from_sources();
 
     std::vector<Graph::NodeId> isolated;
     for (size_t i = 0; i < N; ++i)
@@ -311,7 +332,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   const bool  use_wood  = !wood.empty();
 
   // Reuse the KD-tree built in add_core_layer (same cloud, same parameters)
-  std::vector<std::tuple<Graph::NodeId, Graph::NodeId, Graph::Cost>> new_edges;
+  std::vector<Graph::Edge> new_edges;
   new_edges.reserve(isolated_ids.size() * k_retry * 2);
 
   cloud.build_index();
@@ -319,10 +340,13 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   std::vector<unsigned int> idx(k_retry);
   std::vector<double> sq_dist(k_retry);
 
+  std::vector<bool> wiped(N, false);
+
   for (Graph::NodeId from : isolated_ids)
   {
     // Wipe old edges, they were confined within the isolated sub-graph
-    graph->adjacency_list[from].clear();
+    graph->clear_row(from);
+    wiped[from] = true;
 
     double q[3];
     cloud.get_point(from, q);
@@ -363,7 +387,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
           else if ( w1 && !w2) cost *= params.wood2leaf;
         }
 
-        new_edges.emplace_back(from, to, cost);
+        new_edges.push_back({from, {to, cost}});
       }
 
       // Reverse edge: to -> from (direction flipped, so dz and wood roles swap)
@@ -381,13 +405,20 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
           else if ( w1 && !w2) cost *= params.wood2leaf;
         }
 
-        new_edges.emplace_back(to, from, cost);
+        new_edges.push_back({to, {from, cost}});
       }
     }
   }
 
-  for (auto& [a, b, c] : new_edges)
-    graph->add_edge(a, b, c);
+  graph->add_extra_edges(new_edges);
+
+  // When targets were stored as nodes, the zero-cost edge to a target was in the out-edges of
+  // its core node and was wiped with them. Drop those targets to keep the same results.
+  for (Graph::NodeId& anchor : graph->target_anchors)
+  {
+    if (anchor != Graph::NO_NODE && wiped[anchor])
+      anchor = Graph::NO_NODE;
+  }
 
   // Verify
   std::vector<Graph::NodeId> still_isolated = find_isolated();
@@ -401,29 +432,17 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
 {
   ServiceLocator::logger()(" Test directed reachability");
 
-  const Graph::NodeId source = get_range_master().second;
+  if (graph == nullptr)       throw std::runtime_error("Reachability must be fixed after core layer");
+  if (total_seed_nodes == 0)  throw std::runtime_error("Reachability must be fixed after seed layer");
+
   const size_t N = static_cast<size_t>(total_core_nodes);
   if (N < 2) return;
 
   // ---------------------------------------------------------------
-  // Step 1: BFS from source following directed edges.
-  //         Mark every node reachable from the master seed.
+  // Step 1: Traversal from the sources following directed edges.
+  //         Mark every node reachable from the seeds.
   // ---------------------------------------------------------------
-  const size_t total = graph->adjacency_list.size();
-  std::vector<bool> reachable(total, false);
-  {
-    std::vector<Graph::NodeId> stack;
-    stack.reserve(total);
-    stack.push_back(source);
-    reachable[source] = true;
-    while (!stack.empty())
-    {
-      Graph::NodeId u = stack.back(); stack.pop_back();
-      for (const auto& e : graph->adjacency_list[u])
-        if (e.destination >= 0 && !reachable[e.destination])
-        { reachable[e.destination] = true; stack.push_back(e.destination); }
-    }
-  }
+  std::vector<bool> reachable = reachable_from_sources();
 
   // ---------------------------------------------------------------
   // Step 2: Partition core nodes into reachable vs. isolated.
@@ -471,16 +490,15 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
     for (size_t qi = 0; qi < queue.size(); ++qi)
     {
       Graph::NodeId u = queue[qi];
-      for (const auto& e : graph->adjacency_list[u])
+      graph->for_each_edge(u, [&](const Graph::Node& e)
       {
         Graph::NodeId v = e.destination;
-        if (v >= 0 && v < static_cast<Graph::NodeId>(N) &&
-            iso_component[v] == INT_MAX)
+        if (iso_component[v] == INT_MAX)
         {
           iso_component[v] = num_clusters;
           queue.push_back(v);
         }
-      }
+      });
     }
 
     ++num_clusters;
@@ -507,8 +525,8 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   // ---------------------------------------------------------------
   struct Bridge
   {
-    Graph::NodeId iso_node   = -1;
-    Graph::NodeId reach_node = -1;
+    Graph::NodeId iso_node   = Graph::NO_NODE;
+    Graph::NodeId reach_node = Graph::NO_NODE;
     double        sq_dist    = std::numeric_limits<double>::infinity();
   };
   std::vector<Bridge> best(num_clusters);
@@ -537,36 +555,24 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   //         because the first pass already tried relaxed params
   //         and failed. The graph must be connected.
   // ---------------------------------------------------------------
-  int bridges_added = 0;
+  std::vector<Graph::Edge> bridges;
+  bridges.reserve(2 * best.size());
   for (const Bridge& b : best)
   {
-    if (b.iso_node == -1) continue;
+    if (b.iso_node == Graph::NO_NODE) continue;
     double d = std::sqrt(b.sq_dist);
     const Graph::Cost cost = static_cast<Graph::Cost>(std::pow(d, params.power));
-    graph->add_edge(b.reach_node, b.iso_node, cost);
-    graph->add_edge(b.iso_node,   b.reach_node, cost);
-    ++bridges_added;
+    bridges.push_back({b.reach_node, {b.iso_node, cost}});
+    bridges.push_back({b.iso_node,   {b.reach_node, cost}});
   }
+  graph->add_extra_edges(bridges);
+  int bridges_added = bridges.size() / 2;
 
   // ---------------------------------------------------------------
   // Step 7: Verify, one final reachability scan.
   // ---------------------------------------------------------------
   {
-    std::fill(reachable.begin(), reachable.end(), false);
-    std::vector<Graph::NodeId> stack;
-    stack.push_back(source);
-    reachable[source] = true;
-    while (!stack.empty())
-    {
-      Graph::NodeId u = stack.back(); stack.pop_back();
-      for (const auto& e : graph->adjacency_list[u])
-      {
-        if (e.destination >= 0 && !reachable[e.destination])
-        {
-          reachable[e.destination] = true; stack.push_back(e.destination);
-        }
-      }
-    }
+    reachable = reachable_from_sources();
 
     size_t still_isolated = 0;
     for (size_t i = 0; i < N; ++i)
@@ -585,10 +591,5 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
 int GraphBuilder::get_num_cores()   const { return total_core_nodes; }
 int GraphBuilder::get_num_targets() const { return total_target_nodes; }
 int GraphBuilder::get_num_seeds()   const { return total_seed_nodes; }
-int GraphBuilder::get_num_master()  const { return total_master_nodes; }
-std::pair<int, int> GraphBuilder::get_range_core()    const { return {offset_points,  offset_points  + total_core_nodes   - 1}; }
-std::pair<int, int> GraphBuilder::get_range_targets() const { return {offset_targets, offset_targets + total_target_nodes - 1}; }
-std::pair<int, int> GraphBuilder::get_range_seed()    const { return {offset_seeds,   offset_seeds   + total_seed_nodes   - 1}; }
-std::pair<int, int> GraphBuilder::get_range_master()  const { return {offset_master,  offset_master  + total_master_nodes - 1}; }
 
 }

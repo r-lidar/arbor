@@ -89,18 +89,6 @@ Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core,
 Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
-
-//[[Rcpp::export(rng = false)]]
 void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200);
 
 //[[Rcpp::export(rng = false)]]

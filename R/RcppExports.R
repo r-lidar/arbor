@@ -69,22 +69,6 @@ assign_wood_from_wood_dilatation_cpp <- function(core, params) {
     .Call(`_arbor_assign_wood_from_wood_dilatation_cpp`, core, params)
 }
 
-build_semantic_graph <- function(dec, target, gnd, params) {
-    .Call(`_arbor_build_semantic_graph`, dec, target, gnd, params)
-}
-
-build_instance_graph <- function(dec, seed, params) {
-    .Call(`_arbor_build_instance_graph`, dec, seed, params)
-}
-
-accumulate_passages_old <- function(graph_ptr, start_node, goal_nodes, num_points) {
-    .Call(`_arbor_accumulate_passages_old`, graph_ptr, start_node, goal_nodes, num_points)
-}
-
-find_closest_node <- function(graph_ptr, ids) {
-    .Call(`_arbor_find_closest_node`, graph_ptr, ids)
-}
-
 C_fix_small_isolated_low_clusters <- function(df, res = 0.05, min_size = 200L) {
     invisible(.Call(`_arbor_C_fix_small_isolated_low_clusters`, df, res, min_size))
 }

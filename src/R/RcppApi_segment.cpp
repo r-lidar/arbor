@@ -38,8 +38,6 @@
 
 
 // Type aliases for clarity
-using GraphPtr = Rcpp::XPtr<arbor::segment::Graph>;
-using GraphCache = arbor::segment::Graph::GraphCache;  // Use the typedef from Graph.h
 using DF = Rcpp::DataFrame;
 
 namespace arbor::segment
@@ -50,8 +48,6 @@ std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::se
 std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
 std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
-Graph* build_semantic_graph(const PointCloud& core, const PointCloud& target, const PointCloud& gnd, const arbor::settings::GraphParameters& params);
-Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const arbor::settings::GraphParameters& params);
 }
 
 void segment_ground_cpp(DF core, Rcpp::List params)
@@ -150,97 +146,6 @@ Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List par
   std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams);
   return Rcpp::LogicalVector(ans.begin(), ans.end());
 }
-
-SEXP build_semantic_graph(DF dec, DF targets, DF gnd, Rcpp::List params)
-{
-  arbor::settings::GraphParameters p = extract_pathfinder_params(params);
-
-  PointCloud core(dec);
-  PointCloud trgt(targets);
-  PointCloud ground(gnd);
-
-  arbor::segment::Graph* graph = arbor::segment::build_semantic_graph(core, trgt, ground, p);
-  GraphPtr ptr(graph, true);
-  return ptr;
-}
-
-SEXP build_instance_graph(DF dec, DF seed, Rcpp::List params)
-{
-  arbor::settings::GraphParameters p = extract_pathfinder_params(params);
-
-  PointCloud core(dec);
-  PointCloud seeds(seed);
-
-  arbor::segment::Graph* graph = arbor::segment::build_instance_graph(core, seeds, p);
-
-  GraphPtr ptr(graph, true);
-  return ptr;
-}
-
-Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points)
-{
-  GraphPtr graph(graph_ptr);
-  const int n_goals = goal_nodes.size();
-
-  // Global count vector
-  std::vector<int> passage(num_points, 0);
-
-  // Precompute distances for fast access
-  arbor::segment::Graph::GraphCache cache = graph->compute_distances(start_node);
-
-  // Parallel loop over goal nodes
-  #pragma omp parallel
-  {
-    std::vector<int> local_passage(num_points, 0);  // thread-local counts
-
-    #pragma omp for schedule(dynamic, 100)
-    for (int i = 0; i < n_goals; ++i)
-    {
-      arbor::segment::Graph::NodeId goal  = goal_nodes[i];
-
-      auto [path, cost] = graph->findPath(start_node, goal, cache);
-
-      for (size_t j = 0; j < path.size(); ++j)
-      {
-        arbor::segment::Graph::NodeId id = path[j];
-        if (id >= 0 && id < num_points)
-          local_passage[id] += 1;
-      }
-    }
-
-    // Merge results into global passage safely
-    #pragma omp critical
-    {
-      for (int i = 0; i < num_points; ++i)
-        passage[i] += local_passage[i];
-    }
-  }
-
-return Rcpp::wrap(passage);
-}
-
-/*
- * For a set query nodes (usually seed nodes) computes for each node of the graph
- * the distance to the closest query node and return the id of the
- * closest nodes
- */
-Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids)
-{
-  GraphPtr graph(graph_ptr);
-
-  // Convert R vector of ground nodes to std::vector<NodeId>
-  arbor::segment::Graph::NodeIDs node_ids(ids.begin(), ids.end());
-
-  std::vector<double> distances;
-  arbor::segment::Graph::NodeIDs closest_nodeids;
-
-  // Run the optimized multi-source Dijkstra
-  graph->shortest_paths_from_node(node_ids, distances, closest_nodeids);
-
-  // Return as R list
-  return Rcpp::IntegerVector(closest_nodeids.begin(), closest_nodeids.end());
-}
-
 
 Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation)
 {

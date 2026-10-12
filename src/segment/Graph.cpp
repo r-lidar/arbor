@@ -28,47 +28,76 @@
 
 namespace arbor::segment {
 
-void Graph::add_edge(NodeId source, NodeId destination, Cost cost)
+Graph::Graph(size_t num_nodes, size_t stride) :
+  num_nodes_(num_nodes),
+  stride_(stride),
+  slots_(num_nodes * stride, Node{NO_NODE, 0.0f}),
+  has_extra_(num_nodes, false),
+  extra_offset_(1, 0)
 {
-  adjacency_list[source].push_back({destination, cost});
 }
 
-void Graph::ensure_size(size_t n)
+void Graph::clear_row(NodeId u)
 {
-  if (adjacency_list.size() < n)
-    adjacency_list.resize(n);
+  Node* r = row(u);
+  std::fill(r, r + stride_, Node{NO_NODE, 0.0f});
 }
 
-void Graph::clear_adjacency_list()
+void Graph::add_extra_edges(const std::vector<Edge>& edges)
 {
-  AdjacencyList().swap(adjacency_list);
-}
+  if (edges.empty()) return;
 
-void Graph::reserve_edges(size_t capacity)
-{
-  for (auto& e : adjacency_list)
+  // Rebuild the side table from the existing and the new edges. This is called at most a
+  // couple of times on a small number of edges.
+  std::vector<Edge> all;
+  all.reserve(extra_edges_.size() + edges.size());
+  for (size_t i = 0; i < extra_src_.size(); ++i)
   {
-    if (e.capacity() == 0)
-      e.reserve(capacity);
+    for (size_t e = extra_offset_[i]; e < extra_offset_[i + 1]; ++e)
+      all.push_back({extra_src_[i], extra_edges_[e]});
   }
+  all.insert(all.end(), edges.begin(), edges.end());
+
+  // Stable: keeps the insertion order of the edges of a given node
+  std::stable_sort(all.begin(), all.end(), [](const Edge& a, const Edge& b) { return a.source < b.source; });
+
+  extra_src_.clear();
+  extra_offset_.assign(1, 0);
+  extra_edges_.clear();
+  extra_edges_.reserve(all.size());
+
+  for (const Edge& e : all)
+  {
+    if (extra_src_.empty() || extra_src_.back() != e.source)
+    {
+      if (!extra_src_.empty()) extra_offset_.push_back(extra_edges_.size());
+      extra_src_.push_back(e.source);
+      has_extra_[e.source] = true;
+    }
+    extra_edges_.push_back(e.node);
+  }
+  extra_offset_.push_back(extra_edges_.size());
 }
 
-std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start, NodeIDs* settle_order) const
+Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
 {
-  DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
-  distances[start] = 0.0f;
-
-  PredecessorVector predecessors(adjacency_list.size(), -1);
+  DistanceVector distances(num_nodes_, std::numeric_limits<Cost>::infinity());
+  PredecessorVector predecessors(num_nodes_, NO_NODE);
 
   if (settle_order)
   {
     settle_order->clear();
-    settle_order->reserve(adjacency_list.size());
+    settle_order->reserve(num_nodes_);
   }
 
   using QueueNode = std::pair<Cost, NodeId>;
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
-  open_set.push({0.0f, start});
+
+  for (const Source& s : sources)
+  {
+    distances[s.node] = s.cost;
+    open_set.push({s.cost, s.node});
+  }
 
   while (!open_set.empty())
   {
@@ -80,7 +109,7 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
     // A node is pushed only on a strict improvement, so this point is reached once per node
     if (settle_order) settle_order->push_back(current);
 
-    for (const Node& neighbor : adjacency_list[current])
+    for_each_edge(current, [&](const Node& neighbor)
     {
       Cost new_cost = current_cost + neighbor.cost;
       if (new_cost < distances[neighbor.destination])
@@ -89,49 +118,27 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
         predecessors[neighbor.destination] = current;
         open_set.push({new_cost, neighbor.destination});
       }
-    }
+    });
   }
 
-  return {distances, predecessors};
+  return {std::move(distances), std::move(predecessors)};
 }
 
-std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const GraphCache& precomputed_data)
-{
-  const auto& [distances, predecessors] = precomputed_data;
-
-  if (distances[goal] == std::numeric_limits<Cost>::infinity())
-    return {{}, -1.0f};
-
-  Path path;
-  for (NodeId node = goal; node != start; )
-  {
-    if (node < 0 || node >= static_cast<NodeId>(predecessors.size()) || predecessors[node] == -1)
-      return {{}, -1.0f};
-    path.push_back(node);
-    node = predecessors[node];
-  }
-
-  path.push_back(start);
-  std::reverse(path.begin(), path.end());
-  return {path, distances[goal]};
-}
-
-void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& distances, NodeIDs& closest_nodeids) const
+void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs& closest_seed) const
 {
   const double INF = std::numeric_limits<double>::infinity();
-  size_t N = adjacency_list.size();
 
-  distances.assign(N, INF);
-  closest_nodeids.assign(N, -1);
+  distances.assign(num_nodes_, INF);
+  closest_seed.assign(num_nodes_, NO_NODE);
 
   using PQElement = std::pair<double, NodeId>;
   std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;
 
-  for (NodeId g : nodes)
+  for (const Source& s : sources)
   {
-    distances[g] = 0.0;
-    closest_nodeids[g] = g;
-    pq.push({0.0, g});
+    distances[s.node] = s.cost;
+    closest_seed[s.node] = s.seed;
+    pq.push({distances[s.node], s.node});
   }
 
   while (!pq.empty())
@@ -141,28 +148,30 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
 
     if (dist_u > distances[u]) continue;
 
-    for (const auto& e : adjacency_list[u])
+    for_each_edge(u, [&](const Node& e)
     {
       NodeId v = e.destination;
       double new_dist = dist_u + e.cost;
       if (new_dist < distances[v])
       {
         distances[v] = new_dist;
-        closest_nodeids[v] = closest_nodeids[u];
+        closest_seed[v] = closest_seed[u];
         pq.push({new_dist, v});
       }
-    }
+    });
   }
 }
 
 size_t Graph::mem() const
 {
   size_t total = sizeof(*this);
-  for (const auto& neighbors : adjacency_list)
-  {
-    total += sizeof(neighbors);
-    total += neighbors.capacity() * sizeof(Node);
-  }
+  total += slots_.capacity() * sizeof(Node);
+  total += has_extra_.capacity() / 8;
+  total += extra_src_.capacity() * sizeof(NodeId);
+  total += extra_offset_.capacity() * sizeof(size_t);
+  total += extra_edges_.capacity() * sizeof(Node);
+  total += sources.capacity() * sizeof(Source);
+  total += target_anchors.capacity() * sizeof(NodeId);
   return total;
 }
 
