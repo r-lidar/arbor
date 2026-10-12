@@ -54,7 +54,9 @@ public:
   void reserve_edges(size_t capacity);
   void add_edge(NodeId source, NodeId destination, Cost cost);
   void clear_adjacency_list();
-  std::pair<DistanceVector, PredecessorVector> compute_distances(NodeId start) const;
+  // If settle_order is provided, it receives the reached nodes in the order Dijkstra settled them.
+  // This is a topological order of the shortest-path tree: every node comes after its predecessor.
+  std::pair<DistanceVector, PredecessorVector> compute_distances(NodeId start, NodeIDs* settle_order = nullptr) const;
   static std::pair<Path, Cost> findPath(NodeId start, NodeId goal, const GraphCache& precomputed_data);
   void shortest_paths_from_node(const NodeIDs& ground_nodes, std::vector<double>& distances, NodeIDs& closest_ground) const;
   size_t mem() const;

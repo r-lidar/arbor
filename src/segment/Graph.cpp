@@ -53,12 +53,18 @@ void Graph::reserve_edges(size_t capacity)
   }
 }
 
-std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start) const
+std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start, NodeIDs* settle_order) const
 {
   DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
   distances[start] = 0.0f;
 
   PredecessorVector predecessors(adjacency_list.size(), -1);
+
+  if (settle_order)
+  {
+    settle_order->clear();
+    settle_order->reserve(adjacency_list.size());
+  }
 
   using QueueNode = std::pair<Cost, NodeId>;
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
@@ -70,6 +76,9 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
     open_set.pop();
 
     if (current_cost > distances[current]) continue;
+
+    // A node is pushed only on a strict improvement, so this point is reached once per node
+    if (settle_order) settle_order->push_back(current);
 
     for (const Node& neighbor : adjacency_list[current])
     {

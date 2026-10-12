@@ -238,7 +238,8 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   ServiceLocator::logger()(" Dijkstra pathfinder");
 
   int master_id = builder.get_range_master().second;
-  Graph::GraphCache cache = graph->compute_distances(master_id);
+  Graph::NodeIDs settle_order;
+  Graph::GraphCache cache = graph->compute_distances(master_id, &settle_order);
   const auto& graph_distances = cache.first;
   const auto& predecessors = cache.second;
 
@@ -275,17 +276,11 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   }
 
   // Accumulate along the tree using memoization
-  // Process in topological order (by graph_distances = BFS/Dijkstra order)
-  std::vector<size_t> order(num_points);
-  std::iota(order.begin(), order.end(), 0);
-  std::sort(order.begin(), order.end(), [&](size_t a, size_t b)
+  // Process in Dijkstra settle order: a topological order of the shortest-path tree, so a
+  // node's predecessor is always processed before the node itself. Only reached nodes are in it.
+  for (Graph::NodeId idx : settle_order)
   {
-    return graph_distances[a] < graph_distances[b];
-  });
-
-  for (size_t idx : order)
-  {
-    if (graph_distances[idx] == std::numeric_limits<Graph::Cost>::infinity()) continue;
+    if (idx >= num_points) continue; // seeds and master node
 
     Graph::NodeId prev = (idx < predecessors.size()) ? predecessors[idx] : NO_PRED;
 
