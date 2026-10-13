@@ -414,38 +414,40 @@ if (has_crs) {
 
 # Filters
 
-Use the controls below to focus the report on a subset of trees. All three
+Use the controls below to focus the report on a subset of trees. All four
 controls act on the **same set of trees** and immediately update every
 chart, map, table, and summary card below -- including the Carbon Estimate
 and QSM Quality sections.
 
 ```{r filters-slider}
-vol_range <- range(ans_df$volume, na.rm = TRUE)
-vol_step  <- signif(diff(vol_range) / 500, 2)
-if (!is.finite(vol_step) || vol_step <= 0) vol_step <- 0.001
+# Sliders start at 0 and end at a round number just above the data maximum
+# (e.g. 0.6 instead of 0.61, 12 instead of 11.9) so the graduations are clean.
+nice_max <- function(x) {
+  x <- max(x, na.rm = TRUE)
+  if (!is.finite(x) || x <= 0) return(1)
+  max(pretty(c(0, x), n = 6))
+}
 
-filter_slider(
-  id = "volume_filter",
-  label = "Filter by tree volume (m\u00B3)",
-  sharedData = sd_trees,
-  column = ~volume,
-  step = vol_step,
-  width = "100%"
-)
-```
+nice_slider <- function(id, label, column, values) {
+  top  <- nice_max(values)
+  step <- signif(top / 500, 2)
+  if (!is.finite(step) || step <= 0) step <- 0.001
+  filter_slider(
+    id = id,
+    label = label,
+    sharedData = sd_trees,
+    column = column,
+    step = step,
+    min = 0,
+    max = top,
+    width = "100%"
+  )
+}
 
-```{r filters-dbh}
-dbh_range <- range(ans_df$dbh_cm, na.rm = TRUE)
-dbh_step  <- signif(diff(dbh_range) / 500, 2)
-if (!is.finite(dbh_step) || dbh_step <= 0) dbh_step <- 0.1
-
-filter_slider(
-  id = "dbh_filter",
-  label = "Filter by DBH (cm)",
-  sharedData = sd_trees,
-  column = ~dbh_cm,
-  step = dbh_step,
-  width = "100%"
+tagList(
+  nice_slider("volume_filter", "Filter by tree volume (m\u00B3)", ~volume, ans_df$volume),
+  nice_slider("dbh_filter", "Filter by DBH (cm)", ~dbh_cm, ans_df$dbh_cm),
+  nice_slider("height_filter", "Filter by height (m)", ~height, ans_df$height)
 )
 ```
 

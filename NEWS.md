@@ -1,6 +1,7 @@
 # 1.1.3 
 
-- Fix histogram interactivity in the html report of the command line tools.
+- Enhancement: new slider in the html report of the command line tools.
+- Fix: histogram interactivity in the html report of the command line tools.
 
 # v1.1.2
 
