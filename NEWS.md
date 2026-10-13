@@ -9,6 +9,11 @@
  - Enhance documentation of `qsm_read()` with examples
  - Enhance documentation of `st_crs()` with examples
 
+# 1.1.3 
+
+- Enhancement: new slider in the html report of the command line tools.
+- Fix: histogram interactivity in the html report of the command line tools.
+
 # v1.1.2
 
 - Enhancement: `qsf()` now checks QSM logs before returning and issues warnings when potential issues are detected, prompting users to inspect the results with `qsf_log()`.
@@ -16,7 +21,7 @@
 
 # v1.1.1
 
-Fix: CRS assignment with `st_crs()<-` was not returning objects with qsm and qsf classes
+F- ix: CRS assignment with `st_crs()<-` was not returning objects with qsm and qsf classes
 
 # v1.1.0
 
