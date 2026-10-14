@@ -36,6 +36,7 @@ SOURCES += \
     $$files(src/vendor/dbscan/*.cpp) \
     $$files(src/vendor/hporro/*.cpp) \
     $$files(src/vendor/libqsm/*.cpp) \
+    $$files(src/vendor/libqsf/*.cpp) \
     $$files(src/vendor/ptd/*.cpp)
 
 INCLUDEPATH += \
@@ -53,4 +54,5 @@ INCLUDEPATH += \
     src/vendor \
     src/vendor/ptd \
     src/vendor/libqsm \
+    src/vendor/libqsf \
     src
