@@ -2,6 +2,7 @@
 
 - Enhancement: new slider in the html report of the command line tools.
 - Fix: histogram interactivity in the html report of the command line tools.
+- Fix: UserData corruption if UserData loaded and non 0.
 
 # v1.1.2
 
