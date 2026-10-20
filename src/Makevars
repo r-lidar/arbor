@@ -10,6 +10,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./seed \
   -I./dtm \
   -I./fitting \
+  -I./inventory \
   -I./nanoflann \
   -I./vendor \
   -I./vendor/ptd \
@@ -53,6 +54,7 @@ OBJECTS = \
   segment/segment_overfitting.o \
   RcppAutoExport.o \
   dtm/dtm.o \
+  inventory/Inventory.o \
   utils/services.o \
   utils/homogeneization.o \
   utils/knn.o \
