@@ -178,6 +178,7 @@ private:
     if (has_class())   std::swap(classif[i], classif[j]);
     if (has_hag())     std::swap(hag[i], hag[j]);
     if (has_pwood())   std::swap(pwood[i], pwood[j]);
+    if (has_userdata()) std::swap(userdata[i], userdata[j]);
   }
 
 private:

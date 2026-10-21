@@ -86,6 +86,9 @@ Other:
 
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
+  track_memory       <- has_flag(args, "-memory")
+  clip               <- has_flag(args, "-clip")
+
 
   filter_str = paste("-keep_random_fraction", fraction)
 
@@ -102,6 +105,7 @@ Other:
   out_validtrees  <- paste0(base, "_validtrees.laz")
   out_dtm         <- paste0(base, "_dtm.tif")
   out_dtm_mesh    <- paste0(base, "_dtm.obj")
+  out_memory      <- paste0(base, "_memory.txt")
   its_dir         <- file.path(dirname(base), "its")
 
   crs = sf::NA_crs_
@@ -128,9 +132,12 @@ Exports
 ====================================================
 ")
 
+  if (track_memory) f <- mem_monitor(out_memory, 1)
+
   # --- Processing ---
   params <- arbor_parameters_default
 
+  if (track_memory) phase("Read", f)
   cat("Reading point cloud\n")
   las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
   gc()
@@ -145,7 +152,14 @@ Exports
     sf::st_crs(bound) <- sf::st_crs(las)
   }
 
+  if (clip)
+  {
+    bpol <- sf::st_buffer(bound, 10)
+    if (track_memory) phase("Clip", f)
+    las <- lidR::clip_roi(las, bpol)
+  }
 
+  if (track_memory) phase("Sampling", f)
   cat("Hybrid homogeneization\n")
   las <- hybrid_homogeneization(las)
   gc()
@@ -166,34 +180,44 @@ Exports
     lidR::las_quantize(las)
   }
 
+  if (track_memory) phase("Ground", f)
   cat("Ground classification & height above ground\n")
   las <- segment_ground(las)
   gc()
 
+  if (track_memory) phase("DTM", f)
   cat("DTM\n")
   dtm <- lidR::rasterize_terrain(las, 0.1, lidR::tin())
   gc()
 
+  if (track_memory) phase("Likelihood", f)
   cat("Wood likelihood\n")
   las <- wood_likelihood(las, params)
 
+  if (track_memory) phase("Semantic", f)
   cat("Semantic segmentation\n")
   las  <- segment_semantic(las, params)
 
+  if (track_memory) phase("Seeds", f)
   cat("Seeds\n")
   see <- find_seeds(las, params)
 
+  if (track_memory) phase("Instance", f)
   cat("Instance segmentation\n")
   las <- segment_instance(las, see, params)
 
+  if (track_memory) phase("Flag", f)
   cat("Cleaning segmentation\n")
   las <- flag_small_trees(las, max_height = min_tree_height)
   las <- flag_buffer(las, see, bound)
 
+  if (track_memory) phase("RGB", f)
   cat("Colorization\n")
   las <- colorize_trees(las)
 
   trees <- lidR::filter_poi(las, UserData == ARBORTREE)
+
+  mem_monitor_stop(f)
 
   # --- Exports ---
   cat("Exports\n")
