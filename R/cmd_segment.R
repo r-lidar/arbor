@@ -217,7 +217,7 @@ Exports
 
   trees <- lidR::filter_poi(las, UserData == ARBORTREE)
 
-  mem_monitor_stop(f)
+  if (track_memory) mem_monitor_stop(f)
 
   # --- Exports ---
   cat("Exports\n")
