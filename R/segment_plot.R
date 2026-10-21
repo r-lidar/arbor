@@ -111,20 +111,43 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 #' one rendering.
 colorize_trees = function(las, darken_foliage = TRUE)
 {
-  UserData <- treeID <- NULL
+  # Memory: avoid lidR::add_lasrgb() and las@data$x <- y. Both copy the whole data.table.
+  # Columns are shared by reference and only R, G, B (and a negated treeID) are allocated.
+  n = lidR::npoints(las)
+  grey = 150L * 257L
 
   tid = las$treeID
-  R = rep(150L, lidR::npoints(las))
-  G = rep(150L, lidR::npoints(las))
-  B = rep(150L, lidR::npoints(las))
-  las = lidR::add_lasrgb(las, R, G, B)
   if ("UserData" %in% names(las))
   {
-    las@data$treeID = data.table::copy(las@data$treeID)
-    las@data[UserData != ARBORTREE, treeID := treeID * -1] # negative values for treeID such as C++ colorization skips them.
+    # negative values for treeID such as C++ colorization skips them. Copy on modify: las is untouched.
+    skip = which(las$UserData != ARBORTREE)
+    tid[skip] = -tid[skip]
   }
-  colorize_trees_cpp(las@data, darken_foliage)
-  las$treeID = tid
+
+  R = rep(grey, n)
+  G = rep(grey, n)
+  B = rep(grey, n)
+
+  # Lightweight data.frame view on existing columns for C++ (no copy). C++ writes R, G, B in place.
+  core = list(X = las$X, Y = las$Y, Z = las$Z, treeID = tid, R = R, G = G, B = B)
+  if ("foliage" %in% names(las)) core$foliage = las$foliage
+  data.table::setDT(core)
+  colorize_trees_cpp(core, darken_foliage)
+
+  # Shallow copy of the table so that adding columns by reference does not alter the input las
+  data = data.table::setDT(as.list(las@data))
+  data.table::set(data, j = c("R", "G", "B"), value = list(R, G, B))
+  las@data = data
+
+  format = las@header@PHB[["Point Data Format ID"]]
+  if (!format %in% c(2L, 3L, 8L))
+  {
+    if ("NIR" %in% names(las)) format = 8L
+    else if ("gpstime" %in% names(las)) format = 3L
+    else format = 2L
+    las@header@PHB[["Point Data Format ID"]] = format
+  }
+
   return(las)
 }
 
