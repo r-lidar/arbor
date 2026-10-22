@@ -26,6 +26,7 @@ Commands:
   segment      Segment a point cloud (LAS/LAZ)
   qsm          Run QSM on a folder or file
   report       Produce a pdf report
+  pipeline     Full pipeline
 
 Options:
   -h, --help   Show help for a specific command
