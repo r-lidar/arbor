@@ -25,6 +25,8 @@
 #include "Graph.h"
 #include "arbor.h"
 
+#include <memory>
+
 namespace arbor::segment {
 
 class GraphBuilder
@@ -32,7 +34,7 @@ class GraphBuilder
 public:
   GraphBuilder(const settings::GraphParameters& p);
   ~GraphBuilder();
-  Graph* get_graph();
+  std::unique_ptr<Graph> get_graph();
 
   // Core kNN graph. Must be called first.
   void add_core_layer(const PointCloud& core);
@@ -53,13 +55,12 @@ public:
   int get_num_seeds() const;
 
 private:
-  Graph* graph = nullptr;
+  std::unique_ptr<Graph> graph;
 
   int total_core_nodes   = 0;
   int total_target_nodes = 0;
   int total_seed_nodes   = 0;
   std::vector<bool> wood;
-  bool graph_owner = true;
   settings::GraphParameters params;
 
   // Validates the angle penalty vector size; throws if invalid.

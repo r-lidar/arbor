@@ -21,8 +21,9 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include <algorithm>
+#include <cstdint>
 #include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 #include <cstddef>
@@ -32,8 +33,8 @@ namespace arbor::segment {
 // Directed graph over the core points only.
 //
 // The core layer is a kNN graph: each node has at most `stride` out-edges. They are stored in
-// one flat array of `stride` slots per node (unused slots hold NO_NODE). The few extra edges
-// added by the reachability repair are kept in a small side table sorted by source node.
+// one flat array of `stride` slots per node (unused slots hold NO_NODE). The extra edges added
+// by the reachability repair are kept in a side table in CSR layout, indexed by source node.
 //
 // The seed and master layers of the original layered graph are collapsed into `sources`: the
 // core nodes reached by a seed, with their initial cost and seed index (multi-source Dijkstra).
@@ -77,6 +78,8 @@ public:
   // Collapsed target layer: nearest core node of each target, NO_NODE if the target was dropped
   NodeIDs target_anchors;
 
+  // The slots are allocated but not initialized: every slot of every row must be written by the
+  // builder (edges first, then NO_NODE in the unused slots).
   Graph(size_t num_nodes, size_t stride);
 
   size_t size() const { return num_nodes_; }
@@ -86,8 +89,9 @@ public:
   Node* row(NodeId u) { return &slots_[static_cast<size_t>(u) * stride_]; }
   void clear_row(NodeId u);
 
-  // Adds edges to the side table. Edges of a node are visited after its row, in insertion order.
-  void add_extra_edges(const std::vector<Edge>& edges);
+  // Adds edges to the side table and releases the input. Edges of a node are visited after its
+  // row, in insertion order.
+  void add_extra_edges(std::vector<Edge> edges);
 
   template <typename F>
   void for_each_edge(NodeId u, F&& f) const
@@ -96,10 +100,9 @@ public:
     for (size_t j = 0; j < stride_ && r[j].destination != NO_NODE; ++j)
       f(r[j]);
 
-    if (!has_extra_[u]) return;
+    if (extra_offset_.empty()) return;
 
-    size_t i = std::lower_bound(extra_src_.begin(), extra_src_.end(), u) - extra_src_.begin();
-    for (size_t e = extra_offset_[i]; e < extra_offset_[i + 1]; ++e)
+    for (uint32_t e = extra_offset_[u]; e < extra_offset_[u + 1]; ++e)
       f(extra_edges_[e]);
   }
 
@@ -120,12 +123,11 @@ public:
 private:
   size_t num_nodes_;
   size_t stride_;
-  std::vector<Node> slots_;
+  std::unique_ptr<Node[]> slots_;
 
-  // Side table of extra edges, CSR over the nodes that have some
-  std::vector<bool> has_extra_;
-  NodeIDs extra_src_;                // sorted source nodes
-  std::vector<size_t> extra_offset_; // extra_src_.size() + 1 offsets into extra_edges_
+  // Side table of extra edges in CSR layout: edges of node u are
+  // extra_edges_[extra_offset_[u] .. extra_offset_[u+1]). Both are empty until edges are added.
+  std::vector<uint32_t> extra_offset_;
   std::vector<Node> extra_edges_;
 };
 

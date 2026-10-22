@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <queue>
 #include <sstream>
+#include <stdexcept>
 
 #include "Graph.h"
 
@@ -31,9 +32,7 @@ namespace arbor::segment {
 Graph::Graph(size_t num_nodes, size_t stride) :
   num_nodes_(num_nodes),
   stride_(stride),
-  slots_(num_nodes * stride, Node{NO_NODE, 0.0f}),
-  has_extra_(num_nodes, false),
-  extra_offset_(1, 0)
+  slots_(new Node[num_nodes * stride]) // default-initialized: no serial pre-fill pass
 {
 }
 
@@ -43,40 +42,50 @@ void Graph::clear_row(NodeId u)
   std::fill(r, r + stride_, Node{NO_NODE, 0.0f});
 }
 
-void Graph::add_extra_edges(const std::vector<Edge>& edges)
+void Graph::add_extra_edges(std::vector<Edge> edges)
 {
   if (edges.empty()) return;
 
-  // Rebuild the side table from the existing and the new edges. This is called at most a
-  // couple of times on a small number of edges.
-  std::vector<Edge> all;
-  all.reserve(extra_edges_.size() + edges.size());
-  for (size_t i = 0; i < extra_src_.size(); ++i)
+  // Counting sort into CSR: no sort and no copy of the input. Existing edges of a node stay
+  // first, new ones follow in insertion order.
+  const size_t old_total = extra_edges_.size();
+  const size_t total = old_total + edges.size();
+  if (total > std::numeric_limits<uint32_t>::max())
+    throw std::runtime_error("Graph: too many extra edges.");
+
+  // offset[u + 1] = number of edges of u, then prefix sum: offset[u + 1] = end of the edges of u
+  std::vector<uint32_t> offset(num_nodes_ + 1, 0);
+  if (!extra_offset_.empty())
   {
-    for (size_t e = extra_offset_[i]; e < extra_offset_[i + 1]; ++e)
-      all.push_back({extra_src_[i], extra_edges_[e]});
+    for (size_t u = 0; u < num_nodes_; ++u)
+      offset[u + 1] = extra_offset_[u + 1] - extra_offset_[u];
   }
-  all.insert(all.end(), edges.begin(), edges.end());
+  for (const Edge& e : edges) offset[e.source + 1]++;
+  for (size_t u = 0; u < num_nodes_; ++u) offset[u + 1] += offset[u];
 
-  // Stable: keeps the insertion order of the edges of a given node
-  std::stable_sort(all.begin(), all.end(), [](const Edge& a, const Edge& b) { return a.source < b.source; });
+  // Fill from the end of each node's range: new edges in reverse order, then existing ones.
+  // offset[u + 1] is used as a cursor and ends up at the start of the range of u + 1.
+  std::vector<Node> placed(total);
+  for (size_t i = edges.size(); i-- > 0; )
+    placed[--offset[edges[i].source + 1]] = edges[i].node;
 
-  extra_src_.clear();
-  extra_offset_.assign(1, 0);
-  extra_edges_.clear();
-  extra_edges_.reserve(all.size());
+  std::vector<Edge>().swap(edges);
 
-  for (const Edge& e : all)
+  if (!extra_offset_.empty())
   {
-    if (extra_src_.empty() || extra_src_.back() != e.source)
+    for (size_t u = 0; u < num_nodes_; ++u)
     {
-      if (!extra_src_.empty()) extra_offset_.push_back(extra_edges_.size());
-      extra_src_.push_back(e.source);
-      has_extra_[e.source] = true;
+      for (uint32_t e = extra_offset_[u + 1]; e-- > extra_offset_[u]; )
+        placed[--offset[u + 1]] = extra_edges_[e];
     }
-    extra_edges_.push_back(e.node);
   }
-  extra_offset_.push_back(extra_edges_.size());
+
+  // The cursors have moved one node back: offset[u + 1] is now the start of u, shift them
+  for (size_t u = 0; u < num_nodes_; ++u) offset[u] = offset[u + 1];
+  offset[num_nodes_] = static_cast<uint32_t>(total);
+
+  extra_offset_ = std::move(offset);
+  extra_edges_ = std::move(placed);
 }
 
 Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
@@ -165,10 +174,8 @@ void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs&
 size_t Graph::mem() const
 {
   size_t total = sizeof(*this);
-  total += slots_.capacity() * sizeof(Node);
-  total += has_extra_.capacity() / 8;
-  total += extra_src_.capacity() * sizeof(NodeId);
-  total += extra_offset_.capacity() * sizeof(size_t);
+  total += num_nodes_ * stride_ * sizeof(Node);
+  total += extra_offset_.capacity() * sizeof(uint32_t);
   total += extra_edges_.capacity() * sizeof(Node);
   total += sources.capacity() * sizeof(Source);
   total += target_anchors.capacity() * sizeof(NodeId);

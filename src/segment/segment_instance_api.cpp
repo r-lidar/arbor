@@ -36,7 +36,7 @@ using index_t = nanoflann::KNNResultSet<double>::IndexType;
 
 namespace arbor::segment {
 
-Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, const settings::GraphParameters& params)
+std::unique_ptr<Graph> build_instance_graph(const PointCloud& core, const PointCloud& seeds, const settings::GraphParameters& params)
 {
   if (core.size() == 0)     throw std::runtime_error("build_instance_graph: core point cloud is empty.");
   if (seeds.size() == 0)    throw std::runtime_error("build_instance_graph: seeds point cloud is empty.");
@@ -133,7 +133,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   ServiceLocator::logger()("Constructing the graph (2/4)");
 
   // Build graph
-  Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
+  std::unique_ptr<Graph> graph = build_instance_graph(dec, seeds, params.pathfinder);
 
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
 
@@ -146,7 +146,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   Graph::NodeIDs closest_seed;
   graph->shortest_paths_from_sources(distances, closest_seed);
 
-  delete graph;
+  graph.reset();
 
   if (closest_seed.size() != num_points) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
 
@@ -223,7 +223,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   builder.add_seed_layer(core, dtm);
   builder.fix_directed_reachability2(core);
 
-  Graph* graph = builder.get_graph();
+  std::unique_ptr<Graph> graph = builder.get_graph();
   if (graph == nullptr)
     throw std::runtime_error("dist2root(): failed to build graph (null pointer).");
 
@@ -235,7 +235,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
   const auto& graph_distances = cache.first;
   const auto& predecessors = cache.second;
 
-  delete graph;
+  graph.reset();
 
   ServiceLocator::logger()(" Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
 

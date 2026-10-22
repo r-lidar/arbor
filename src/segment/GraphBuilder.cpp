@@ -37,8 +37,8 @@ GraphBuilder::GraphBuilder(const settings::GraphParameters& p)
   set_angle_penalty(p.angle_penalty);  // validate
 }
 
-GraphBuilder::~GraphBuilder() { if (graph_owner) delete graph; }
-Graph* GraphBuilder::get_graph() { graph_owner = false; return graph; }
+GraphBuilder::~GraphBuilder() = default;
+std::unique_ptr<Graph> GraphBuilder::get_graph() { return std::move(graph); }
 void GraphBuilder::set_wood(const std::vector<bool>& x) { wood = x; }
 
 void GraphBuilder::set_angle_penalty(const std::vector<float>& x)
@@ -78,7 +78,7 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
   // At most k-1 edges per node: the query point itself is skipped. It can only be missing from
   // its own kNN if k other points share its exact position, and those are skipped as well.
   const int stride = std::max(1, params.k - 1);
-  graph = new Graph(n_points, stride);
+  graph = std::make_unique<Graph>(n_points, stride);
 
   core.build_index(); // no op if already built
 
@@ -136,6 +136,10 @@ void GraphBuilder::add_core_layer(const PointCloud& core)
 
         row[degree++] = {static_cast<Graph::NodeId>(to), cost};
       }
+
+      // The slots are not initialized by Graph: mark the unused ones
+      for (; degree < stride; ++degree)
+        row[degree] = {Graph::NO_NODE, 0.0f};
     }
   }
 }
@@ -410,7 +414,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
     }
   }
 
-  graph->add_extra_edges(new_edges);
+  graph->add_extra_edges(std::move(new_edges));
 
   // When targets were stored as nodes, the zero-cost edge to a target was in the out-edges of
   // its core node and was wiped with them. Drop those targets to keep the same results.
@@ -565,8 +569,8 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
     bridges.push_back({b.reach_node, {b.iso_node, cost}});
     bridges.push_back({b.iso_node,   {b.reach_node, cost}});
   }
-  graph->add_extra_edges(bridges);
   int bridges_added = bridges.size() / 2;
+  graph->add_extra_edges(std::move(bridges));
 
   // ---------------------------------------------------------------
   // Step 7: Verify, one final reachability scan.

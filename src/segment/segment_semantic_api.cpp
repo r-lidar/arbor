@@ -28,7 +28,7 @@
 
 namespace arbor::segment {
 
-Graph* build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& dtm, const settings::GraphParameters& params)
+std::unique_ptr<Graph> build_semantic_graph(const PointCloud& core, const PointCloud& targets, const PointCloud& dtm, const settings::GraphParameters& params)
 {
   GraphBuilder builder(params);
 
@@ -58,7 +58,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
   ServiceLocator::logger()("Constructing the graph (3/10)");
 
   // Build graph
-  Graph* graph = build_semantic_graph(dec, targets, dtm, params);
+  std::unique_ptr<Graph> graph = build_semantic_graph(dec, targets, dtm, params);
 
   if (graph == nullptr) throw std::runtime_error("accumulate_passages: Failed to build graph (null pointer returned).");
 
@@ -79,7 +79,7 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
 
   // The graph is no longer needed, free it before the
   // passage accumulation to reduce peak memory.
-  delete graph;
+  graph.reset();
 
   ServiceLocator::logger()("  Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
 
