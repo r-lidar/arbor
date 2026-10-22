@@ -136,7 +136,7 @@ public:
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 
 public:
-  std::vector<std::string> messages;
+  std::vector<std::string> messages; // Warnings/errors about this QSM, reported to the user by the host (not through logging)
   std::string name;
   std::string crs;
   int id = 0;

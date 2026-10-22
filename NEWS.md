@@ -8,6 +8,7 @@
  
  - Enhance documentation of `qsm_read()` with examples
  - Enhance documentation of `st_crs()` with examples
+ - Enhance progress display
 
 # 1.1.3 
 

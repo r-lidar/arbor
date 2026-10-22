@@ -24,11 +24,9 @@
 #include "Grid3D.h"
 #include "GraphBuilder.h"
 #include "segment_overfitting.h"
+#include "progress.h"
 
-#include <chrono>
 #include <numeric>
-#include <sstream>
-#include <iomanip>
 #include <queue>
 
 using KDTree  = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointCloud>, PointCloud, 3>;
@@ -46,11 +44,17 @@ Graph* build_instance_graph(const PointCloud& core, const PointCloud& seeds, con
   std::vector<bool> wood; wood.reserve(core.size());
   for (size_t i = 0; i < core.size(); ++i) wood.push_back(core.is_wood(i));
 
+  Task task("Constructing the graph", {5, 1, 0.1, 2});
+
   GraphBuilder builder(params);
   builder.set_wood(wood);
+  task.step("Core layer");
   builder.add_core_layer(core);
+  task.step("Seed layer");
   builder.add_seed_layer(core, seeds);
+  task.step("Master seed layer");
   builder.add_master_seed_layer();
+  task.step("Directed reachability");
   builder.fix_directed_reachability(core);
   return builder.get_graph();
 }
@@ -70,9 +74,14 @@ void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min
     tree_to_indices[id].push_back(static_cast<int>(i));
   }
 
+  Counter counter("Trees", tree_to_indices.size());
+
   // PER-TREE
   for (auto& [id, indices] : tree_to_indices)
   {
+    counter.tick();
+    counter.throw_if_cancelled();
+
     // Build a sub-cloud with Z scaled down by 0.1 to flatten the search
     PointCloud sub(indices.size());
     for (size_t k = 0; k < indices.size(); ++k)
@@ -116,13 +125,14 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   if (!core.has_foliage())  throw std::runtime_error("segment_instance: point cloud is missing required 'foliage' attribute.");
   if (!seeds.has_treeid())  throw std::runtime_error("segment_instance: seed point cloud is missing required 'treeid' attribute.");
 
-  ServiceLocator::logger()("Partitioning...");
+  std::vector<double> weights = {1, 5, 30, 30, 10, 5};
+  if (params.instance.oversegmentation_solver_enabled) weights.push_back(10);
+  Task task("Instance segmentation", weights);
+
+  task.step("Partitioning");
   core.partition([&](size_t i) { return core.get_hag(i) > params.global.cut_above_ground; });
 
-  const auto t0 = std::chrono::steady_clock::now();
-
-  ServiceLocator::logger()("Instance segmentation start");
-  ServiceLocator::logger()("Decimating the point cloud... (1/4)");
+  task.step("Decimating the point cloud");
 
   // Decimation
   std::vector<bool> keep = arbor::utils::homogeneization(core, params.pathfinder.decimation, true);
@@ -132,20 +142,20 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   size_t num_points  = dec.size();
   size_t num_seeds   = seeds.size();
 
-  ServiceLocator::logger()("Constructing the graph (2/4)");
+  task.step("Constructing the graph");
 
   // Build graph
   Graph* graph = build_instance_graph(dec, seeds, params.pathfinder);
 
-  ServiceLocator::logger()(" Graph size: " + Graph::format_bytes(graph->mem()));
-
   if (graph == nullptr) throw std::runtime_error("segment_instance: Failed to build graph (null pointer returned).");
+
+  logging::debug("Graph size: " + Graph::format_bytes(graph->mem()));
 
   // Indexes of the seeds in the graph
   Graph::NodeIDs seeds_ids(num_seeds);
   std::iota(seeds_ids.begin(), seeds_ids.end(), num_points);
 
-  ServiceLocator::logger()("Pathfinder (3/4)");
+  task.step("Pathfinder");
 
   // Retrieve the closest seed for each point
   std::vector<double> distances;
@@ -164,7 +174,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
     if (id != -1) treeID[i] = static_cast<Graph::NodeId>(seeds.get_treeid(id-num_points));
   }
 
-  ServiceLocator::logger()("Assigning tree IDs to the dense point cloud (4/4)");
+  task.step("Assigning tree IDs to the dense point cloud");
 
   // Expand seed id from dec point cloud to core point cloud
   KDTree tree(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
@@ -194,22 +204,15 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   for (size_t i = 0 ; i < core.size() ; i++)  core.set_treeid(i, ans[i]);
 
-  const auto t1 = std::chrono::steady_clock::now();
-  const std::chrono::duration<double> elapsed = t1 - t0;
-
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(1) << elapsed.count();
-
-  ServiceLocator::logger()("Fix low isolated wood clusters");
+  task.step("Fixing low isolated wood clusters");
   fix_small_isolated_low_clusters(core);
 
   if (params.instance.oversegmentation_solver_enabled)
   {
+    task.step("Overfitting enhancement");
     OverSegmentationResolver osr;
     osr.run(core);
   }
-
-  ServiceLocator::logger()("Instance segmentation completed in " + oss.str() + " s");
 }
 
 
@@ -220,9 +223,9 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
 
   size_t num_points = core.size();
 
-  ServiceLocator::logger()("Computing shortest paths to ground");
+  Task task("Distance to root", {10, 10, 1});
 
-  ServiceLocator::logger()(" Constructing the graph");
+  task.step("Constructing the graph");
 
   GraphBuilder builder(params);
   builder.add_core_layer(core);
@@ -235,7 +238,7 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
     throw std::runtime_error("dist2root(): failed to build graph (null pointer).");
 
   // Run Dijkstra from master seed
-  ServiceLocator::logger()(" Dijkstra pathfinder");
+  task.step("Pathfinder");
 
   int master_id = builder.get_range_master().second;
   Graph::GraphCache cache = graph->compute_distances(master_id);
@@ -244,10 +247,10 @@ std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, cons
 
   delete graph;
 
-  ServiceLocator::logger()(" Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
+  logging::debug("Graph cache size: " + Graph::format_bytes(Graph::cache_mem(cache)));
 
   // For each core point, walk the predecessor chain and accumulate Euclidean distance
-  ServiceLocator::logger()(" Computing euclidian distance to ground");
+  task.step("Computing euclidean distance to ground");
 
   std::vector<float> euclidean_distance_to_root(num_points, -1.0);
 

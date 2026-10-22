@@ -22,7 +22,7 @@
 
 #include "myomp.h"
 #include "PointCloud.h"
-#include "services.h"
+#include "progress.h"
 
 namespace arbor::utils {
 
@@ -78,8 +78,7 @@ std::vector<float> anisotropy(const PointCloud& cloud, int k)
   std::vector<float> out(n);
 
 
-  auto pb = ServiceLocator::make_progress(n, "Anisotropy");
-  std::atomic<bool> abort(false);
+  Counter counter("Anisotropy", n);
 
   #pragma omp parallel
   {
@@ -90,9 +89,8 @@ std::vector<float> anisotropy(const PointCloud& cloud, int k)
     #pragma omp for schedule(static)
     for (int i = 0; i < n; ++i)
     {
-      if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb->check_interrupt()) abort = true;
-      pb->tick();
+      if (counter.cancelled()) continue;
+      counter.tick_at(i);
 
       cloud.get_point(i, q);
       cloud.knn(q, k, idx, dist);
@@ -139,11 +137,9 @@ std::vector<float> anisotropy(const PointCloud& cloud, int k)
 
       out[i] = static_cast<float>((lmax > 1e-14) ? (lmax - lmin) / lmax : 0.0);
     }
-
-    pb->tick();
   }
 
-  if (abort.load()) throw std::runtime_error("Computation aborted");
+  counter.throw_if_cancelled();
 
   return out;
 }

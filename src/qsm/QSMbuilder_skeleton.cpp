@@ -63,8 +63,6 @@ struct CenterCloud
 
 std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int,int>>& iter_cluster, double max_d)
 {
-  ServiceLocator::logger()("Constructing skeleton");
-
   std::vector<int> point_to_edges(pc.size(), -1);
 
   // Step 1: group points and compute centers

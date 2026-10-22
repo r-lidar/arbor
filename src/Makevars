@@ -56,7 +56,7 @@ OBJECTS = \
   utils/services.o \
   utils/homogeneization.o \
   utils/knn.o \
-  utils/progressbar.o \
+  utils/progress.o \
   utils/Grid3D.o \
   utils/sor.o \
   utils/anisotopy.o \

@@ -21,6 +21,7 @@
 #include "GraphBuilder.h"
 #include "PointCloud.h"
 #include "myomp.h"
+#include "progress.h"
 
 #include <vector>
 #include <unordered_map>
@@ -258,8 +259,6 @@ void GraphBuilder::add_master_seed_layer()
 
 void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
 {
-  ServiceLocator::logger()(" Test directed reachability");
-
   const Graph::NodeId source = get_range_master().second;
   const size_t N = static_cast<size_t>(total_core_nodes);
 
@@ -303,7 +302,7 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
     return;
   }
 
-  ServiceLocator::logger()(" " + std::to_string(isolated_ids.size()) + " isolated nodes: rebuilding bidirectionnal edges with relaxed params");
+  logging::debug(std::to_string(isolated_ids.size()) + " isolated nodes: rebuilding bidirectionnal edges with relaxed params");
 
   // Relaxed parameters for the retry pass
   const int   k_retry   = params.k * 4;
@@ -392,15 +391,13 @@ void GraphBuilder::fix_directed_reachability(const PointCloud& cloud)
   // Verify
   std::vector<Graph::NodeId> still_isolated = find_isolated();
   if (still_isolated.empty())
-    ServiceLocator::logger()(" All isolated nodes resolved");
+    logging::debug("All isolated nodes resolved");
   else
-    ServiceLocator::logger()(" " + std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine gaps)");
+    logging::info(std::to_string(still_isolated.size()) + " nodes still isolated after retry (genuine gaps)");
 }
 
 void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
 {
-  ServiceLocator::logger()(" Test directed reachability");
-
   const Graph::NodeId source = get_range_master().second;
   const size_t N = static_cast<size_t>(total_core_nodes);
   if (N < 2) return;
@@ -486,7 +483,7 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
     ++num_clusters;
   }
 
-  ServiceLocator::logger()(" " +
+  logging::debug(
     std::to_string(isolated_ids.size()) +
     " isolated nodes grouped into " +
     std::to_string(num_clusters) +
@@ -576,9 +573,9 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
     }
 
     if (still_isolated == 0)
-      ServiceLocator::logger()(" All isolated clusters resolved (" +  std::to_string(bridges_added) + " bridge edges added)");
+      logging::debug("All isolated clusters resolved (" +  std::to_string(bridges_added) + " bridge edges added)");
     else
-      ServiceLocator::logger()(" " + std::to_string(still_isolated) + " nodes still unreachable after pass 2 (genuine gaps)");
+      logging::info(std::to_string(still_isolated) + " nodes still unreachable after pass 2 (genuine gaps)");
   }
 }
 

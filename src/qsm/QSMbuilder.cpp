@@ -43,6 +43,12 @@ void QSMbuilder::build(const PointCloud& tree)
 
   if (n == 0) throw std::runtime_error("Empty point cloud");
 
+  // Steps of the QSM reconstruction. Steps from "Clustering" are replayed on retry.
+  enum Step { PREPARE, DIST2ROOT, CLUSTER };
+  Task task("QSM", {2, 30, 15, 10, 3, 2, 1, 20, 3, 2, 3, 2, 1, 1, 1});
+
+  task.step("Preparing wood points");
+
   // Find tree bounds
   auto min_max_idx = which_min_max_z(tree);
   double min_z = tree.get_z(min_max_idx.first);
@@ -85,6 +91,8 @@ void QSMbuilder::build(const PointCloud& tree)
   // on (0,0,0)
   PointCloud gnd = make_ground_seed(wood);
 
+  task.step("Distance to root");
+
   // Resolve the graph to get the distance to the ground for each point
   // The distance to the ground is how we make layers in the tree.
   arbor::settings::GraphParameters p;
@@ -108,6 +116,8 @@ void QSMbuilder::build(const PointCloud& tree)
   // Here we start QMS computation
   qsm_start:
 
+  task.step("Clustering");
+
   // Now we can compute iter and clust.
   // What are iter and cluster varies depending on arbor versions
   // This is the part inspired from aRchi. We then cluster the point cloud
@@ -118,6 +128,8 @@ void QSMbuilder::build(const PointCloud& tree)
   std::vector<std::pair<int, int>> iter_cluster;
   iter_cluster.reserve(n);
   for (std::size_t i = 0; i < n; ++i) iter_cluster.emplace_back(iter[i], clust[i]);
+
+  task.step("Constructing skeleton");
 
   // Build the QSM nodes and edges.
   // Returns the ids of the edges corresponding to each point so we can
@@ -135,7 +147,6 @@ void QSMbuilder::build(const PointCloud& tree)
   if (graph.edges().size() == 0) 
   {
     std::string msg = "[E1] [QSM Generation Failed] Input data yielded no valid skeleton. A placeholder QSM with 0 volume was generated.";
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
 
     // Build a arbitrary straight graph with volume 0
@@ -167,6 +178,8 @@ void QSMbuilder::build(const PointCloud& tree)
     return;
   }
 
+  task.step("Computing topology");
+
   // Is is still useful? build_skeleton() do it already?
   // TODO: review
   compute_topology();
@@ -176,7 +189,7 @@ void QSMbuilder::build(const PointCloud& tree)
   if (n_root == 0) throw std::runtime_error("Internal error in QSMbuilder::build. 0 root for this QSM. Please report.");
   if (n_root > 1) 
   {
-    ServiceLocator::logger()("Multiple nodes connected to root detected");
+    logging::debug("Multiple nodes connected to root detected");
     fix_multiple_root();
   }
 
@@ -184,10 +197,14 @@ void QSMbuilder::build(const PointCloud& tree)
   // size. This is entirely based on the length of the branches in the graph
   compute_architecture(false);
 
+  task.step("Smoothing skeleton");
   smooth_skeleton(params.qsm.smooth_steps);
 
   // Detect and fix some weird pattern in the bottom of the skeleton
+  task.step("Checking tree butt");
   detect_weird_butt();
+
+  task.step("Estimating radii");
 
   // Measure the trees including
   // - initial measurements + quality estimation
@@ -202,29 +219,31 @@ void QSMbuilder::build(const PointCloud& tree)
     if (retried)
     {
       std::string msg = "[W2] [No valid measure] No direct measurements matched this tree. QSM generated using allometric reconstruction.";
-      ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
       graph.messages.push_back(msg);
     }
     else
     {
-      std::string msg = "[No valid measure] Zero valid measures extracted for this tree. Triggering automatic retry with expanded internode parameters.";
-      ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+      logging::info("[No valid measure] Zero valid measures extracted for this tree. Triggering automatic retry with expanded internode parameters.");
       retried = true;
       params.qsm.skeleton_node_distance *= 2;
       graph.clear();
+      task.rewind(CLUSTER);
       goto qsm_start;
     }
   }
 
   // Compute branch order, axis IDs for the second time. We have the radii so
   // now the computation is based on volume
+  task.step("Computing architecture");
   compute_architecture(true);
 
+  task.step("Smoothing skeleton");
   smooth_skeleton(params.qsm.smooth_steps/2);
 
   // Special step if we confirm that the tree is likely broken
   // then the previous steps generated a very bad QSMs. Apply a special
   // reconstruction for dead trees.
+  task.step("Refining broken tree");
   if (likely_broken && params.qsm.broken_detection_enabled)
   {
     refine_radii_broken(wood);
@@ -233,12 +252,17 @@ void QSMbuilder::build(const PointCloud& tree)
   }
 
   // Prolongate the tree down to hag = 0
+  task.step("Prolongation to the ground");
   estimate_prolongation(wood);
   prolongate(prolongation_distance);
 
+  task.step("Smoothing radii");
   smooth_radii();
+
+  task.step("Computing distance to root");
   distance_to_root();
 
+  task.step("Finalizing");
   shift(tx, ty, tz);
 
   try

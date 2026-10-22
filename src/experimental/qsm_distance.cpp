@@ -25,7 +25,7 @@
 #include <limits>
 
 #include "myomp.h"
-#include "services.h"
+#include "progress.h"
 #include "nanoflann/nanoflann.h"
 
 using namespace Rcpp;
@@ -259,8 +259,7 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
   size_t k = std::min((size_t)10, (size_t)std::ceil(n_cyl * 0.01));
   if (k < 1) k = 1;
 
-  auto pb = ServiceLocator::make_progress(n_pts, "Point2Cylinders");
-  std::atomic<bool> abort(false);
+  arbor::Counter counter("Point2Cylinders", n_pts);
 
   #pragma omp parallel
   {
@@ -271,9 +270,8 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
     #pragma omp for schedule(static)
     for(int i = 0; i < n_pts; ++i)
     {
-      if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb->check_interrupt()) abort = true;
-      pb->tick();
+      if (counter.cancelled()) continue;
+      counter.tick_at(i);
 
       double px = ptr_pX[i];
       double py = ptr_pY[i];
@@ -299,9 +297,9 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
       out_id[i]   = best_id_val;
       out_rad[i]  = best_r_val;
     }
-
-    if (abort.load()) Rcpp::stop("Computation aborted");
   }
+
+  counter.throw_if_cancelled();
 
   // Return as new DataFrame
   return DataFrame::create(

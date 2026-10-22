@@ -19,7 +19,7 @@
  */
 
 #include "Grid3D.h"
-#include "services.h"
+#include "progress.h"
 
 #include <cmath>
 #include <algorithm>
@@ -136,7 +136,8 @@ std::vector<int> Grid3D::connected_components(int connectivity)
   std::vector<int64_t> stack;
   stack.reserve(1024);
 
-  auto prog = ServiceLocator::make_progress(voxel_labels.size(), "Connected components", 0.25);
+  arbor::Counter counter("Labelling voxels", voxel_labels.size());
+  std::size_t labelled = 0;
 
   for (auto& kv : voxel_labels)
   {
@@ -146,7 +147,7 @@ std::vector<int> Grid3D::connected_components(int connectivity)
     ++current_label;
     kv.second = current_label;
     stack.push_back(kv.first);
-    prog->tick();
+    counter.tick_at(labelled++);
 
     while (!stack.empty())
     {
@@ -174,16 +175,13 @@ std::vector<int> Grid3D::connected_components(int connectivity)
         {
           it->second = current_label;
           stack.push_back(nidx);
-          prog->tick();
+          counter.tick_at(labelled++);
         }
       }
     }
 
-    prog->update();
-    if (prog->check_interrupt()) return {};
+    counter.throw_if_cancelled();
   }
-
-  prog->finalize();
 
   std::vector<int> result(npoints);
   for (int i = 0; i < npoints; ++i)

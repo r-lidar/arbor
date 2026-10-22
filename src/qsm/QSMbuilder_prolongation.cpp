@@ -31,7 +31,7 @@ void QSMbuilder::prolongate(double d, double L)
 {
   if (d <= 0.0) return;
 
-  ServiceLocator::logger()("Prolongation to the ground: " + std::to_string(d) + " m");
+  logging::debug("Prolongation to the ground: " + std::to_string(d) + " m");
 
   // Collect main axis edges (axis_id == 1), ordered root → tip (descending subtree_length)
   std::vector<int> axis_eids;
@@ -102,7 +102,7 @@ void QSMbuilder::prolongate(double d, double L)
 
     auto angle_str = std::to_string(angle_deg);
     angle_str.resize(angle_str.find('.') + 3); // 2 decimals
-    ServiceLocator::logger()("Trunk angle " + angle_str + " deg exceeds 50 deg, clamping to 50 deg for prolongation");
+    logging::debug("Trunk angle " + angle_str + " deg exceeds 50 deg, clamping to 50 deg for prolongation");
   }
 
   double d_adj;
@@ -113,7 +113,7 @@ void QSMbuilder::prolongate(double d, double L)
 
   char buf[256];
   std::snprintf(buf, sizeof(buf), "Trunk angle: %.2f deg | Distance %.2f m adjusted to %.2f m", angle_deg, d, d_adj);
-  ServiceLocator::logger()(buf);
+  logging::debug(buf);
 
   int nseg = std::max(1, int(std::ceil(d_adj / L)));
 

@@ -20,52 +20,49 @@
 
 #include "SeedDetector.h"
 #include "Grid3D.h"
+#include "progress.h"
 
 namespace arbor::seeds {
 
 void SeedDetector::run(const PointCloud& scene)
 {
-  auto log = ServiceLocator::logger();
-
   if (scene.size() == 0)     throw std::runtime_error("find_seed: point cloud is empty.");
   if (!scene.has_hag())      throw std::runtime_error("find_seed: point cloud is missing required 'hag' attribute.");
   if (!scene.has_foliage())  throw std::runtime_error("find_seed: point cloud is missing required 'foliage' attribute.");
 
-  log("Seed detection start");
+  Task task("Seed detection", 9);
 
-  log("Computing lower bound");
+  task.step("Computing lower bound");
   compute_min_hag(scene);
 
-  log("Extracting passages");
+  task.step("Extracting passages");
   extract_passages(scene);
 
-  log("Slicing the point cloud");
+  task.step("Slicing the point cloud");
   slice_wood(scene);
 
-  log("Circle detection");
+  task.step("Circle detection");
   circles = detect_tree_circles(wood);
 
   //if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
 
-  log("Generate tree cages");
+  task.step("Generating tree cages");
   make_cages();
 
-  log("Safe zone exclusion");
+  task.step("Safe zone exclusion");
   safe_zone();
 
-  log("Find primary seeds");
+  task.step("Finding primary seeds");
   find_primary_seeds();
 
-  log("Pathfinder");
+  task.step("Pathfinder");
   merge_short_passages();
 
-  log("Find secondary seeds");
+  task.step("Finding secondary seeds");
   find_secondary_seeds();
 
   seeds = primary_seeds;
   seeds += secondary_seeds;
-
-  log("Seed detection completed");
 }
 
 void SeedDetector::compute_min_hag(const PointCloud& scene)

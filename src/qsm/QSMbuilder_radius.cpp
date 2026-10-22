@@ -79,7 +79,6 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     std::string msg = oss.str();
 
     graph.messages.push_back(msg);
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     return true;
   }
 
@@ -96,17 +95,18 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
     std::string msg = oss.str();
 
     graph.messages.push_back(msg);
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
   }
   else
   {
     likely_broken = false;
   }
 
-  ServiceLocator::logger()("Pre-allometry");
+  Task task("Estimating radii", {1, 6, 2});
+
+  task.step("Pre-allometry");
   conic_allometry(1.5*R0, tip_radius); // Overestimate the tree on purpose
 
-  ServiceLocator::logger()("Measuring diameters");
+  task.step("Measuring diameters");
   measure_radii(tree);
 
   for (auto& e : graph.edges())
@@ -120,7 +120,7 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
 
   compute_architecture(true);
 
-  ServiceLocator::logger()("Polynomial fitting");
+  task.step("Polynomial fitting");
   polynomial_fitting(tip_radius);
   polynomial_fitting_root();
 
@@ -183,14 +183,12 @@ bool QSMbuilder::construct_radii(const PointCloud& tree, double tip_radius)
         << ").";
 
     std::string msg = oss.str();
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
     graph.messages.push_back(msg);
 
     //conic_allometry(2.0 * R0, tip_radius);
     //return;
   }
 
-  ServiceLocator::logger()("Reconstruction");
   //reconstruct_missing_radii(tip_radius);
 
   return true;
@@ -252,8 +250,6 @@ void QSMbuilder::measure_radii(const PointCloud& tree)
 
 void QSMbuilder::refine_radii_broken(const PointCloud& tree)
 {
-  ServiceLocator::logger()("Refine radii (broken tree)");
-
   auto points_by_edge = group_points_by_edge(tree);
 
   // Group edges by axis_id, then process each axis root->tip
@@ -324,8 +320,6 @@ void QSMbuilder::refine_radii_broken(const PointCloud& tree)
 
 void QSMbuilder::refine_radii(const PointCloud& tree)
 {
-  ServiceLocator::logger()("Refine radii");
-
   auto points_by_edge = group_points_by_edge(tree);
 
   constexpr utils::fitting::FitQuality fit_quality = utils::fitting::FitQuality::accurate_preset();

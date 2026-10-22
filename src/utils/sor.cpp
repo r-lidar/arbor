@@ -24,7 +24,7 @@
 
 #include "myomp.h"
 #include "PointCloud.h"
-#include "services.h"
+#include "progress.h"
 
 namespace arbor::utils {
 
@@ -37,8 +37,7 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
 
   pc.build_index();
 
-  auto pb = ServiceLocator::make_progress(n, "SOR");
-  std::atomic<bool> abort(false);
+  Counter counter("SOR", n);
   std::vector<double> dmean(n);
 
   #pragma omp parallel
@@ -50,9 +49,8 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
     #pragma omp for schedule(static)
     for (size_t i = 0; i < n; ++i)
     {
-      if (abort.load(std::memory_order_relaxed)) continue;
-      if(pb->check_interrupt()) abort = true;
-      pb->tick();
+      if (counter.cancelled()) continue;
+      counter.tick_at(i);
 
       pc.get_point(i, q);
       pc.knn(q, k, idx, dist);
@@ -72,12 +70,9 @@ std::vector<bool> sor(const PointCloud& pc, unsigned int k, double m)
 
       dmean[i] = (cnt > 0) ? dsum / cnt : 0.0;
     }
-
-    pb->tick();
   }
 
-  if (abort.load())
-    throw std::runtime_error("Computation aborted");
+  counter.throw_if_cancelled();
 
   double mean = 0.0;
   for (double v : dmean) mean += v;

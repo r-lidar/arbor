@@ -25,6 +25,7 @@
 #include <sstream>
 
 #include "Graph.h"
+#include "progress.h"
 
 namespace arbor::segment {
 
@@ -64,12 +65,18 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
   open_set.push({0.0f, start});
 
+  Counter counter("Dijkstra", adjacency_list.size());
+  std::size_t settled = 0;
+
   while (!open_set.empty())
   {
     auto [current_cost, current] = open_set.top();
     open_set.pop();
 
     if (current_cost > distances[current]) continue;
+
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
 
     for (const Node& neighbor : adjacency_list[current])
     {
@@ -82,6 +89,8 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
       }
     }
   }
+
+  counter.throw_if_cancelled();
 
   return {distances, predecessors};
 }
@@ -125,12 +134,18 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
     pq.push({0.0, g});
   }
 
+  Counter counter("Dijkstra", N);
+  std::size_t settled = 0;
+
   while (!pq.empty())
   {
     auto [dist_u, u] = pq.top();
     pq.pop();
 
     if (dist_u > distances[u]) continue;
+
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
 
     for (const auto& e : adjacency_list[u])
     {
@@ -144,6 +159,8 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
       }
     }
   }
+
+  counter.throw_if_cancelled();
 }
 
 size_t Graph::mem() const

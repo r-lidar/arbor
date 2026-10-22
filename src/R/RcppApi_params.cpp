@@ -23,32 +23,40 @@
 #include "RcppApi_params.h"
 #include "services.h"
 
-#include <chrono>
-#include <iomanip>
-#include <string>
-#include <sstream>
+// ---- Reporter ---------------------------------------------------------
 
-// ---- Logger -----------------------------------------------------------
-
-void Rlogger(const std::string& msg)
+// Text mode reporter printing the progress to the R console. Ctrl-C / Esc cancels the computation.
+class RReporter : public arbor::ConsoleReporter
 {
-  auto now = std::chrono::system_clock::now();
-  auto time_t_now = std::chrono::system_clock::to_time_t(now);
-  std::tm* tm_now = std::localtime(&time_t_now);
+public:
+  // Debug and info messages are meaningless out of context in the console: only warnings are printed
+  RReporter() : arbor::ConsoleReporter(Rcpp::Rcout, arbor::LogLevel::Warning) {}
 
-  std::ostringstream oss;
-  oss << "["
-      << std::setfill('0') << std::setw(2) << tm_now->tm_hour << ":"
-      << std::setfill('0') << std::setw(2) << tm_now->tm_min  << ":"
-      << std::setfill('0') << std::setw(2) << tm_now->tm_sec
-      << "] " << msg;
+  void begin(const arbor::ProgressInfo&) override
+  {
+    // Fit the live line to the console
+    SEXP w = Rf_GetOption1(Rf_install("width"));
+    if (Rf_isInteger(w) && Rf_length(w) == 1 && INTEGER(w)[0] > 10)
+      width = static_cast<std::size_t>(INTEGER(w)[0]);
+  }
 
-  Rcpp::Rcout << oss.str() << std::endl;
-}
+  bool cancel_requested() override
+  {
+    try
+    {
+      Rcpp::checkUserInterrupt();
+    }
+    catch (Rcpp::internal::InterruptedException&)
+    {
+      return true;
+    }
+    return false;
+  }
+};
 
 namespace {
 struct RServicesInit {
-  RServicesInit() { ServiceLocator::register_logger(Rlogger); }
+  RServicesInit() { ServiceLocator::register_reporter(std::make_shared<RReporter>()); }
 };
   static RServicesInit r_services_init;
 }
