@@ -25,11 +25,10 @@
 #include "PointCloud.h"
 #include "fitting_types.h"
 
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-namespace arbor::settings { struct ArborParameters; }
 
 // Merging of a spatially accurate ground inventory into an instance segmentation
 // (port of the arborInventoryMerger R package). The inventory is trusted: each
@@ -37,18 +36,19 @@ namespace arbor::settings { struct ArborParameters; }
 // at several heights around the point of measurement, and the IDs of the points
 // that support the stem are mapped to the inventory ID.
 //
-// Pipeline (merge_inventory() runs it all):
-//   1. disentangle_ids()        point cloud IDs that collide with inventory IDs are renumbered
-//   2. matching_table()         stem fitting for each inventory tree -> (treeID, targetID) pairs
-//   3. reassign_ids()           point cloud IDs are replaced by inventory IDs
-//   4. resolve_multi_matching() point cloud trees matched to several inventory trees are re-segmented
+// Pipeline (InventoryMerger::run() runs it all):
+//   1. disentangle()  point cloud IDs that collide with inventory IDs are renumbered
+//   2. match()        stem fitting for each inventory tree -> matching table (treeID, targetID)
+//   3. reassign()     point cloud IDs are replaced by inventory IDs
+//   4. resolve()      point cloud trees matched to several inventory trees are re-segmented
 //
-// Point cloud tree IDs <= 0 (including R's NA) mean "no tree" and are never remapped.
+// Vocabulary: "treeID" or "point cloud ID" is the ID of arbor's segmentation, "targetID"
+// or "inventory ID" is the ID of the inventory. Point cloud tree IDs <= 0 (including R's
+// NA) mean "no tree" and are never remapped.
 
 namespace arbor::inventory {
 
-// Internal constants of the algorithm. In the R code they are hard-coded numbers; the
-// defaults are those numbers. They are grouped here only to give them a name.
+// Internal constants of the algorithm (hard-coded numbers in the R code)
 struct MergerParameters
 {
   std::vector<double> slice_offsets = {-2, -1.5, -1, -0.75, -0.5, 0, 0.5, 1, 1.5, 2}; // relative to the POM
@@ -66,10 +66,8 @@ struct MergerParameters
   double cluster_max_base_hag   = 0.75;  // clusters that do not start below this height are discarded
 };
 
-// A stem cross-section successfully fitted for an inventory tree.
-// R equivalent: one 'aim_fit' object returned by aim_fit_slice() (fit_circloid_cpp() output
-// + to_be_merge_id + seeds).
-struct SliceFit
+// A stem cross-section successfully fitted for an inventory tree
+struct StemSlice
 {
   double offset = 0;                           // slice offset relative to the POM
   utils::fitting::FittingResult fit;           // center, radius, contour; inliers index 'points'
@@ -78,17 +76,14 @@ struct SliceFit
 };
 
 // Everything found for one inventory tree.
-// R equivalent: the list returned by aim_fit_tree(). 'tree_ids' is the union of the
-// to_be_merge_id of all slices and 'seeds' the union of their seeds.
-// Status::SingleCandidate and Status::NotDetected are the two warnings "No tree detected
-// for tree X (but a single candidate ID was found and used)" of the R code.
-struct TreeFit
+// SingleCandidate: no stem fitted but a single point cloud tree stands at the inventory position.
+struct StemMatch
 {
   enum class Status { Fitted, SingleCandidate, NotDetected };
 
   int target_id = 0;
   Status status = Status::NotDetected;
-  std::vector<SliceFit> slices;                // empty unless Fitted
+  std::vector<StemSlice> slices;               // empty unless Fitted
   std::vector<int> tree_ids;                   // unique point cloud IDs to be merged into target_id
   std::vector<utils::fitting::Vec3> seeds;     // inliers of all slices or the inventory position
 
@@ -96,8 +91,7 @@ struct TreeFit
 };
 
 // One row of the matching table: the point cloud tree 'tree_id' is (part of) the inventory
-// tree 'target_id'. R equivalent: a row of the data.frame returned by aim_matching_table().
-// tree_id = 0 means that no point cloud tree was matched (NA in R).
+// tree 'target_id'. tree_id = 0 means that no point cloud tree was matched (NA in R).
 struct Match
 {
   int tree_id = 0;
@@ -107,46 +101,57 @@ struct Match
 
 using MatchingTable = std::vector<Match>;
 
+// One row (treeID, targetID, nfit) per point cloud tree matched, or (0, targetID, 0) if none
+MatchingTable matching_table(const std::vector<StemMatch>& matches);
+
+// Point cloud IDs matched to several distinct inventory IDs: treeID -> inventory IDs
+std::map<int, std::vector<int>> find_conflicts(const MatchingTable& table);
+
 struct MergeReport
 {
   std::unordered_map<int, int> disentangled;   // point cloud ID renumbered in step 1: old -> new
-  MatchingTable matching_table;
-  std::vector<int> undetected;                 // inventory IDs with no point cloud tree
-  std::unordered_map<int, std::vector<int>> conflicts; // point cloud ID -> several inventory IDs, re-segmented
+  std::vector<StemMatch> matches;
 
+  MatchingTable table() const { return matching_table(matches); }
+  std::vector<int> undetected() const;         // inventory IDs with no point cloud tree
+  std::map<int, std::vector<int>> conflicts() const { return find_conflicts(table()); }
   std::string to_string() const;
 };
 
-// Renumbers the point cloud tree IDs that also exist in the inventory. Returns the map old -> new.
-std::unordered_map<int, int> disentangle_ids(PointCloud& pc, const Inventory& inventory);
+class InventoryMerger
+{
+public:
+  // The inventory is not copied and must outlive the merger
+  explicit InventoryMerger(const Inventory& inventory, MergerParameters params = {});
 
-// Fits the stem of one inventory tree. 'max_hag' bounds the points used (see MergerParameters::max_hag_above_pom).
-TreeFit fit_tree(const PointCloud& pc, const InventoryTree& tree, double max_hag, const MergerParameters& params = {});
+  // Full pipeline. Modifies the tree IDs of the point cloud in place and logs the report.
+  MergeReport run(PointCloud& pc) const;
 
-// Fits all the trees of the inventory (in parallel)
-std::vector<TreeFit> fit_trees(const PointCloud& pc, const Inventory& inventory, const MergerParameters& params = {});
+  // Renumbers the point cloud tree IDs that also exist in the inventory. Returns the map old -> new.
+  std::unordered_map<int, int> disentangle(PointCloud& pc) const;
 
-// Matching table from the fits, or fitting the trees first. Throws if IDs are entangled (see disentangle_ids())
-MatchingTable matching_table(const std::vector<TreeFit>& fits);
-MatchingTable matching_table(const PointCloud& pc, const Inventory& inventory, const MergerParameters& params = {});
+  // Fits the stems of all the inventory trees (in parallel). Throws if IDs are entangled.
+  std::vector<StemMatch> match(const PointCloud& pc) const;
 
-// Replaces point cloud IDs by inventory IDs. Point cloud IDs matched several times are left
-// untouched (see resolve_multi_matching()). Pre-existing IDs that collide with a target are moved
-// to new IDs. Returns the number of point cloud IDs matched several times.
-size_t reassign_ids(PointCloud& pc, const MatchingTable& table);
+  // Fits the stems of some inventory trees only, e.g. to inspect or refit a tree. No ID check.
+  std::vector<StemMatch> match(const PointCloud& pc, const std::vector<int>& ids) const;
 
-// Point cloud trees matched to several inventory trees are re-segmented with segment_instance()
-// using the stem inliers of each inventory tree as seeds. Requires 'hag' and 'foliage'.
-// Points not reached by the segmentation keep their ID. The version with fits reuses the fits
-// of the matching step instead of re-fitting the trees.
-void resolve_multi_matching(PointCloud& pc, const MatchingTable& table, const Inventory& inventory, const MergerParameters& params = {});
-void resolve_multi_matching(PointCloud& pc, const MatchingTable& table, const std::vector<TreeFit>& fits);
-void resolve_multi_matching(PointCloud& pc, const MatchingTable& table, const std::vector<TreeFit>& fits, const settings::ArborParameters& params);
+  // Replaces point cloud IDs by inventory IDs. Point cloud IDs matched several times are left
+  // untouched (see resolve()). Pre-existing IDs that collide with a target are moved to new IDs.
+  static void reassign(PointCloud& pc, const MatchingTable& table);
 
-// Full pipeline. Modifies the tree IDs of the point cloud in place and logs the report.
-MergeReport merge_inventory(PointCloud& pc, const Inventory& inventory, const MergerParameters& params = {});
+  // Point cloud trees matched to several inventory trees are re-segmented with segment_instance()
+  // using the stem inliers of each inventory tree as seeds. Requires 'hag' and 'foliage'.
+  // 'matches' are those of match(); the inventory trees involved that are missing are fitted again.
+  // Points not reached by the segmentation keep their ID.
+  void resolve(PointCloud& pc, const MatchingTable& table, const std::vector<StemMatch>& matches = {}) const;
 
-const char* to_string(TreeFit::Status status) noexcept;
+private:
+  const Inventory& inventory_;
+  MergerParameters params_;
+
+  std::vector<StemMatch> fit(const PointCloud& pc, const std::vector<const InventoryTree*>& trees) const;
+};
 
 } // namespace arbor::inventory
 

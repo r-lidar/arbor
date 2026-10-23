@@ -128,7 +128,7 @@ Rcpp::IntegerVector aim_disentangle_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame
   arbor::inventory::Inventory inventory_ = as_inventory(inventory);
   Rcpp::DataFrame copy = with_treeid_copy(las);
   PointCloud pc(copy);
-  arbor::inventory::disentangle_ids(pc, inventory_);
+  arbor::inventory::InventoryMerger(inventory_).disentangle(pc);
   return treeid_of(copy);
 }
 
@@ -136,7 +136,7 @@ Rcpp::DataFrame aim_matching_table_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inve
 {
   arbor::inventory::Inventory inventory_ = as_inventory(inventory);
   PointCloud pc(las);
-  return as_dataframe(arbor::inventory::matching_table(pc, inventory_));
+  return as_dataframe(arbor::inventory::matching_table(arbor::inventory::InventoryMerger(inventory_).match(pc)));
 }
 
 Rcpp::IntegerVector aim_reassign_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table)
@@ -144,17 +144,18 @@ Rcpp::IntegerVector aim_reassign_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame ma
   arbor::inventory::MatchingTable table = as_matching_table(matching_table);
   Rcpp::DataFrame copy = with_treeid_copy(las);
   PointCloud pc(copy);
-  arbor::inventory::reassign_ids(pc, table);
+  arbor::inventory::InventoryMerger::reassign(pc, table);
   return treeid_of(copy);
 }
 
+// The matches of the matching step are not available: the inventory trees involved are fitted again
 Rcpp::IntegerVector aim_resolve_multi_matching_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table, Rcpp::DataFrame inventory)
 {
   arbor::inventory::Inventory inventory_ = as_inventory(inventory);
   arbor::inventory::MatchingTable table = as_matching_table(matching_table);
   Rcpp::DataFrame copy = with_treeid_copy(las);
   PointCloud pc(copy);
-  arbor::inventory::resolve_multi_matching(pc, table, inventory_);
+  arbor::inventory::InventoryMerger(inventory_).resolve(pc, table);
   return treeid_of(copy);
 }
 
@@ -163,7 +164,7 @@ Rcpp::IntegerVector aim_merge_inventory_cpp(Rcpp::DataFrame las, Rcpp::DataFrame
   arbor::inventory::Inventory inventory_ = as_inventory(inventory);
   Rcpp::DataFrame copy = with_treeid_copy(las);
   PointCloud pc(copy);
-  arbor::inventory::merge_inventory(pc, inventory_);
+  arbor::inventory::InventoryMerger(inventory_).run(pc);
   return treeid_of(copy);
 }
 
@@ -173,14 +174,13 @@ Rcpp::List aim_fit_tree_cpp(Rcpp::DataFrame las, Rcpp::DataFrame tree)
   if (inventory.size() != 1) Rcpp::stop("Cannot process multiple trees");
 
   const arbor::inventory::InventoryTree& t = inventory[0];
-  arbor::inventory::MergerParameters params;
 
   PointCloud pc(las);
-  arbor::inventory::TreeFit res = arbor::inventory::fit_tree(pc, t, t.pom + params.max_hag_above_pom, params);
+  arbor::inventory::StemMatch res = arbor::inventory::InventoryMerger(inventory).match(pc, {t.id}).front();
 
   Rcpp::List out;
 
-  if (res.status != arbor::inventory::TreeFit::Status::Fitted)
+  if (res.status != arbor::inventory::StemMatch::Status::Fitted)
   {
     out.push_back(Rcpp::List::create(
       Rcpp::Named("center_x") = t.x,
@@ -191,7 +191,7 @@ Rcpp::List aim_fit_tree_cpp(Rcpp::DataFrame las, Rcpp::DataFrame tree)
     return out;
   }
 
-  for (const arbor::inventory::SliceFit& slice : res.slices)
+  for (const arbor::inventory::StemSlice& slice : res.slices)
   {
     const arbor::utils::fitting::FittingResult& fit = slice.fit;
 

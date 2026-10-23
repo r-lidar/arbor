@@ -21,10 +21,7 @@
 #ifndef INVENTORY_H
 #define INVENTORY_H
 
-#include <algorithm>
 #include <cstddef>
-#include <optional>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -32,6 +29,7 @@
 
 namespace arbor::inventory {
 
+// Extra fields of an inventory (columns other than the built-in ones), e.g. read from a file.
 enum class PropertyType { Double, Int, String };
 
 // Order of alternatives matches PropertyType so that variant::index() == PropertyType
@@ -41,7 +39,6 @@ struct PropertyDef
 {
   std::string name;
   PropertyType type;
-  PropertyValue default_value;
 };
 
 // A single tree. 'properties' is aligned with the schema of the owning Inventory:
@@ -66,118 +63,48 @@ class Inventory
 public:
   using const_iterator = std::vector<InventoryTree>::const_iterator;
 
-  Inventory() = default;
-
-  // ---- Size / access ----
+  // ---- Access ----
   size_t size() const noexcept { return trees_.size(); }
   bool empty() const noexcept { return trees_.empty(); }
   void reserve(size_t n) { trees_.reserve(n); }
-  void clear();
 
   const_iterator begin() const noexcept { return trees_.begin(); }
   const_iterator end() const noexcept { return trees_.end(); }
   const std::vector<InventoryTree>& trees() const noexcept { return trees_; }
 
   const InventoryTree& operator[](size_t i) const { return trees_[i]; }
-  const InventoryTree& at_index(size_t i) const;
   const InventoryTree& at(int id) const;            // throws if absent
   const InventoryTree* find(int id) const noexcept; // nullptr if absent
   bool contains(int id) const noexcept { return index_.count(id) > 0; }
-  size_t index_of(int id) const;                    // throws if absent
 
-  // ---- Tree CRUD ----
+  // ---- Trees ----
   // id must be > 0, coordinates finite, radius and pom finite and > 0. Throws otherwise.
+  // Properties are initialized to the default value of their type.
   const InventoryTree& add_tree(int id, double x, double y, double z, double radius, double pom, const std::string& species = "");
-  const InventoryTree& add_tree(InventoryTree tree);
   bool remove_tree(int id);
-  int next_id() const noexcept; // max(id) + 1, or 1 if empty
 
-  void set_id(int id, int new_id);
   void set_position(int id, double x, double y, double z);
   void set_radius(int id, double radius);
   void set_pom(int id, double pom);
   void set_species(int id, const std::string& species);
 
-  // ---- Schema ----
+  // ---- Properties ----
   const std::vector<PropertyDef>& schema() const noexcept { return schema_; }
   bool has_property(const std::string& name) const noexcept;
-  size_t property_index(const std::string& name) const; // throws if absent
-  PropertyType property_type(const std::string& name) const;
-
   void add_property(const std::string& name, PropertyType type);
-  void add_property(const std::string& name, const PropertyValue& default_value);
-  void remove_property(const std::string& name);
-  void rename_property(const std::string& name, const std::string& new_name);
 
-  // ---- Property values ----
   // int values are promoted to double for Double properties; any other type mismatch throws.
   void set_property(int id, const std::string& name, const PropertyValue& value);
-  // Sets the same value for all trees
-  void fill_property(const std::string& name, const PropertyValue& value);
   const PropertyValue& get_property(int id, const std::string& name) const;
-
-  template<typename T>
-  const T& get(int id, const std::string& name) const
-  {
-    const PropertyValue& v = get_property(id, name);
-    if (const T* p = std::get_if<T>(&v)) return *p;
-    throw std::runtime_error("Inventory: property '" + name + "' is not of the requested type");
-  }
-
-  // ---- Filter / sort ----
-  // Pred: bool(const InventoryTree&)
-  template<typename Pred>
-  Inventory filter(Pred pred) const
-  {
-    Inventory out;
-    out.schema_ = schema_;
-    for (const InventoryTree& t : trees_)
-      if (pred(t)) out.trees_.push_back(t);
-    out.rebuild_index();
-    return out;
-  }
-
-  // Pred: bool(const InventoryTree&). Returns the number of trees removed.
-  template<typename Pred>
-  size_t remove_if(Pred pred)
-  {
-    size_t n = trees_.size();
-    trees_.erase(std::remove_if(trees_.begin(), trees_.end(), pred), trees_.end());
-    rebuild_index();
-    return n - trees_.size();
-  }
-
-  // Compare: bool(const InventoryTree&, const InventoryTree&)
-  template<typename Compare>
-  void sort(Compare comp)
-  {
-    std::stable_sort(trees_.begin(), trees_.end(), comp);
-    rebuild_index();
-  }
-
-  // Sorts by a built-in field (id, x, y, z, radius, pom, species) or an extra property
-  void sort_by(const std::string& field, bool ascending = true);
-
-  // ---- Spatial queries (2D, horizontal distance, full scan) ----
-  std::optional<int> nearest(double x, double y) const;
-  std::optional<int> nearest(double x, double y, double max_distance) const;
-  std::vector<int> within(double x, double y, double distance) const;
-
-  static bool is_reserved_name(const std::string& name) noexcept;
 
 private:
   std::vector<InventoryTree> trees_;
   std::vector<PropertyDef> schema_;
   std::unordered_map<int, size_t> index_; // id -> position in trees_
 
-  InventoryTree& mutable_tree(int id);
-  void rebuild_index();
-  void check_new_property_name(const std::string& name) const;
-  static void check_tree(const InventoryTree& tree);
-  PropertyValue coerce(const PropertyValue& value, PropertyType type, const std::string& name) const;
+  size_t index_of(int id) const; // throws if absent
+  size_t property_index(const std::string& name) const; // throws if absent
 };
-
-const char* to_string(PropertyType type) noexcept;
 
 } // namespace arbor::inventory
 
