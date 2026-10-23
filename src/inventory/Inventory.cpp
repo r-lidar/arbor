@@ -25,7 +25,7 @@
 
 namespace arbor::inventory {
 
-static const char* RESERVED_NAMES[] = {"id", "x", "y", "z", "radius", "species"};
+static const char* RESERVED_NAMES[] = {"id", "x", "y", "z", "radius", "pom", "species"};
 
 const char* to_string(PropertyType type) noexcept
 {
@@ -103,7 +103,33 @@ void Inventory::rebuild_index()
 
 // ---- Tree CRUD ----
 
-const InventoryTree& Inventory::add_tree(int id, double x, double y, double z, double radius, const std::string& species)
+static void check_id(int id)
+{
+  if (id <= 0)
+    throw std::invalid_argument("Inventory: invalid tree id " + std::to_string(id) + ". IDs must be > 0");
+}
+
+static void check_position(int id, double x, double y, double z)
+{
+  if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+    throw std::invalid_argument("Inventory: tree " + std::to_string(id) + " has a non finite position");
+}
+
+static void check_positive(int id, const char* what, double value)
+{
+  if (!std::isfinite(value) || value <= 0)
+    throw std::invalid_argument("Inventory: tree " + std::to_string(id) + " has an invalid " + what + " (" + std::to_string(value) + "). It must be > 0");
+}
+
+void Inventory::check_tree(const InventoryTree& tree)
+{
+  check_id(tree.id);
+  check_position(tree.id, tree.x, tree.y, tree.z);
+  check_positive(tree.id, "radius", tree.radius);
+  check_positive(tree.id, "pom", tree.pom);
+}
+
+const InventoryTree& Inventory::add_tree(int id, double x, double y, double z, double radius, double pom, const std::string& species)
 {
   InventoryTree tree;
   tree.id = id;
@@ -111,12 +137,15 @@ const InventoryTree& Inventory::add_tree(int id, double x, double y, double z, d
   tree.y = y;
   tree.z = z;
   tree.radius = radius;
+  tree.pom = pom;
   tree.species = species;
   return add_tree(std::move(tree));
 }
 
 const InventoryTree& Inventory::add_tree(InventoryTree tree)
 {
+  check_tree(tree);
+
   if (contains(tree.id))
     throw std::invalid_argument("Inventory: a tree with id " + std::to_string(tree.id) + " already exists");
 
@@ -160,6 +189,7 @@ int Inventory::next_id() const noexcept
 void Inventory::set_id(int id, int new_id)
 {
   if (id == new_id) { index_of(id); return; }
+  check_id(new_id);
   if (contains(new_id))
     throw std::invalid_argument("Inventory: a tree with id " + std::to_string(new_id) + " already exists");
 
@@ -171,6 +201,7 @@ void Inventory::set_id(int id, int new_id)
 
 void Inventory::set_position(int id, double x, double y, double z)
 {
+  check_position(id, x, y, z);
   InventoryTree& t = mutable_tree(id);
   t.x = x;
   t.y = y;
@@ -179,7 +210,14 @@ void Inventory::set_position(int id, double x, double y, double z)
 
 void Inventory::set_radius(int id, double radius)
 {
+  check_positive(id, "radius", radius);
   mutable_tree(id).radius = radius;
+}
+
+void Inventory::set_pom(int id, double pom)
+{
+  check_positive(id, "pom", pom);
+  mutable_tree(id).pom = pom;
 }
 
 void Inventory::set_species(int id, const std::string& species)
@@ -298,6 +336,7 @@ void Inventory::sort_by(const std::string& field, bool ascending)
   else if (field == "y")       sort([&](const InventoryTree& a, const InventoryTree& b) { return order(a.y, b.y); });
   else if (field == "z")       sort([&](const InventoryTree& a, const InventoryTree& b) { return order(a.z, b.z); });
   else if (field == "radius")  sort([&](const InventoryTree& a, const InventoryTree& b) { return order(a.radius, b.radius); });
+  else if (field == "pom")     sort([&](const InventoryTree& a, const InventoryTree& b) { return order(a.pom, b.pom); });
   else if (field == "species") sort([&](const InventoryTree& a, const InventoryTree& b) { return order(a.species, b.species); });
   else
   {

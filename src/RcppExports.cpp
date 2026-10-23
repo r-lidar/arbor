@@ -479,6 +479,73 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// aim_disentangle_ids_cpp
+Rcpp::IntegerVector aim_disentangle_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+RcppExport SEXP _arbor_aim_disentangle_ids_cpp(SEXP lasSEXP, SEXP inventorySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type inventory(inventorySEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_disentangle_ids_cpp(las, inventory));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aim_matching_table_cpp
+Rcpp::DataFrame aim_matching_table_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+RcppExport SEXP _arbor_aim_matching_table_cpp(SEXP lasSEXP, SEXP inventorySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type inventory(inventorySEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_matching_table_cpp(las, inventory));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aim_reassign_ids_cpp
+Rcpp::IntegerVector aim_reassign_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table);
+RcppExport SEXP _arbor_aim_reassign_ids_cpp(SEXP lasSEXP, SEXP matching_tableSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type matching_table(matching_tableSEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_reassign_ids_cpp(las, matching_table));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aim_resolve_multi_matching_cpp
+Rcpp::IntegerVector aim_resolve_multi_matching_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table, Rcpp::DataFrame inventory);
+RcppExport SEXP _arbor_aim_resolve_multi_matching_cpp(SEXP lasSEXP, SEXP matching_tableSEXP, SEXP inventorySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type matching_table(matching_tableSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type inventory(inventorySEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_resolve_multi_matching_cpp(las, matching_table, inventory));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aim_merge_inventory_cpp
+Rcpp::IntegerVector aim_merge_inventory_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+RcppExport SEXP _arbor_aim_merge_inventory_cpp(SEXP lasSEXP, SEXP inventorySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type inventory(inventorySEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_merge_inventory_cpp(las, inventory));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aim_fit_tree_cpp
+Rcpp::List aim_fit_tree_cpp(Rcpp::DataFrame las, Rcpp::DataFrame tree);
+RcppExport SEXP _arbor_aim_fit_tree_cpp(SEXP lasSEXP, SEXP treeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type las(lasSEXP);
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    rcpp_result_gen = Rcpp::wrap(aim_fit_tree_cpp(las, tree));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_distances_cpp
 Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df);
 RcppExport SEXP _arbor_qsm_distances_cpp(SEXP qsm_dfSEXP, SEXP pts_dfSEXP) {
@@ -601,6 +668,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsf_read_cpp", (DL_FUNC) &_arbor_qsf_read_cpp, 1},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 5},
+    {"_arbor_aim_disentangle_ids_cpp", (DL_FUNC) &_arbor_aim_disentangle_ids_cpp, 2},
+    {"_arbor_aim_matching_table_cpp", (DL_FUNC) &_arbor_aim_matching_table_cpp, 2},
+    {"_arbor_aim_reassign_ids_cpp", (DL_FUNC) &_arbor_aim_reassign_ids_cpp, 2},
+    {"_arbor_aim_resolve_multi_matching_cpp", (DL_FUNC) &_arbor_aim_resolve_multi_matching_cpp, 3},
+    {"_arbor_aim_merge_inventory_cpp", (DL_FUNC) &_arbor_aim_merge_inventory_cpp, 2},
+    {"_arbor_aim_fit_tree_cpp", (DL_FUNC) &_arbor_aim_fit_tree_cpp, 2},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
     {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},

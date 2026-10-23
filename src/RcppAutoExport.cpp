@@ -187,6 +187,28 @@ Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, do
 Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from = Rcpp::NumericVector::create(0,0,0), Rcpp::NumericVector to = Rcpp::NumericVector::create(0,0,1), double tolerance = 0.02, int complexity = 1);
 
 // ========================
+// INVENTORY MERGING
+// ========================
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector aim_disentangle_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame aim_matching_table_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector aim_reassign_ids_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector aim_resolve_multi_matching_cpp(Rcpp::DataFrame las, Rcpp::DataFrame matching_table, Rcpp::DataFrame inventory);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::IntegerVector aim_merge_inventory_cpp(Rcpp::DataFrame las, Rcpp::DataFrame inventory);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::List aim_fit_tree_cpp(Rcpp::DataFrame las, Rcpp::DataFrame tree);
+
+// ========================
 // EXPERIMENTAL
 // ========================
 

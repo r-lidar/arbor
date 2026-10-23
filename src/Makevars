@@ -42,6 +42,7 @@ OBJECTS = \
   R/RcppApi_qsm.o \
   R/RcppApi_params.o \
   R/RcppApi_tools.o \
+  R/RcppApi_inventory.o \
   seed/SeedDetector.o \
   seed/find_seeds_api.o \
   seed/SeedDetector_cage.o \
@@ -55,6 +56,7 @@ OBJECTS = \
   RcppAutoExport.o \
   dtm/dtm.o \
   inventory/Inventory.o \
+  inventory/InventoryMerger.o \
   utils/services.o \
   utils/homogeneization.o \
   utils/knn.o \

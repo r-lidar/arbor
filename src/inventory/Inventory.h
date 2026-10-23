@@ -53,6 +53,7 @@ struct InventoryTree
   double y = 0;
   double z = 0;
   double radius = 0;
+  double pom = 0; // height of the point of measurement above ground
   std::string species;
   std::vector<PropertyValue> properties;
 };
@@ -85,7 +86,8 @@ public:
   size_t index_of(int id) const;                    // throws if absent
 
   // ---- Tree CRUD ----
-  const InventoryTree& add_tree(int id, double x, double y, double z, double radius = 0, const std::string& species = "");
+  // id must be > 0, coordinates finite, radius and pom finite and > 0. Throws otherwise.
+  const InventoryTree& add_tree(int id, double x, double y, double z, double radius, double pom, const std::string& species = "");
   const InventoryTree& add_tree(InventoryTree tree);
   bool remove_tree(int id);
   int next_id() const noexcept; // max(id) + 1, or 1 if empty
@@ -93,6 +95,7 @@ public:
   void set_id(int id, int new_id);
   void set_position(int id, double x, double y, double z);
   void set_radius(int id, double radius);
+  void set_pom(int id, double pom);
   void set_species(int id, const std::string& species);
 
   // ---- Schema ----
@@ -152,7 +155,7 @@ public:
     rebuild_index();
   }
 
-  // Sorts by a built-in field (id, x, y, z, radius, species) or an extra property
+  // Sorts by a built-in field (id, x, y, z, radius, pom, species) or an extra property
   void sort_by(const std::string& field, bool ascending = true);
 
   // ---- Spatial queries (2D, horizontal distance, full scan) ----
@@ -170,6 +173,7 @@ private:
   InventoryTree& mutable_tree(int id);
   void rebuild_index();
   void check_new_property_name(const std::string& name) const;
+  static void check_tree(const InventoryTree& tree);
   PropertyValue coerce(const PropertyValue& value, PropertyType type, const std::string& name) const;
 };
 

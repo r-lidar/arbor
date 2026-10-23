@@ -169,6 +169,30 @@ fit_circloid_cpp <- function(x, from = as.numeric( c(0,0,0)), to = as.numeric( c
     .Call(`_arbor_fit_circloid_cpp`, x, from, to, tolerance, complexity)
 }
 
+aim_disentangle_ids_cpp <- function(las, inventory) {
+    .Call(`_arbor_aim_disentangle_ids_cpp`, las, inventory)
+}
+
+aim_matching_table_cpp <- function(las, inventory) {
+    .Call(`_arbor_aim_matching_table_cpp`, las, inventory)
+}
+
+aim_reassign_ids_cpp <- function(las, matching_table) {
+    .Call(`_arbor_aim_reassign_ids_cpp`, las, matching_table)
+}
+
+aim_resolve_multi_matching_cpp <- function(las, matching_table, inventory) {
+    .Call(`_arbor_aim_resolve_multi_matching_cpp`, las, matching_table, inventory)
+}
+
+aim_merge_inventory_cpp <- function(las, inventory) {
+    .Call(`_arbor_aim_merge_inventory_cpp`, las, inventory)
+}
+
+aim_fit_tree_cpp <- function(las, tree) {
+    .Call(`_arbor_aim_fit_tree_cpp`, las, tree)
+}
+
 qsm_distances_cpp <- function(qsm_df, pts_df) {
     .Call(`_arbor_qsm_distances_cpp`, qsm_df, pts_df)
 }
