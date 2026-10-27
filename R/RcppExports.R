@@ -153,6 +153,10 @@ allometry <- function(name) {
     .Call(`_arbor_allometry`, name)
 }
 
+allometry_database_cpp <- function() {
+    .Call(`_arbor_allometry_database_cpp`)
+}
+
 qsf_write_cpp <- function(x, dir, format, binary) {
     invisible(.Call(`_arbor_qsf_write_cpp`, x, dir, format, binary))
 }

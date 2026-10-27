@@ -161,6 +161,9 @@ Rcpp::IntegerVector qsm_get_cylID(Rcpp::DataFrame qsmdf, Rcpp::DataFrame pcdf);
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame allometry(std::string name);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame allometry_database_cpp();
+
 /*
 //[[Rcpp::export(rng = false)]]
 Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);

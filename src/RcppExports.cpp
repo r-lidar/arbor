@@ -430,6 +430,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// allometry_database_cpp
+Rcpp::DataFrame allometry_database_cpp();
+RcppExport SEXP _arbor_allometry_database_cpp() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    rcpp_result_gen = Rcpp::wrap(allometry_database_cpp());
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsf_write_cpp
 void qsf_write_cpp(Rcpp::List x, std::string dir, std::string format, bool binary);
 RcppExport SEXP _arbor_qsf_write_cpp(SEXP xSEXP, SEXP dirSEXP, SEXP formatSEXP, SEXP binarySEXP) {
@@ -664,6 +673,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
     {"_arbor_qsm_get_cylID", (DL_FUNC) &_arbor_qsm_get_cylID, 2},
     {"_arbor_allometry", (DL_FUNC) &_arbor_allometry, 1},
+    {"_arbor_allometry_database_cpp", (DL_FUNC) &_arbor_allometry_database_cpp, 0},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_qsf_read_cpp", (DL_FUNC) &_arbor_qsf_read_cpp, 1},
     {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},

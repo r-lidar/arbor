@@ -128,6 +128,30 @@ Rcpp::DataFrame allometry(std::string name)
   );
 }
 
+Rcpp::DataFrame allometry_database_cpp()
+{
+  auto entries = AllometryDataBase::entries();
+  R_xlen_t n = entries.size();
+
+  Rcpp::CharacterVector model(n), authors(n), reference(n), country(n);
+
+  for (R_xlen_t i = 0; i < n; i++)
+  {
+    model[i]     = Rcpp::String(entries[i].name, CE_UTF8);
+    authors[i]   = Rcpp::String(entries[i].authors, CE_UTF8);
+    reference[i] = Rcpp::String(entries[i].reference, CE_UTF8);
+    country[i]   = Rcpp::String(entries[i].country, CE_UTF8);
+  }
+
+  return Rcpp::DataFrame::create(
+    Rcpp::Named("model") = model,
+    Rcpp::Named("authors") = authors,
+    Rcpp::Named("country") = country,
+    Rcpp::Named("reference") = reference,
+    Rcpp::Named("stringsAsFactors") = false
+  );
+}
+
 Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from, Rcpp::NumericVector to, double tolerance, int complexity)
 {
   if (x.ncol() != 3) {
