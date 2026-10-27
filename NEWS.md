@@ -12,6 +12,7 @@
  ### ENHANCEMENTS
  
  - Enhance progress display
+ - Enhance computation of KD-tree for a 5% speed-up of the pipeline
 
 # 1.1.3 
 

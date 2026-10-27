@@ -117,7 +117,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
     nanoflann::L2_Simple_Adaptor<double, GroundCloud>,
     GroundCloud, 2> my_kd_tree;
 
-  my_kd_tree index(2, ground_pts, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  my_kd_tree index(2, ground_pts, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   int nan_count = 0;

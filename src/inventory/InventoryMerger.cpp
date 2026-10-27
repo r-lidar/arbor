@@ -109,7 +109,7 @@ class StemFinder
 {
 public:
   StemFinder(const PointCloud& pc, double max_hag, const MergerParameters& params) :
-    pc_(pc), params_(params), adaptor_{pc, {}}, kdtree_(2, adaptor_, nanoflann::KDTreeSingleIndexAdaptorParams(10))
+    pc_(pc), params_(params), adaptor_{pc, {}}, kdtree_(2, adaptor_, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex))
   {
     for (size_t i = 0; i < pc.size(); ++i)
       if (pc.get_hag(i) <= max_hag) adaptor_.idx.push_back(static_cast<unsigned int>(i));

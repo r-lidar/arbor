@@ -146,7 +146,7 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
   using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, CenterCloud>, CenterCloud, 3>;
 
   CenterCloud cloud(centers);
-  KDTree kdtree(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree kdtree(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   kdtree.buildIndex();
 
   const double max_d2 = max_d * max_d;

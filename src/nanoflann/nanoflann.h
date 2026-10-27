@@ -55,10 +55,14 @@
 #include <future>
 #include <istream>
 #include <limits>  // std::numeric_limits
+#include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <unordered_set>
 #include <vector>
+
+// arbor: progress reporting of the tree construction (see progress.h)
+#include "progress.h"
 
 /** Library version: 0xMmP (M=Major,m=minor,P=patch) */
 #define NANOFLANN_VERSION 0x171
@@ -1072,6 +1076,14 @@ class KDTreeBaseClass
 
     /// Number of thread for concurrent tree build
     Size n_thread_build_ = 1;
+
+    /// arbor: progress of buildIndex(). Ticked only by the sequential
+    /// divideTree() because the concurrent build runs std::async threads
+    /// that must not call the Reporter. nullptr outside buildIndex().
+    arbor::Counter* progress_ = nullptr;
+    /// arbor: the counter is ticked once per maximal subtree of at most
+    /// progress_chunk_ points, i.e. about size_/progress_chunk_ times.
+    static constexpr Size progress_chunk_ = Size(1) << 14;
     /// Number of current points in the dataset
     Size size_ = 0;
     /// Number of points in the dataset when the index was built
@@ -1136,6 +1148,20 @@ class KDTreeBaseClass
         }
     }
 
+    /// arbor: a child subtree of `child` points of a node of `count` points
+    /// has been built. Counts it if it is a maximal subtree of at most
+    /// progress_chunk_ points, so that each point is counted exactly once.
+    /// Throws arbor::Cancelled if the host requested a cancellation: the
+    /// index is then unusable and must be rebuilt.
+    void tick_progress(Size count, Size child)
+    {
+        if (progress_ && count > progress_chunk_ && child <= progress_chunk_)
+        {
+            progress_->tick(child);
+            progress_->throw_if_cancelled();
+        }
+    }
+
     /**
      * Create a tree node that subdivides the list of vecs from vind[first]
      * to vind[last].  The routine is called recursively on each sublist.
@@ -1186,10 +1212,12 @@ class KDTreeBaseClass
             BoundingBox left_bbox(bbox);
             left_bbox[cutfeat].high = cutval;
             node->child1 = this->divideTree(obj, left, left + idx, left_bbox);
+            tick_progress(right - left, idx);
 
             BoundingBox right_bbox(bbox);
             right_bbox[cutfeat].low = cutval;
             node->child2 = this->divideTree(obj, left + idx, right, right_bbox);
+            tick_progress(right - left, right - left - idx);
 
             node->node_type.sub.divlow  = left_bbox[cutfeat].high;
             node->node_type.sub.divhigh = right_bbox[cutfeat].low;
@@ -1650,8 +1678,22 @@ class KDTreeSingleIndexAdaptor
         // construct the tree
         if (Base::n_thread_build_ == 1)
         {
-            Base::root_node_ =
-                this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+            // arbor: no progress bar for small trees built in a blink
+            std::optional<arbor::Counter> progress;
+            if (Base::size_ > Base::progress_chunk_)
+                progress.emplace("Building KD-tree", Base::size_);
+            Base::progress_ = progress ? &*progress : nullptr;
+            try
+            {
+                Base::root_node_ =
+                    this->divideTree(*this, 0, Base::size_, Base::root_bbox_);
+            }
+            catch (...)
+            {
+                Base::progress_ = nullptr;
+                throw;
+            }
+            Base::progress_ = nullptr;
         }
         else
         {

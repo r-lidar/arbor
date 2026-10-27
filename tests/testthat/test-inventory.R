@@ -219,10 +219,12 @@ test_that("aim_reassign_ids_cpp never merges trees by accident", {
 
 test_that("Inventory merging on a real plot",
 {
+  dir  <- "/home/jr/Documents/r-lidar inc/clients/ird/Data_4_JRR/Quart_ha_&_inventaire/Mathilde"
+
   skip_on_cran()
   skip_on_ci()
+  skip_if_not(dir.exists(dir))
 
-  dir  <- "/home/jr/Documents/r-lidar inc/clients/ird/Data_4_JRR/Quart_ha_&_inventaire/Mathilde"
   flas <- file.path(dir, "quadrat_2_buf15m_decimated25_output/quadrat_2_buf15m_decimated25_segmented.laz")
   fdtm <- file.path(dir, "quadrat_2_buf15m_decimated25_output/quadrat_2_buf15m_decimated25_dtm.tif")
   finv <- file.path(dir, "inventaire.txt")

@@ -31,15 +31,8 @@ namespace arbor::inventory {
 
 // Extra fields of an inventory (columns other than the built-in ones), e.g. read from a file.
 enum class PropertyType { Double, Int, String };
-
-// Order of alternatives matches PropertyType so that variant::index() == PropertyType
 using PropertyValue = std::variant<double, int, std::string>;
-
-struct PropertyDef
-{
-  std::string name;
-  PropertyType type;
-};
+struct PropertyDef { std::string name; PropertyType type; };
 
 // A single tree. 'properties' is aligned with the schema of the owning Inventory:
 // properties[i] holds the value of Inventory::schema()[i] and has its declared type.

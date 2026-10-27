@@ -237,7 +237,7 @@ DataFrame qsm_distances_cpp(DataFrame qsm_df, DataFrame pts_df)
   }
 
   // --- 2. Build KD-Tree ---
-  CylinderKDTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  CylinderKDTree index(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   // --- 3. Parse Point Cloud Data ---

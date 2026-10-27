@@ -177,7 +177,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   task.step("Assigning tree IDs to the dense point cloud");
 
   // Expand seed id from dec point cloud to core point cloud
-  KDTree tree(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree tree(3, dec, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   tree.buildIndex();
   nanoflann::SearchParameters nanoparams;
   nanoparams.sorted = false;
