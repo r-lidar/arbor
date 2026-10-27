@@ -12,7 +12,9 @@
  ### ENHANCEMENTS
  
  - Enhance progress display
- - Enhance computation of KD-tree for a 5% speed-up of the pipeline
+ - Enhance computation of KD-tree for a 15% speed-up of the pipeline
+ - Enhance internal graph memory layout for a 15% reduction of RAM consumption
+ - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
 
 # 1.1.3 
 

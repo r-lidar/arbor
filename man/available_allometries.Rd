@@ -7,10 +7,12 @@
 available_allometries()
 }
 \value{
-A data.frame containing available models and their reference URLs:
+A data.frame containing available models and their references:
 \describe{
   \item{model}{Model name}
-  \item{url}{DOI or reference link}
+  \item{authors}{Authors of the model}
+  \item{country}{Country where the model was calibrated}
+  \item{reference}{DOI or reference link}
 }
 }
 \description{
