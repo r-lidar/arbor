@@ -10,6 +10,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./seed \
   -I./dtm \
   -I./fitting \
+  -I./inventory \
   -I./nanoflann \
   -I./vendor \
   -I./vendor/ptd \
@@ -41,6 +42,7 @@ OBJECTS = \
   R/RcppApi_qsm.o \
   R/RcppApi_params.o \
   R/RcppApi_tools.o \
+  R/RcppApi_inventory.o \
   seed/SeedDetector.o \
   seed/find_seeds_api.o \
   seed/SeedDetector_cage.o \
@@ -53,10 +55,12 @@ OBJECTS = \
   segment/segment_overfitting.o \
   RcppAutoExport.o \
   dtm/dtm.o \
+  inventory/Inventory.o \
+  inventory/InventoryMerger.o \
   utils/services.o \
   utils/homogeneization.o \
   utils/knn.o \
-  utils/progressbar.o \
+  utils/progress.o \
   utils/Grid3D.o \
   utils/sor.o \
   utils/anisotopy.o \

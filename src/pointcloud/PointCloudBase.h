@@ -164,8 +164,10 @@ void BasePointCloud<Derived>::build_index() const
 {
   if (kdtree) return;
   const Derived& self = static_cast<const Derived&>(*this);
-  kdtree = std::make_unique<KDTree>(3, self, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  kdtree->buildIndex();
+  // Assigned once built: buildIndex() throws arbor::Cancelled on cancellation
+  auto tree = std::make_unique<KDTree>(3, self, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
+  tree->buildIndex();
+  kdtree = std::move(tree);
 }
 
 template <typename Derived>

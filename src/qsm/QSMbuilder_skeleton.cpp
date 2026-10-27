@@ -63,8 +63,6 @@ struct CenterCloud
 
 std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vector<std::pair<int,int>>& iter_cluster, double max_d)
 {
-  ServiceLocator::logger()("Constructing skeleton");
-
   std::vector<int> point_to_edges(pc.size(), -1);
 
   // Step 1: group points and compute centers
@@ -148,7 +146,7 @@ std::vector<int> QSMbuilder::build_skeleton(const PointCloud& pc, const std::vec
   using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, CenterCloud>, CenterCloud, 3>;
 
   CenterCloud cloud(centers);
-  KDTree kdtree(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  KDTree kdtree(3, cloud, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   kdtree.buildIndex();
 
   const double max_d2 = max_d * max_d;

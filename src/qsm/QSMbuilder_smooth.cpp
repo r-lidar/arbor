@@ -58,8 +58,6 @@ void QSMbuilder::smooth_skeleton(int steps)
 {
   if (steps == 0 || graph.edge_count() == 0) return;
 
-  ServiceLocator::logger()("Smoothing skeleton");
-
   for (const auto& [axis_id, edge_ids] : build_axis_map())
   {
     const int n = static_cast<int>(edge_ids.size());
@@ -99,7 +97,6 @@ void QSMbuilder::smooth_skeleton(int steps)
 void QSMbuilder::smooth_radii()
 {
   if (graph.edge_count() == 0) return;
-  ServiceLocator::logger()("Smoothing radii");
   for (const auto& [axis_id, edge_ids] : build_axis_map())
   {
     const int n = static_cast<int>(edge_ids.size());

@@ -26,6 +26,7 @@
 #include <stdexcept>
 
 #include "Graph.h"
+#include "progress.h"
 
 namespace arbor::segment {
 
@@ -108,12 +109,18 @@ Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
     open_set.push({s.cost, s.node});
   }
 
+  Counter counter("Dijkstra", num_nodes_);
+  std::size_t settled = 0;
+
   while (!open_set.empty())
   {
     auto [current_cost, current] = open_set.top();
     open_set.pop();
 
     if (current_cost > distances[current]) continue;
+
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
 
     // A node is pushed only on a strict improvement, so this point is reached once per node
     if (settle_order) settle_order->push_back(current);
@@ -129,6 +136,8 @@ Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
       }
     });
   }
+
+  counter.throw_if_cancelled();
 
   return {std::move(distances), std::move(predecessors)};
 }
@@ -150,12 +159,18 @@ void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs&
     pq.push({distances[s.node], s.node});
   }
 
+  Counter counter("Dijkstra", num_nodes_);
+  std::size_t settled = 0;
+
   while (!pq.empty())
   {
     auto [dist_u, u] = pq.top();
     pq.pop();
 
     if (dist_u > distances[u]) continue;
+
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
 
     for_each_edge(u, [&](const Node& e)
     {
@@ -169,6 +184,8 @@ void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs&
       }
     });
   }
+
+  counter.throw_if_cancelled();
 }
 
 size_t Graph::mem() const

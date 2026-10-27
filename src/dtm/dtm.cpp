@@ -20,12 +20,13 @@
 
 #include "arbor.h"
 #include "hporro/delaunay.h"
+#include "progress.h"
 
 namespace arbor::dtm {
 
 PointCloud dtm(const PointCloud& scene)
 {
-  ServiceLocator::logger()("Computing DTM");
+  Task task("Computing DTM");
 
   size_t n = scene.size();
 

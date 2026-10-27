@@ -34,8 +34,6 @@ namespace arbor::qsm {
 
 PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree)
 {
-  ServiceLocator::logger()("Checking multiple entry points");
-
   size_t n = tree.size();
   if (n == 0) return tree;
 
@@ -88,8 +86,6 @@ PointCloud QSMbuilder::clean_tree_butt(const PointCloud& tree)
 
 void QSMbuilder::detect_weird_butt(double thresh, int window)
 {
-  ServiceLocator::logger()("Checking weird butt");
-
   // Collect main axis edge IDs
   std::vector<int> main_axis_eids;
   for (const auto& [eid, einfo] : graph.edges())

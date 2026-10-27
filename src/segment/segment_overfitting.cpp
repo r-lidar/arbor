@@ -22,7 +22,7 @@
 #include "dbscan/dbscan.hpp"
 #include "fitting_orbicular.h"
 #include "myomp.h"
-#include "services.h"
+#include "progress.h"
 
 #include <algorithm>
 #include <cmath>
@@ -104,7 +104,6 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
   const size_t npoints = cloud.size();
   const int nlayers = layer_count(config_);
 
-  ServiceLocator::logger()("Overfitting enhancement module");
 
   // Parallel point bucketing into HAG layers. Each thread accumulates into
   // its own local buckets and merges them once at the end, instead of
@@ -140,16 +139,14 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
   // Parallel layer processing
   std::vector<InstanceMatchResult> layer_results(nlayers);
 
-  auto pb = ServiceLocator::make_progress(nlayers, "Searching overfitting");
-  std::atomic<bool> abort(false);
+  Counter counter("Searching overfitting", nlayers);
 
   // For each layer
   #pragma omp parallel for schedule(dynamic)
   for (int layer_idx = 0; layer_idx < nlayers; ++layer_idx)
   {
-    if (abort.load(std::memory_order_relaxed)) continue;
-    if(pb->check_interrupt()) abort = true;
-    pb->tick();
+    if (counter.cancelled()) continue;
+    counter.tick();
 
     const std::vector<size_t>& layer_point_indices = layer_indices[layer_idx];
 
@@ -285,9 +282,7 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
     }
   }
 
-  if (abort.load()) throw std::runtime_error("Computation aborted");
-
-  pb->finalize();
+  counter.throw_if_cancelled();
 
   // Merge of per-layer results into final structure
   InstanceMatchResult result;
@@ -340,7 +335,7 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
     result.matches.push_back(std::move(acc));
   }
 
-  ServiceLocator::logger()(" Detection completed. Candidate found: " + std::to_string(result.matches.size()));
+  logging::debug("Overfitting detection completed. Candidates found: " + std::to_string(result.matches.size()));
 
   return result;
 }
@@ -365,17 +360,20 @@ void OverSegmentationResolver::merge(PointCloud& cloud, const std::vector<MatchR
     if (root != id)
     {
       cloud.remap_treeid(id, root);
-      ServiceLocator::logger()(" Merged tree " + std::to_string(id) + " -> " + std::to_string(root));
+      logging::debug("Merged tree " + std::to_string(id) + " -> " + std::to_string(root));
       ++merged_count;
     }
   }
 
-  ServiceLocator::logger()(" Merge completed. Total remapped trees: " + std::to_string(merged_count));
+  logging::info("Overfitting enhancement: " + std::to_string(merged_count) + " trees merged");
 }
 
 InstanceMatchResult OverSegmentationResolver::run(PointCloud& cloud) const
 {
+  Task task("Overfitting enhancement", {10, 1});
+  task.step("Searching overfitting");
   InstanceMatchResult result = detect(cloud);
+  task.step("Merging trees");
   merge(cloud, result.matches);
   return result;
 }

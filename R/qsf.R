@@ -67,6 +67,13 @@ as_qsf <- function(x)
     stop("All elements of `x` must be QSM objects (class 'qsm').", call. = FALSE)
   }
 
+  # The C++ side requires every QSM to be named with an integer ID
+  if (is.null(names(x)) || anyNA(names(x)))
+  {
+    ids <- vapply(x, function(q) { i <- attr(q, "id"); if (is.null(i)) NA_integer_ else as.integer(i) }, integer(1))
+    names(x) <- if (!anyNA(ids) && !anyDuplicated(ids)) ids else seq_along(x)
+  }
+
   class(x) <- c("qsf", class(x))
   x
 }

@@ -8,6 +8,11 @@
  
  - Enhance documentation of `qsm_read()` with examples
  - Enhance documentation of `st_crs()` with examples
+ 
+ ### ENHANCEMENTS
+ 
+ - Enhance progress display
+ - Enhance computation of KD-tree for a 5% speed-up of the pipeline
 
 # 1.1.3 
 

@@ -62,7 +62,7 @@ std::vector<int> QSMbuilder::cluster(const PointCloud& data, const std::vector<i
     std::string msg = std::to_string(large_group_count) + " large " + group_text +
       " (>10,000 points) detected during clustering. " +
       "This usually indicates that the point cloud was not decimated or homogenized before processing.";
-    ServiceLocator::logger()("\033[33m" + msg + "\033[0m");
+    logging::warning(msg);
   }
 
   // Unique pairs of <iter, dbscan_id>

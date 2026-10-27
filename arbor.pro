@@ -27,6 +27,7 @@ SOURCES += \
     $$files(src/api/*.cpp) \
     $$files(src/pointcloud/*.cpp) \
     $$files(src/fitting/*.cpp) \
+    $$files(src/inventory/*.cpp) \
     $$files(src/qsm/*.cpp) \
     $$files(src/dtm/*.cpp) \
     $$files(src/qsf/*.cpp) \
@@ -43,6 +44,7 @@ INCLUDEPATH += \
     src/api \
     src/dtm \
     src/fitting \
+    src/inventory \
     src/pointcloud \
     src/nanoflann \
     src/qsf \
