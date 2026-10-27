@@ -72,6 +72,29 @@ Rcpp::DataFrame qsm_read_cpp(std::string filename)
   return as_dataframe(qsm);
 }
 
+// Test helper: build a QSM and write it directly from the C++ graph, as a C++
+// host (e.g. ArborStudio) does. qsm_write_cpp() rebuilds a clean graph from the
+// data.frame and would not exercise the writer on a builder-produced graph. A
+// leaf is removed so that the node ids are non-contiguous.
+Rcpp::DataFrame qsm_build_and_write_cpp(Rcpp::DataFrame tree, Rcpp::List params, std::string filename)
+{
+  PointCloud pc(tree);
+  arbor::settings::ArborParameters p = extract_arbor_params(params);
+  QSM qsm = arbor::qsm::qsm(pc, p);
+
+  for (const auto& [nid, node] : qsm.nodes())
+  {
+    if (qsm.children(nid).empty() && qsm.parent_node(nid) != -1)
+    {
+      qsm.remove_node(nid);
+      break;
+    }
+  }
+
+  qsm.write(filename, true);
+  return as_dataframe(qsm);
+}
+
 
 Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3)
 {

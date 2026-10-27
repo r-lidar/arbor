@@ -16,6 +16,10 @@
  - Enhance internal graph memory layout for a 15% reduction of RAM consumption
  - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
 
+### BUG FIXES
+
+ - C++ library: a QSM produced by the QSM builder and written directly to `.qsm` (e.g. by ArborStudio via `QSM::write()` or `QSF::write()`) lost its topology when read back: every node became a root. The writer now renumbers the nodes and writes the edges' graph endpoints, and the reader maps the edges to the nodes it creates. The `.qsm` format is unchanged. QSMs written from R were not affected.
+
 # 1.1.3 
 
 - Enhancement: new slider in the html report of the command line tools.

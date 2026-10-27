@@ -138,6 +138,9 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 Rcpp::DataFrame qsm_read_cpp(std::string filename);
 
 //[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_build_and_write_cpp(Rcpp::DataFrame tree, Rcpp::List params, std::string filename);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3);
 
 //[[Rcpp::export(rng = false)]]

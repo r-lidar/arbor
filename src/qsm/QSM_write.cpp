@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <ctime>   // std::time, std::strftime, std::gmtime
 #include <array>
+#include <map>
 
 namespace arbor::qsm {
 
@@ -102,8 +103,27 @@ void QSM::write_qsm(const std::string& filename) const
     }
   }
   writer.set_origin(xoffset, yoffset, zoffset);
-  for (const auto& elem : nodes()) writer.add_node(elem.second);
-  for (const auto& elem : edges()) writer.add_edge(elem.second.data);
+  // In the file, edges refer to nodes by their 1-based position in the node
+  // list. Graph NodeIDs may be non-contiguous (nodes removed while building),
+  // and the edge data's source/target are not node references during building
+  // (source holds the parent cylinder id), so the graph topology is the
+  // reference: renumber the nodes and remap each edge to its graph endpoints.
+  std::map<NodeID, uint32_t> file_index;
+  uint32_t k = 1;
+  for (const auto& elem : nodes())
+  {
+    file_index[elem.first] = k++;
+    writer.add_node(elem.second);
+  }
+
+  for (const auto& elem : edges())
+  {
+    libqsm::QSMedge e = elem.second.data;
+    e.source = file_index.at(elem.second.source);
+    e.target = file_index.at(elem.second.target);
+    writer.add_edge(e);
+  }
+
   writer.write();
 }
 

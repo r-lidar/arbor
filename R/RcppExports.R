@@ -121,6 +121,10 @@ qsm_read_cpp <- function(filename) {
     .Call(`_arbor_qsm_read_cpp`, filename)
 }
 
+qsm_build_and_write_cpp <- function(tree, params, filename) {
+    .Call(`_arbor_qsm_build_and_write_cpp`, tree, params, filename)
+}
+
 qsm_dbh_cpp <- function(df, d = 1.3) {
     .Call(`_arbor_qsm_dbh_cpp`, df, d)
 }

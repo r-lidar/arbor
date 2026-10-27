@@ -345,6 +345,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// qsm_build_and_write_cpp
+Rcpp::DataFrame qsm_build_and_write_cpp(Rcpp::DataFrame tree, Rcpp::List params, std::string filename);
+RcppExport SEXP _arbor_qsm_build_and_write_cpp(SEXP treeSEXP, SEXP paramsSEXP, SEXP filenameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type tree(treeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    rcpp_result_gen = Rcpp::wrap(qsm_build_and_write_cpp(tree, params, filename));
+    return rcpp_result_gen;
+END_RCPP
+}
 // qsm_dbh_cpp
 Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d);
 RcppExport SEXP _arbor_qsm_dbh_cpp(SEXP dfSEXP, SEXP dSEXP) {
@@ -665,6 +677,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 3},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
     {"_arbor_qsm_read_cpp", (DL_FUNC) &_arbor_qsm_read_cpp, 1},
+    {"_arbor_qsm_build_and_write_cpp", (DL_FUNC) &_arbor_qsm_build_and_write_cpp, 3},
     {"_arbor_qsm_dbh_cpp", (DL_FUNC) &_arbor_qsm_dbh_cpp, 2},
     {"_arbor_qsm_stem_cpp", (DL_FUNC) &_arbor_qsm_stem_cpp, 1},
     {"_arbor_qsm_merchantable_cpp", (DL_FUNC) &_arbor_qsm_merchantable_cpp, 3},
