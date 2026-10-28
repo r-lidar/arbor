@@ -534,11 +534,13 @@ std::vector<typename BasePointCloud<Derived>::Root> BasePointCloud<Derived>::com
       if (id > 0) groups[id].push_back(static_cast<unsigned int>(i));
     }
 
-    for (const auto& [id, idx] : groups)
+    for (const auto& group : groups)
     {
+      // Named reference: clang < 16 cannot capture a structured binding in a lambda
+      const std::vector<unsigned int>& idx = group.second;
       double x = r_mean(idx.size(), [&](size_t k) { return seeds->get_x(idx[k]); });
       double y = r_mean(idx.size(), [&](size_t k) { return seeds->get_y(idx[k]); });
-      roots.push_back({id, x, y});
+      roots.push_back({group.first, x, y});
     }
   }
   else
