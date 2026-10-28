@@ -69,7 +69,6 @@ OBJECTS = \
   utils/smooth3d.o \
   utils/allometry.o \
   utils/Polygon.o \
-  misc/read_adtree_skeleton.o \
   qsm/QSMbuilder_dist2root.o \
   qsm/QSMbuilder_radius.o \
   qsm/QSMbuilder_smooth.o \

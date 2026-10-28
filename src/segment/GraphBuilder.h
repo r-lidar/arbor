@@ -42,13 +42,6 @@ public:
   void fix_directed_reachability2(const PointCloud& cloud);
   void set_wood(const std::vector<bool>& x);
 
-  int get_num_cores() const;
-  int get_num_targets() const;
-  int get_num_seeds() const;
-  int get_num_master() const;
-  std::pair<int, int> get_range_core() const;
-  std::pair<int, int> get_range_targets() const;
-  std::pair<int, int> get_range_seed() const;
   std::pair<int, int> get_range_master() const;
 
 private:

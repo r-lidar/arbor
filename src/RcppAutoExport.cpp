@@ -25,7 +25,6 @@
 #include <Rcpp.h>
 #include "myomp.h"
 
-
 //[[Rcpp::export(rng = false)]]
 int getThreads()
 {
@@ -44,12 +43,6 @@ Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybri
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
 
 // ========================
 // SEGMENTATION
@@ -80,55 +73,10 @@ void flag_buffer_polygon_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFram
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::NumericVector dist2root(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
-
-//[[Rcpp::export(rng = false)]]
-void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res = 0.05, int min_size = 200);
-
-//[[Rcpp::export(rng = false)]]
 Rcpp::List C_match_instances(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
 void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df);
-
-// ========================
-// SEEDS
-// ========================
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
-
-
-  //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20);
-
 
 // ========================
 // QSM
@@ -162,24 +110,13 @@ Rcpp::DataFrame qsm_merchantable_cpp(Rcpp::DataFrame df, double merchantable_rad
 Rcpp::DataFrame qsm_autorepair_cpp(Rcpp::DataFrame df);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame read_adtree_skeleton(std::string filename);
-
-//[[Rcpp::export(rng = false)]]
 Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::IntegerVector qsm_get_cylID(Rcpp::DataFrame qsmdf, Rcpp::DataFrame pcdf);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame allometry(std::string name);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame allometry_database_cpp();
-
-/*
-//[[Rcpp::export(rng = false)]]
-Rcpp::List qsm_qmesh_cpp(Rcpp::DataFrame df, int resolution);
- */
 
 // ========================
 // QSF
@@ -194,9 +131,6 @@ Rcpp::List qsf_read_cpp(std::string filename);
 // ========================
 // FITTING
 // ========================
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations = 100, double inlier_threshold = 0.01, double early_exit = 1.0);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::List fit_circloid_cpp(Rcpp::NumericMatrix x, Rcpp::NumericVector from = Rcpp::NumericVector::create(0,0,0), Rcpp::NumericVector to = Rcpp::NumericVector::create(0,0,1), double tolerance = 0.02, int complexity = 1);
@@ -232,51 +166,5 @@ Rcpp::DataFrame qsm_distances_cpp(Rcpp::DataFrame qsm_df, Rcpp::DataFrame pts_df
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::IntegerVector extract_tree_context_cpp(Rcpp::DataFrame las, int tree_id,  bool exclude_tree = false, int k = 10);
-
-// ========================
-// DEBUG IN R
-// ========================
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume = false);
-
-/*
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_clean_tree_butt_cpp(Rcpp::DataFrame tree);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_simplify_cpp(Rcpp::DataFrame qsm, double max_length = 0.3);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_smooth_cpp(Rcpp::DataFrame df, int niter = 1, double th = 0);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_conic_allometry_cpp(Rcpp::DataFrame df, double R0, double tip_radius = 0.0025);
-
-//[[Rcpp::export(rng = false)]]
-double qsm_estimate_prolongation_cpp(Rcpp::DataFrame tree, Rcpp::DataFrame df);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_prolongation_cpp(Rcpp::DataFrame df, double d, double L = 0.1);
-
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_measure_cpp(Rcpp::DataFrame pc, Rcpp::DataFrame df, float sarc = 180, float sins = 0.2, float sinl = 0.3, float srmeas = 0.05);
-*/
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
-
-/*
-//[[Rcpp::export(rng = false)]]
-Rcpp::DataFrame qsm_reconstruction_cpp(Rcpp::DataFrame df, double tip_radius);
-*/
 
 #endif

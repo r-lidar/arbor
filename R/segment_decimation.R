@@ -35,12 +35,3 @@ hybrid_homogeneization = function(las, res = 0.02)
   free(keep)
   return(las)
 }
-
-barycentric_decimation = function(las, res)
-{
-  decimated <- TRUE
-  keep <- C_homogeneization(las@data, res, hybrid = FALSE)
-  las <- las[keep]
-  free(keep)
-  return(las)
-}

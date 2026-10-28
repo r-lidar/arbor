@@ -51,30 +51,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// C_connected_component
-Rcpp::IntegerVector C_connected_component(Rcpp::DataFrame df, double res, int connectivity);
-RcppExport SEXP _arbor_C_connected_component(SEXP dfSEXP, SEXP resSEXP, SEXP connectivitySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type res(resSEXP);
-    Rcpp::traits::input_parameter< int >::type connectivity(connectivitySEXP);
-    rcpp_result_gen = Rcpp::wrap(C_connected_component(df, res, connectivity));
-    return rcpp_result_gen;
-END_RCPP
-}
-// C_sor
-Rcpp::LogicalVector C_sor(Rcpp::DataFrame df, unsigned int k, double m);
-RcppExport SEXP _arbor_C_sor(SEXP dfSEXP, SEXP kSEXP, SEXP mSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< unsigned int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< double >::type m(mSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_sor(df, k, m));
-    return rcpp_result_gen;
-END_RCPP
-}
 // segment_ground_cpp
 void segment_ground_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_segment_ground_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -160,134 +136,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// accumulate_passages_cpp
-Rcpp::IntegerVector accumulate_passages_cpp(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
-RcppExport SEXP _arbor_accumulate_passages_cpp(SEXP coreSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_passages_cpp(core, gnd, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// dist2root
-Rcpp::NumericVector dist2root(Rcpp::DataFrame core, Rcpp::DataFrame gnd, Rcpp::List params);
-RcppExport SEXP _arbor_dist2root(SEXP coreSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(dist2root(core, gnd, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// assign_wood_from_passage_cpp
-Rcpp::LogicalVector assign_wood_from_passage_cpp(Rcpp::DataFrame core, Rcpp::List params);
-RcppExport SEXP _arbor_assign_wood_from_passage_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(assign_wood_from_passage_cpp(core, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// assign_wood_from_high_likelihood_cpp
-Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
-RcppExport SEXP _arbor_assign_wood_from_high_likelihood_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(assign_wood_from_high_likelihood_cpp(core, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// assign_wood_from_medium_likelihood_cpp
-Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
-RcppExport SEXP _arbor_assign_wood_from_medium_likelihood_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(assign_wood_from_medium_likelihood_cpp(core, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// assign_wood_from_wood_dilatation_cpp
-Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(Rcpp::DataFrame core, Rcpp::List params);
-RcppExport SEXP _arbor_assign_wood_from_wood_dilatation_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(assign_wood_from_wood_dilatation_cpp(core, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// build_semantic_graph
-SEXP build_semantic_graph(Rcpp::DataFrame dec, Rcpp::DataFrame target, Rcpp::DataFrame gnd, Rcpp::List params);
-RcppExport SEXP _arbor_build_semantic_graph(SEXP decSEXP, SEXP targetSEXP, SEXP gndSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type target(targetSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type gnd(gndSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_semantic_graph(dec, target, gnd, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// build_instance_graph
-SEXP build_instance_graph(Rcpp::DataFrame dec, Rcpp::DataFrame seed, Rcpp::List params);
-RcppExport SEXP _arbor_build_instance_graph(SEXP decSEXP, SEXP seedSEXP, SEXP paramsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type dec(decSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_instance_graph(dec, seed, params));
-    return rcpp_result_gen;
-END_RCPP
-}
-// accumulate_passages_old
-Rcpp::IntegerVector accumulate_passages_old(SEXP graph_ptr, int start_node, Rcpp::IntegerVector goal_nodes, int num_points);
-RcppExport SEXP _arbor_accumulate_passages_old(SEXP graph_ptrSEXP, SEXP start_nodeSEXP, SEXP goal_nodesSEXP, SEXP num_pointsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
-    Rcpp::traits::input_parameter< int >::type start_node(start_nodeSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type goal_nodes(goal_nodesSEXP);
-    Rcpp::traits::input_parameter< int >::type num_points(num_pointsSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_passages_old(graph_ptr, start_node, goal_nodes, num_points));
-    return rcpp_result_gen;
-END_RCPP
-}
-// find_closest_node
-Rcpp::IntegerVector find_closest_node(SEXP graph_ptr, Rcpp::IntegerVector ids);
-RcppExport SEXP _arbor_find_closest_node(SEXP graph_ptrSEXP, SEXP idsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type graph_ptr(graph_ptrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type ids(idsSEXP);
-    rcpp_result_gen = Rcpp::wrap(find_closest_node(graph_ptr, ids));
-    return rcpp_result_gen;
-END_RCPP
-}
-// C_fix_small_isolated_low_clusters
-void C_fix_small_isolated_low_clusters(Rcpp::DataFrame df, double res, int min_size);
-RcppExport SEXP _arbor_C_fix_small_isolated_low_clusters(SEXP dfSEXP, SEXP resSEXP, SEXP min_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type res(resSEXP);
-    Rcpp::traits::input_parameter< int >::type min_size(min_sizeSEXP);
-    C_fix_small_isolated_low_clusters(df, res, min_size);
-    return R_NilValue;
-END_RCPP
-}
 // C_match_instances
 Rcpp::List C_match_instances(Rcpp::DataFrame df);
 RcppExport SEXP _arbor_C_match_instances(SEXP dfSEXP) {
@@ -306,32 +154,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     C_merge_instances(match_result, df);
     return R_NilValue;
-END_RCPP
-}
-// generate_cage_cpp
-Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation);
-RcppExport SEXP _arbor_generate_cage_cpp(SEXP circlesSEXP, SEXP decimationSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type circles(circlesSEXP);
-    Rcpp::traits::input_parameter< double >::type decimation(decimationSEXP);
-    rcpp_result_gen = Rcpp::wrap(generate_cage_cpp(circles, decimation));
-    return rcpp_result_gen;
-END_RCPP
-}
-// detect_tree_circles_cpp
-Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resolution, int connectivity, int num_ransac_iterations, double inlier_threshold, int min_cluster_size);
-RcppExport SEXP _arbor_detect_tree_circles_cpp(SEXP wood_dfSEXP, SEXP resolutionSEXP, SEXP connectivitySEXP, SEXP num_ransac_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP min_cluster_sizeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type wood_df(wood_dfSEXP);
-    Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
-    Rcpp::traits::input_parameter< int >::type connectivity(connectivitySEXP);
-    Rcpp::traits::input_parameter< int >::type num_ransac_iterations(num_ransac_iterationsSEXP);
-    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
-    Rcpp::traits::input_parameter< int >::type min_cluster_size(min_cluster_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(detect_tree_circles_cpp(wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size));
-    return rcpp_result_gen;
 END_RCPP
 }
 // qsm_cpp
@@ -433,16 +255,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// read_adtree_skeleton
-Rcpp::DataFrame read_adtree_skeleton(std::string filename);
-RcppExport SEXP _arbor_read_adtree_skeleton(SEXP filenameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
-    rcpp_result_gen = Rcpp::wrap(read_adtree_skeleton(filename));
-    return rcpp_result_gen;
-END_RCPP
-}
 // qsm_mesh_cpp
 Rcpp::List qsm_mesh_cpp(Rcpp::DataFrame df, int resolution);
 RcppExport SEXP _arbor_qsm_mesh_cpp(SEXP dfSEXP, SEXP resolutionSEXP) {
@@ -451,17 +263,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type resolution(resolutionSEXP);
     rcpp_result_gen = Rcpp::wrap(qsm_mesh_cpp(df, resolution));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_get_cylID
-Rcpp::IntegerVector qsm_get_cylID(Rcpp::DataFrame qsmdf, Rcpp::DataFrame pcdf);
-RcppExport SEXP _arbor_qsm_get_cylID(SEXP qsmdfSEXP, SEXP pcdfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsmdf(qsmdfSEXP);
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type pcdf(pcdfSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_get_cylID(qsmdf, pcdf));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -503,19 +304,6 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
     rcpp_result_gen = Rcpp::wrap(qsf_read_cpp(filename));
-    return rcpp_result_gen;
-END_RCPP
-}
-// ransac_circle_cpp
-Rcpp::List ransac_circle_cpp(Rcpp::NumericMatrix x, int num_iterations, double inlier_threshold, double early_exit);
-RcppExport SEXP _arbor_ransac_circle_cpp(SEXP xSEXP, SEXP num_iterationsSEXP, SEXP inlier_thresholdSEXP, SEXP early_exitSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type num_iterations(num_iterationsSEXP);
-    Rcpp::traits::input_parameter< double >::type inlier_threshold(inlier_thresholdSEXP);
-    Rcpp::traits::input_parameter< double >::type early_exit(early_exitSEXP);
-    rcpp_result_gen = Rcpp::wrap(ransac_circle_cpp(x, num_iterations, inlier_threshold, early_exit));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -624,68 +412,12 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// qsm_cluster_cpp
-Rcpp::DataFrame qsm_cluster_cpp(Rcpp::DataFrame df, double cl_dist);
-RcppExport SEXP _arbor_qsm_cluster_cpp(SEXP dfSEXP, SEXP cl_distSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type cl_dist(cl_distSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_cluster_cpp(df, cl_dist));
-    return rcpp_result_gen;
-END_RCPP
-}
-// cpp_build_skeleton
-Rcpp::DataFrame cpp_build_skeleton(Rcpp::DataFrame data, double max_d);
-RcppExport SEXP _arbor_cpp_build_skeleton(SEXP dataSEXP, SEXP max_dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< double >::type max_d(max_dSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_build_skeleton(data, max_d));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_topology_cpp
-Rcpp::DataFrame qsm_topology_cpp(Rcpp::DataFrame qsm);
-RcppExport SEXP _arbor_qsm_topology_cpp(SEXP qsmSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_topology_cpp(qsm));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_architecture_cpp
-Rcpp::DataFrame qsm_architecture_cpp(Rcpp::DataFrame qsm, bool use_volume);
-RcppExport SEXP _arbor_qsm_architecture_cpp(SEXP qsmSEXP, SEXP use_volumeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type qsm(qsmSEXP);
-    Rcpp::traits::input_parameter< bool >::type use_volume(use_volumeSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_architecture_cpp(qsm, use_volume));
-    return rcpp_result_gen;
-END_RCPP
-}
-// qsm_polynomial_fitting_cpp
-Rcpp::DataFrame qsm_polynomial_fitting_cpp(Rcpp::DataFrame df, double tip_radius);
-RcppExport SEXP _arbor_qsm_polynomial_fitting_cpp(SEXP dfSEXP, SEXP tip_radiusSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< double >::type tip_radius(tip_radiusSEXP);
-    rcpp_result_gen = Rcpp::wrap(qsm_polynomial_fitting_cpp(df, tip_radius));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_arbor_getThreads", (DL_FUNC) &_arbor_getThreads, 0},
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
-    {"_arbor_C_connected_component", (DL_FUNC) &_arbor_C_connected_component, 3},
-    {"_arbor_C_sor", (DL_FUNC) &_arbor_C_sor, 3},
     {"_arbor_segment_ground_cpp", (DL_FUNC) &_arbor_segment_ground_cpp, 2},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
@@ -694,21 +426,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_flag_buffer_cpp", (DL_FUNC) &_arbor_flag_buffer_cpp, 3},
     {"_arbor_flag_buffer_polygon_cpp", (DL_FUNC) &_arbor_flag_buffer_polygon_cpp, 4},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
-    {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
-    {"_arbor_dist2root", (DL_FUNC) &_arbor_dist2root, 3},
-    {"_arbor_assign_wood_from_passage_cpp", (DL_FUNC) &_arbor_assign_wood_from_passage_cpp, 2},
-    {"_arbor_assign_wood_from_high_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_high_likelihood_cpp, 2},
-    {"_arbor_assign_wood_from_medium_likelihood_cpp", (DL_FUNC) &_arbor_assign_wood_from_medium_likelihood_cpp, 2},
-    {"_arbor_assign_wood_from_wood_dilatation_cpp", (DL_FUNC) &_arbor_assign_wood_from_wood_dilatation_cpp, 2},
-    {"_arbor_build_semantic_graph", (DL_FUNC) &_arbor_build_semantic_graph, 4},
-    {"_arbor_build_instance_graph", (DL_FUNC) &_arbor_build_instance_graph, 3},
-    {"_arbor_accumulate_passages_old", (DL_FUNC) &_arbor_accumulate_passages_old, 4},
-    {"_arbor_find_closest_node", (DL_FUNC) &_arbor_find_closest_node, 2},
-    {"_arbor_C_fix_small_isolated_low_clusters", (DL_FUNC) &_arbor_C_fix_small_isolated_low_clusters, 3},
     {"_arbor_C_match_instances", (DL_FUNC) &_arbor_C_match_instances, 1},
     {"_arbor_C_merge_instances", (DL_FUNC) &_arbor_C_merge_instances, 2},
-    {"_arbor_generate_cage_cpp", (DL_FUNC) &_arbor_generate_cage_cpp, 2},
-    {"_arbor_detect_tree_circles_cpp", (DL_FUNC) &_arbor_detect_tree_circles_cpp, 6},
     {"_arbor_qsm_cpp", (DL_FUNC) &_arbor_qsm_cpp, 2},
     {"_arbor_qsf_cpp", (DL_FUNC) &_arbor_qsf_cpp, 3},
     {"_arbor_qsm_write_cpp", (DL_FUNC) &_arbor_qsm_write_cpp, 3},
@@ -718,14 +437,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_qsm_stem_cpp", (DL_FUNC) &_arbor_qsm_stem_cpp, 1},
     {"_arbor_qsm_merchantable_cpp", (DL_FUNC) &_arbor_qsm_merchantable_cpp, 3},
     {"_arbor_qsm_autorepair_cpp", (DL_FUNC) &_arbor_qsm_autorepair_cpp, 1},
-    {"_arbor_read_adtree_skeleton", (DL_FUNC) &_arbor_read_adtree_skeleton, 1},
     {"_arbor_qsm_mesh_cpp", (DL_FUNC) &_arbor_qsm_mesh_cpp, 2},
-    {"_arbor_qsm_get_cylID", (DL_FUNC) &_arbor_qsm_get_cylID, 2},
     {"_arbor_allometry", (DL_FUNC) &_arbor_allometry, 1},
     {"_arbor_allometry_database_cpp", (DL_FUNC) &_arbor_allometry_database_cpp, 0},
     {"_arbor_qsf_write_cpp", (DL_FUNC) &_arbor_qsf_write_cpp, 4},
     {"_arbor_qsf_read_cpp", (DL_FUNC) &_arbor_qsf_read_cpp, 1},
-    {"_arbor_ransac_circle_cpp", (DL_FUNC) &_arbor_ransac_circle_cpp, 4},
     {"_arbor_fit_circloid_cpp", (DL_FUNC) &_arbor_fit_circloid_cpp, 5},
     {"_arbor_aim_disentangle_ids_cpp", (DL_FUNC) &_arbor_aim_disentangle_ids_cpp, 2},
     {"_arbor_aim_matching_table_cpp", (DL_FUNC) &_arbor_aim_matching_table_cpp, 2},
@@ -735,11 +451,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_aim_fit_tree_cpp", (DL_FUNC) &_arbor_aim_fit_tree_cpp, 2},
     {"_arbor_qsm_distances_cpp", (DL_FUNC) &_arbor_qsm_distances_cpp, 2},
     {"_arbor_extract_tree_context_cpp", (DL_FUNC) &_arbor_extract_tree_context_cpp, 4},
-    {"_arbor_qsm_cluster_cpp", (DL_FUNC) &_arbor_qsm_cluster_cpp, 2},
-    {"_arbor_cpp_build_skeleton", (DL_FUNC) &_arbor_cpp_build_skeleton, 2},
-    {"_arbor_qsm_topology_cpp", (DL_FUNC) &_arbor_qsm_topology_cpp, 1},
-    {"_arbor_qsm_architecture_cpp", (DL_FUNC) &_arbor_qsm_architecture_cpp, 2},
-    {"_arbor_qsm_polynomial_fitting_cpp", (DL_FUNC) &_arbor_qsm_polynomial_fitting_cpp, 2},
     {NULL, NULL, 0}
 };
 

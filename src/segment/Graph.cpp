@@ -40,11 +40,6 @@ void Graph::ensure_size(size_t n)
     adjacency_list.resize(n);
 }
 
-void Graph::clear_adjacency_list()
-{
-  AdjacencyList().swap(adjacency_list);
-}
-
 void Graph::reserve_edges(size_t capacity)
 {
   for (auto& e : adjacency_list)

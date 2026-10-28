@@ -53,7 +53,6 @@ public:
   void ensure_size(size_t n);
   void reserve_edges(size_t capacity);
   void add_edge(NodeId source, NodeId destination, Cost cost);
-  void clear_adjacency_list();
   std::pair<DistanceVector, PredecessorVector> compute_distances(NodeId start) const;
   static std::pair<Path, Cost> findPath(NodeId start, NodeId goal, const GraphCache& precomputed_data);
   void shortest_paths_from_node(const NodeIDs& ground_nodes, std::vector<double>& distances, NodeIDs& closest_ground) const;

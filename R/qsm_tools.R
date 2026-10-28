@@ -103,25 +103,6 @@ qsm_treeid.qsf = function(qs)
 }
 
 
-filter_tree = function(tree)
-{
-  foliage <- NULL
-  attributes = names(tree)
-
-  if ("foliage" %in% attributes)
-  {
-    tree = lidR::filter_poi(tree, foliage == FALSE)
-  }
-
-  if ("treeID" %in% attributes)
-  {
-    if (length(unique(tree$treeID)) != 1)
-      stop("The point cloud must contain a single tree", call. = FALSE)
-  }
-
-  return(tree)
-}
-
 #' Adds a set of synthetic ground points below a single-tree point cloud. Useful to perform
 #' arbor operations on already externally isolated trees
 #'

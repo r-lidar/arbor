@@ -295,12 +295,4 @@ void SeedDetector::find_secondary_seeds()
   secondary_seeds = short_passages_noid;
 }
 
-void SeedDetector::filter_seeds()
-{
-  // Retain only seeds below breast height (1m)
-  std::vector<bool> mask(seeds.size(), false);
-  for (size_t i = 0; i < seeds.size(); i++) mask[i] = (seeds.get_hag(i) < 1 && seeds.get_passage(i) > 0);
-  seeds = seeds.subset(mask);
-}
-
 }

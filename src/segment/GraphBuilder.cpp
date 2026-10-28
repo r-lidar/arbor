@@ -579,13 +579,6 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   }
 }
 
-int GraphBuilder::get_num_cores()   const { return total_core_nodes; }
-int GraphBuilder::get_num_targets() const { return total_target_nodes; }
-int GraphBuilder::get_num_seeds()   const { return total_seed_nodes; }
-int GraphBuilder::get_num_master()  const { return total_master_nodes; }
-std::pair<int, int> GraphBuilder::get_range_core()    const { return {offset_points,  offset_points  + total_core_nodes   - 1}; }
-std::pair<int, int> GraphBuilder::get_range_targets() const { return {offset_targets, offset_targets + total_target_nodes - 1}; }
-std::pair<int, int> GraphBuilder::get_range_seed()    const { return {offset_seeds,   offset_seeds   + total_seed_nodes   - 1}; }
 std::pair<int, int> GraphBuilder::get_range_master()  const { return {offset_master,  offset_master  + total_master_nodes - 1}; }
 
 }
