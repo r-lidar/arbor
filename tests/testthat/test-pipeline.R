@@ -53,6 +53,10 @@ test_that("Instance segmenation is valid", {
   expect_true("treeID" %in% names(las))
   expect_true(is.integer(las$treeID))
 
+  # treeID is either 0 (no tree) or a valid ID > 0
+  expect_false(anyNA(las$treeID))
+  expect_true(all(las$treeID >= 0L))
+
   # partitioning is preserved
   rle = rle(las$UserData)
   expect_equal(rle$values, c(0L,1L))

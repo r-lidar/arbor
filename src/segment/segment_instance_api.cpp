@@ -70,7 +70,7 @@ void fix_small_isolated_low_clusters(PointCloud& las, double res = 0.05, int min
     if (!las.is_wood(i))        continue;
     if (las.get_hag(i) >= 3.0)  continue;
     int id = las.get_treeid(i);
-    if (id <= 0)                continue; // NA from R or -1
+    if (id <= 0)                continue; // not a tree
     tree_to_indices[id].push_back(static_cast<int>(i));
   }
 
@@ -166,8 +166,8 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
 
   if (closest_nodeids.size() != num_points+num_seeds+1) throw std::runtime_error("segment_instance: Pathfinding returned incomplete results.");
 
-  // Remap seed index -> seed id for each decimated point
-  Graph::NodeIDs treeID(num_points, -1);
+  // Remap seed index -> seed id for each decimated point. Points not reachable from any seed get 0 (no tree)
+  Graph::NodeIDs treeID(num_points, 0);
   for (size_t i = 0 ; i < num_points ; i++)
   {
     Graph::NodeId id = closest_nodeids[i];

@@ -38,7 +38,8 @@
 #'   filtering trees. Default is `-5`, which excludes trees within 5 meters of the
 #'   boundary. Can also be an `sf` polygon object for custom clipping.
 #'
-#' @return A modified LAS object with flagged trees assigned negative `treeID` values.
+#' @return A modified LAS object in which the points of flagged trees have their `UserData`
+#'   attribute set to a non-zero value. `treeID` is not modified.
 #'
 #' @seealso \link{qsf}, \link{find_seeds}
 #'

@@ -18,7 +18,14 @@
 
 ### BUG FIXES
 
- - C++ library: a QSM produced by the QSM builder and written directly to `.qsm` (e.g. by ArborStudio via `QSM::write()` or `QSF::write()`) lost its topology when read back: every node became a root. The writer now renumbers the nodes and writes the edges' graph endpoints, and the reader maps the edges to the nodes it creates. The `.qsm` format is unchanged. QSMs written from R were not affected.
+ - `segment_instance()` could return `treeID = NA` for a few isolated points. These points now get `treeID = 0` (no tree), so `treeID` is always either `0` or a valid tree ID.
+ - `segment_instance()` and `resolve_oversegmentation()` could, in rare cases, remove an entire tree by setting all its points to `NA`.
+ - `plot_semantic_instance()` failed with an error on point clouds segmented with `segment_instance()`.
+
+### C++ LIBRARY
+
+ - A QSM produced by the QSM builder and written directly to `.qsm` (e.g. by ArborStudio via `QSM::write()` or `QSF::write()`) lost its topology when read back: every node became a root. The writer now renumbers the nodes and writes the edges' graph endpoints, and the reader maps the edges to the nodes it creates. The `.qsm` format is unchanged. QSMs written from R were not affected.
+ - `arbor::segment::segment_instance()` could assign `treeID = -1` to a few isolated points. These points now get `treeID = 0` (no tree), so `treeID` is always either `0` or a valid tree ID.
 
 # 1.1.3 
 

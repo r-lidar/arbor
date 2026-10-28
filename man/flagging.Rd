@@ -25,7 +25,8 @@ filtering trees. Default is \code{-5}, which excludes trees within 5 meters of t
 boundary. Can also be an \code{sf} polygon object for custom clipping.}
 }
 \value{
-A modified LAS object with flagged trees assigned negative \code{treeID} values.
+A modified LAS object in which the points of flagged trees have their \code{UserData}
+attribute set to a non-zero value. \code{treeID} is not modified.
 }
 \description{
 Utilities to flag trees that should be excluded from downstream processing.

@@ -75,11 +75,6 @@ void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
   PointCloud p(core);
   PointCloud s(seeds);
   arbor::segment::segment_instance(p, s, par);
-  for (size_t i = 0 ; i < p.size() ; i++) {
-    if (p.get_treeid(i) == -1) {
-      p.set_treeid(i, NA_INTEGER);
-    }
-  }
 }
 
 DF find_seeds_cpp(DF core, Rcpp::List params)
