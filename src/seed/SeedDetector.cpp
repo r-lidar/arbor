@@ -270,7 +270,7 @@ void SeedDetector::find_secondary_seeds()
   for (size_t i = 0; i < short_passages.size(); i++)
   {
     int tree_id = short_passages.get_treeid(i);
-    no_id_mask[i] = (tree_id < 0); // Assuming -1 or negative means NA
+    no_id_mask[i] = (tree_id <= 0); // 0 means not reached by any primary seed
   }
   PointCloud short_passages_noid = short_passages.subset(no_id_mask);
 

@@ -68,6 +68,15 @@ void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::Lis
 void colorize_trees_cpp(Rcpp::DataFrame core, bool dark);
 
 //[[Rcpp::export(rng = false)]]
+void flag_small_trees_cpp(Rcpp::DataFrame core, double max_height);
+
+//[[Rcpp::export(rng = false)]]
+void flag_buffer_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, double buffer);
+
+//[[Rcpp::export(rng = false)]]
+void flag_buffer_polygon_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, Rcpp::NumericVector x, Rcpp::NumericVector y);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
@@ -124,6 +133,9 @@ void qsm_write_cpp(Rcpp::DataFrame df, std::string filename, bool binary);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_read_cpp(std::string filename);
+
+//[[Rcpp::export(rng = false)]]
+Rcpp::DataFrame qsm_build_and_write_cpp(Rcpp::DataFrame tree, Rcpp::List params, std::string filename);
 
 //[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame qsm_dbh_cpp(Rcpp::DataFrame df, double d = 1.3);

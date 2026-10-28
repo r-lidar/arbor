@@ -244,7 +244,12 @@ InstanceMatchResult OverSegmentationResolver::detect(const PointCloud& cloud) co
 
         // Fit the circles on all points without semantic information but test IDs on wood points only
         // This solves some noise issues.
-        if (!wood) 
+        if (!wood)
+          continue;
+
+        // Points that do not belong to a tree (0, or NA/negative from R) must never be matched:
+        // the union-find keeps the smallest ID as root and would remap a whole tree to it.
+        if (tree_id <= 0)
           continue;
 
         auto it = std::find_if(id_counts.begin(), id_counts.end(), [tree_id](const auto& kv) { return kv.first == tree_id; });

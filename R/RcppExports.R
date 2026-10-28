@@ -41,6 +41,18 @@ colorize_trees_cpp <- function(core, dark) {
     invisible(.Call(`_arbor_colorize_trees_cpp`, core, dark))
 }
 
+flag_small_trees_cpp <- function(core, max_height) {
+    invisible(.Call(`_arbor_flag_small_trees_cpp`, core, max_height))
+}
+
+flag_buffer_cpp <- function(core, seeds, buffer) {
+    invisible(.Call(`_arbor_flag_buffer_cpp`, core, seeds, buffer))
+}
+
+flag_buffer_polygon_cpp <- function(core, seeds, x, y) {
+    invisible(.Call(`_arbor_flag_buffer_polygon_cpp`, core, seeds, x, y))
+}
+
 find_seeds_cpp <- function(core, params) {
     .Call(`_arbor_find_seeds_cpp`, core, params)
 }
@@ -103,6 +115,10 @@ qsm_write_cpp <- function(df, filename, binary) {
 
 qsm_read_cpp <- function(filename) {
     .Call(`_arbor_qsm_read_cpp`, filename)
+}
+
+qsm_build_and_write_cpp <- function(tree, params, filename) {
+    .Call(`_arbor_qsm_build_and_write_cpp`, tree, params, filename)
 }
 
 qsm_dbh_cpp <- function(df, d = 1.3) {

@@ -53,6 +53,7 @@ OBJECTS = \
   segment/segment_instance_api.o \
   segment/segment_ground_api.o \
   segment/segment_overfitting.o \
+  segment/segment_flag_api.o \
   RcppAutoExport.o \
   dtm/dtm.o \
   inventory/Inventory.o \
@@ -67,6 +68,7 @@ OBJECTS = \
   utils/ransac.o \
   utils/smooth3d.o \
   utils/allometry.o \
+  utils/Polygon.o \
   misc/read_adtree_skeleton.o \
   qsm/QSMbuilder_dist2root.o \
   qsm/QSMbuilder_radius.o \

@@ -9,12 +9,18 @@
  - Enhance documentation of `qsm_read()` with examples
  - Enhance documentation of `st_crs()` with examples
  
- ### ENHANCEMENTS
+### ENHANCEMENTS
  
  - Enhance progress display
  - Enhance computation of KD-tree for a 15% speed-up of the pipeline
  - Enhance internal graph memory layout for a 15% reduction of RAM consumption
  - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
+
+### BUG FIXES
+
+ - `segment_instance()` could return `treeID = NA` for a few isolated points. These points now get `treeID = 0` (no tree), so `treeID` is always either `0` or a valid tree ID.
+ - `segment_instance()` and `resolve_oversegmentation()` could, in rare cases, remove an entire tree by setting all its points to `NA`.
+ - `plot_semantic_instance()` failed with an error on point clouds segmented with `segment_instance()`.
 
 # 1.1.3 
 

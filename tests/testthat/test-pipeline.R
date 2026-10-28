@@ -53,15 +53,29 @@ test_that("Instance segmenation is valid", {
   expect_true("treeID" %in% names(las))
   expect_true(is.integer(las$treeID))
 
+  # treeID is either 0 (no tree) or a valid ID > 0
+  expect_false(anyNA(las$treeID))
+  expect_true(all(las$treeID >= 0L))
+
   # partitioning is preserved
   rle = rle(las$UserData)
   expect_equal(rle$values, c(0L,1L))
 })
 
+n   <- lidR::npoints(las)
+tid <- las$treeID
+low <- las$UserData == ARBORLOW
+
 las <- flag_buffer(las, see, -0.75)
 las <- flag_small_trees(las, 1)
 
 test_that("Flag buffer is valid", {
+  # Flags only update UserData and never flag LOW points. BUFFER overrides UNDERSTORY
+  expect_equal(lidR::npoints(las), n)
+  expect_identical(las$treeID, tid)
+  expect_all_equal(las$UserData[low], ARBORLOW)
+  expect_identical(las$UserData == ARBORBUFFER, flag_buffer(las, see, -0.75)$UserData == ARBORBUFFER)
+
   u = sort(unique(las$UserData))
   expect_equal(u, c(ARBORTREE,ARBORLOW,ARBORUNDERSTORY,ARBORBUFFER))
 })

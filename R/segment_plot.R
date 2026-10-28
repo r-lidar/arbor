@@ -61,6 +61,7 @@ plot_semantic_instance = function(las, dtm = NULL, ...)
 {
   p1 <- las@data$foliage    # 0 = wood, 1/2 = foliage
   p2 <- las@data$treeID     # tree IDs (non-continuous)
+  p2[p2 <= 0] <- NA_integer_   # 0 = no tree. A 0 index would drop rows in pal[p2, ]
   n <- max(p2, na.rm = TRUE)   # number of unique trees
 
   # Example pastel palette

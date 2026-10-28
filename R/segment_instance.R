@@ -31,7 +31,9 @@
 #' @param params list See \link{parameters}.
 #'
 #' @return A `LAS` object with an additional attribute `treeID`, indicating the ID of the tree to
-#'   which each point belongs.
+#'   which each point belongs. `treeID` is never `NA`: it is either a valid ID `> 0`, or `0` for
+#'   points that do not belong to any tree (points below `cut_above_ground` and points that cannot
+#'   be connected to any seed).
 #'
 #' @md
 #' @export

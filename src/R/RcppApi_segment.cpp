@@ -71,11 +71,6 @@ void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)
   PointCloud p(core);
   PointCloud s(seeds);
   arbor::segment::segment_instance(p, s, par);
-  for (size_t i = 0 ; i < p.size() ; i++) {
-    if (p.get_treeid(i) == -1) {
-      p.set_treeid(i, NA_INTEGER);
-    }
-  }
 }
 
 DF find_seeds_cpp(DF core, Rcpp::List params)
@@ -90,6 +85,34 @@ void colorize_trees_cpp(DF core, bool dark)
 {
   PointCloud p(core);
   p.colorize_trees(dark);
+}
+
+void flag_small_trees_cpp(DF core, double max_height)
+{
+  PointCloud p(core);
+  arbor::segment::flag_small_trees(p, max_height);
+}
+
+void flag_buffer_cpp(DF core, Rcpp::Nullable<DF> seeds, double buffer)
+{
+  PointCloud p(core);
+  if (seeds.isNull()) return arbor::segment::flag_buffer(p, buffer);
+  PointCloud s(DF(seeds.get()));
+  arbor::segment::flag_buffer(p, buffer, &s);
+}
+
+void flag_buffer_polygon_cpp(DF core, Rcpp::Nullable<DF> seeds, Rcpp::NumericVector x, Rcpp::NumericVector y)
+{
+  if (x.size() != y.size()) Rcpp::stop("x and y must have the same length");
+
+  arbor::utils::Polygon::Ring ring(x.size());
+  for (R_xlen_t i = 0; i < x.size(); ++i) ring[i] = {x[i], y[i]};
+  arbor::utils::Polygon polygon(ring);
+
+  PointCloud p(core);
+  if (seeds.isNull()) return arbor::segment::flag_buffer(p, polygon);
+  PointCloud s(DF(seeds.get()));
+  arbor::segment::flag_buffer(p, polygon, &s);
 }
 
 Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
