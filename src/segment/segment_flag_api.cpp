@@ -27,14 +27,14 @@ void flag_small_trees(PointCloud& core, double max_height)
   core.flag_small_trees(max_height);
 }
 
-size_t flag_buffer(PointCloud& core, double buffer, const PointCloud* seeds)
+void flag_buffer(PointCloud& core, double buffer, const PointCloud* seeds)
 {
-  return core.flag_buffer(buffer, seeds);
+  core.flag_buffer(buffer, seeds);
 }
 
-size_t flag_buffer(PointCloud& core, const Polygon& polygon, const PointCloud* seeds)
+void flag_buffer(PointCloud& core, const utils::Polygon& polygon, const PointCloud* seeds)
 {
-  return core.flag_buffer(polygon, seeds);
+  core.flag_buffer(polygon, seeds);
 }
 
 }

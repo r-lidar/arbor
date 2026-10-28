@@ -41,6 +41,18 @@ colorize_trees_cpp <- function(core, dark) {
     invisible(.Call(`_arbor_colorize_trees_cpp`, core, dark))
 }
 
+flag_small_trees_cpp <- function(core, max_height) {
+    invisible(.Call(`_arbor_flag_small_trees_cpp`, core, max_height))
+}
+
+flag_buffer_cpp <- function(core, seeds, buffer) {
+    invisible(.Call(`_arbor_flag_buffer_cpp`, core, seeds, buffer))
+}
+
+flag_buffer_polygon_cpp <- function(core, seeds, x, y) {
+    invisible(.Call(`_arbor_flag_buffer_polygon_cpp`, core, seeds, x, y))
+}
+
 find_seeds_cpp <- function(core, params) {
     .Call(`_arbor_find_seeds_cpp`, core, params)
 }

@@ -116,6 +116,39 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// flag_small_trees_cpp
+void flag_small_trees_cpp(Rcpp::DataFrame core, double max_height);
+RcppExport SEXP _arbor_flag_small_trees_cpp(SEXP coreSEXP, SEXP max_heightSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< double >::type max_height(max_heightSEXP);
+    flag_small_trees_cpp(core, max_height);
+    return R_NilValue;
+END_RCPP
+}
+// flag_buffer_cpp
+void flag_buffer_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, double buffer);
+RcppExport SEXP _arbor_flag_buffer_cpp(SEXP coreSEXP, SEXP seedsSEXP, SEXP bufferSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::DataFrame> >::type seeds(seedsSEXP);
+    Rcpp::traits::input_parameter< double >::type buffer(bufferSEXP);
+    flag_buffer_cpp(core, seeds, buffer);
+    return R_NilValue;
+END_RCPP
+}
+// flag_buffer_polygon_cpp
+void flag_buffer_polygon_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, Rcpp::NumericVector x, Rcpp::NumericVector y);
+RcppExport SEXP _arbor_flag_buffer_polygon_cpp(SEXP coreSEXP, SEXP seedsSEXP, SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::DataFrame> >::type seeds(seedsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    flag_buffer_polygon_cpp(core, seeds, x, y);
+    return R_NilValue;
+END_RCPP
+}
 // find_seeds_cpp
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_find_seeds_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -657,6 +690,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
     {"_arbor_colorize_trees_cpp", (DL_FUNC) &_arbor_colorize_trees_cpp, 2},
+    {"_arbor_flag_small_trees_cpp", (DL_FUNC) &_arbor_flag_small_trees_cpp, 2},
+    {"_arbor_flag_buffer_cpp", (DL_FUNC) &_arbor_flag_buffer_cpp, 3},
+    {"_arbor_flag_buffer_polygon_cpp", (DL_FUNC) &_arbor_flag_buffer_polygon_cpp, 4},
     {"_arbor_find_seeds_cpp", (DL_FUNC) &_arbor_find_seeds_cpp, 2},
     {"_arbor_accumulate_passages_cpp", (DL_FUNC) &_arbor_accumulate_passages_cpp, 3},
     {"_arbor_dist2root", (DL_FUNC) &_arbor_dist2root, 3},

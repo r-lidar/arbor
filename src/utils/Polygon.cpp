@@ -21,6 +21,10 @@
 #include "Polygon.h"
 
 #include <algorithm>
+#include <stdexcept>
+
+namespace arbor::utils
+{
 
 Polygon::Polygon(const Ring& ring)
 {
@@ -80,31 +84,69 @@ bool Polygon::point_in_polygon(double x, double y) const
   return inside;
 }
 
-double Polygon::distance_to_boundary(double x, double y) const
+bool Polygon::is_convex() const
 {
-  double dmin = std::numeric_limits<double>::infinity();
   size_t n = vertices.size();
-  for (size_t i = 0, j = n - 1; i < n; j = i++)
+  if (n < 3) return false;
+
+  int sign = 0;
+  for (size_t i = 0; i < n; ++i)
   {
-    const Point& a = vertices[j];
-    const Point& b = vertices[i];
-    double dx = b.x - a.x;
-    double dy = b.y - a.y;
-    double len2 = dx * dx + dy * dy;
-    double t = (len2 > 0) ? ((x - a.x) * dx + (y - a.y) * dy) / len2 : 0;
-    t = std::clamp(t, 0.0, 1.0);
-    double px = a.x + t * dx - x;
-    double py = a.y + t * dy - y;
-    dmin = std::min(dmin, px * px + py * py);
+    const Point& a = vertices[i];
+    const Point& b = vertices[(i + 1) % n];
+    const Point& c = vertices[(i + 2) % n];
+    double cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (cross == 0) continue;
+    int s = (cross > 0) ? 1 : -1;
+    if (sign == 0) sign = s;
+    else if (s != sign) return false;
   }
-  return std::sqrt(dmin);
+  return sign != 0;
 }
 
-bool Polygon::contains(double x, double y, double margin) const
+Polygon Polygon::shrink(double d) const
 {
-  if (!point_in_polygon(x, y)) return false;
-  if (margin <= 0) return true;
-  return distance_to_boundary(x, y) >= margin;
+  if (d < 0) throw std::invalid_argument("Polygon::shrink() requires a positive distance");
+  if (empty() || d == 0) return *this;
+  if (!is_convex()) throw std::invalid_argument("Polygon::shrink() only supports convex polygons");
+
+  // The shrunk polygon of a convex polygon is the intersection of the half-planes bounded by each
+  // edge moved inward by d. The polygon is clipped by each half-plane (Sutherland-Hodgman).
+  double area2 = 0;
+  size_t n = vertices.size();
+  for (size_t i = 0, j = n - 1; i < n; j = i++) area2 += vertices[j].x * vertices[i].y - vertices[i].x * vertices[j].y;
+  double orientation = (area2 > 0) ? 1 : -1; // inside is on the left of the edges if counter-clockwise
+
+  Ring out = vertices;
+  for (size_t i = 0; i < n && !out.empty(); ++i)
+  {
+    const Point& a = vertices[i];
+    const Point& b = vertices[(i + 1) % n];
+    double len = std::hypot(b.x - a.x, b.y - a.y);
+    double nx = -(b.y - a.y) / len * orientation;
+    double ny =  (b.x - a.x) / len * orientation;
+
+    // Signed distance to the moved edge. >= 0 is inside.
+    auto side = [&](const Point& p) { return (p.x - a.x) * nx + (p.y - a.y) * ny - d; };
+
+    Ring in = std::move(out);
+    out.clear();
+    for (size_t k = 0; k < in.size(); ++k)
+    {
+      const Point& p = in[k];
+      const Point& q = in[(k + 1) % in.size()];
+      double sp = side(p);
+      double sq = side(q);
+      if (sp >= 0) out.push_back(p);
+      if ((sp >= 0) != (sq >= 0))
+      {
+        double t = sp / (sp - sq);
+        out.push_back({p.x + t * (q.x - p.x), p.y + t * (q.y - p.y)});
+      }
+    }
+  }
+
+  return Polygon(out);
 }
 
 Polygon Polygon::convex_hull(std::vector<Point> pts)
@@ -132,4 +174,6 @@ Polygon Polygon::convex_hull(std::vector<Point> pts)
   hull.resize(k - 1);
 
   return Polygon(hull);
+}
+
 }

@@ -202,6 +202,10 @@ namespace arbor
     void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params);
 
     std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
+
+    void flag_small_trees(PointCloud& core, double max_height);
+    void flag_buffer(PointCloud& core, double buffer,          const PointCloud* seeds = nullptr);
+    void flag_buffer(PointCloud& core, const utils::Polygon& polygon, const PointCloud* seeds = nullptr);
   }
 
   namespace seeds

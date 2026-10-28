@@ -26,6 +26,9 @@
 #include <cstddef>
 #include <limits>
 
+namespace arbor::utils
+{
+
 // A simple 2D polygon defined by a single ring (no holes, no multipolygon).
 // Points lying on the boundary are considered inside (same as sf::st_intersects).
 class Polygon
@@ -45,12 +48,12 @@ public:
 
   bool point_in_polygon(double x, double y) const;
 
-  // Euclidean distance to the closest edge of the polygon
-  double distance_to_boundary(double x, double y) const;
+  // Shrunk polygon (negative buffer). Only convex polygons are supported. The result contains the
+  // points of the polygon that are at least d >= 0 from its boundary. It is empty if d is too large
+  // for the polygon (same as sf::st_buffer() with distance -d).
+  Polygon shrink(double d) const;
 
-  // Inside the polygon and at least 'margin' from its boundary. With a positive margin this is
-  // equivalent to a negative buffer of the polygon.
-  bool contains(double x, double y, double margin = 0) const;
+  bool is_convex() const;
 
   // Convex hull (Andrew's monotone chain). Returns an empty polygon if the hull is degenerate.
   static Polygon convex_hull(std::vector<Point> pts);
@@ -163,6 +166,8 @@ Polygon Polygon::convex_hull(size_t n, GetX get_x, GetY get_y)
   }
 
   return convex_hull(std::move(candidates));
+}
+
 }
 
 #endif

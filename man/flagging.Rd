@@ -22,7 +22,8 @@ from the lowest point of each tree.}
 
 \item{buffer}{Numeric value (in meters) used to shrink the convex hull before
 filtering trees. Default is \code{-5}, which excludes trees within 5 meters of the
-boundary. Can also be an \code{sf} polygon object for custom clipping.}
+boundary. Can also be an \code{sf} or \code{sfc} object for custom clipping. It must be a simple polygon,
+i.e. a single \code{POLYGON} without holes (multipolygons are not supported), with the same CRS as \code{las}.}
 }
 \value{
 A modified LAS object in which the points of flagged trees have their \code{UserData}

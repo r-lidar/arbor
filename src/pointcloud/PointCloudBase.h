@@ -7,10 +7,13 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <random>
 #include <algorithm>
+#include <limits>
 
 #include "nanoflann.h"
+#include "Polygon.h"
 
 inline void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
 {
@@ -132,7 +135,33 @@ public:
   size_t partition(Predicate pred);
 
   void colorize_trees(bool darken_foliage = false);
+
+
+  void flag_small_trees(double max_height);
+  void flag_buffer(double buffer, const Derived* seeds = nullptr);
+  void flag_buffer(const arbor::utils::Polygon& polygon, const Derived* seeds = nullptr);
+
+private:
+  struct Root { int treeid; double x, y; };
+  std::vector<Root> compute_roots(const Derived* seeds) const;
 };
+
+// Same algorithm as R's mean() for doubles (long double accumulation + correction pass) so results
+// are bit-identical to the former R implementation
+template <typename Get>
+inline double r_mean(size_t n, Get get)
+{
+  long double s = 0.0;
+  for (size_t i = 0; i < n; ++i) s += get(i);
+  s /= n;
+  if (std::isfinite(static_cast<double>(s)))
+  {
+    long double t = 0.0;
+    for (size_t i = 0; i < n; ++i) t += (get(i) - s);
+    s += t / n;
+  }
+  return static_cast<double>(s);
+}
 
 template <typename Derived>
 template <class BBOX>
@@ -437,5 +466,183 @@ std::vector<unsigned int> BasePointCloud<Derived>::find_context_points_by_tree_i
   return result;
 }
 
+template <typename Derived>
+void BasePointCloud<Derived>::flag_small_trees(double max_height)
+{
+  Derived& self = static_cast<Derived&>(*this);
+
+  if (!self.has_treeid()) throw std::runtime_error("No treeID in this point cloud");
+  if (!self.has_hag()) throw std::runtime_error("No hag in this point cloud");
+  if (!self.has_userdata()) throw std::runtime_error("No UserData in this point cloud");
+
+  // Height range of each tree. NaN hag are ignored
+  struct Range { double min, max; };
+  std::unordered_map<int, Range> ranges;
+  constexpr double inf = std::numeric_limits<double>::infinity();
+
+  for (size_t i = 0; i < self.size(); ++i)
+  {
+    int id = self.get_treeid(i);
+    if (id <= 0) continue;
+
+    double h = self.get_hag(i);
+    if (std::isnan(h)) continue;
+    auto [it, inserted] = ranges.try_emplace(id, Range{inf, -inf});
+    Range& r = it->second;
+    r.min = std::min(r.min, h);
+    r.max = std::max(r.max, h);
+  }
+
+  std::unordered_set<int> keep;
+  for (const auto& [id, r] : ranges)
+  {
+    if (r.max > max_height && r.min < max_height) keep.insert(id);
+  }
+
+  constexpr int NA = std::numeric_limits<int>::min();
+  const int TREE = static_cast<int>(UserData::TREE);
+  const int LOW = static_cast<int>(UserData::LOW);
+  const int UNDERSTORY = static_cast<int>(UserData::UNDERSTORY);
+  const int BUFFER = static_cast<int>(UserData::BUFFER);
+
+  // BUFFER takes precedence over UNDERSTORY and is never overwritten
+  for (size_t i = 0; i < self.size(); ++i)
+  {
+    int ud = self.get_userdata(i);
+    if (ud == NA || ud == BUFFER) continue;
+    if (ud == UNDERSTORY) ud = TREE;
+    if (ud != LOW && keep.count(self.get_treeid(i)) == 0) ud = UNDERSTORY;
+    self.set_userdata(i, ud);
+  }
+}
+
+template <typename Derived>
+std::vector<typename BasePointCloud<Derived>::Root> BasePointCloud<Derived>::compute_roots(const Derived* seeds) const
+{
+  const Derived& self = static_cast<const Derived&>(*this);
+  std::vector<Root> roots;
+
+  if (seeds)
+  {
+    if (!seeds->has_treeid()) throw std::runtime_error("No treeID in the seeds");
+
+    // Mean position of the seeds of each tree
+    std::unordered_map<int, std::vector<unsigned int>> groups;
+    for (size_t i = 0; i < seeds->size(); ++i)
+    {
+      int id = seeds->get_treeid(i);
+      if (id > 0) groups[id].push_back(static_cast<unsigned int>(i));
+    }
+
+    for (const auto& [id, idx] : groups)
+    {
+      double x = r_mean(idx.size(), [&](size_t k) { return seeds->get_x(idx[k]); });
+      double y = r_mean(idx.size(), [&](size_t k) { return seeds->get_y(idx[k]); });
+      roots.push_back({id, x, y});
+    }
+  }
+  else
+  {
+    // Mean position of the 100 lowest points of each tree. Points are ordered by Z then by index
+    // (stable sort) and NaN are last (same as R's order())
+    constexpr size_t nmax = 100;
+    constexpr size_t nmin = 10;
+
+    // Z is stored with the index to avoid a cache miss when comparing to the top of the heap
+    struct Item { double z; unsigned int i; };
+    auto before = [](const Item& a, const Item& b)
+    {
+      bool na = std::isnan(a.z);
+      bool nb = std::isnan(b.z);
+      if (na != nb) return nb;
+      if (!na && a.z != b.z) return a.z < b.z;
+      return a.i < b.i;
+    };
+
+    // Max-heap of the nmax lowest points of each tree
+    struct Group { size_t n = 0; std::vector<Item> heap; };
+    std::unordered_map<int, Group> groups;
+    for (size_t i = 0; i < self.size(); ++i)
+    {
+      int id = self.get_treeid(i);
+      if (id <= 0) continue;
+
+      Group& g = groups[id];
+      g.n++;
+      Item item{self.get_z(i), static_cast<unsigned int>(i)};
+      if (g.heap.size() < nmax)
+      {
+        g.heap.push_back(item);
+        std::push_heap(g.heap.begin(), g.heap.end(), before);
+      }
+      else if (before(item, g.heap.front()))
+      {
+        std::pop_heap(g.heap.begin(), g.heap.end(), before);
+        g.heap.back() = item;
+        std::push_heap(g.heap.begin(), g.heap.end(), before);
+      }
+    }
+
+    for (auto& [id, g] : groups)
+    {
+      if (g.n < nmin) continue;
+      std::sort_heap(g.heap.begin(), g.heap.end(), before);
+      const std::vector<Item>& h = g.heap;
+      double x = r_mean(h.size(), [&](size_t k) { return self.get_x(h[k].i); });
+      double y = r_mean(h.size(), [&](size_t k) { return self.get_y(h[k].i); });
+      roots.push_back({id, x, y});
+    }
+  }
+
+  roots.erase(std::remove_if(roots.begin(), roots.end(), [](const Root& r) { return !std::isfinite(r.x) || !std::isfinite(r.y); }), roots.end());
+  return roots;
+}
+
+template <typename Derived>
+void BasePointCloud<Derived>::flag_buffer(const arbor::utils::Polygon& polygon, const Derived* seeds)
+{
+  Derived& self = static_cast<Derived&>(*this);
+
+  if (!self.has_treeid()) throw std::runtime_error("No treeID in this point cloud");
+  if (!self.has_userdata()) throw std::runtime_error("No UserData in this point cloud");
+
+  std::unordered_set<int> rooted;
+  std::unordered_set<int> keep;
+  for (const Root& r : compute_roots(seeds))
+  {
+    rooted.insert(r.treeid);
+    if (polygon.point_in_polygon(r.x, r.y)) keep.insert(r.treeid);
+  }
+
+  constexpr int NA = std::numeric_limits<int>::min();
+  const int TREE = static_cast<int>(UserData::TREE);
+  const int LOW = static_cast<int>(UserData::LOW);
+  const int BUFFER = static_cast<int>(UserData::BUFFER);
+
+  // LOW points are never flagged. Trees are flagged according to their root. Unsegmented points and
+  // points of trees without a root (no seed, or too few points) are flagged according to their own
+  // position. BUFFER overrides UNDERSTORY
+  for (size_t i = 0; i < self.size(); ++i)
+  {
+    int ud = self.get_userdata(i);
+    if (ud == NA || ud == LOW) continue;
+    if (ud == BUFFER) ud = TREE;
+    int id = self.get_treeid(i);
+    bool inside = rooted.count(id) ? keep.count(id) > 0 : polygon.point_in_polygon(self.get_x(i), self.get_y(i));
+    if (!inside) ud = BUFFER;
+    self.set_userdata(i, ud);
+  }
+}
+
+template <typename Derived>
+void BasePointCloud<Derived>::flag_buffer(double buffer, const Derived* seeds)
+{
+  const Derived& self = static_cast<const Derived&>(*this);
+
+  if (buffer > 0) throw std::invalid_argument("'buffer' must be negative");
+
+  arbor::utils::Polygon hull = arbor::utils::Polygon::convex_hull(self.size(), [&](size_t i) { return self.get_x(i); }, [&](size_t i) { return self.get_y(i); });
+  flag_buffer(hull.shrink(-buffer), seeds);
+}
 
 #endif

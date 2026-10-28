@@ -36,7 +36,8 @@
 #'   from the lowest point of each tree.
 #' @param buffer Numeric value (in meters) used to shrink the convex hull before
 #'   filtering trees. Default is `-5`, which excludes trees within 5 meters of the
-#'   boundary. Can also be an `sf` polygon object for custom clipping.
+#'   boundary. Can also be an `sf` or `sfc` object for custom clipping. It must be a simple polygon,
+#'   i.e. a single `POLYGON` without holes (multipolygons are not supported), with the same CRS as `las`.
 #'
 #' @return A modified LAS object in which the points of flagged trees have their `UserData`
 #'   attribute set to a non-zero value. `treeID` is not modified.
@@ -48,20 +49,13 @@
 #' @export
 flag_small_trees = function(las, max_height = 2)
 {
-  UserData <- treeID <- hag <- hag_max <- hag_min <- NULL
-
-  attributes <- names(las)
   if (!"treeID" %in% names(las))   stop("Input point cloud must have an attribute 'treeID'")
   if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
-  ans <- las@data[treeID > 0, list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
-  ans <- ans[hag_max > max_height & hag_min < max_height]
-
-  # Keep trees whose seeds are inside
-  if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
-  las@data$UserData = data.table::copy(las@data$UserData)
-  las@data[UserData == ARBORUNDERSTORY, UserData := ARBORTREE] # revert previous
-  las@data[!treeID %in% ans$treeID & UserData != ARBORLOW, UserData := ARBORUNDERSTORY]
+  # C++ writes UserData in place: allocate a fresh copy to not modify the input
+  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
+  las@data$UserData <- data.table::copy(las@data$UserData)
+  flag_small_trees_cpp(las@data, max_height)
   las
 }
 
@@ -87,97 +81,55 @@ keep_small_trees = function(las, max_height = 2)
 #' @importFrom data.table :=
 flag_buffer = function(las, seeds, buffer = -5)
 {
+  is_polygon <- inherits(buffer, "sf") || inherits(buffer, "sfc")
+
   if (is.numeric(buffer))
   {
-    if (buffer > 0) 
+    if (buffer > 0)
       stop("'buffer' must be negative.")
   }
+  else if (is_polygon)
+  {
+    geom <- sf::st_geometry(buffer)
+    if (length(geom) != 1L || sf::st_geometry_type(geom) != "POLYGON" || length(geom[[1]]) != 1L)
+      stop("'buffer' must be a simple polygon: a single POLYGON without holes.")
+  }
+  else
+  {
+    stop("'buffer' must be a number or an sf polygon.")
+  }
 
-  UserData <- NULL
-
-  if (!"treeID" %in% names(las))   
+  if (!"treeID" %in% names(las))
   {
     stop("Input point cloud must have an attribute 'treeID'")
   }
 
   if (!missing(seeds))
   {
-    if (!"treeID" %in% names(seeds)) 
+    if (!"treeID" %in% names(seeds))
     {
       stop("Input seeds must have an attribute 'treeID'")
     }
   }
 
-  # Avoid NOTES
-  X <- Y <- Z <- treeID <- NULL
+  if (is_polygon && sf::st_crs(geom) != sf::st_crs(las))
+    stop("'buffer' and 'las' must have the same CRS.")
 
-  # Compute roots per tree (drop unsegmented)
-  if (missing(seeds))
+  # C++ writes UserData in place: allocate a fresh copy to not modify the input
+  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
+  las@data$UserData <- data.table::copy(las@data$UserData)
+
+  see <- if (missing(seeds)) NULL else seeds@data
+
+  if (is_polygon)
   {
-    # Make root robust to small groups
-    root <- function(x, y, z)
-    {
-      i <- order(z)
-      n <- min(100L, length(i))            # Use available points (<=100)
-      if (n < 10L) {                       # Guard against tiny groups
-        return(list(X = NA_real_, Y = NA_real_, Z = NA_real_))
-      }
-      x <- x[i][seq_len(n)]
-      y <- y[i][seq_len(n)]
-      z <- z[i][seq_len(n)]
-      x <- mean(x)
-      y <- mean(y)
-      z <- mean(z)
-      return(list(X = x, Y = y, Z = z))
-    }
-
-    roots <- las@data[treeID > 0, root(X, Y, Z), by = treeID]
-    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
-    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+    xy <- sf::st_coordinates(geom)
+    flag_buffer_polygon_cpp(las@data, see, xy[, "X"], xy[, "Y"])
   }
   else
   {
-    # Make root robust to small groups
-    root <- function(x, y, z)
-    {
-      x <- mean(x)
-      y <- mean(y)
-      z <- mean(z)
-      return(list(X = x, Y = y, Z = z))
-    }
-
-    roots <- seeds@data[treeID > 0, root(X, Y, Z), by = treeID]
-    roots <- roots[is.finite(X) & is.finite(Y)]     # Drop invalid coords
-    if (!nrow(roots)) return(las[0])                # Early exit if nothing valid
+    flag_buffer_cpp(las@data, see, buffer)
   }
 
-  # Build buffered convex hull
-  if (is.numeric(buffer))
-  {
-    bb <- suppressWarnings(sf::st_convex_hull(las))
-    bb <- suppressWarnings(sf::st_buffer(bb, dist = buffer))
-    if (any(sf::st_is_empty(bb))) return(las[0])    # Early exit if buffer kills hull
-  }
-
-  if (inherits(buffer, "sf") || inherits(buffer, "sfc"))
-  {
-    if (!any(sf::st_geometry_type(buffer) %in% c("POLYGON", "MULTIPOLYGON")))
-      stop("buffer must be a polygon or multipolygon")
-
-    bb <- buffer
-  }
-
-  # Convert roots to sf (safe: no NA)
-  seeds <- sf::st_as_sf(roots, coords = c("X", "Y"), crs = sf::st_crs(las))
-  idx <- sf::st_intersects(seeds, bb)
-  valid_seeds <- seeds[lengths(idx) > 0, ]
-  if (!nrow(valid_seeds)) return(las[0])
-
-  # Keep trees whose seeds are inside
-  if (!"UserData" %in% names(las)) las@data$UserData = ARBORTREE
-  las@data$UserData = data.table::copy(las@data$UserData)
-  las@data[UserData == ARBORBUFFER, UserData := ARBORTREE] # revert previous
-  las@data[!treeID %in% valid_seeds$treeID & UserData != ARBORLOW, UserData := ARBORBUFFER]
-  return(las)
-  }
-
+  las
+}

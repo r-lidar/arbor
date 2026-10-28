@@ -68,6 +68,15 @@ void segment_instance_cpp(Rcpp::DataFrame core, Rcpp::DataFrame seeds, Rcpp::Lis
 void colorize_trees_cpp(Rcpp::DataFrame core, bool dark);
 
 //[[Rcpp::export(rng = false)]]
+void flag_small_trees_cpp(Rcpp::DataFrame core, double max_height);
+
+//[[Rcpp::export(rng = false)]]
+void flag_buffer_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, double buffer);
+
+//[[Rcpp::export(rng = false)]]
+void flag_buffer_polygon_cpp(Rcpp::DataFrame core, Rcpp::Nullable<Rcpp::DataFrame> seeds, Rcpp::NumericVector x, Rcpp::NumericVector y);
+
+//[[Rcpp::export(rng = false)]]
 Rcpp::DataFrame find_seeds_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
