@@ -420,15 +420,24 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   Task task("Semantic segmentation", {1, 60, 8, 8, 10, 8, 1});
 
   task.step("Partitioning");
-  scene.partition([&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
 
-  // After partitioning the low point are at the end of the memory layout and will never be processed
-  // The scene has a new size.
+  // The outputs start from scratch: a second run in place (e.g. with another cut height) gives the same
+  // result as a first run
+  for (size_t i = 0 ; i < scene.size() ; i++)
+  {
+    scene.set_userdata(i, static_cast<int>(PointCloud::UserData::TREE));
+    scene.set_passage(i, 0);
+    scene.set_foliage(i, 1);
+  }
+
+  // The low points are hidden at the end of the memory layout and will never be processed. The scene
+  // gets its size and its order back when the partition goes out of scope, also on error or cancellation.
+  ScopedPartition<PointCloud> partition(scene, [&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
   size_t n = scene.size();
-  if (scene.size() == 0) throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
+  if (n == 0) throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
 
-  // Flag low points with UserData = 1. Low points are beyond the new size of the point cloud
-  for (size_t i = n ; i < scene.true_size() ; i++) scene.set_userdata(i, static_cast<int>(PointCloud::UserData::LOW));
+  // Flag low points with UserData = 1. Low points are beyond the size of the partitioned point cloud
+  for (size_t i = n ; i < partition.total() ; i++) scene.set_userdata(i, static_cast<int>(PointCloud::UserData::LOW));
 
   task.step("Accumulating passages");
   std::vector<int> passages = accumulate_passages(scene, dtm, par.pathfinder);

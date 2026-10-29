@@ -11,7 +11,6 @@ PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
 {
   init();
   n_points = n;
-  true_n_points = n;
   safe_alloc(n, init_attributes);
 }
 
@@ -30,7 +29,6 @@ void PointCloudDefault::cleanup()
   pwood.clear();
   classif.clear();
   n_points = 0;
-  true_n_points = 0;
 }
 
 // ------------------------------------------------------------
@@ -69,7 +67,6 @@ PointCloudDefault PointCloudDefault::subset(const std::vector<unsigned int>& ind
 
   PointCloudDefault result;
   result.n_points = new_count;
-  result.true_n_points = new_count;
   result.coords.resize(new_count);
 
   for (size_t j = 0; j < new_count; ++j)
@@ -245,7 +242,6 @@ PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
   }
 
   this->n_points = new_size;
-  this->true_n_points = new_size;
 
   kdtree.reset();
 
@@ -258,7 +254,6 @@ PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
 void PointCloudDefault::init()
 {
   n_points = 0;
-  true_n_points = 0;
   coords.clear();
   rgb.clear();
   treeid.clear();

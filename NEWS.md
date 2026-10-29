@@ -15,6 +15,7 @@
  - Enhance computation of KD-tree for a 15% speed-up of the pipeline
  - Enhance internal graph memory layout for a 15% reduction of RAM consumption
  - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
+ - `segment_semantic()` and `segment_instance()` no longer reorder the points of the LAS object: the points below `cut_above_ground` stay at their original place.
 
 ### BUG FIXES
 

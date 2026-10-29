@@ -44,6 +44,9 @@ Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybri
 //[[Rcpp::export(rng = false)]]
 Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k);
 
+//[[Rcpp::export(rng = false)]]
+Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
+
 // ========================
 // SEGMENTATION
 // ========================

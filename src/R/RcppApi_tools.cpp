@@ -26,6 +26,80 @@
 #include "arbor.h"
 
 
+// For the unit tests of ScopedPartition (tests/testthat/test-partition.R). Partitions df on hag > cut
+// and reports what the algorithms see within the scope and after it. Within the scope, writes passage = 1
+// for the kept points and passage = 2 for the hidden ones, to check that the attributes written follow the
+// points back to their original index. Throws within the scope if fail is true.
+Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail)
+{
+  PointCloud pc(df);
+  const size_t total = pc.size();
+  const size_t nqueries = 1000; // knn checks on the first points only: the test clouds are large enough
+
+  // A KD-tree of the whole point cloud before the scope: the partition must invalidate it
+  if (total > 0) pc.build_index();
+
+  size_t kept = 0;
+  bool kept_above = true;
+  bool hidden_below = true;
+  bool knn_kept_only = true;
+  {
+    ScopedPartition<PointCloud> partition(pc, [&](size_t i) { return pc.get_hag(i) > cut; });
+    kept = pc.size();
+
+    for (size_t i = 0; i < kept; ++i)
+    {
+      if (!(pc.get_hag(i) > cut)) kept_above = false;
+      pc.set_passage(i, 1);
+    }
+    for (size_t i = kept; i < partition.total(); ++i)
+    {
+      if (pc.get_hag(i) > cut) hidden_below = false;
+      pc.set_passage(i, 2);
+    }
+
+    // The KD-tree is rebuilt on the kept points only: the nearest neighbour of a hidden point is a kept point
+    if (kept > 0)
+    {
+      std::vector<unsigned int> idx;
+      std::vector<double> dist;
+      double q[3];
+      for (size_t i = kept; i < partition.total() && i < kept + nqueries; ++i)
+      {
+        pc.get_point(i, q);
+        pc.knn(q, 1, idx, dist);
+        if (idx.empty() || idx[0] >= kept || !(pc.get_hag(idx[0]) > cut)) knn_kept_only = false;
+      }
+    }
+
+    if (fail) throw std::runtime_error("failure within the scope");
+  }
+
+  // The KD-tree rebuilt on the whole point cloud again: every point is its own nearest neighbour (distance 0)
+  bool knn_whole = true;
+  if (total > 0)
+  {
+    std::vector<unsigned int> idx;
+    std::vector<double> dist;
+    double q[3];
+    for (size_t i = 0; i < total && i < nqueries; ++i)
+    {
+      pc.get_point(i, q);
+      pc.knn(q, 1, idx, dist);
+      if (idx.empty() || dist[0] != 0) knn_whole = false;
+    }
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("kept") = kept,
+    Rcpp::Named("total") = total,
+    Rcpp::Named("size_after") = pc.size(),
+    Rcpp::Named("kept_above") = kept_above,
+    Rcpp::Named("hidden_below") = hidden_below,
+    Rcpp::Named("knn_kept_only") = knn_kept_only,
+    Rcpp::Named("knn_whole") = knn_whole);
+}
+
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true)
 {
   PointCloud pc(df);

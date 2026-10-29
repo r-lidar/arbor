@@ -45,7 +45,7 @@ struct GroundCloud
 
 void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
 {
-  size_t n = scene.true_size();
+  size_t n = scene.size();
   if (n == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
 
   Task task("Ground segmentation", {8, 2});

@@ -17,6 +17,10 @@ C_anisotropy <- function(df, k) {
     .Call(`_arbor_C_anisotropy`, df, k)
 }
 
+C_scoped_partition <- function(df, cut, fail) {
+    .Call(`_arbor_C_scoped_partition`, df, cut, fail)
+}
+
 segment_ground_cpp <- function(core, params) {
     invisible(.Call(`_arbor_segment_ground_cpp`, core, params))
 }

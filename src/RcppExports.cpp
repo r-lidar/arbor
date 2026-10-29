@@ -51,6 +51,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_scoped_partition
+Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
+RcppExport SEXP _arbor_C_scoped_partition(SEXP dfSEXP, SEXP cutSEXP, SEXP failSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    Rcpp::traits::input_parameter< double >::type cut(cutSEXP);
+    Rcpp::traits::input_parameter< bool >::type fail(failSEXP);
+    rcpp_result_gen = Rcpp::wrap(C_scoped_partition(df, cut, fail));
+    return rcpp_result_gen;
+END_RCPP
+}
 // segment_ground_cpp
 void segment_ground_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_segment_ground_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -418,6 +430,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
     {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
+    {"_arbor_C_scoped_partition", (DL_FUNC) &_arbor_C_scoped_partition, 3},
     {"_arbor_segment_ground_cpp", (DL_FUNC) &_arbor_segment_ground_cpp, 2},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
