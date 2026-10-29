@@ -138,3 +138,16 @@ test_that("segment_instance() keeps the order and starts from scratch", {
 
   expect_identical(dirty$treeID, inst1$treeID)
 })
+
+test_that("wood_likelihood() keeps the order and skips the points below the cut height", {
+  cut  <- params$global$cut_above_ground
+  # Without height above ground, every point is computed
+  full <- wood_likelihood(lidR::remove_lasattribute(las, "hag"))$pwood
+
+  expect_identical(las$PID, ref$PID)
+  expect_all_equal(las$pwood[!(las$hag > cut)], 0)
+
+  # Far enough above the cut, the neighbourhoods are the same as with every point
+  high <- las$hag > cut + 1
+  expect_equal(las$pwood[high], full[high], tolerance = 1e-6)
+})

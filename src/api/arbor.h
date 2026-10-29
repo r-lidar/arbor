@@ -195,9 +195,11 @@ namespace arbor
       QsmParameters            qsm;
     };
   }
+
   namespace segment
   {
     void segment_ground  (PointCloud& core,                          const settings::ArborParameters& params);
+    void wood_likelihood (PointCloud& core,                          const settings::ArborParameters& params);
     void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params);
     void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params);
 
@@ -223,7 +225,6 @@ namespace arbor
   {
     PointCloud dtm(const PointCloud&);
   }
-
 
   namespace utils
   {

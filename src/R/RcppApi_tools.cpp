@@ -107,13 +107,6 @@ Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybri
   return(Rcpp::wrap(ans));
 }
 
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k)
-{
-  PointCloud pc(df);
-  auto ans = arbor::utils::anisotropy(pc, k);
-  return(Rcpp::wrap(ans));
-}
-
 Rcpp::DataFrame allometry(std::string name)
 {
   auto model = AllometryDataBase::getAllometry(name);

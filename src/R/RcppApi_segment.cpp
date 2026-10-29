@@ -46,6 +46,13 @@ void segment_ground_cpp(DF core, Rcpp::List params)
   arbor::segment::segment_ground(p, par);
 }
 
+void wood_likelihood_cpp(DF core, Rcpp::List params)
+{
+  arbor::settings::ArborParameters par = extract_arbor_params(params);
+  PointCloud p(core);
+  arbor::segment::wood_likelihood(p, par);
+}
+
 void segment_semantic_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);

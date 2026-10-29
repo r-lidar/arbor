@@ -48,6 +48,7 @@ OBJECTS = \
   seed/SeedDetector_cage.o \
   seed/SeedDetector_circle.o \
   segment/segment_semantic_api.o \
+  segment/segment_woodlikelihood_api.o \
   segment/Graph.o \
   segment/GraphBuilder.o \
   segment/segment_instance_api.o \

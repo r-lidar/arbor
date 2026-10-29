@@ -42,9 +42,6 @@ Rcpp::List default_arbor_params_cpp();
 Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybrid = true);
 
 //[[Rcpp::export(rng = false)]]
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df,  int k);
-
-//[[Rcpp::export(rng = false)]]
 Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
 
 // ========================
@@ -53,6 +50,9 @@ Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
 
 //[[Rcpp::export(rng = false)]]
 void segment_ground_cpp(Rcpp::DataFrame core, Rcpp::List params);
+
+//[[Rcpp::export(rng = false)]]
+void wood_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
 
 //[[Rcpp::export(rng = false)]]
 void segment_semantic_cpp(Rcpp::DataFrame core, Rcpp::List params);

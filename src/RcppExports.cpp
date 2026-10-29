@@ -40,17 +40,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// C_anisotropy
-Rcpp::NumericVector C_anisotropy(Rcpp::DataFrame df, int k);
-RcppExport SEXP _arbor_C_anisotropy(SEXP dfSEXP, SEXP kSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    rcpp_result_gen = Rcpp::wrap(C_anisotropy(df, k));
-    return rcpp_result_gen;
-END_RCPP
-}
 // C_scoped_partition
 Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
 RcppExport SEXP _arbor_C_scoped_partition(SEXP dfSEXP, SEXP cutSEXP, SEXP failSEXP) {
@@ -70,6 +59,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
     segment_ground_cpp(core, params);
+    return R_NilValue;
+END_RCPP
+}
+// wood_likelihood_cpp
+void wood_likelihood_cpp(Rcpp::DataFrame core, Rcpp::List params);
+RcppExport SEXP _arbor_wood_likelihood_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type core(coreSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type params(paramsSEXP);
+    wood_likelihood_cpp(core, params);
     return R_NilValue;
 END_RCPP
 }
@@ -429,9 +428,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_getThreads", (DL_FUNC) &_arbor_getThreads, 0},
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
-    {"_arbor_C_anisotropy", (DL_FUNC) &_arbor_C_anisotropy, 2},
     {"_arbor_C_scoped_partition", (DL_FUNC) &_arbor_C_scoped_partition, 3},
     {"_arbor_segment_ground_cpp", (DL_FUNC) &_arbor_segment_ground_cpp, 2},
+    {"_arbor_wood_likelihood_cpp", (DL_FUNC) &_arbor_wood_likelihood_cpp, 2},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
     {"_arbor_segment_instance_cpp", (DL_FUNC) &_arbor_segment_instance_cpp, 3},
     {"_arbor_colorize_trees_cpp", (DL_FUNC) &_arbor_colorize_trees_cpp, 2},
