@@ -589,8 +589,4 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   }
 }
 
-int GraphBuilder::get_num_cores()   const { return total_core_nodes; }
-int GraphBuilder::get_num_targets() const { return total_target_nodes; }
-int GraphBuilder::get_num_seeds()   const { return total_seed_nodes; }
-
 }

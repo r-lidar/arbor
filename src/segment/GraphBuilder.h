@@ -50,10 +50,6 @@ public:
   void fix_directed_reachability2(const PointCloud& cloud);
   void set_wood(const std::vector<bool>& x);
 
-  int get_num_cores() const;
-  int get_num_targets() const;
-  int get_num_seeds() const;
-
 private:
   std::unique_ptr<Graph> graph;
 

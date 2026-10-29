@@ -600,9 +600,7 @@ void InventoryMerger::resolve(PointCloud& pc, const MatchingTable& table, const 
 
   if (points.empty() || seed_pts.empty()) return;
 
-  // segment_instance() reorders the points (partition above/below cut_above_ground). The
-  // original index is stored in the 'passage' attribute, which segment_instance() moves with
-  // the points and does not use.
+  // segment_instance() keeps the order of the points: the point k of sub is the point points[k] of pc
   PointCloud sub(points.size(), true);
   for (size_t k = 0; k < points.size(); ++k)
   {
@@ -613,7 +611,6 @@ void InventoryMerger::resolve(PointCloud& pc, const MatchingTable& table, const 
     sub.set_hag(k, pc.get_hag(i));
     sub.set_foliage(k, pc.get_foliage(i));
     sub.set_treeid(k, 0);
-    sub.set_passage(k, static_cast<int>(k));
   }
 
   PointCloud seeds(seed_pts.size(), true);
@@ -631,12 +628,11 @@ void InventoryMerger::resolve(PointCloud& pc, const MatchingTable& table, const 
   segment::segment_instance(sub, seeds, params);
 
   // R difference: points not reached by the segmentation (NA) or below cut_above_ground (0)
-  // keep their original ID instead of losing it. true_size() includes the points moved
-  // beyond size() by the partition.
-  for (size_t k = 0; k < sub.true_size(); ++k)
+  // keep their original ID instead of losing it.
+  for (size_t k = 0; k < sub.size(); ++k)
   {
     int id = sub.get_treeid(k);
-    if (is_tree(id)) pc.set_treeid(points[sub.get_passage(k)], id);
+    if (is_tree(id)) pc.set_treeid(points[k], id);
   }
 }
 

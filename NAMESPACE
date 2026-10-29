@@ -92,6 +92,10 @@ exportMethods("%in%")
 importClassesFrom(lidR,LAS)
 importFrom(Rcpp,sourceCpp)
 importFrom(data.table,":=")
+importFrom(methods,
+  setGeneric,
+  setMethod
+)
 importFrom(sf,
   "st_crs<-",
   st_crs,

@@ -13,20 +13,16 @@ C_homogeneization <- function(df, res, hybrid = TRUE) {
     .Call(`_arbor_C_homogeneization`, df, res, hybrid)
 }
 
-C_anisotropy <- function(df, k) {
-    .Call(`_arbor_C_anisotropy`, df, k)
-}
-
-C_connected_component <- function(df, res, connectivity) {
-    .Call(`_arbor_C_connected_component`, df, res, connectivity)
-}
-
-C_sor <- function(df, k, m) {
-    .Call(`_arbor_C_sor`, df, k, m)
+C_scoped_partition <- function(df, cut, fail) {
+    .Call(`_arbor_C_scoped_partition`, df, cut, fail)
 }
 
 segment_ground_cpp <- function(core, params) {
     invisible(.Call(`_arbor_segment_ground_cpp`, core, params))
+}
+
+wood_likelihood_cpp <- function(core, params) {
+    invisible(.Call(`_arbor_wood_likelihood_cpp`, core, params))
 }
 
 segment_semantic_cpp <- function(core, params) {
@@ -57,48 +53,12 @@ find_seeds_cpp <- function(core, params) {
     .Call(`_arbor_find_seeds_cpp`, core, params)
 }
 
-accumulate_passages_cpp <- function(core, gnd, params) {
-    .Call(`_arbor_accumulate_passages_cpp`, core, gnd, params)
-}
-
-dist2root <- function(core, gnd, params) {
-    .Call(`_arbor_dist2root`, core, gnd, params)
-}
-
-assign_wood_from_passage_cpp <- function(core, params) {
-    .Call(`_arbor_assign_wood_from_passage_cpp`, core, params)
-}
-
-assign_wood_from_high_likelihood_cpp <- function(core, params) {
-    .Call(`_arbor_assign_wood_from_high_likelihood_cpp`, core, params)
-}
-
-assign_wood_from_medium_likelihood_cpp <- function(core, params) {
-    .Call(`_arbor_assign_wood_from_medium_likelihood_cpp`, core, params)
-}
-
-assign_wood_from_wood_dilatation_cpp <- function(core, params) {
-    .Call(`_arbor_assign_wood_from_wood_dilatation_cpp`, core, params)
-}
-
-C_fix_small_isolated_low_clusters <- function(df, res = 0.05, min_size = 200L) {
-    invisible(.Call(`_arbor_C_fix_small_isolated_low_clusters`, df, res, min_size))
-}
-
 C_match_instances <- function(df) {
     .Call(`_arbor_C_match_instances`, df)
 }
 
 C_merge_instances <- function(match_result, df) {
     invisible(.Call(`_arbor_C_merge_instances`, match_result, df))
-}
-
-generate_cage_cpp <- function(circles, decimation) {
-    .Call(`_arbor_generate_cage_cpp`, circles, decimation)
-}
-
-detect_tree_circles_cpp <- function(wood_df, resolution = 0.05, connectivity = 26L, num_ransac_iterations = 400L, inlier_threshold = 0.02, min_cluster_size = 20L) {
-    .Call(`_arbor_detect_tree_circles_cpp`, wood_df, resolution, connectivity, num_ransac_iterations, inlier_threshold, min_cluster_size)
 }
 
 qsm_cpp <- function(tree, params) {
@@ -137,16 +97,8 @@ qsm_autorepair_cpp <- function(df) {
     .Call(`_arbor_qsm_autorepair_cpp`, df)
 }
 
-read_adtree_skeleton <- function(filename) {
-    .Call(`_arbor_read_adtree_skeleton`, filename)
-}
-
 qsm_mesh_cpp <- function(df, resolution) {
     .Call(`_arbor_qsm_mesh_cpp`, df, resolution)
-}
-
-qsm_get_cylID <- function(qsmdf, pcdf) {
-    .Call(`_arbor_qsm_get_cylID`, qsmdf, pcdf)
 }
 
 allometry <- function(name) {
@@ -163,10 +115,6 @@ qsf_write_cpp <- function(x, dir, format, binary) {
 
 qsf_read_cpp <- function(filename) {
     .Call(`_arbor_qsf_read_cpp`, filename)
-}
-
-ransac_circle_cpp <- function(x, num_iterations = 100L, inlier_threshold = 0.01, early_exit = 1.0) {
-    .Call(`_arbor_ransac_circle_cpp`, x, num_iterations, inlier_threshold, early_exit)
 }
 
 fit_circloid_cpp <- function(x, from = as.numeric( c(0,0,0)), to = as.numeric( c(0,0,1)), tolerance = 0.02, complexity = 1L) {
@@ -203,25 +151,5 @@ qsm_distances_cpp <- function(qsm_df, pts_df) {
 
 extract_tree_context_cpp <- function(las, tree_id, exclude_tree = FALSE, k = 10L) {
     .Call(`_arbor_extract_tree_context_cpp`, las, tree_id, exclude_tree, k)
-}
-
-qsm_cluster_cpp <- function(df, cl_dist) {
-    .Call(`_arbor_qsm_cluster_cpp`, df, cl_dist)
-}
-
-cpp_build_skeleton <- function(data, max_d) {
-    .Call(`_arbor_cpp_build_skeleton`, data, max_d)
-}
-
-qsm_topology_cpp <- function(qsm) {
-    .Call(`_arbor_qsm_topology_cpp`, qsm)
-}
-
-qsm_architecture_cpp <- function(qsm, use_volume = FALSE) {
-    .Call(`_arbor_qsm_architecture_cpp`, qsm, use_volume)
-}
-
-qsm_polynomial_fitting_cpp <- function(df, tip_radius) {
-    .Call(`_arbor_qsm_polynomial_fitting_cpp`, df, tip_radius)
 }
 

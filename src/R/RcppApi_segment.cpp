@@ -37,24 +37,20 @@
 #include "RcppApi_params.h"
 
 
-// Type aliases for clarity
 using DF = Rcpp::DataFrame;
-
-namespace arbor::segment
-{
-std::vector<int>  accumulate_passages(const PointCloud& core, const PointCloud& ground, const settings::GraphParameters& params);
-std::vector<float>dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
-std::vector<bool> assign_wood_from_passage(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
-std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
-std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
-std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const arbor::settings::SemanticParameters& params);
-}
 
 void segment_ground_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
   arbor::segment::segment_ground(p, par);
+}
+
+void wood_likelihood_cpp(DF core, Rcpp::List params)
+{
+  arbor::settings::ArborParameters par = extract_arbor_params(params);
+  PointCloud p(core);
+  arbor::segment::wood_likelihood(p, par);
 }
 
 void segment_semantic_cpp(DF core, Rcpp::List params)
@@ -113,148 +109,6 @@ void flag_buffer_polygon_cpp(DF core, Rcpp::Nullable<DF> seeds, Rcpp::NumericVec
   if (seeds.isNull()) return arbor::segment::flag_buffer(p, polygon);
   PointCloud s(DF(seeds.get()));
   arbor::segment::flag_buffer(p, polygon, &s);
-}
-
-Rcpp::IntegerVector accumulate_passages_cpp(DF core, DF gnd, Rcpp::List params)
-{
-  arbor::settings::GraphParameters gparams = extract_pathfinder_params(params);
-  PointCloud p(core);
-  PointCloud s(gnd);
-  std::vector<int> ans = arbor::segment::accumulate_passages(p, s, gparams);
-  return Rcpp::IntegerVector(ans.begin(), ans.end());
-}
-
-Rcpp::NumericVector dist2root(DF core, DF gnd, Rcpp::List params)
-{
-  arbor::settings::GraphParameters gparams;
-  gparams.k = 80;
-  gparams.max_gap = 1.5;
-  gparams.power = 2;
-
-  PointCloud p(core);
-  PointCloud s(gnd);
-  std::vector<float> ans = arbor::segment::dist2root(p, s, gparams);
-  return Rcpp::NumericVector(ans.begin(), ans.end());
-}
-
-
-Rcpp::LogicalVector assign_wood_from_passage_cpp(DF core, Rcpp::List params)
-{
-  arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
-  PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_passage(p, sparams);
-  return Rcpp::LogicalVector(ans.begin(), ans.end());
-}
-
-Rcpp::LogicalVector assign_wood_from_high_likelihood_cpp(DF core, Rcpp::List params)
-{
-  arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
-  PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_high_likelihood(p, sparams);
-  return Rcpp::LogicalVector(ans.begin(), ans.end());
-}
-
-Rcpp::LogicalVector assign_wood_from_medium_likelihood_cpp(DF core, Rcpp::List params)
-{
-  arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
-  PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_medium_likelihood(p, sparams);
-  return Rcpp::LogicalVector(ans.begin(), ans.end());
-}
-
-Rcpp::LogicalVector assign_wood_from_wood_dilatation_cpp(DF core, Rcpp::List params)
-{
-  arbor::settings::SemanticParameters sparams = extract_semantic_params(params);
-  PointCloud p(core);
-  std::vector<bool> ans = arbor::segment::assign_wood_from_wood_dilatation(p, sparams);
-  return Rcpp::LogicalVector(ans.begin(), ans.end());
-}
-
-Rcpp::DataFrame generate_cage_cpp(Rcpp::DataFrame circles, double decimation)
-{
-  // Convert input: R DataFrame -> C++ vector of Circles
-  Rcpp::NumericVector X = circles["X"];
-  Rcpp::NumericVector Y = circles["Y"];
-  Rcpp::NumericVector Z = circles["Z"];
-  Rcpp::NumericVector R = circles["R"];
-  Rcpp::IntegerVector id = circles["id"];
-
-  int n = X.size();
-
-  if (n == 0) {
-    return Rcpp::DataFrame::create(
-      Rcpp::Named("X") = Rcpp::NumericVector(),
-      Rcpp::Named("Y") = Rcpp::NumericVector(),
-      Rcpp::Named("Z") = Rcpp::NumericVector()
-    );
-  }
-
-  std::vector<arbor::seeds::Circle> circle_vec;
-  circle_vec.reserve(n);
-  for (int i = 0; i < n; ++i) {
-
-    circle_vec.push_back(arbor::seeds::Circle(X[i], Y[i], Z[i], R[i], id[i]));
-  }
-
-  // Call pure C++ function
-  std::vector<arbor::seeds::Point3D> cage_points = arbor::seeds::SeedDetector::generate_cage(circle_vec, decimation);
-
-  // Convert output: C++ vector of Points -> R DataFrame
-  size_t total_points = cage_points.size();
-  Rcpp::NumericVector out_X(total_points);
-  Rcpp::NumericVector out_Y(total_points);
-  Rcpp::NumericVector out_Z(total_points);
-
-  for (size_t i = 0; i < total_points; ++i) {
-    out_X[i] = cage_points[i].X;
-    out_Y[i] = cage_points[i].Y;
-    out_Z[i] = cage_points[i].Z;
-  }
-
-  return Rcpp::DataFrame::create(
-    Rcpp::Named("X") = out_X,
-    Rcpp::Named("Y") = out_Y,
-    Rcpp::Named("Z") = out_Z
-  );
-}
-
-Rcpp::DataFrame detect_tree_circles_cpp(Rcpp::DataFrame wood_df, double resolution = 0.05, int connectivity = 26, int num_ransac_iterations = 400, double inlier_threshold = 0.02, int min_cluster_size = 20)
-{
-  PointCloud wood(wood_df);
-
-  std::vector<arbor::seeds::Circle> circles = arbor::seeds::SeedDetector::detect_tree_circles(
-    wood,
-    resolution,
-    connectivity,
-    num_ransac_iterations,
-    inlier_threshold,
-    min_cluster_size
-  );
-
-  size_t n_circles = circles.size();
-
-  Rcpp::NumericVector X(n_circles);
-  Rcpp::NumericVector Y(n_circles);
-  Rcpp::NumericVector Z(n_circles);
-  Rcpp::NumericVector R(n_circles);
-  Rcpp::IntegerVector id(n_circles);
-
-  for (size_t i = 0; i < n_circles; ++i)
-  {
-    X[i] = circles[i].X;
-    Y[i] = circles[i].Y;
-    Z[i] = circles[i].Z;
-    R[i] = circles[i].R;
-    id[i] = circles[i].id;
-  }
-
-  return Rcpp::DataFrame::create(
-    Rcpp::Named("X") = X,
-    Rcpp::Named("Y") = Y,
-    Rcpp::Named("Z") = Z,
-    Rcpp::Named("R") = R,
-    Rcpp::Named("id") = id
-  );
 }
 
 #endif

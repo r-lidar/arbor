@@ -19,7 +19,9 @@
 #' Compute Local Wood Likelihood
 #'
 #' This function calculates the local anisotropy of each point in a LAS object using
-#' a k-nearest neighbors (KNN) approach. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
+#' a k-nearest neighbors (KNN) approach. If the point cloud has an attribute 'hag', the points at or
+#' below the cut height are not computed and get 0: the semantic segmentation classifies them foliage
+#' anyway. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 #'
 #' @param las A LAS object from lidR.
 #' @param params list See \link{parameters}.
@@ -27,9 +29,11 @@
 wood_likelihood = function(las, params = arbor_parameters_default)
 {
   stop_if_not_tls(las)
-  k <- params$woodlikelihood$k
-  anisotropy <- C_anisotropy(las@data, k)
-  las <- lidR::add_lasattribute_manual(las, anisotropy, "pwood", "wood likelyhood", "float")
-  free(anisotropy)
+
+  # The wood likelihood is written in place by C++: R must allocate the attribute 'pwood' first
+  las@data$pwood <- 0
+  las <- lidR::add_lasattribute_manual(las, name = "pwood", desc = "wood likelyhood", type = "float")
+
+  wood_likelihood_cpp(las@data, params)
   return(las)
 }

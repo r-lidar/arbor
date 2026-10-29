@@ -236,6 +236,7 @@ setGeneric("%in%")
 #' @export
 #' @rdname match_infix
 #' @importClassesFrom lidR LAS
+#' @importFrom methods setGeneric setMethod
 setMethod("%in%", signature(x = "LAS", table = "ANY"),
   function(x, table) {
   if (!inherits(table, "qsf")) {

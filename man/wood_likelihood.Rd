@@ -13,5 +13,7 @@ wood_likelihood(las, params = arbor_parameters_default)
 }
 \description{
 This function calculates the local anisotropy of each point in a LAS object using
-a k-nearest neighbors (KNN) approach. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
+a k-nearest neighbors (KNN) approach. If the point cloud has an attribute 'hag', the points at or
+below the cut height are not computed and get 0: the semantic segmentation classifies them foliage
+anyway. See the [Arbor book](https://r-lidar.github.io/arbor_book/) for mode details.
 }

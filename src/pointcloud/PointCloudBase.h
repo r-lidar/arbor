@@ -2,6 +2,7 @@
 #define POINTCLOUDBASE_H
 
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <stdexcept>
@@ -67,14 +68,17 @@ inline void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_
 // PointCloudDataFrame maps directly onto the memory of an R data.frame to integrate
 // with an R package. PointCloudDefault manages its own memory layout and is used
 // by ArborStudio.
+template <typename Derived> class ScopedPartition;
+
 template <typename Derived>
 class BasePointCloud
 {
+  friend class ScopedPartition<Derived>;
+
   using KDTree = nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, Derived>, Derived, 3>;
 
 protected:
   size_t n_points = 0;
-  size_t true_n_points = 0;
   mutable std::unique_ptr<KDTree> kdtree;
 
   // 0. Default constructor
@@ -82,13 +86,12 @@ protected:
   virtual ~BasePointCloud() = default;
 
   // 1. Custom Copy Constructor
-  BasePointCloud(const BasePointCloud& other) : n_points(other.n_points), true_n_points(other.true_n_points), kdtree(nullptr) {}
+  BasePointCloud(const BasePointCloud& other) : n_points(other.n_points), kdtree(nullptr) {}
 
   // 2. Custom Copy Assignment Operator
   BasePointCloud& operator=(const BasePointCloud& other) {
     if (this != &other) {
       n_points = other.n_points;
-      true_n_points = other.true_n_points;
       kdtree = nullptr;
     }
     return *this;
@@ -98,7 +101,7 @@ protected:
   BasePointCloud(BasePointCloud&&) noexcept = default;
   BasePointCloud& operator=(BasePointCloud&&) noexcept = default;
 
-  // Needed for partition
+  // Needed for ScopedPartition
   virtual void swap_points(size_t i, size_t j) = 0;
 
 public:
@@ -116,8 +119,8 @@ public:
   inline size_t kdtree_get_point_count() const;
 
   // Generic
+  // Number of points. Inside a ScopedPartition: the points kept by the partition only
   inline size_t size() const;
-  inline size_t true_size() const;
 
   void build_index() const;
   void knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
@@ -129,10 +132,6 @@ public:
   std::vector<unsigned int> find_points_by_tree_id(int tid) const;
   std::vector<unsigned int> find_context_points_by_tree_id(int tid, float r = 0.1, bool exclude_tree = false) const;
 
-
-  // Partition like std::partition
-  template <typename Predicate>
-  size_t partition(Predicate pred);
 
   void colorize_trees(bool darken_foliage = false);
 
@@ -180,12 +179,6 @@ template <typename Derived>
 inline size_t BasePointCloud<Derived>::size() const
 {
   return n_points;
-}
-
-template <typename Derived>
-inline size_t BasePointCloud<Derived>::true_size() const
-{
-  return true_n_points;
 }
 
 template <typename Derived>
@@ -321,45 +314,6 @@ void BasePointCloud<Derived>::remap_treeid(int from, int to)
 }
 
 template <typename Derived>
-template <typename Predicate>
-size_t BasePointCloud<Derived>::partition(Predicate pred)
-{
-  if (n_points == 0) return 0;
-
-  int64_t left = 0;
-  int64_t right = static_cast<int64_t>(n_points) - 1;
-
-  while (left <= right)
-  {
-    // Move left pointer until we find a point that should be at the back
-    while (left <= right && pred(left))
-    {
-      left++;
-    }
-    // Move right pointer until we find a point that should be at the front
-    while (left <= right && !pred(right))
-    {
-      right--;
-    }
-
-    if (left <= right)
-    {
-      swap_points(left, right);
-      left++;
-      right--;
-    }
-  }
-
-  // Update n_points so nanoflann only sees the front section
-  size_t new_size = static_cast<size_t>(left);
-  n_points = new_size;
-
-  kdtree.reset();
-
-  return new_size;
-}
-
-template <typename Derived>
 void BasePointCloud<Derived>::colorize_trees(bool darken_foliage)
 {
   Derived& self = static_cast<Derived&>(*this);
@@ -373,7 +327,7 @@ void BasePointCloud<Derived>::colorize_trees(bool darken_foliage)
   if (!self.has_foliage())
     darken_foliage = false;
 
-  if (self.true_size() == 0) return;
+  if (self.size() == 0) return;
 
   struct RGB { uint8_t r, g, b; };
   std::unordered_map<int, RGB> color_cache;
@@ -646,5 +600,92 @@ void BasePointCloud<Derived>::flag_buffer(double buffer, const Derived* seeds)
   arbor::utils::Polygon hull = arbor::utils::Polygon::convex_hull(self.size(), [&](size_t i) { return self.get_x(i); }, [&](size_t i) { return self.get_y(i); });
   flag_buffer(hull.shrink(-buffer), seeds);
 }
+
+// ============================================================================
+// ScopedPartition
+// ============================================================================
+
+// Hides the points that a processing step must never see, without deleting them. The constructor moves
+// the points for which pred(i) is false to the end of the memory layout and shrinks size() to the number
+// of points kept: the algorithms, and the KD-tree built on size() points, only see the kept points. The
+// hidden points can still be written to with their index in [kept(), total()).
+//
+// The destructor puts every point back at its original index and restores size(), also when an exception
+// (e.g. arbor::Cancelled) leaves the scope: outside the scope, the point cloud is exactly as it was, except
+// for the attributes written.
+//
+// The point cloud keeps a single KD-tree, built on demand by knn() and radius_search() on size() points.
+// The partition invalidates it when it starts (the points move, size() shrinks) and when it ends: within
+// the scope it is built on the kept points only, after the scope again on every point, if needed.
+//
+// The original order is restored by replaying the swaps of the partition in reverse order (each swap is its
+// own inverse). Memory: 8 bytes per swap, at most one swap per hidden point. No point is copied.
+//
+// Usage
+//
+//   {
+//     ScopedPartition<PointCloud> partition(scene, [&](size_t i) { return scene.get_hag(i) > cut; });
+//     // scene.size() == partition.kept()
+//     ...
+//   } // scene.size() == partition.total(), original order
+//
+// Rules
+// - Nested partitions on the same point cloud must end in reverse order (plain scopes do it).
+// - Within the scope, do not add or remove points.
+template <typename Derived>
+class ScopedPartition
+{
+public:
+  template <typename Predicate>
+  ScopedPartition(Derived& pc, Predicate pred) : base(pc), n_total(pc.size())
+  {
+    if (n_total > std::numeric_limits<uint32_t>::max())
+      throw std::runtime_error("ScopedPartition: too many points (more than 2^32)");
+
+    base.kdtree.reset();
+
+    // Two pointers, as std::partition: the kept points at the front, the hidden points at the back
+    int64_t left = 0;
+    int64_t right = static_cast<int64_t>(n_total) - 1;
+    while (left <= right)
+    {
+      while (left <= right && pred(static_cast<size_t>(left))) left++;    // already in front
+      while (left <= right && !pred(static_cast<size_t>(right))) right--; // already at the back
+      if (left <= right)
+      {
+        base.swap_points(left, right);
+        swaps.push_back({static_cast<uint32_t>(left), static_cast<uint32_t>(right)});
+        left++;
+        right--;
+      }
+    }
+
+    n_kept = static_cast<size_t>(left);
+    base.n_points = n_kept;
+  }
+
+  ~ScopedPartition()
+  {
+    for (auto it = swaps.rbegin(); it != swaps.rend(); ++it)
+      base.swap_points(it->first, it->second);
+
+    base.n_points = n_total;
+    base.kdtree.reset();
+  }
+
+  ScopedPartition(const ScopedPartition&) = delete;
+  ScopedPartition& operator=(const ScopedPartition&) = delete;
+
+  // Number of points kept (size() of the point cloud within the scope)
+  size_t kept() const { return n_kept; }
+  // Number of points, kept and hidden (size() of the point cloud outside the scope)
+  size_t total() const { return n_total; }
+
+private:
+  BasePointCloud<Derived>& base;
+  size_t n_total = 0;
+  size_t n_kept = 0;
+  std::vector<std::pair<uint32_t, uint32_t>> swaps;
+};
 
 #endif

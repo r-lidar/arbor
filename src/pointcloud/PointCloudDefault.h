@@ -56,7 +56,6 @@ public:
   void add_point(float x, float y, float z)
   {
     n_points++;
-    true_n_points++;
     coords.push_back({x,y,z});
     treeid.push_back(0);
     foliage.push_back(1);
@@ -89,7 +88,6 @@ public:
   // --- Num. points ---
   inline size_t point_count() const { return n_points; }
   inline size_t size()        const { return n_points; }
-  inline size_t true_size()   const { return true_n_points; }
 
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const
