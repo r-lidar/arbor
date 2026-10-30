@@ -53,6 +53,12 @@ public:
   // for the polygon (same as sf::st_buffer() with distance -d).
   Polygon shrink(double d) const;
 
+  // Expanded polygon (positive buffer) with mitred corners: each edge is moved outward by d >= 0 and
+  // consecutive moved edges are extended until they meet. Convex and concave polygons are supported.
+  // Unlike sf::st_buffer() the corners are not rounded, and a concave notch narrower than 2d is not
+  // filled: its moved edges cross and the ring self-intersects.
+  Polygon expand(double d) const;
+
   bool is_convex() const;
 
   // Convex hull (Andrew's monotone chain). Returns an empty polygon if the hull is degenerate.

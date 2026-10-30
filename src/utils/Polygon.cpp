@@ -149,6 +149,43 @@ Polygon Polygon::shrink(double d) const
   return Polygon(out);
 }
 
+Polygon Polygon::expand(double d) const
+{
+  if (d < 0) throw std::invalid_argument("Polygon::expand() requires a positive distance");
+  if (empty() || d == 0) return *this;
+
+  double area2 = 0;
+  size_t n = vertices.size();
+  for (size_t i = 0, j = n - 1; i < n; j = i++) area2 += vertices[j].x * vertices[i].y - vertices[i].x * vertices[j].y;
+  double orientation = (area2 > 0) ? 1 : -1; // outside is on the right of the edges if counter-clockwise
+
+  // Unit outward normal of the edge [i, i+1]
+  auto normal = [&](size_t i)
+  {
+    const Point& a = vertices[i];
+    const Point& b = vertices[(i + 1) % n];
+    double len = std::hypot(b.x - a.x, b.y - a.y);
+    return Point{(b.y - a.y) / len * orientation, -(b.x - a.x) / len * orientation};
+  };
+
+  // Each vertex moves to the intersection of its two moved edges. With u and v the unit normals of the
+  // previous and next edges, that point is p + d (u + v) / (1 + u.v): the miter.
+  Ring out;
+  out.reserve(n);
+  for (size_t i = 0; i < n; ++i)
+  {
+    const Point& p = vertices[i];
+    Point u = normal((i + n - 1) % n);
+    Point v = normal(i);
+    double cos = u.x * v.x + u.y * v.y;
+    if (cos <= -1 + 1e-12) continue; // the ring folds back on itself (spike): the moved edges never meet
+    double k = d / (1 + cos);
+    out.push_back({p.x + k * (u.x + v.x), p.y + k * (u.y + v.y)});
+  }
+
+  return Polygon(out);
+}
+
 Polygon Polygon::convex_hull(std::vector<Point> pts)
 {
   std::sort(pts.begin(), pts.end(), [](const Point& a, const Point& b) { return a.x < b.x || (a.x == b.x && a.y < b.y); });
