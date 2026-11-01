@@ -126,6 +126,12 @@ public:
   void knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void remap_treeid(int from, int to);
+
+  // Reorders the points in place along a Morton (Z-order) curve so that points close in space are also close in
+  // memory (cache locality, faster kd-tree build and knn). Every attribute follows its point. Deterministic: ties
+  // keep the original order. Temporary memory: 16 bytes per point. Not inside a ScopedPartition.
+  void spatial_sort();
+
   Derived subset(const std::vector<bool>& mask, bool xyz_only = false) const;
   Derived subset_by_treeid(int tid) const;
 
@@ -292,6 +298,73 @@ std::vector<unsigned int> BasePointCloud<Derived>::find_points_by_tree_id(int ti
   }
 
   return keep;
+}
+
+template <typename Derived>
+void BasePointCloud<Derived>::spatial_sort()
+{
+  Derived& self = static_cast<Derived&>(*this);
+  const size_t n = self.size();
+  if (n < 2) return;
+
+  // --- Bounding box ---
+  double xmin = self.get_x(0), ymin = self.get_y(0), zmin = self.get_z(0);
+  double xmax = xmin, ymax = ymin, zmax = zmin;
+  for (size_t i = 1; i < n; ++i)
+  {
+    xmin = std::min(xmin, self.get_x(i)); xmax = std::max(xmax, self.get_x(i));
+    ymin = std::min(ymin, self.get_y(i)); ymax = std::max(ymax, self.get_y(i));
+    zmin = std::min(zmin, self.get_z(i)); zmax = std::max(zmax, self.get_z(i));
+  }
+
+  // --- Morton key: 21 bits per axis, same scale on the three axes (cubic cells) ---
+  const double extent = std::max({xmax - xmin, ymax - ymin, zmax - zmin});
+  const double cells = static_cast<double>((1u << 21) - 1);
+  const double scale = extent > 0 ? cells / extent : 0;
+
+  // Spreads the 21 low bits of v so that two zero bits separate each of them.
+  auto spread = [](uint64_t v)
+  {
+    v &= 0x1fffff;
+    v = (v | v << 32) & 0x1f00000000ffffULL;
+    v = (v | v << 16) & 0x1f0000ff0000ffULL;
+    v = (v | v << 8)  & 0x100f00f00f00f00fULL;
+    v = (v | v << 4)  & 0x10c30c30c30c30c3ULL;
+    v = (v | v << 2)  & 0x1249249249249249ULL;
+    return v;
+  };
+
+  // order[j] = (key, index of the point that goes to position j)
+  std::vector<std::pair<uint64_t, uint32_t>> order(n);
+  for (size_t i = 0; i < n; ++i)
+  {
+    const uint64_t ix = static_cast<uint64_t>((self.get_x(i) - xmin) * scale);
+    const uint64_t iy = static_cast<uint64_t>((self.get_y(i) - ymin) * scale);
+    const uint64_t iz = static_cast<uint64_t>((self.get_z(i) - zmin) * scale);
+    order[i] = { spread(ix) | (spread(iy) << 1) | (spread(iz) << 2), static_cast<uint32_t>(i) };
+  }
+  // Pairs compare by key then index: a total order, the same result on every platform
+  std::sort(order.begin(), order.end());
+
+  // --- Apply the permutation in place, cycle by cycle ---
+  // Position j must receive the point order[j].second. Following a cycle from `start`, each swap puts the right
+  // point at j and moves the point that was at `start` one step further along the cycle.
+  std::vector<bool> placed(n, false);
+  for (size_t start = 0; start < n; ++start)
+  {
+    if (placed[start]) continue;
+    size_t j = start;
+    while (true)
+    {
+      placed[j] = true;
+      const size_t source = order[j].second;
+      if (source == start) break;
+      swap_points(j, source);
+      j = source;
+    }
+  }
+
+  kdtree.reset();
 }
 
 template <typename Derived>

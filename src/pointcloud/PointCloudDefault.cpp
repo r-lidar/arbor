@@ -20,15 +20,56 @@ PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
 // ------------------------------------------------------------
 void PointCloudDefault::cleanup()
 {
-  coords.clear();
-  rgb.clear();
-  treeid.clear();
-  foliage.clear();
-  passage.clear();
-  hag.clear();
-  pwood.clear();
-  classif.clear();
+  // clear() keeps the capacity: shrink_to_fit() releases the memory (called after a failed allocation)
+  auto release = [](auto& v) { v.clear(); v.shrink_to_fit(); };
+  release(coords);
+  release(rgb);
+  release(treeid);
+  release(foliage);
+  release(passage);
+  release(hag);
+  release(pwood);
+  release(classif);
+  release(userdata);
   n_points = 0;
+  kdtree.reset();
+}
+
+// ------------------------------------------------------------
+// Filter (in place)
+// ------------------------------------------------------------
+void PointCloudDefault::filter(const std::vector<bool>& keep)
+{
+  if (n_points != coords.size())
+    throw std::logic_error("filter() cannot be called inside a ScopedPartition");
+  if (keep.size() != n_points)
+    throw std::invalid_argument("filter(): the mask must have one value per point");
+
+  // Moves the kept values to the front (j <= i: nothing is overwritten before being read), then releases the end.
+  auto compact = [&keep](auto& v)
+  {
+    if (v.empty()) return;
+    size_t j = 0;
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+      if (keep[i]) v[j++] = v[i];
+    }
+    v.resize(j);
+    v.shrink_to_fit();
+  };
+
+  compact(coords);
+  compact(rgb);
+  compact(treeid);
+  compact(foliage);
+  compact(passage);
+  compact(hag);
+  compact(pwood);
+  compact(classif);
+  compact(userdata);
+
+  n_points = coords.size();
+  kdtree.reset();
 }
 
 // ------------------------------------------------------------
