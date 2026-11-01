@@ -87,7 +87,6 @@ Other:
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
   track_memory       <- has_flag(args, "-memory")
-  clip               <- has_flag(args, "-clip")
 
 
   filter_str = paste("-keep_random_fraction", fraction)
