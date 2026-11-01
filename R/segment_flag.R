@@ -67,10 +67,10 @@ keep_small_trees = function(las, max_height = 2)
   stopifnot("treeID" %in% attributes)
   stopifnot("hag" %in% attributes)
 
-  ans   <- las@data[!is.na(treeID), list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
+  ans   <- las@data[treeID > 0, list(hag_max = max(hag), hag_min = min(hag)), by = treeID]
   ans   <- ans[hag_max < max_height]
 
-  trees <- lidR::filter_poi(las, treeID %in% ans$treeID & !is.na(treeID))
+  trees <- lidR::filter_poi(las, treeID %in% ans$treeID)
 
   trees
 }
