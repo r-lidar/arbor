@@ -149,6 +149,12 @@ public:
   // --- Subset ---
   PointCloudDefault subset(const std::vector<unsigned int>& indices, bool xyz_only = false) const;
 
+  // --- Filter ---
+  // Unlike subset(), which returns a new point cloud, removes in place the points whose `keep` is false (one value
+  // per point). The kept points keep their order and every attribute; the memory of the removed points is
+  // released, one attribute at a time. Not inside a ScopedPartition.
+  void filter(const std::vector<bool>& keep);
+
   // --- View ----
   std::span<float> coord_view()
   {
