@@ -22,6 +22,7 @@
 #include "PTD.h"
 #include "myomp.h"
 #include "nanoflann.h"
+#include "progress.h"
 
 #include <vector>
 #include <cmath>
@@ -44,10 +45,12 @@ struct GroundCloud
 
 void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
 {
-  size_t n = scene.true_size();
+  size_t n = scene.size();
   if (n == 0) throw std::runtime_error("segment_ground: point cloud is empty.");
 
-  ServiceLocator::logger()("Ground point segmentation");
+  Task task("Ground segmentation", {8, 2});
+
+  task.step("Ground point classification");
 
   // Initialize bounds
   double xmin = std::numeric_limits<double>::max(), xmax = -std::numeric_limits<double>::max();
@@ -108,13 +111,13 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
     ground_pts.pts.push_back({scene.get_x(fid), scene.get_y(fid), scene.get_z(fid)});
   }
 
-  ServiceLocator::logger()("Height above ground");
+  task.step("Height above ground");
 
   typedef nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<double, GroundCloud>,
     GroundCloud, 2> my_kd_tree;
 
-  my_kd_tree index(2, ground_pts, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  my_kd_tree index(2, ground_pts, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   int nan_count = 0;
@@ -151,7 +154,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
   }
 
   if (nan_count > 0)
-    ServiceLocator::logger()("  " + std::to_string(nan_count) + " points outside TIN interpolated with 1-nn");
+    logging::info(std::to_string(nan_count) + " points outside TIN interpolated with 1-nn");
 }
 
 }

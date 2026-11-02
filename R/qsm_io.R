@@ -41,6 +41,7 @@
 #' }
 #' @export
 #' @md
+#' @seealso [qsm_read()]
 qsm_write = function(qsm, file, binary = TRUE)
 {
   file = normalizePath(file, mustWork = FALSE)
@@ -56,6 +57,13 @@ qsm_write = function(qsm, file, binary = TRUE)
 #' @return A data frame of QSM segment data.
 #' @export
 #' @md
+#' @seealso [qsm_write()]
+#' @examples
+#' f <- system.file("extdata", "qsm/tree_12.qsm", package="arbor")
+#' qsm = qsm_read(f)
+#' \dontrun{
+#' plot(qsm, skeleton = FALSE)
+#' }
 qsm_read = function(x)
 {
   x = normalizePath(x, mustWork = TRUE)

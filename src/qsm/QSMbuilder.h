@@ -23,6 +23,7 @@
 
 #include "arbor.h"
 #include "QSM.h"
+#include "progress.h"
 
 namespace arbor::qsm {
 

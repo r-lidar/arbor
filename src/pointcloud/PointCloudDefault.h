@@ -56,7 +56,6 @@ public:
   void add_point(float x, float y, float z)
   {
     n_points++;
-    true_n_points++;
     coords.push_back({x,y,z});
     treeid.push_back(0);
     foliage.push_back(1);
@@ -89,7 +88,6 @@ public:
   // --- Num. points ---
   inline size_t point_count() const { return n_points; }
   inline size_t size()        const { return n_points; }
-  inline size_t true_size()   const { return true_n_points; }
 
   // --- Geometry access ---
   inline void get_point(const size_t idx, double* q) const
@@ -150,6 +148,12 @@ public:
 
   // --- Subset ---
   PointCloudDefault subset(const std::vector<unsigned int>& indices, bool xyz_only = false) const;
+
+  // --- Filter ---
+  // Unlike subset(), which returns a new point cloud, removes in place the points whose `keep` is false (one value
+  // per point). The kept points keep their order and every attribute; the memory of the removed points is
+  // released, one attribute at a time. Not inside a ScopedPartition.
+  void filter(const std::vector<bool>& keep);
 
   // --- View ----
   std::span<float> coord_view()

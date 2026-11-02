@@ -65,7 +65,7 @@ Other:
 
   cut_above_ground <- as.numeric(get_arg(args, "-cut", 0.25))
   min_tree_height  <- as.numeric(get_arg(args, "-height", 2))
-  buffer           <- as.numeric(get_arg(args, "-buffer", 5))
+  buffer           <- as.numeric(get_arg(args, "-buffer", 10))
   fraction         <- as.numeric(get_arg(args, "-fraction", 0.25))
   epsg             <- as.numeric(get_arg(args, "-set_epsg", 0))
   fbound           <- get_arg(args, "-bound", NA_character_)
@@ -87,7 +87,6 @@ Other:
   center             <- has_flag(args, "-center")
   export_dtm_mesh    <- has_flag(args, "-mesh")
   track_memory       <- has_flag(args, "-memory")
-  clip               <- has_flag(args, "-clip")
 
 
   filter_str = paste("-keep_random_fraction", fraction)
@@ -112,7 +111,7 @@ Other:
   if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg))
 
   if (is.numeric(bound))
-    boundstr = buffer
+    boundstr = "convex hull"
   else
     boundstr = "spatial polygon"
 
@@ -123,7 +122,8 @@ Input file             :", input, "
 Settings
   Cut above ground (m) :", cut_above_ground, "
   Min tree height (m)  :", min_tree_height, "
-  Border buffer (m)    :", boundstr, "
+  Buffer (m)           :", buffer, "
+  Boundaries           :", boundstr, "
   Filter               :", filter_str, "
 Exports
   Segmented cloud      :", export_segmented, "
@@ -150,11 +150,9 @@ Exports
   if (!is.numeric(bound))
   {
     sf::st_crs(bound) <- sf::st_crs(las)
-  }
 
-  if (clip)
-  {
-    bpol <- sf::st_buffer(bound, 10)
+    cat("Clipping the point cloud\n")
+    bpol <- sf::st_buffer(bound, buffer)
     if (track_memory) phase("Clip", f)
     las <- lidR::clip_roi(las, bpol)
   }

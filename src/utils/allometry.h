@@ -2,6 +2,8 @@
 #define ALLOMETRY_H
 
 #include <memory>
+#include <string>
+#include <vector>
 
 class Allometry
 {
@@ -9,6 +11,9 @@ public:
   virtual ~Allometry() = default;
   virtual double H_vs_DBH(double dbh) const = 0;
   virtual double DBH_vs_H(double H) const = 0;
+  virtual std::string authors() const = 0;
+  virtual std::string reference() const = 0;
+  virtual std::string country() const = 0;
 };
 
 // Griese, N., Ritzert, M. & Nölke, N. A large dataset of labelled single tree point clouds, QSMs and
@@ -18,6 +23,9 @@ class Griese2025Allometry : public Allometry
 public:
   double H_vs_DBH(double dbh) const override;
   double DBH_vs_H(double H) const override;
+  std::string authors() const override;
+  std::string reference() const override;
+  std::string country() const override;
 };
 
 // Vinicius Costa Cysneiros, Allan Libanio Pelissari, Tatiana Dias Gaui, Luan Demarco Fiorentin,
@@ -28,6 +36,9 @@ class CostaCysneiros2020 : public Allometry
 public:
   double H_vs_DBH(double dbh) const override;
   double DBH_vs_H(double H) const override;
+  std::string authors() const override;
+  std::string reference() const override;
+  std::string country() const override;
 };
 
 
@@ -38,6 +49,9 @@ class Chenge2020 : public Allometry
 public:
   double H_vs_DBH(double dbh) const override;
   double DBH_vs_H(double H) const override;
+  std::string authors() const override;
+  std::string reference() const override;
+  std::string country() const override;
 };
 
 class FSMiombo : public Allometry
@@ -45,6 +59,9 @@ class FSMiombo : public Allometry
 public:
   double H_vs_DBH(double dbh) const override;
   double DBH_vs_H(double H) const override;
+  std::string authors() const override;
+  std::string reference() const override;
+  std::string country() const override;
 };
 
 
@@ -53,12 +70,25 @@ class CacaoAllometry : public Allometry
 public:
   double H_vs_DBH(double dbh) const override;
   double DBH_vs_H(double H) const override;
+  std::string authors() const override;
+  std::string reference() const override;
+  std::string country() const override;
 };
 
 class AllometryDataBase
 {
 public:
+  struct Entry
+  {
+    std::string name;
+    std::string authors;
+    std::string reference;
+    std::string country;
+  };
+
   static std::unique_ptr<Allometry> getAllometry(const std::string& name);
+  static std::vector<std::string> names();
+  static std::vector<Entry> entries();
 };
 
 #endif // ALLOMETRY_H

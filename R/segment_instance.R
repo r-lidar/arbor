@@ -31,7 +31,9 @@
 #' @param params list See \link{parameters}.
 #'
 #' @return A `LAS` object with an additional attribute `treeID`, indicating the ID of the tree to
-#'   which each point belongs.
+#'   which each point belongs. `treeID` is never `NA`: it is either a valid ID `> 0`, or `0` for
+#'   points that do not belong to any tree (points below `cut_above_ground` and points that cannot
+#'   be connected to any seed).
 #'
 #' @md
 #' @export
@@ -47,61 +49,3 @@ segment_instance = function(las, seeds, params = arbor_parameters_default)
   las <- lidR::add_lasattribute_manual(las, name = "treeID", desc = "Unique ID per tree", type = "int")
   return(las)
 }
-
-
-# segment_instance_r = function(las, seeds, params)
-# {
-#   logger("Instance segmentation start")
-#
-#   # The point cloud must have hag, and foliage computed
-#   attributes = names(las)
-#   stopifnot("hag" %in% attributes)
-#   stopifnot("foliage" %in% attributes)
-#   if (!"pointID" %in% names(las)) las@data$pointID = 1:lidR::npoints(las)
-#
-#   logger("Decimating the point cloud... (1/4)")
-#
-#   res        <- params$path_finder$decimation
-#   core       <- hybrid_homogeneization(las, res)
-#
-#   num_points <- lidR::npoints(core)
-#   num_trees  <- nrow(seeds)
-#
-#   cat(sprintf("raw %d, dec %d, seeds %d\n", lidR::npoints(las), num_points, num_trees));
-#
-#   # Plot for debugging
-#   if (FALSE)
-#   {
-#     x <- plot(core)
-#     plot(seeds, add = x, pal = "green", size = 6)
-#   }
-#
-#   logger("Constructing the graph object (2/4)")
-#
-#   params <- evaluate_penalty(params)
-#   graph  <- build_instance_graph(core@data, seeds@data, params);
-#
-#   logger("Pathfinder (3/4)")
-#
-#   seeds_ids  <- (num_points):(num_points+num_trees-1)
-#   treeID     <- find_closest_node(graph, seeds_ids)
-#
-#   trueTreeID <- treeID[1:lidR::npoints(core)]
-#   trueTreeID <- trueTreeID - min(seeds_ids) + 1
-#   ID         <- seeds$treeID[trueTreeID]
-#   core       <- lidR::add_lasattribute(core, ID, name = "treeID", desc = "tree ID")
-#
-#   if (FALSE)
-#   {
-#     x = plot(core, color = "treeID", size =2)
-#     plot(seeds, add = x, pal = "red", size = 6)
-#   }
-#
-#   logger("Assigning tree IDs to the dense point cloud (4/4)")
-#
-#   las <- transfer_attributes(core, las, "treeID")
-#
-#   logger("Instance segmentation completed")
-#
-#   return(las)
-# }

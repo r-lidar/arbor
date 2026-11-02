@@ -33,3 +33,6 @@ qsm_write(qsm, "tree.obj")
 qsm_write(qsm, "tree.csv")
 }
 }
+\seealso{
+\code{\link[=qsm_read]{qsm_read()}}
+}

@@ -20,6 +20,7 @@
 
 #include "arbor.h"
 #include "myomp.h"
+#include "progress.h"
 
 #include <map>
 #include <vector>
@@ -69,9 +70,9 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
   }
   std::sort(valid_tree_ids.begin(), valid_tree_ids.end());
 
-  auto p = ServiceLocator::make_progress(valid_tree_ids.size(), "QSF");
-  auto old_logger = ServiceLocator::logger();
-  ServiceLocator::register_logger([](const std::string&) {});
+  // Progress is the number of trees processed. Per tree tasks and messages are silenced.
+  Counter counter("QSF", valid_tree_ids.size());
+  logging::Mute mute;
   std::atomic<bool> error_occurred{false};
   std::exception_ptr eptr = nullptr;
 
@@ -80,6 +81,7 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
   {
     // Check if another thread encountered an error
     if (error_occurred.load(std::memory_order_relaxed)) continue;
+    if (counter.cancelled()) continue;
 
     int current_id = valid_tree_ids[i];
     const std::vector<unsigned int>& indices = tree_indices[current_id];
@@ -123,18 +125,14 @@ QSF qsf(const PointCloud& scene, double min_height, const settings::ArborParamet
       }
     }
 
-    p->tick();
+    counter.tick();
   }
 
   // If something went wrong, rethrow the exception outside the parallel region
-  if (eptr)
-  {
-    ServiceLocator::register_logger(old_logger);
-    std::rethrow_exception(eptr);
-  }
+  if (eptr) std::rethrow_exception(eptr);
 
-  p->finalize();
-  ServiceLocator::register_logger(old_logger);
+  counter.throw_if_cancelled();
+
   return result;
 }
 

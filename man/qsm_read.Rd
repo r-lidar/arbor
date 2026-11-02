@@ -15,3 +15,13 @@ A data frame of QSM segment data.
 \description{
 Loads QSM segment data from a CSV or QSM files.
 }
+\examples{
+f <- system.file("extdata", "qsm/tree_12.qsm", package="arbor")
+qsm = qsm_read(f)
+\dontrun{
+plot(qsm, skeleton = FALSE)
+}
+}
+\seealso{
+\code{\link[=qsm_write]{qsm_write()}}
+}

@@ -84,6 +84,30 @@ test_that("write and read preserve qsm", {
   expect_equal(sf::st_crs(qsm2)$Name, "NAD83 / MTM zone 7")
 })
 
+test_that("write and read preserve the topology of a QSM built in C++", {
+  # qsm_write() rebuilds a clean graph from the data.frame. Here the QSM produced
+  # by the builder is written directly (as a C++ host does), with a leaf removed
+  # so that node ids are non-contiguous.
+  fqsm <- tempfile(fileext = ".qsm")
+  sink(tempfile())
+  q1 <- qsm_build_and_write_cpp(tree@data, arbor_parameters_default, fqsm)
+  sink()
+  q2 <- qsm_read_cpp(fqsm)
+
+  ids <- unique(c(q1$cyl_ID, q1$parent_ID))
+  expect_true(max(ids) > length(ids))
+
+  root1 <- q1[!q1$parent_ID %in% q1$cyl_ID, ]
+  root2 <- q2[!q2$parent_ID %in% q2$cyl_ID, ]
+  expect_equal(nrow(root1), 1L)
+  expect_equal(nrow(root2), 1L)
+  expect_equal(nrow(q2), nrow(q1))
+  expect_equal(root2$startX, root1$startX, tolerance = 1e-6)
+  expect_equal(root2$startY, root1$startY, tolerance = 1e-6)
+  expect_equal(root2$startZ, root1$startZ, tolerance = 1e-6)
+  expect_equal(qsm_volume(qsm_finalize(q2)), qsm_volume(qsm_finalize(q1)), tolerance = 1e-6)
+})
+
 test_that("invalid qsm throws error on write", {
   fqsm <- tempfile(fileext = ".qsm")
   hqsm <- qsm1[qsm1$quality > 3, ]

@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
 
 namespace arbor::qsm {
 
@@ -51,11 +52,23 @@ void QSM::read_qsm(const std::string& filename)
   for (int i = 0 ; i < reader.get_message_count() ; i++)
     messages.push_back(reader.get_message(i));
 
+  // Edges refer to nodes by their 1-based position in the file. Map them to
+  // the NodeIDs assigned by add_node() rather than assuming they coincide.
+  std::vector<NodeID> node_ids;
+  node_ids.reserve(reader.nodes().size());
   for (const auto& node : reader.nodes())
-    add_node(node);
+    node_ids.push_back(add_node(node));
 
   for (const auto& edge : reader.edges())
-    add_edge(static_cast<NodeID>(edge.source), static_cast<NodeID>(edge.target), QSMEdge(edge));
+  {
+    if (edge.source < 1 || edge.source > node_ids.size() || edge.target < 1 || edge.target > node_ids.size())
+      throw std::runtime_error("Invalid QSM file: edge refers to a non-existent node");
+
+    QSMEdge data(edge);
+    data.source = node_ids[edge.source - 1];
+    data.target = node_ids[edge.target - 1];
+    add_edge(data.source, data.target, data);
+  }
 
   uint32_t tid = reader.get_treeid();
   if (tid < static_cast<uint32_t>(std::numeric_limits<int>::max()))

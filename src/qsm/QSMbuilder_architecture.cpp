@@ -29,8 +29,6 @@ namespace arbor::qsm {
 
 void QSMbuilder::compute_topology()
 {
-  ServiceLocator::logger()("Connecting nodes");
-
   // For each edge, set source based on graph structure:
   //   - If the edge's source node has no incoming edges -> source = 0 (root)
   //   - Otherwise -> source = id of the (first) incoming edge to source
@@ -50,8 +48,6 @@ void QSMbuilder::compute_topology()
 
 void QSMbuilder::compute_architecture(bool use_volume)
 {
-  ServiceLocator::logger()("Computing architecture");
-
   // Reset cached values on every edge
   for (auto& [eid, einfo] : graph.edges())
   {

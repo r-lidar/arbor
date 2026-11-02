@@ -1,3 +1,29 @@
+# v1.1.4
+
+### NEW FEATURES
+
+- New functions `st_transform()` for qsm and qsf objects
+
+### DOCUMENTATION
+ 
+ - Enhance documentation of `qsm_read()` with examples
+ - Enhance documentation of `st_crs()` with examples
+ 
+### ENHANCEMENTS
+ 
+ - Enhance progress display
+ - Enhance computation of KD-tree for a 15% speed-up of the pipeline
+ - Enhance internal graph memory layout for a 18% reduction of RAM consumption
+ - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
+ - `segment_semantic()` and `segment_instance()` no longer reorder the points of the LAS object: the points below `cut_above_ground` stay at their original place.
+ - `wood_likelihood()` no longer computes the points below `cut_above_ground`, which the semantic segmentation classifies as foliage anyway. They get `pwood = 0` and the stage is faster in proportion to the share of low points. If the point cloud has no attribute `hag`, every point is computed as before.
+
+### BUG FIXES
+
+ - `segment_instance()` could return `treeID = NA` for a few isolated points. These points now get `treeID = 0` (no tree), so `treeID` is always either `0` or a valid tree ID.
+ - `segment_instance()` and `resolve_oversegmentation()` could, in rare cases, remove an entire tree by setting all its points to `NA`.
+ - `plot_semantic_instance()` failed with an error on point clouds segmented with `segment_instance()`.
+
 # 1.1.3 
 
 - Enhancement: new slider in the html report of the command line tools.

@@ -11,7 +11,6 @@ PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
 {
   init();
   n_points = n;
-  true_n_points = n;
   safe_alloc(n, init_attributes);
 }
 
@@ -19,12 +18,11 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
   init();
   n_points = df.rows();
-  true_n_points = n_points;
   owns_memory = false;
 
   // swap_points() relies on every column being REALSXP, INTSXP, or LGLSXP.
   // Fail fast at construction rather than silently desyncing a column
-  // (e.g. a STRSXP or list column) during partition()/sort later on.
+  // (e.g. a STRSXP or list column) during a ScopedPartition (swap_points) later on.
   Rcpp::CharacterVector names = df.names();
   for (int c = 0; c < df.size(); ++c)
   {
@@ -104,7 +102,6 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
 {
   init();
   n_points = other.n_points;
-  true_n_points = other.true_n_points;
   owns_memory = true; // A copy ALWAYS owns its new memory
   kdtree = nullptr;
 
@@ -215,7 +212,6 @@ void PointCloudDataFrame::cleanup()
   }
 
   n_points = 0;
-  true_n_points = 0;
   owns_memory = true;
 
   coords[0] = coords[1] = coords[2] = nullptr;
@@ -262,7 +258,6 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>&
 
   PointCloudDataFrame result;
   result.n_points = new_count;
-  result.true_n_points = new_count;
   result.owns_memory = true;
 
   // Allocate Coords
@@ -402,7 +397,6 @@ void PointCloudDataFrame::swap_points(size_t i, size_t j)
 void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& second) noexcept
 {
   std::swap(first.n_points, second.n_points);
-  std::swap(first.true_n_points, second.true_n_points);
   std::swap(first.owns_memory, second.owns_memory);
 
   std::swap(first.coords[0], second.coords[0]);
@@ -427,7 +421,6 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
 void PointCloudDataFrame::init()
 {
   n_points = 0;
-  true_n_points = 0;
   owns_memory = true;
   coords[0] = coords[1] = coords[2] = nullptr;
   treeid = foliage = passage = classif = nullptr;

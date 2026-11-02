@@ -264,7 +264,7 @@ void PTD::make_buffer()
   // Using nanoflann to set Z for buffer points based on nearest seeds
   PointAdaptor adaptor(seeds);
   typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, PointAdaptor>, PointAdaptor, 2> kd_tree_t;
-  kd_tree_t index(2, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  kd_tree_t index(2, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   for (auto& vp : vbuff)
@@ -456,7 +456,7 @@ void PTD::detect_spikes(int k, double threshold)
   // Build index
   VertexAdaptor adaptor(d->vertices, d->vcount);
   typedef nanoflann::KDTreeSingleIndexAdaptor<nanoflann::L2_Simple_Adaptor<double, VertexAdaptor>, VertexAdaptor, 2> kdtree;
-  kdtree index(2, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  kdtree index(2, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   #pragma omp parallel num_threads(params.ncores)

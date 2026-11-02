@@ -24,8 +24,6 @@ namespace arbor::qsm {
 
 void QSMbuilder::shift(double tx, double ty, double tz)
 {
-  ServiceLocator::logger()("Shift back to geographic coordinates");
-
   // Shift all node positions (a single update per node covers all incident edges)
   for (auto& [nid, ndata] : graph.nodes())
   {

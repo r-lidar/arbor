@@ -17,7 +17,9 @@ xyz coordinates and a \code{treeID}. Seeds can be generated using \link{find_see
 }
 \value{
 A \code{LAS} object with an additional attribute \code{treeID}, indicating the ID of the tree to
-which each point belongs.
+which each point belongs. \code{treeID} is never \code{NA}: it is either a valid ID \verb{> 0}, or \code{0} for
+points that do not belong to any tree (points below \code{cut_above_ground} and points that cannot
+be connected to any seed).
 }
 \description{
 This function performs individual tree instance segmentation by constructing a point-based network

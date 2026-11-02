@@ -20,52 +20,49 @@
 
 #include "SeedDetector.h"
 #include "Grid3D.h"
+#include "progress.h"
 
 namespace arbor::seeds {
 
 void SeedDetector::run(const PointCloud& scene)
 {
-  auto log = ServiceLocator::logger();
-
   if (scene.size() == 0)     throw std::runtime_error("find_seed: point cloud is empty.");
   if (!scene.has_hag())      throw std::runtime_error("find_seed: point cloud is missing required 'hag' attribute.");
   if (!scene.has_foliage())  throw std::runtime_error("find_seed: point cloud is missing required 'foliage' attribute.");
 
-  log("Seed detection start");
+  Task task("Seed detection", 9);
 
-  log("Computing lower bound");
+  task.step("Computing lower bound");
   compute_min_hag(scene);
 
-  log("Extracting passages");
+  task.step("Extracting passages");
   extract_passages(scene);
 
-  log("Slicing the point cloud");
+  task.step("Slicing the point cloud");
   slice_wood(scene);
 
-  log("Circle detection");
+  task.step("Circle detection");
   circles = detect_tree_circles(wood);
 
   //if (circles.empty()) throw std::runtime_error("No circle detected in wood slices");
 
-  log("Generate tree cages");
+  task.step("Generating tree cages");
   make_cages();
 
-  log("Safe zone exclusion");
+  task.step("Safe zone exclusion");
   safe_zone();
 
-  log("Find primary seeds");
+  task.step("Finding primary seeds");
   find_primary_seeds();
 
-  log("Pathfinder");
+  task.step("Pathfinder");
   merge_short_passages();
 
-  log("Find secondary seeds");
+  task.step("Finding secondary seeds");
   find_secondary_seeds();
 
   seeds = primary_seeds;
   seeds += secondary_seeds;
-
-  log("Seed detection completed");
 }
 
 void SeedDetector::compute_min_hag(const PointCloud& scene)
@@ -273,7 +270,7 @@ void SeedDetector::find_secondary_seeds()
   for (size_t i = 0; i < short_passages.size(); i++)
   {
     int tree_id = short_passages.get_treeid(i);
-    no_id_mask[i] = (tree_id < 0); // Assuming -1 or negative means NA
+    no_id_mask[i] = (tree_id <= 0); // 0 means not reached by any primary seed
   }
   PointCloud short_passages_noid = short_passages.subset(no_id_mask);
 
@@ -296,14 +293,6 @@ void SeedDetector::find_secondary_seeds()
   }
 
   secondary_seeds = short_passages_noid;
-}
-
-void SeedDetector::filter_seeds()
-{
-  // Retain only seeds below breast height (1m)
-  std::vector<bool> mask(seeds.size(), false);
-  for (size_t i = 0; i < seeds.size(); i++) mask[i] = (seeds.get_hag(i) < 1 && seeds.get_passage(i) > 0);
-  seeds = seeds.subset(mask);
 }
 
 }

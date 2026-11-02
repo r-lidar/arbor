@@ -7,8 +7,9 @@ las <- hybrid_homogeneization(las)
 las <- segment_ground(las)
 las <- wood_likelihood(las)
 
-# This is only to check partitioning
+# To check that the stages never reorder the points
 las@data$PID = 1:lidR::npoints(las)
+xyz <- las@data[, .(X, Y, Z, hag)]
 
 test_that("Wood likelihood is valid", {
 
@@ -27,11 +28,11 @@ test_that("Semantic segmenation is valid", {
 
   expect_true("UserData" %in% names(las))
   expect_all_equal(las@data[hag < 0.25]$UserData, ARBORLOW)
+  expect_identical(las$UserData == ARBORLOW, !(las$hag > 0.25))
 
-  # partitioning. Low points are at the end. All data.frame sorted
-  rle = rle(las$UserData)
-  expect_equal(rle$values, c(ARBORTREE,ARBORLOW))
-  expect_false(length(unique(diff(las$PID))) == 1L)
+  # The low points were hidden (partition) during the segmentation only: same order, same coordinates
+  expect_identical(las$PID, seq_len(lidR::npoints(las)))
+  expect_identical(las@data[, .(X, Y, Z, hag)], xyz)
 })
 
 see <- find_seeds(las)
@@ -53,15 +54,31 @@ test_that("Instance segmenation is valid", {
   expect_true("treeID" %in% names(las))
   expect_true(is.integer(las$treeID))
 
-  # partitioning is preserved
-  rle = rle(las$UserData)
-  expect_equal(rle$values, c(0L,1L))
+  # treeID is either 0 (no tree) or a valid ID > 0
+  expect_false(anyNA(las$treeID))
+  expect_true(all(las$treeID >= 0L))
+
+  # Same order, low points untouched by the semantic segmentation flags and without tree
+  expect_identical(las$PID, seq_len(lidR::npoints(las)))
+  expect_identical(las@data[, .(X, Y, Z, hag)], xyz)
+  expect_identical(las$UserData == ARBORLOW, !(las$hag > 0.25))
+  expect_all_equal(las$treeID[las$UserData == ARBORLOW], 0L)
 })
+
+n   <- lidR::npoints(las)
+tid <- las$treeID
+low <- las$UserData == ARBORLOW
 
 las <- flag_buffer(las, see, -0.75)
 las <- flag_small_trees(las, 1)
 
 test_that("Flag buffer is valid", {
+  # Flags only update UserData and never flag LOW points. BUFFER overrides UNDERSTORY
+  expect_equal(lidR::npoints(las), n)
+  expect_identical(las$treeID, tid)
+  expect_all_equal(las$UserData[low], ARBORLOW)
+  expect_identical(las$UserData == ARBORBUFFER, flag_buffer(las, see, -0.75)$UserData == ARBORBUFFER)
+
   u = sort(unique(las$UserData))
   expect_equal(u, c(ARBORTREE,ARBORLOW,ARBORUNDERSTORY,ARBORBUFFER))
 })

@@ -71,7 +71,6 @@ private:
   void find_primary_seeds();
   void find_secondary_seeds();
   void merge_short_passages();
-  void filter_seeds();
   PointCloud densify_passages(const PointCloud& x);
 
 

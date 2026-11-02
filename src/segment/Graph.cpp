@@ -23,46 +23,94 @@
 #include <algorithm>
 #include <queue>
 #include <sstream>
+#include <stdexcept>
 
 #include "Graph.h"
+#include "progress.h"
 
 namespace arbor::segment {
 
-void Graph::add_edge(NodeId source, NodeId destination, Cost cost)
+Graph::Graph(size_t num_nodes, size_t stride) :
+  num_nodes_(num_nodes),
+  stride_(stride),
+  slots_(new Node[num_nodes * stride]) // default-initialized: no serial pre-fill pass
 {
-  adjacency_list[source].push_back({destination, cost});
 }
 
-void Graph::ensure_size(size_t n)
+void Graph::clear_row(NodeId u)
 {
-  if (adjacency_list.size() < n)
-    adjacency_list.resize(n);
+  Node* r = row(u);
+  std::fill(r, r + stride_, Node{NO_NODE, 0.0f});
 }
 
-void Graph::clear_adjacency_list()
+void Graph::add_extra_edges(std::vector<Edge> edges)
 {
-  AdjacencyList().swap(adjacency_list);
-}
+  if (edges.empty()) return;
 
-void Graph::reserve_edges(size_t capacity)
-{
-  for (auto& e : adjacency_list)
+  // Counting sort into CSR: no sort and no copy of the input. Existing edges of a node stay
+  // first, new ones follow in insertion order.
+  const size_t old_total = extra_edges_.size();
+  const size_t total = old_total + edges.size();
+  if (total > std::numeric_limits<uint32_t>::max())
+    throw std::runtime_error("Graph: too many extra edges.");
+
+  // offset[u + 1] = number of edges of u, then prefix sum: offset[u + 1] = end of the edges of u
+  std::vector<uint32_t> offset(num_nodes_ + 1, 0);
+  if (!extra_offset_.empty())
   {
-    if (e.capacity() == 0)
-      e.reserve(capacity);
+    for (size_t u = 0; u < num_nodes_; ++u)
+      offset[u + 1] = extra_offset_[u + 1] - extra_offset_[u];
   }
+  for (const Edge& e : edges) offset[e.source + 1]++;
+  for (size_t u = 0; u < num_nodes_; ++u) offset[u + 1] += offset[u];
+
+  // Fill from the end of each node's range: new edges in reverse order, then existing ones.
+  // offset[u + 1] is used as a cursor and ends up at the start of the range of u + 1.
+  std::vector<Node> placed(total);
+  for (size_t i = edges.size(); i-- > 0; )
+    placed[--offset[edges[i].source + 1]] = edges[i].node;
+
+  std::vector<Edge>().swap(edges);
+
+  if (!extra_offset_.empty())
+  {
+    for (size_t u = 0; u < num_nodes_; ++u)
+    {
+      for (uint32_t e = extra_offset_[u + 1]; e-- > extra_offset_[u]; )
+        placed[--offset[u + 1]] = extra_edges_[e];
+    }
+  }
+
+  // The cursors have moved one node back: offset[u + 1] is now the start of u, shift them
+  for (size_t u = 0; u < num_nodes_; ++u) offset[u] = offset[u + 1];
+  offset[num_nodes_] = static_cast<uint32_t>(total);
+
+  extra_offset_ = std::move(offset);
+  extra_edges_ = std::move(placed);
 }
 
-std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distances(NodeId start) const
+Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
 {
-  DistanceVector distances(adjacency_list.size(), std::numeric_limits<Cost>::infinity());
-  distances[start] = 0.0f;
+  DistanceVector distances(num_nodes_, std::numeric_limits<Cost>::infinity());
+  PredecessorVector predecessors(num_nodes_, NO_NODE);
 
-  PredecessorVector predecessors(adjacency_list.size(), -1);
+  if (settle_order)
+  {
+    settle_order->clear();
+    settle_order->reserve(num_nodes_);
+  }
 
   using QueueNode = std::pair<Cost, NodeId>;
   std::priority_queue<QueueNode, std::vector<QueueNode>, std::greater<>> open_set;
-  open_set.push({0.0f, start});
+
+  for (const Source& s : sources)
+  {
+    distances[s.node] = s.cost;
+    open_set.push({s.cost, s.node});
+  }
+
+  Counter counter("Dijkstra", num_nodes_);
+  std::size_t settled = 0;
 
   while (!open_set.empty())
   {
@@ -71,7 +119,13 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
 
     if (current_cost > distances[current]) continue;
 
-    for (const Node& neighbor : adjacency_list[current])
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
+
+    // A node is pushed only on a strict improvement, so this point is reached once per node
+    if (settle_order) settle_order->push_back(current);
+
+    for_each_edge(current, [&](const Node& neighbor)
     {
       Cost new_cost = current_cost + neighbor.cost;
       if (new_cost < distances[neighbor.destination])
@@ -80,50 +134,33 @@ std::pair<Graph::DistanceVector, Graph::PredecessorVector> Graph::compute_distan
         predecessors[neighbor.destination] = current;
         open_set.push({new_cost, neighbor.destination});
       }
-    }
+    });
   }
 
-  return {distances, predecessors};
+  counter.throw_if_cancelled();
+
+  return {std::move(distances), std::move(predecessors)};
 }
 
-std::pair<Graph::Path, Graph::Cost> Graph::findPath(NodeId start, NodeId goal, const GraphCache& precomputed_data)
-{
-  const auto& [distances, predecessors] = precomputed_data;
-
-  if (distances[goal] == std::numeric_limits<Cost>::infinity())
-    return {{}, -1.0f};
-
-  Path path;
-  for (NodeId node = goal; node != start; )
-  {
-    if (node < 0 || node >= static_cast<NodeId>(predecessors.size()) || predecessors[node] == -1)
-      return {{}, -1.0f};
-    path.push_back(node);
-    node = predecessors[node];
-  }
-
-  path.push_back(start);
-  std::reverse(path.begin(), path.end());
-  return {path, distances[goal]};
-}
-
-void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& distances, NodeIDs& closest_nodeids) const
+void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs& closest_seed) const
 {
   const double INF = std::numeric_limits<double>::infinity();
-  size_t N = adjacency_list.size();
 
-  distances.assign(N, INF);
-  closest_nodeids.assign(N, -1);
+  distances.assign(num_nodes_, INF);
+  closest_seed.assign(num_nodes_, NO_NODE);
 
   using PQElement = std::pair<double, NodeId>;
   std::priority_queue<PQElement, std::vector<PQElement>, std::greater<>> pq;
 
-  for (NodeId g : nodes)
+  for (const Source& s : sources)
   {
-    distances[g] = 0.0;
-    closest_nodeids[g] = g;
-    pq.push({0.0, g});
+    distances[s.node] = s.cost;
+    closest_seed[s.node] = s.seed;
+    pq.push({distances[s.node], s.node});
   }
+
+  Counter counter("Dijkstra", num_nodes_);
+  std::size_t settled = 0;
 
   while (!pq.empty())
   {
@@ -132,28 +169,33 @@ void Graph::shortest_paths_from_node(const NodeIDs& nodes, std::vector<double>& 
 
     if (dist_u > distances[u]) continue;
 
-    for (const auto& e : adjacency_list[u])
+    counter.tick_at(settled++);
+    if (counter.cancelled()) break;
+
+    for_each_edge(u, [&](const Node& e)
     {
       NodeId v = e.destination;
       double new_dist = dist_u + e.cost;
       if (new_dist < distances[v])
       {
         distances[v] = new_dist;
-        closest_nodeids[v] = closest_nodeids[u];
+        closest_seed[v] = closest_seed[u];
         pq.push({new_dist, v});
       }
-    }
+    });
   }
+
+  counter.throw_if_cancelled();
 }
 
 size_t Graph::mem() const
 {
   size_t total = sizeof(*this);
-  for (const auto& neighbors : adjacency_list)
-  {
-    total += sizeof(neighbors);
-    total += neighbors.capacity() * sizeof(Node);
-  }
+  total += num_nodes_ * stride_ * sizeof(Node);
+  total += extra_offset_.capacity() * sizeof(uint32_t);
+  total += extra_edges_.capacity() * sizeof(Node);
+  total += sources.capacity() * sizeof(Source);
+  total += target_anchors.capacity() * sizeof(NodeId);
   return total;
 }
 

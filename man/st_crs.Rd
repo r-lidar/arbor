@@ -26,3 +26,12 @@
 \description{
 Get or set the projection of a QSM and QSF objects
 }
+\examples{
+f <- system.file("extdata", "qsm/tree_12.qsm", package="arbor")
+qsm <- qsm_read(f)
+sf::st_crs(qsm) <- 32619
+
+f <- system.file("extdata", "oak-plantation.qsf", package="arbor")
+oak <- qsf_read(f)
+sf::st_crs(oak) <- 32619
+}

@@ -75,7 +75,7 @@ auto dbscan(const Adaptor& adapt, float eps, int min_pts)
   using index_t = typename my_kd_tree_t::IndexType;
   using distance_t = typename my_kd_tree_t::DistanceType;
 
-  auto index = my_kd_tree_t(n_cols, adapt, KDTreeSingleIndexAdaptorParams(10));
+  auto index = my_kd_tree_t(n_cols, adapt, KDTreeSingleIndexAdaptorParams(10, nanoflann::KDTreeSingleIndexAdaptorFlags::SkipInitialBuildIndex));
   index.buildIndex();
 
   const auto n_points = adapt.kdtree_get_point_count();
