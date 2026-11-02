@@ -34,7 +34,7 @@
 #' @seealso \link{qsm}
 qsf <- function(las, min_height = 2, params = arbor_parameters_default)
 {
-  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
+  if (!"UserData" %in% names(las)) las <- set_columns(las, UserData = ARBORTREE)
   res <- qsf_cpp(las@data, min_height, params)
   for (i in seq_along(res)) res[[i]] <- suppressWarnings(qsm_finalize(res[[i]]))
   res <- res[order(as.numeric(names(res)))]

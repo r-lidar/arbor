@@ -1,3 +1,7 @@
+# v1.1.5
+
+- Fix: R copy semantic of the point cloud and drastically reduce memory usage (-50%)
+
 # v1.1.4
 
 ### NEW FEATURES

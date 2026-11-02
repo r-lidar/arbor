@@ -33,7 +33,7 @@
 resolve_oversegmentation = function(las)
 {
   res <- detect_oversegmentation(las)
-  las@data$treeID <- data.table::copy(las@data$treeID)
+  las <- set_columns(las, treeID = data.table::copy(las$treeID))
   remap_treeids(las, res)
   return(las)
 }

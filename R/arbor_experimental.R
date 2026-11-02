@@ -87,8 +87,7 @@ qsf_segment_semantic = function(las, qsf)
   }
   res <- qsm_distances_cpp(qsf, las@data)
   b <- res$dist < res$radius*1.3 + 0.02
-  las@data$foliage <- 1
-  las@data$foliage[b] <- 0
+  las <- set_columns(las, foliage = ifelse(b, 0, 1))
   return(las)
 }
 
