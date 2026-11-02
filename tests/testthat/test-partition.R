@@ -147,7 +147,11 @@ test_that("wood_likelihood() keeps the order and skips the points below the cut 
   expect_identical(las$PID, ref$PID)
   expect_all_equal(las$pwood[!(las$hag > cut)], 0)
 
-  # Far enough above the cut, the neighbourhoods are the same as with every point
+  # Far enough above the cut, the neighbourhoods are the same as with every point, except for a few points
+  # whose k-th and (k+1)-th neighbours are tied (quantized coordinates): the KD-tree, built on another set
+  # of points, may keep the other one, and the difference is platform dependent
   high <- las$hag > cut + 1
-  expect_equal(las$pwood[high], full[high], tolerance = 1e-6)
+  diff <- abs(las$pwood[high] - full[high])
+  expect_lt(mean(diff > 1e-6), 1e-4)
+  expect_lt(max(diff), 0.1)
 })

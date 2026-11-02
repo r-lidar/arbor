@@ -53,8 +53,8 @@ flag_small_trees = function(las, max_height = 2)
   if (!"hag" %in% names(las))      stop("Input point cloud must have an attribute 'hag'")
 
   # C++ writes UserData in place: allocate a fresh copy to not modify the input
-  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
-  las@data$UserData <- data.table::copy(las@data$UserData)
+  userdata <- if ("UserData" %in% names(las)) data.table::copy(las$UserData) else ARBORTREE
+  las <- set_columns(las, UserData = userdata)
   flag_small_trees_cpp(las@data, max_height)
   las
 }
@@ -116,8 +116,8 @@ flag_buffer = function(las, seeds, buffer = -5)
     stop("'buffer' and 'las' must have the same CRS.")
 
   # C++ writes UserData in place: allocate a fresh copy to not modify the input
-  if (!"UserData" %in% names(las)) las@data$UserData <- ARBORTREE
-  las@data$UserData <- data.table::copy(las@data$UserData)
+  userdata <- if ("UserData" %in% names(las)) data.table::copy(las$UserData) else ARBORTREE
+  las <- set_columns(las, UserData = userdata)
 
   see <- if (missing(seeds)) NULL else seeds@data
 

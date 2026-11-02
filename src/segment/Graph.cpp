@@ -114,7 +114,9 @@ Graph::GraphCache Graph::compute_distances(NodeIDs* settle_order) const
 
   while (!open_set.empty())
   {
-    auto [current_cost, current] = open_set.top();
+    // No structured bindings: capturing them in a lambda is C++20 but unsupported by older clang (macOS oldrel)
+    const Cost current_cost = open_set.top().first;
+    const NodeId current = open_set.top().second;
     open_set.pop();
 
     if (current_cost > distances[current]) continue;
@@ -164,7 +166,8 @@ void Graph::shortest_paths_from_sources(std::vector<double>& distances, NodeIDs&
 
   while (!pq.empty())
   {
-    auto [dist_u, u] = pq.top();
+    const double dist_u = pq.top().first;
+    const NodeId u = pq.top().second;
     pq.pop();
 
     if (dist_u > distances[u]) continue;

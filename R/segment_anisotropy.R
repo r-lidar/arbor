@@ -31,7 +31,7 @@ wood_likelihood = function(las, params = arbor_parameters_default)
   stop_if_not_tls(las)
 
   # The wood likelihood is written in place by C++: R must allocate the attribute 'pwood' first
-  las@data$pwood <- 0
+  las <- set_columns(las, pwood = 0)
   las <- lidR::add_lasattribute_manual(las, name = "pwood", desc = "wood likelyhood", type = "float")
 
   wood_likelihood_cpp(las@data, params)

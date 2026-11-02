@@ -48,6 +48,22 @@ stop_if_not_tls = function(las)
     stop("This point cloud is not flagged as TLS. It has not been read with lidR::readTLSLAS(). Please use the correct read function.")
 }
 
+# Memory: adds or replaces columns of las without copying the point cloud. las@data$x <- y copies the whole
+# data.table (arbor imports data.table: `$<-.data.table` runs copy()), one copy of the cloud per call.
+# Here the other columns are shared by reference and the input las is untouched. Each value is recycled to a new
+# full-length vector: set() replaces the column instead of writing into the input's one (a length-one value
+# would be written in place) and C++ can then write it in place.
+set_columns = function(las, ...)
+{
+  n = lidR::npoints(las)
+  columns = lapply(list(...), rep_len, length.out = n)
+
+  data = data.table::setDT(as.list(las@data))
+  data.table::set(data, j = names(columns), value = columns)
+  las@data = data
+  las
+}
+
 free = function(...)
 {
   object_names <- as.character(substitute(list(...)))[-1L]

@@ -41,9 +41,7 @@ segment_semantic = function(las, params = arbor_parameters_default)
 {
   # Before to enter the semantic segmentation we must ensure memory is allocated
   # by R for attributes 'passage', 'foliage' and 'UserData'
-  las@data$UserData <- ARBORTREE
-  las@data$passage  <- 0L
-  las@data$foliage  <- 1L
+  las <- set_columns(las, UserData = ARBORTREE, passage = 0L, foliage = 1L)
   las <- lidR::add_lasattribute_manual(las, name = "passage", desc = "passage points", type = "int")
   las <- lidR::add_lasattribute_manual(las, name = "foliage", desc = "foliage: 1 or 2 wood: 0", type = "char")
 

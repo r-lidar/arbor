@@ -29,7 +29,7 @@
 #' @seealso \link{find_seeds}, \link{segment_semantic}, \link{segment_instance}
 segment_ground = function(las, params = arbor_parameters_default)
 {
-  if (!"Classification" %in% names(las)) las@data$Classification = 0L
+  if (!"Classification" %in% names(las)) las <- set_columns(las, Classification = 0L)
   las <- lidR::add_lasattribute(las, 0, "hag", "Height Above Ground")
   segment_ground_cpp(las@data, params)
   return(las)

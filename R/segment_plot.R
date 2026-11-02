@@ -48,8 +48,10 @@ plot_semantic = function(las, dtm = NULL, ...)
 plot_instance = function(las, dtm = NULL, ...)
 {
   set.seed(42)
-  if ("UserData" %in% names(las)) las@data$treeID[las$UserData != ARBORTREE] = NA_integer_
-  las@data$treeID[las@data$treeID == 0] = NA_integer_
+  tid = las$treeID
+  if ("UserData" %in% names(las)) tid[las$UserData != ARBORTREE] = NA_integer_
+  tid[tid == 0] = NA_integer_
+  las <- set_columns(las, treeID = tid)
   x <- lidR::plot(las, color = "treeID", ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
@@ -82,9 +84,7 @@ plot_semantic_instance = function(las, dtm = NULL, ...)
   B[is.na(B)] = 150L
 
   # Assign to LAS
-  las@data$R = R
-  las@data$G = G
-  las@data$B = B
+  las <- set_columns(las, R = R, G = G, B = B)
 
   free(cols)
 
@@ -99,7 +99,7 @@ plot_passage = function(las, dtm = NULL, th = 0, ...)
 {
   passage <- NULL
   passage <- lidR::filter_poi(las, passage > th)
-  passage@data$passage <- log(passage$passage)
+  passage <- set_columns(passage, passage = log(passage$passage))
   x <- lidR::plot(passage, color = "passage", legend = T, ...)
   if (!is.null(dtm)) lidR::add_dtm3d(x, dtm)
   return(invisible(x))
