@@ -4,16 +4,66 @@
 
 PointCloudDefault::PointCloudDefault()
 {
-  init();
 }
 
-PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
+PointCloudDefault::PointCloudDefault(size_t n, Attr attrs)
 {
-  init();
-  n_points = n;
-  safe_alloc(n, init_attributes);
+  try
+  {
+    coords.resize(n, {0.0f, 0.0f, 0.0f});
+    n_points = n;
+    allocate(attrs);
+  }
+  catch (...)
+  {
+    cleanup();
+    throw;
+  }
 }
 
+// ------------------------------------------------------------
+// Insertion
+// ------------------------------------------------------------
+void PointCloudDefault::add_point(float x, float y, float z)
+{
+  if (n_points != coords.size())
+    throw std::logic_error("add_point() cannot be called inside a ScopedPartition");
+
+  coords.push_back({x,y,z});
+  visit_attributes([this](Attr flag, auto member, auto def)
+  {
+    if (has(flag)) (this->*member).push_back(def);
+  });
+  n_points++;
+  kdtree.reset();
+}
+
+// ------------------------------------------------------------
+// Attribute management
+// ------------------------------------------------------------
+void PointCloudDefault::allocate(Attr a)
+{
+  // coords.size() rather than n_points: inside a ScopedPartition the hidden points need the attribute too
+  const size_t n = coords.size();
+  visit_attributes([this, a, n](Attr flag, auto member, auto def)
+  {
+    if (!any(a & flag) || has(flag)) return;
+    (this->*member).assign(n, def);
+    present |= flag;
+  });
+}
+
+void PointCloudDefault::release(Attr a)
+{
+  visit_attributes([this, a](Attr flag, auto member, auto)
+  {
+    if (!any(a & flag)) return;
+    auto& v = this->*member;
+    v.clear();
+    v.shrink_to_fit();
+    present &= ~flag;
+  });
+}
 
 // ------------------------------------------------------------
 // Cleanup
@@ -21,16 +71,9 @@ PointCloudDefault::PointCloudDefault(size_t n, bool init_attributes)
 void PointCloudDefault::cleanup()
 {
   // clear() keeps the capacity: shrink_to_fit() releases the memory (called after a failed allocation)
-  auto release = [](auto& v) { v.clear(); v.shrink_to_fit(); };
-  release(coords);
-  release(rgb);
-  release(treeid);
-  release(foliage);
-  release(passage);
-  release(hag);
-  release(pwood);
-  release(classif);
-  release(userdata);
+  release(Attr::All);
+  coords.clear();
+  coords.shrink_to_fit();
   n_points = 0;
   kdtree.reset();
 }
@@ -59,14 +102,10 @@ void PointCloudDefault::filter(const std::vector<bool>& keep)
   };
 
   compact(coords);
-  compact(rgb);
-  compact(treeid);
-  compact(foliage);
-  compact(passage);
-  compact(hag);
-  compact(pwood);
-  compact(classif);
-  compact(userdata);
+  visit_attributes([this, &compact](Attr flag, auto member, auto)
+  {
+    if (has(flag)) compact(this->*member);
+  });
 
   n_points = coords.size();
   kdtree.reset();
@@ -102,78 +141,26 @@ void PointCloudDefault::scale(double x, double y, double z)
 // ------------------------------------------------------------
 // Subset (by indices)
 // ------------------------------------------------------------
-PointCloudDefault PointCloudDefault::subset(const std::vector<unsigned int>& indices, bool xyz_only) const
+PointCloudDefault PointCloudDefault::subset(const std::vector<unsigned int>& indices, Attr keep) const
 {
   size_t new_count = indices.size();
 
   PointCloudDefault result;
   result.n_points = new_count;
-  result.coords.resize(new_count);
+  result.present = present & keep;
 
-  for (size_t j = 0; j < new_count; ++j)
+  auto gather = [&indices, new_count](auto& out, const auto& in)
   {
-    unsigned int i = indices[j];
-    result.coords[j] = coords[i];
-  }
+    out.resize(new_count);
+    for (size_t j = 0; j < new_count; ++j)
+      out[j] = in[indices[j]];
+  };
 
-  if (!xyz_only)
+  gather(result.coords, coords);
+  visit_attributes([&](Attr flag, auto member, auto)
   {
-    if (!treeid.empty())
-    {
-      result.treeid.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.treeid[j] = treeid[indices[j]];
-    }
-
-    if (!foliage.empty())
-    {
-      result.foliage.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.foliage[j] = foliage[indices[j]];
-    }
-
-    if (!passage.empty())
-    {
-      result.passage.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.passage[j] = passage[indices[j]];
-    }
-
-    if (!hag.empty())
-    {
-      result.hag.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.hag[j] = hag[indices[j]];
-    }
-
-    if (!pwood.empty())
-    {
-      result.pwood.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.pwood[j] = pwood[indices[j]];
-    }
-
-    if (!rgb.empty())
-    {
-      result.rgb.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.rgb[j] = rgb[indices[j]];
-    }
-
-    if (!classif.empty())
-    {
-      result.classif.resize(new_count);
-      for (size_t j = 0; j < new_count; ++j)
-        result.classif[j] = classif[indices[j]];
-    }
-
-    if (!userdata.empty())
-    {
-        result.userdata.resize(new_count);
-        for (size_t j = 0; j < new_count; ++j)
-            result.userdata[j] = userdata[indices[j]];
-    }
-  }
+    if (result.has(flag)) gather(result.*member, this->*member);
+  });
 
   return result;
 }
@@ -193,145 +180,57 @@ PointCloudDefault PointCloudDefault::operator+(const PointCloudDefault& other) c
 // ------------------------------------------------------------
 PointCloudDefault& PointCloudDefault::operator+=(const PointCloudDefault& other)
 {
-  if (other.n_points == 0)
-    return *this;
+  if (present != other.present)
+    throw std::runtime_error("Cannot merge point clouds with different attributes: " + describe(present ^ other.present));
 
-  size_t old_size = this->n_points;
-  size_t new_size = old_size + other.n_points;
+  return merge(other, present);
+}
 
-  // Merge coordinates
+PointCloudDefault& PointCloudDefault::merge(const PointCloudDefault& other, Attr keep)
+{
+  if (n_points != coords.size() || other.n_points != other.coords.size())
+    throw std::logic_error("merge() cannot be called inside a ScopedPartition");
+
+  keep &= Attr::All;
+  if (!has(keep))
+    throw std::runtime_error("Cannot merge point clouds: missing attributes " + describe(keep & ~present));
+  if (!other.has(keep))
+    throw std::runtime_error("Cannot merge point clouds: the other point cloud is missing attributes " + describe(keep & ~other.present));
+
+  // a += a: inserting a vector into itself is undefined
+  if (&other == this)
+  {
+    const PointCloudDefault copy = other;
+    return merge(copy, keep);
+  }
+
+  release(present & ~keep);
+
   coords.insert(coords.end(), other.coords.begin(), other.coords.end());
+  visit_attributes([&](Attr flag, auto member, auto)
+  {
+    if (!has(flag)) return;
+    auto& v = this->*member;
+    const auto& o = other.*member;
+    v.insert(v.end(), o.begin(), o.end());
+  });
 
-  // Merge rgb if both have it
-  if (!rgb.empty() && !other.rgb.empty())
-  {
-    rgb.insert(rgb.end(), other.rgb.begin(), other.rgb.end());
-  }
-  else if (!rgb.empty())
-  {
-    rgb.clear();
-  }
-
-  // Merge treeid if both have it
-  if (has_treeid() && other.has_treeid())
-  {
-    treeid.insert(treeid.end(), other.treeid.begin(), other.treeid.end());
-  }
-  else if (has_treeid())
-  {
-    treeid.clear();
-  }
-
-  // Merge foliage if both have it
-  if (has_foliage() && other.has_foliage())
-  {
-    foliage.insert(foliage.end(), other.foliage.begin(), other.foliage.end());
-  }
-  else if (has_foliage())
-  {
-    foliage.clear();
-  }
-
-  // Merge passage if both have it
-  if (has_passage() && other.has_passage())
-  {
-    passage.insert(passage.end(), other.passage.begin(), other.passage.end());
-  }
-  else if (has_passage())
-  {
-    passage.clear();
-  }
-
-  // Merge hag if both have it
-  if (has_hag() && other.has_hag())
-  {
-    hag.insert(hag.end(), other.hag.begin(), other.hag.end());
-  }
-  else if (has_hag())
-  {
-    hag.clear();
-  }
-
-  // Merge pwood if both have it
-  if (has_pwood() && other.has_pwood())
-  {
-    pwood.insert(pwood.end(), other.pwood.begin(), other.pwood.end());
-  }
-  else if (has_pwood())
-  {
-    pwood.clear();
-  }
-
-  // Merge classification if both have it
-  if (has_class() && other.has_class())
-  {
-    classif.insert(classif.end(), other.classif.begin(), other.classif.end());
-  }
-  else if (has_class())
-  {
-    classif.clear();
-  }
-
-  // Merge classification if both have it
-  if (has_userdata() && other.has_userdata())
-  {
-      userdata.insert(userdata.end(), other.userdata.begin(), other.userdata.end());
-  }
-  else if (has_userdata())
-  {
-      userdata.clear();
-  }
-
-  this->n_points = new_size;
-
+  n_points += other.n_points;
   kdtree.reset();
 
   return *this;
 }
 
 // ------------------------------------------------------------
-// Init
+// Swap (ScopedPartition, spatial_sort)
 // ------------------------------------------------------------
-void PointCloudDefault::init()
+void PointCloudDefault::swap_points(size_t i, size_t j)
 {
-  n_points = 0;
-  coords.clear();
-  rgb.clear();
-  treeid.clear();
-  foliage.clear();
-  passage.clear();
-  hag.clear();
-  pwood.clear();
-  classif.clear();
-  userdata.clear();
-}
-
-// ------------------------------------------------------------
-// Safe Alloc
-// ------------------------------------------------------------
-void PointCloudDefault::safe_alloc(size_t n, bool alloc_attrs)
-{
-  try
+  std::swap(coords[i], coords[j]);
+  visit_attributes([&](Attr flag, auto member, auto)
   {
-    coords.resize(n, {0.0f, 0.0f, 0.0f});
-
-    if (alloc_attrs)
-    {
-      treeid.resize(n, -1);
-      foliage.resize(n, -1);
-      classif.resize(n, 0);
-      passage.resize(n, 0);
-      hag.resize(n, 0.0f);
-      pwood.resize(n, 0.0f);
-      rgb.resize(n, {128, 128, 128});
-      userdata.resize(n, 0);
-    }
-  }
-  catch (...)
-  {
-    cleanup();
-    throw;
-  }
+    if (has(flag)) std::swap((this->*member)[i], (this->*member)[j]);
+  });
 }
 
 #endif

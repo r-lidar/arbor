@@ -28,14 +28,14 @@
 #include <array>
 #include <span>
 
-#define POINT_CLOUD_ATTR(interface_type, internal_type, name, container, has_func, error_msg)  \
+#define POINT_CLOUD_ATTR(interface_type, name, container, flag, error_msg)                       \
 inline interface_type get_##name(const size_t idx) const {                                     \
-  if (!has_func()) throw std::runtime_error(error_msg);                                        \
+  if (!has(flag)) throw std::runtime_error(error_msg);                                         \
   return static_cast<interface_type>(container[idx]);                                          \
 }                                                                                              \
 inline void set_##name(const size_t idx, interface_type v) {                                   \
-  if (!has_func()) throw std::runtime_error(error_msg);                                        \
-  container[idx] = static_cast<internal_type>(v);                                              \
+  if (!has(flag)) throw std::runtime_error(error_msg);                                         \
+  container[idx] = static_cast<typename decltype(container)::value_type>(v);                   \
 }
 
 class PointCloudDefault : public BasePointCloud<PointCloudDefault>
@@ -44,30 +44,32 @@ public:
   using BasePointCloud<PointCloudDefault>::subset;
 
   // Constructors / destructor
+  // XYZ is always allocated. attrs selects the optional attributes, filled with their default value.
   PointCloudDefault();
-  PointCloudDefault(size_t n, bool init_attributes = false);
+  explicit PointCloudDefault(size_t n, Attr attrs = Attr::None);
   PointCloudDefault(const PointCloudDefault&) = default;
   PointCloudDefault(PointCloudDefault&&) = default;
   PointCloudDefault& operator=(const PointCloudDefault&) = default;
   PointCloudDefault& operator=(PointCloudDefault&&) = default;
   ~PointCloudDefault() = default;
 
-  // Insertion
-  void add_point(float x, float y, float z)
-  {
-    n_points++;
-    coords.push_back({x,y,z});
-    treeid.push_back(0);
-    foliage.push_back(1);
-    classif.push_back(0);
-    passage.push_back(0);
-    hag.push_back(0);
-    pwood.push_back(0);
-    rgb.push_back({200, 200, 200});
-    kdtree.reset();
-  }
+  // Insertion. The present attributes get their default value.
+  void add_point(float x, float y, float z);
 
-  // Merge
+  // --- Attribute management ---
+  inline Attr attributes() const { return present; }
+  inline bool has(Attr a) const { return (present & a) == a; }
+
+  // Allocates the attributes of a that are missing, filled with their default value. Inside a ScopedPartition the
+  // hidden points are allocated too.
+  void allocate(Attr a);
+  // Frees the attributes of a.
+  void release(Attr a);
+
+  // Merge. operator+= throws if the two point clouds do not have the same attributes. merge() keeps only the
+  // attributes of keep (the others are released) and throws if one of the point clouds lacks one of them.
+  // Not inside a ScopedPartition.
+  PointCloudDefault& merge(const PointCloudDefault& other, Attr keep);
   PointCloudDefault& operator+=(const PointCloudDefault& other);
   PointCloudDefault  operator+(const PointCloudDefault& other) const;
 
@@ -105,31 +107,44 @@ public:
   inline void   set_z(const size_t idx, double v) { coords[idx].z = static_cast<float>(v); }
 
   // --- Optional attribute access ---
-  inline bool has_red()      const { return !rgb.empty(); }
-  inline bool has_blue()     const { return !rgb.empty(); }
-  inline bool has_green()    const { return !rgb.empty(); }
-  inline bool has_rgb()      const { return !rgb.empty(); }
-  inline bool has_hag()      const { return !hag.empty(); }
-  inline bool has_treeid()   const { return !treeid.empty(); }
-  inline bool has_pwood()    const { return !pwood.empty(); }
-  inline bool has_foliage()  const { return !foliage.empty(); }
-  inline bool has_passage()  const { return !passage.empty(); }
-  inline bool has_class()    const { return !classif.empty(); }
-  inline bool has_userdata() const { return !userdata.empty(); }
+  inline bool has_red()      const { return has(Attr::RGB); }
+  inline bool has_blue()     const { return has(Attr::RGB); }
+  inline bool has_green()    const { return has(Attr::RGB); }
+  inline bool has_rgb()      const { return has(Attr::RGB); }
+  inline bool has_intensity() const { return has(Attr::Intensity); }
+  inline bool has_gpstime()  const { return has(Attr::GPStime); }
+  inline bool has_return_number() const { return has(Attr::ReturnNumber); }
+  inline bool has_number_of_returns() const { return has(Attr::NumberOfReturns); }
+  inline bool has_hag()      const { return has(Attr::HAG); }
+  inline bool has_treeid()   const { return has(Attr::TreeID); }
+  inline bool has_pwood()    const { return has(Attr::PWood); }
+  inline bool has_foliage()  const { return has(Attr::Foliage); }
+  inline bool has_passage()  const { return has(Attr::Passage); }
+  inline bool has_class()    const { return has(Attr::Classification); }
+  inline bool has_userdata() const { return has(Attr::UserData); }
 
-  POINT_CLOUD_ATTR(int,    int,      treeid,         treeid,   has_treeid,   "Instance segmentation not available")
-  POINT_CLOUD_ATTR(double, double,   pwood,          pwood,    has_pwood,    "Wood likelihood data not available")
-  POINT_CLOUD_ATTR(int,    uint8_t,  foliage,        foliage,  has_foliage,  "Semantic segmentation not available")
-  POINT_CLOUD_ATTR(double, float,    hag,            hag,      has_hag,      "HAG data not available")
-  POINT_CLOUD_ATTR(int,    int,      passage,        passage,  has_passage,  "Passage not available")
-  POINT_CLOUD_ATTR(int,    uint16_t, classification, classif,  has_class,    "Classification data not available")
-  POINT_CLOUD_ATTR(int,    uint8_t,  userdata,       userdata, has_userdata, "Classification data not available")
+  POINT_CLOUD_ATTR(int,    treeid,            treeid,            Attr::TreeID,          "Instance segmentation not available")
+  POINT_CLOUD_ATTR(double, pwood,             pwood,             Attr::PWood,           "Wood likelihood data not available")
+  POINT_CLOUD_ATTR(int,    foliage,           foliage,           Attr::Foliage,         "Semantic segmentation not available")
+  POINT_CLOUD_ATTR(double, hag,               hag,               Attr::HAG,             "HAG data not available")
+  POINT_CLOUD_ATTR(int,    passage,           passage,           Attr::Passage,         "Passage not available")
+  POINT_CLOUD_ATTR(int,    classification,    classif,           Attr::Classification,  "Classification data not available")
+  POINT_CLOUD_ATTR(int,    userdata,          userdata,          Attr::UserData,        "UserData not available")
+  POINT_CLOUD_ATTR(int,    intensity,         intensity,         Attr::Intensity,       "Intensity not available")
+  POINT_CLOUD_ATTR(double, gpstime,           gpstime,           Attr::GPStime,         "gpstime not available")
+  POINT_CLOUD_ATTR(int,    return_number,     return_number,     Attr::ReturnNumber,    "ReturnNumber not available")
+  POINT_CLOUD_ATTR(int,    number_of_returns, number_of_returns, Attr::NumberOfReturns, "NumberOfReturns not available")
 
   #undef POINT_CLOUD_ATTR
 
-  inline void set_color(size_t i, uint8_t r, uint8_t g, uint8_t b) { rgb[i] = {r, g, b}; }
+  inline void set_color(size_t i, uint8_t r, uint8_t g, uint8_t b)
+  {
+    if (!has_rgb()) throw std::runtime_error("RGB not available");
+    rgb[i] = {r, g, b};
+  }
   inline std::array<uint8_t, 3> get_color(size_t i) const
   {
+    if (!has_rgb()) throw std::runtime_error("RGB not available");
     const RGB& color = rgb[i];
     return {color.r, color.g, color.b};
   }
@@ -147,7 +162,8 @@ public:
   void scale(double x, double y, double z) ;
 
   // --- Subset ---
-  PointCloudDefault subset(const std::vector<unsigned int>& indices, bool xyz_only = false) const;
+  // Copies the attributes of keep that are present.
+  PointCloudDefault subset(const std::vector<unsigned int>& indices, Attr keep = Attr::All) const;
 
   // --- Filter ---
   // Unlike subset(), which returns a new point cloud, removes in place the points whose `keep` is false (one value
@@ -170,33 +186,45 @@ public:
 
 private:
   void cleanup();
-  void init();
-  void safe_alloc(size_t n, bool alloc_attrs);
-  void swap_points(size_t i, size_t j)
+  void swap_points(size_t i, size_t j) override;
+
+  struct Vec3 { float x,y,z; };
+  struct RGB { uint8_t r,g,b; };
+
+  // The table of the optional attributes: calls f(flag, member pointer, default value) for each of them.
+  // Every operation that touches all the attributes (allocation, subset, merge, filter, swap) loops over it.
+  template <class F>
+  static void visit_attributes(F&& f)
   {
-    std::swap(coords[i], coords[j]);
-    if (has_rgb())     std::swap(rgb[i], rgb[j]);
-    if (has_treeid())  std::swap(treeid[i], treeid[j]);
-    if (has_foliage()) std::swap(foliage[i], foliage[j]);
-    if (has_passage()) std::swap(passage[i], passage[j]);
-    if (has_class())   std::swap(classif[i], classif[j]);
-    if (has_hag())     std::swap(hag[i], hag[j]);
-    if (has_pwood())   std::swap(pwood[i], pwood[j]);
-    if (has_userdata()) std::swap(userdata[i], userdata[j]);
+    f(Attr::RGB,             &PointCloudDefault::rgb,               RGB{128, 128, 128});
+    f(Attr::Intensity,       &PointCloudDefault::intensity,         uint16_t{0});
+    f(Attr::GPStime,         &PointCloudDefault::gpstime,           0.0);
+    f(Attr::ReturnNumber,    &PointCloudDefault::return_number,     uint8_t{1});
+    f(Attr::NumberOfReturns, &PointCloudDefault::number_of_returns, uint8_t{1});
+    f(Attr::Classification,  &PointCloudDefault::classif,           uint16_t{0});
+    f(Attr::UserData,        &PointCloudDefault::userdata,          uint8_t{0});
+    f(Attr::HAG,             &PointCloudDefault::hag,               0.0f);
+    f(Attr::PWood,           &PointCloudDefault::pwood,             0.0f);
+    f(Attr::Foliage,         &PointCloudDefault::foliage,           uint8_t{1});
+    f(Attr::Passage,         &PointCloudDefault::passage,           0);
+    f(Attr::TreeID,          &PointCloudDefault::treeid,            0);
   }
 
 private:
-  struct Vec3 { float x,y,z; };
-  struct RGB { uint8_t r,g,b; };
+  Attr present = Attr::None;
   std::vector<Vec3> coords;
   std::vector<RGB> rgb;
-  std::vector<int> treeid;
-  std::vector<uint8_t> foliage;
+  std::vector<uint16_t> intensity;
+  std::vector<double> gpstime;
+  std::vector<uint8_t> return_number;
+  std::vector<uint8_t> number_of_returns;
   std::vector<uint16_t> classif;
-  std::vector<int> passage;
+  std::vector<uint8_t> userdata;
   std::vector<float> hag;
   std::vector<float> pwood;
-  std::vector<uint8_t> userdata;
+  std::vector<uint8_t> foliage;
+  std::vector<int> passage;
+  std::vector<int> treeid;
 };
 
 #endif

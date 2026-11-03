@@ -601,7 +601,7 @@ void InventoryMerger::resolve(PointCloud& pc, const MatchingTable& table, const 
   if (points.empty() || seed_pts.empty()) return;
 
   // segment_instance() keeps the order of the points: the point k of sub is the point points[k] of pc
-  PointCloud sub(points.size(), true);
+  PointCloud sub(points.size(), Attr::Arbor);
   for (size_t k = 0; k < points.size(); ++k)
   {
     unsigned int i = points[k];
@@ -613,7 +613,7 @@ void InventoryMerger::resolve(PointCloud& pc, const MatchingTable& table, const 
     sub.set_treeid(k, 0);
   }
 
-  PointCloud seeds(seed_pts.size(), true);
+  PointCloud seeds(seed_pts.size(), Attr::Arbor);
   for (size_t k = 0; k < seed_pts.size(); ++k)
   {
     seeds.set_x(k, seed_pts[k].first.x);

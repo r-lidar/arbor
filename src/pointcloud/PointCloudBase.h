@@ -15,6 +15,7 @@
 
 #include "nanoflann.h"
 #include "Polygon.h"
+#include "PointCloudAttr.h"
 
 inline void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_t* B)
 {
@@ -132,7 +133,8 @@ public:
   // keep the original order. Temporary memory: 16 bytes per point. Not inside a ScopedPartition.
   void spatial_sort();
 
-  Derived subset(const std::vector<bool>& mask, bool xyz_only = false) const;
+  // Copies the attributes of keep that are present
+  Derived subset(const std::vector<bool>& mask, Attr keep = Attr::All) const;
   Derived subset_by_treeid(int tid) const;
 
   std::vector<unsigned int> find_points_by_tree_id(int tid) const;
@@ -253,7 +255,7 @@ void BasePointCloud<Derived>::radius_search(const double* query, double radius, 
 }
 
 template <typename Derived>
-Derived BasePointCloud<Derived>::subset(const std::vector<bool>& mask, bool xyz_only) const
+Derived BasePointCloud<Derived>::subset(const std::vector<bool>& mask, Attr keep) const
 {
   const Derived& self = static_cast<const Derived&>(*this);
   if (mask.size() != self.size())
@@ -266,8 +268,8 @@ Derived BasePointCloud<Derived>::subset(const std::vector<bool>& mask, bool xyz_
     if (mask[i]) indices.push_back(static_cast<unsigned int>(i));
   }
 
-  if (indices.size() == self.size()) return self;
-  return self.subset(indices, xyz_only);
+  if (indices.size() == self.size() && !any(self.attributes() & ~keep)) return self;
+  return self.subset(indices, keep);
 }
 
 template <typename Derived>
@@ -275,14 +277,7 @@ Derived BasePointCloud<Derived>::subset_by_treeid(int tid) const
 {
   const Derived& self = static_cast<const Derived&>(*this);
 
-  std::vector<int> keep;
-  for (size_t i = 0 ; i < self.size() ; i++)
-  {
-    if (self.get_treeid(i) == tid)
-      keep.push_back(i);
-  }
-
-  return self.subset(keep, false);
+  return self.subset(find_points_by_tree_id(tid));
 }
 
 template <typename Derived>

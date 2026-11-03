@@ -57,12 +57,12 @@ std::vector<int> accumulate_passages(const PointCloud& core, const PointCloud& d
 
   // Decimation
   std::vector<bool> keep1 = arbor::utils::homogeneization(core, params.decimation, true);
-  PointCloud dec = core.subset(keep1, true);
+  PointCloud dec = core.subset(keep1, Attr::None);
 
   task.step("Discretizing scene space");
 
   std::vector<bool> keep2 = arbor::utils::homogeneization(core, params.space_res, false);
-  PointCloud targets = core.subset(keep2, true);
+  PointCloud targets = core.subset(keep2, Attr::None);
 
   task.step("Constructing the graph");
 
@@ -230,7 +230,7 @@ std::vector<bool> assign_wood_from_high_likelihood(const PointCloud& pc, const s
     if (pc.is_wood(i) || pc.get_pwood(i) > params.high_pwood_threshold)
       mask[i] = true;
   }
-  PointCloud wood = pc.subset(mask, true);
+  PointCloud wood = pc.subset(mask, Attr::None);
 
   task.step("Connected components");
 
@@ -285,7 +285,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
     if (pc.is_wood(i) || (pc.get_pwood(i) > params.medium_pwood_threshold && pc.get_pwood(i) < params.high_pwood_threshold))
       mask[i] = true;
   }
-  PointCloud wood = pc.subset(mask, true);
+  PointCloud wood = pc.subset(mask, Attr::None);
 
   task.step("SOR noise filtering");
 
@@ -294,7 +294,7 @@ std::vector<bool> assign_wood_from_medium_likelihood(const PointCloud& pc, const
 
   // Remove noise
   is_noise.flip();
-  wood = wood.subset(is_noise, true);
+  wood = wood.subset(is_noise, Attr::None);
   is_noise.flip();
 
   task.step("Connected components");
@@ -359,7 +359,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
     if (pc.is_wood(i))
       is_wood[i] = true;
   }
-  PointCloud wood = pc.subset(is_wood, true);
+  PointCloud wood = pc.subset(is_wood, Attr::None);
 
   task.step("Building KD-tree");
 

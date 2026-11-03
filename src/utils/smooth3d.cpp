@@ -30,7 +30,7 @@ PointCloud smooth3d(const PointCloud& cloud, double radius, int ncores)
   cloud.build_index();
 
   // Allocate output cloud (xyz only)
-  PointCloud out(npoints, false);
+  PointCloud out(npoints);
 
   #pragma omp parallel for num_threads(ncores)
   for (int i = 0; i < static_cast<int>(npoints); i++)

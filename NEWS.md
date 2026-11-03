@@ -1,3 +1,10 @@
+# v1.1.6
+
+### C++ LIBRARY
+
+- Internal changes for ArborStudio
+
+
 # v1.1.5
 
 - Fix: R copy semantic of the point cloud and drastically reduce memory usage (-50%)

@@ -2,21 +2,23 @@
 
 #include "PointCloudDataFrame.h"
 
+#include <type_traits>
+
+// R type of a column from the type of its member: int* is INTSXP, double* is REALSXP
+template <typename T> constexpr int sexp_type_of() { return std::is_same_v<T, int> ? INTSXP : REALSXP; }
+
 PointCloudDataFrame::PointCloudDataFrame()
 {
-  init();
 }
 
-PointCloudDataFrame::PointCloudDataFrame(size_t n, bool init_attributes)
+PointCloudDataFrame::PointCloudDataFrame(size_t n, Attr attrs)
 {
-  init();
   n_points = n;
-  safe_alloc(n, init_attributes);
+  safe_alloc(n, attrs);
 }
 
 PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
 {
-  init();
   n_points = df.rows();
   owns_memory = false;
 
@@ -51,40 +53,47 @@ PointCloudDataFrame::PointCloudDataFrame(const Rcpp::DataFrame& df)
     }
   }
 
-  // The macro now takes a 'mandatory' boolean to handle X, Y, Z logic
-  #define LOAD_ATTR_SAFE(expected_sexp, r_name, member, mandatory)          \
-  if (df.containsElementNamed(r_name)) {                                  \
-    SEXP col_sexp = df[r_name];                                           \
-    if (TYPEOF(col_sexp) != expected_sexp) {                              \
-      throw std::runtime_error(std::string("Column '") + r_name +         \
-                               "' has wrong type. Copy avoided.");        \
-    }                                                                     \
-    Rcpp::Vector<expected_sexp> col(col_sexp);                            \
-    member = col.begin();                                                 \
-  } else if (mandatory) {                                                 \
-    throw std::runtime_error(std::string("Missing mandatory column: ")    \
-                               + r_name);                                 \
-  }                                                                       \
-
-
   // --- Mandatory ---
-  LOAD_ATTR_SAFE(REALSXP, "X", coords[0], true)
-  LOAD_ATTR_SAFE(REALSXP, "Y", coords[1], true)
-  LOAD_ATTR_SAFE(REALSXP, "Z", coords[2], true)
+  const char* xyz[3] = {"X", "Y", "Z"};
+  for (int d = 0; d < 3; ++d)
+  {
+    if (!df.containsElementNamed(xyz[d]))
+      throw std::runtime_error(std::string("Missing mandatory column: ") + xyz[d]);
+    SEXP col = df[xyz[d]];
+    if (TYPEOF(col) != REALSXP)
+      throw std::runtime_error(std::string("Column '") + xyz[d] + "' has wrong type. Copy avoided.");
+    coords[d] = REAL(col);
+  }
 
   // --- Optional ---
-  LOAD_ATTR_SAFE(REALSXP, "hag",            hag,      false)
-  LOAD_ATTR_SAFE(INTSXP,  "treeID",         treeid,   false)
-  LOAD_ATTR_SAFE(REALSXP, "pwood",          pwood,    false)
-  LOAD_ATTR_SAFE(INTSXP,  "foliage",        foliage,  false)
-  LOAD_ATTR_SAFE(INTSXP,  "passage",        passage,  false)
-  LOAD_ATTR_SAFE(INTSXP,  "Classification", classif,  false)
-  LOAD_ATTR_SAFE(INTSXP,  "R",              red,      false)
-  LOAD_ATTR_SAFE(INTSXP,  "G",              green,    false)
-  LOAD_ATTR_SAFE(INTSXP,  "B",              blue,     false)
-  LOAD_ATTR_SAFE(INTSXP,  "UserData",       userdata, false)
+  // An attribute is present only if all its columns are (RGB is three columns)
+  Attr missing = Attr::None;
+  visit_attributes([&](Attr flag, auto member, auto, const char* r_name)
+  {
+    using T = std::remove_pointer_t<std::remove_reference_t<decltype(this->*member)>>;
+    if (!df.containsElementNamed(r_name))
+    {
+      missing |= flag;
+      return;
+    }
 
-  #undef LOAD_ATTR_SAFE
+    // Not used by the pipeline: a column of another type is ignored rather than rejected
+    constexpr Attr optional = Attr::Intensity | Attr::GPStime | Attr::ReturnNumber | Attr::NumberOfReturns;
+
+    SEXP col = df[r_name];
+    if (TYPEOF(col) != sexp_type_of<T>() && any(flag & optional))
+    {
+      missing |= flag;
+      return;
+    }
+    if (TYPEOF(col) != sexp_type_of<T>())
+      throw std::runtime_error(std::string("Column '") + r_name + "' has wrong type. Copy avoided.");
+
+    if constexpr (std::is_same_v<T, int>) this->*member = INTEGER(col);
+    else this->*member = REAL(col);
+    present |= flag;
+  });
+  present &= ~missing;
 }
 
 // ------------------------------------------------------------
@@ -100,57 +109,25 @@ PointCloudDataFrame::~PointCloudDataFrame()
 // ------------------------------------------------------------
 PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
 {
-  init();
   n_points = other.n_points;
   owns_memory = true; // A copy ALWAYS owns its new memory
-  kdtree = nullptr;
 
   try
   {
-    for (int i = 0; i < 3; ++i)
+    auto copy = [this](auto*& out, const auto* in)
     {
-      if (other.coords[i]) {
-        coords[i] = new double[n_points];
-        std::copy(other.coords[i], other.coords[i] + n_points, coords[i]);
-      }
-    }
+      using T = std::remove_const_t<std::remove_pointer_t<decltype(in)>>;
+      out = new T[n_points];
+      std::copy(in, in + n_points, out);
+    };
 
-    if (other.treeid) {
-      treeid = new int[n_points];
-      std::copy(other.treeid, other.treeid + n_points, treeid);
-    }
-    if (other.foliage) {
-      foliage = new int[n_points];
-      std::copy(other.foliage, other.foliage + n_points, foliage);
-    }
-    if (other.pwood) {
-      pwood = new double[n_points];
-      std::copy(other.pwood, other.pwood + n_points, pwood);
-    }
-    if (other.hag) {
-      hag = new double[n_points];
-      std::copy(other.hag, other.hag + n_points, hag);
-    }
-    if (other.passage) {
-      passage = new int[n_points];
-      std::copy(other.passage, other.passage + n_points, passage);
-    }
-    if (other.classif) {
-      classif = new int[n_points];
-      std::copy(other.classif, other.classif + n_points, classif);
-    }
-    if (other.red)   {
-      red = new int[n_points];
-      std::copy(other.red, other.red + n_points, red);
-    }
-    if (other.green) {
-      green = new int[n_points];
-      std::copy(other.green, other.green + n_points, green);
-    }
-    if (other.blue)  {
-      blue  = new int[n_points];
-      std::copy(other.blue, other.blue + n_points, blue);
-    }
+    for (int i = 0; i < 3; ++i) copy(coords[i], other.coords[i]);
+
+    visit_attributes([&](Attr flag, auto member, auto, const char*)
+    {
+      if (other.has(flag)) copy(this->*member, other.*member);
+    });
+    present = other.present;
   }
   catch (...)
   {
@@ -164,7 +141,6 @@ PointCloudDataFrame::PointCloudDataFrame(const PointCloudDataFrame& other)
 // ------------------------------------------------------------
 PointCloudDataFrame::PointCloudDataFrame(PointCloudDataFrame&& other) noexcept
 {
-  init();
   swap(*this, other);
 }
 
@@ -194,32 +170,38 @@ PointCloudDataFrame& PointCloudDataFrame::operator=(PointCloudDataFrame other) n
 // ------------------------------------------------------------
 void PointCloudDataFrame::cleanup()
 {
-  if (owns_memory)
+  // Every non-null pointer is owned when owns_memory: the columns of a failed allocation included
+  for (int d = 0; d < 3; ++d)
   {
-    delete[] coords[0];
-    delete[] coords[1];
-    delete[] coords[2];
-    delete[] treeid;
-    delete[] foliage;
-    delete[] pwood;
-    delete[] hag;
-    delete[] passage;
-    delete[] classif;
-    delete[] red;
-    delete[] green;
-    delete[] blue;
-    delete[] userdata;
+    if (owns_memory) delete[] coords[d];
+    coords[d] = nullptr;
   }
 
-  n_points = 0;
-  owns_memory = true;
+  visit_attributes([this](Attr, auto member, auto, const char*)
+  {
+    if (owns_memory) delete[] (this->*member);
+    this->*member = nullptr;
+  });
 
-  coords[0] = coords[1] = coords[2] = nullptr;
-  treeid = foliage = classif = nullptr;
-  pwood = hag = nullptr;
-  red = green = blue = nullptr;
+  n_points = 0;
+  present = Attr::None;
+  owns_memory = true;
+  generic_columns.clear();
 
   kdtree.reset();
+}
+
+// ------------------------------------------------------------
+// Attribute management
+// ------------------------------------------------------------
+void PointCloudDataFrame::allocate(Attr)
+{
+  throw std::runtime_error("PointCloudDataFrame cannot allocate attributes after construction");
+}
+
+void PointCloudDataFrame::release(Attr)
+{
+  throw std::runtime_error("PointCloudDataFrame cannot release attributes after construction");
 }
 
 // ------------------------------------------------------------
@@ -252,7 +234,7 @@ void PointCloudDataFrame::scale(double x, double y, double z)
 // ------------------------------------------------------------
 // Subset
 // ------------------------------------------------------------
-PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>& indices, bool xyz_only) const
+PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>& indices, Attr keep) const
 {
   size_t new_count = indices.size();
 
@@ -260,50 +242,22 @@ PointCloudDataFrame PointCloudDataFrame::subset(const std::vector<unsigned int>&
   result.n_points = new_count;
   result.owns_memory = true;
 
-  // Allocate Coords
-  result.coords[0] = new double[new_count];
-  result.coords[1] = new double[new_count];
-  result.coords[2] = new double[new_count];
-
-  // Allocate Optional Attributes
-  if (!xyz_only)
+  auto gather = [&indices, new_count](auto*& out, const auto* in)
   {
-    if (treeid)   result.treeid   = new int[new_count];
-    if (foliage)  result.foliage  = new int[new_count];
-    if (passage)  result.passage  = new int[new_count];
-    if (classif)  result.classif  = new int[new_count];
-    if (pwood)    result.pwood    = new double[new_count];
-    if (hag)      result.hag      = new double[new_count];
-    if (red)      result.red      = new int[new_count];
-    if (green)    result.green    = new int[new_count];
-    if (blue)     result.blue     = new int[new_count];
-    if (userdata) result.userdata = new int[new_count];
-  }
+    using T = std::remove_const_t<std::remove_pointer_t<decltype(in)>>;
+    out = new T[new_count];
+    for (size_t j = 0; j < new_count; ++j)
+      out[j] = in[indices[j]];
+  };
 
-  for (size_t j = 0; j < new_count; ++j)
+  // result owns what is already allocated: its destructor frees it if an allocation throws
+  for (int d = 0; d < 3; ++d) gather(result.coords[d], coords[d]);
+
+  visit_attributes([&](Attr flag, auto member, auto, const char*)
   {
-    int i = indices[j];
-
-    // XYZ
-    result.coords[0][j] = coords[0][i];
-    result.coords[1][j] = coords[1][i];
-    result.coords[2][j] = coords[2][i];
-
-    // Attributes
-    if (!xyz_only)
-    {
-      if (treeid)  result.treeid[j]  = treeid[i];
-      if (foliage) result.foliage[j] = foliage[i];
-      if (passage) result.passage[j] = passage[i];
-      if (classif) result.classif[j] = classif[i];
-      if (pwood)   result.pwood[j]   = pwood[i];
-      if (hag)     result.hag[j]     = hag[i];
-      if (red)     result.red[j]     = red[i];
-      if (green)   result.green[j]   = green[i];
-      if (blue)    result.blue[j]    = blue[i];
-      if (userdata)result.userdata[j]= userdata[i];
-    }
-  }
+    if (has(flag) && any(keep & flag)) gather(result.*member, this->*member);
+  });
+  result.present = present & keep;
 
   return result;
 }
@@ -324,36 +278,52 @@ PointCloudDataFrame PointCloudDataFrame::operator+(const PointCloudDataFrame& ot
 // In-place merge operator
 PointCloudDataFrame& PointCloudDataFrame::operator+=(const PointCloudDataFrame& other)
 {
-  if (!this->owns_memory)
-  {
+  if (present != other.present)
+    throw std::runtime_error("Cannot merge point clouds with different attributes: " + describe(present ^ other.present));
+
+  return merge(other, present);
+}
+
+PointCloudDataFrame& PointCloudDataFrame::merge(const PointCloudDataFrame& other, Attr keep)
+{
+  if (!owns_memory)
     throw std::runtime_error("This point cloud does not own its memory. Cannot merge.");
-  }
 
-  if (other.n_points == 0) return *this;
+  keep &= Attr::All;
+  if (!has(keep))
+    throw std::runtime_error("Cannot merge point clouds: missing attributes " + describe(keep & ~present));
+  if (!other.has(keep))
+    throw std::runtime_error("Cannot merge point clouds: the other point cloud is missing attributes " + describe(keep & ~other.present));
 
-  size_t old_size = this->n_points;
-  size_t other_size = other.n_points;
+  const size_t old_n = n_points;
+  const size_t other_n = other.n_points;
 
-  // Merge coordinates (X, Y, Z)
-  merge_attribute(this->coords[0], other.coords[0], old_size, other_size, true);
-  merge_attribute(this->coords[1], other.coords[1], old_size, other_size, true);
-  merge_attribute(this->coords[2], other.coords[2], old_size, other_size, true);
+  // Reallocates and concatenates. Reads other's column before freeing this one: other may be *this.
+  auto concat = [old_n, other_n](auto*& current, const auto* in)
+  {
+    using T = std::remove_const_t<std::remove_pointer_t<decltype(in)>>;
+    T* next = new T[old_n + other_n];
+    std::copy(current, current + old_n, next);
+    std::copy(in, in + other_n, next + old_n);
+    delete[] current;
+    current = next;
+  };
 
-  // Merge optional attributes
-  merge_attribute(this->treeid,  other.treeid,  old_size, other_size, other.has_treeid());
-  merge_attribute(this->foliage, other.foliage, old_size, other_size, other.has_foliage());
-  merge_attribute(this->passage, other.passage, old_size, other_size, other.has_passage());
-  merge_attribute(this->hag,     other.hag,     old_size, other_size, other.has_hag());
-  merge_attribute(this->pwood,   other.pwood,   old_size, other_size, other.has_pwood());
-  merge_attribute(this->classif, other.classif, old_size, other_size, other.has_class());
-  merge_attribute(this->red,     other.red,     old_size, other_size, other.has_red());
-  merge_attribute(this->green,   other.green,   old_size, other_size, other.has_green());
-  merge_attribute(this->blue,    other.blue,    old_size, other_size, other.has_blue());
-  merge_attribute(this->userdata,other.userdata,old_size, other_size, other.has_userdata());
+  // Allocate first, free the dropped columns last: other may be *this
+  for (int d = 0; d < 3; ++d) concat(coords[d], other.coords[d]);
+  visit_attributes([&](Attr flag, auto member, auto, const char*)
+  {
+    if (any(keep & flag)) concat(this->*member, other.*member);
+  });
+  visit_attributes([&](Attr flag, auto member, auto, const char*)
+  {
+    if (any(keep & flag)) return;
+    delete[] (this->*member);
+    this->*member = nullptr;
+  });
 
-  this->n_points += other_size;
-  this->owns_memory = true;
-
+  present = keep;
+  n_points = old_n + other_n;
   kdtree.reset();
 
   return *this;
@@ -381,16 +351,10 @@ void PointCloudDataFrame::swap_points(size_t i, size_t j)
   {
     // Self-owned memory: no source_df, only the known attributes exist.
     for (int d = 0; d < 3; ++d) std::swap(coords[d][i], coords[d][j]);
-    if (treeid)   std::swap(treeid[i], treeid[j]);
-    if (foliage)  std::swap(foliage[i], foliage[j]);
-    if (passage)  std::swap(passage[i], passage[j]);
-    if (classif)  std::swap(classif[i], classif[j]);
-    if (hag)      std::swap(hag[i], hag[j]);
-    if (pwood)    std::swap(pwood[i], pwood[j]);
-    if (red)      std::swap(red[i],   red[j]);
-    if (green)    std::swap(green[i], green[j]);
-    if (blue)     std::swap(blue[i],  blue[j]);
-    if (userdata) std::swap(userdata[i],  userdata[j]);
+    visit_attributes([&](Attr flag, auto member, auto, const char*)
+    {
+      if (has(flag)) std::swap((this->*member)[i], (this->*member)[j]);
+    });
   }
 }
 
@@ -398,55 +362,34 @@ void PointCloudDataFrame::swap(PointCloudDataFrame& first, PointCloudDataFrame& 
 {
   std::swap(first.n_points, second.n_points);
   std::swap(first.owns_memory, second.owns_memory);
+  std::swap(first.present, second.present);
 
   std::swap(first.coords[0], second.coords[0]);
   std::swap(first.coords[1], second.coords[1]);
   std::swap(first.coords[2], second.coords[2]);
 
-  std::swap(first.treeid, second.treeid);
-  std::swap(first.foliage, second.foliage);
-  std::swap(first.passage, second.passage);
-  std::swap(first.hag, second.hag);
-  std::swap(first.pwood, second.pwood);
-  std::swap(first.classif, second.classif);
-  std::swap(first.userdata, second.userdata);
-
-  std::swap(first.red,   second.red);
-  std::swap(first.green, second.green);
-  std::swap(first.blue,  second.blue);
+  visit_attributes([&](Attr, auto member, auto, const char*)
+  {
+    std::swap(first.*member, second.*member);
+  });
 
   std::swap(first.generic_columns, second.generic_columns);
 }
 
-void PointCloudDataFrame::init()
-{
-  n_points = 0;
-  owns_memory = true;
-  coords[0] = coords[1] = coords[2] = nullptr;
-  treeid = foliage = passage = classif = nullptr;
-  red = green = blue = nullptr;
-  hag = pwood = nullptr;
-  userdata = nullptr;
-}
-
-void PointCloudDataFrame::safe_alloc(size_t n, bool alloc_attrs)
+void PointCloudDataFrame::safe_alloc(size_t n, Attr attrs)
 {
   try
   {
-    coords[0] = new double[n]();
-    coords[1] = new double[n]();
-    coords[2] = new double[n]();
+    for (int d = 0; d < 3; ++d) coords[d] = new double[n]();
 
-    if (alloc_attrs)
+    visit_attributes([&](Attr flag, auto member, auto def, const char*)
     {
-      treeid   = new int[n]();
-      foliage  = new int[n]();
-      passage  = new int[n]();
-      classif  = new int[n]();
-      hag      = new double[n]();
-      pwood    = new double[n]();
-      userdata = new int[n]();
-    }
+      if (!any(attrs & flag)) return;
+      using T = std::remove_pointer_t<std::remove_reference_t<decltype(this->*member)>>;
+      this->*member = new T[n];
+      std::fill(this->*member, this->*member + n, static_cast<T>(def));
+      present |= flag;
+    });
   }
   catch (...)
   {

@@ -208,13 +208,14 @@ void SeedDetector::make_cages()
 {
   std::vector<Point3D> pcage = generate_cage(circles, params.pathfinder.decimation); // static function exported to R
 
-  cages = PointCloud(pcage.size(), true);
+  cages = PointCloud(pcage.size(), Attr::Arbor);
   for (size_t i = 0 ; i < cages.size() ; i++)
   {
     cages.set_x(i, pcage[i].X);
     cages.set_y(i, pcage[i].Y);
     cages.set_z(i, pcage[i].Z);
     cages.set_passage(i, 9999); // Need to be assigned any value > 0 to be retained in find_primary_seeds()
+    cages.set_foliage(i, 0);    // Cages are wood
   }
 }
 

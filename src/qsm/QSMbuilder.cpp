@@ -382,7 +382,7 @@ PointCloud make_ground_seed(const PointCloud& wood)
   if (gnd.size() == wood.size() && wood.size() > 1)
   {
     //  throw std::runtime_error("Internal error in QSMbuilder::build: gnd size == wood size. Please report.");
-    gnd = PointCloud(1, false);
+    gnd = PointCloud(1);
     gnd.set_x(0,0);
     gnd.set_y(0,0);
     gnd.set_z(0,0);

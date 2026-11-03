@@ -514,7 +514,7 @@ void GraphBuilder::fix_directed_reachability2(const PointCloud& cloud)
   // ---------------------------------------------------------------
   // Step 4: Build a KD-tree over the reachable core points only.
   // ---------------------------------------------------------------
-  PointCloud reachable_cloud = cloud.subset(reachable_ids, true);
+  PointCloud reachable_cloud = cloud.subset(reachable_ids, Attr::None);
   reachable_cloud.build_index();
 
   // ---------------------------------------------------------------

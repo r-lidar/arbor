@@ -62,7 +62,7 @@ void SeedDetector::run(const PointCloud& scene)
   find_secondary_seeds();
 
   seeds = primary_seeds;
-  seeds += secondary_seeds;
+  seeds.merge(secondary_seeds, primary_seeds.attributes() & secondary_seeds.attributes());
 }
 
 void SeedDetector::compute_min_hag(const PointCloud& scene)
@@ -207,7 +207,10 @@ void SeedDetector::safe_zone()
 void SeedDetector::find_primary_seeds()
 {
   // Merge wood slices + long passage of the path finder + cages
-  PointCloud temp = wood + long_passages + cages;
+  // The cages have the arbor attributes only: keep what all of them have, at least treeID and passage
+  const Attr keep = wood.attributes() & long_passages.attributes() & cages.attributes();
+  PointCloud temp = wood;
+  temp.merge(long_passages, keep).merge(cages, keep);
 
   // Compute connected components of that point cloud to assign an ID to each point
   temp.scale(1, 1, 0.5);
@@ -259,7 +262,8 @@ void SeedDetector::merge_short_passages()
   }
 
   // primary seeds is augmented with short passage seeds that have now and ID
-  primary_seeds += short_passages.subset(has_id_mask);
+  // primary_seeds lost the attributes the cages do not have: keep what both have
+  primary_seeds.merge(short_passages.subset(has_id_mask), primary_seeds.attributes() & short_passages.attributes());
 }
 
 void SeedDetector::find_secondary_seeds()
