@@ -56,7 +56,7 @@ struct QSMEdge : public libqsm::QSMedge
   float subtree_volume   = SUBTREE_VOLUME_UNSET;
 
   // Backward compatibility
-  int32_t id;
+  int32_t id = 0;
 
   QSMEdge() = default;
   explicit QSMEdge(const libqsm::QSMedge& e) : libqsm::QSMedge(e) {}

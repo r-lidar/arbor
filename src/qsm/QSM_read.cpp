@@ -67,7 +67,10 @@ void QSM::read_qsm(const std::string& filename)
     QSMEdge data(edge);
     data.source = node_ids[edge.source - 1];
     data.target = node_ids[edge.target - 1];
-    add_edge(data.source, data.target, data);
+    EdgeID eid = add_edge(data.source, data.target, data);
+
+    // The file has no legacy cylinder id: the edge id, in the order of the file (mesh vertices, csv rows).
+    this->edge(eid).data.id = eid;
   }
 
   uint32_t tid = reader.get_treeid();
