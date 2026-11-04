@@ -16,7 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmd_qsf <- function(args) {
+# Options known by `arbor qsf`
+QSF_VALUE_FLAGS <- c("-o", "--output", "-allometry", "-set_epsg", "-i", "-input")
+QSF_BOOL_FLAGS  <- c("-csv", "-obj", "-ply", "-h", "--help")
+
+cmd_qsf <- function(args, strict = TRUE) {
 
   # --- QSM Usage ---
   usage_qsm <- function() {
@@ -28,14 +32,14 @@ Mandatory:
   <input>           Input LAS file segmented with arbor
 
 Options:
-  -o, --output <dir> Output directory [default: input directory]
-  -overwrite         Overwrite existing files
-  -allometry         Choose an allometry name
-  -set_epsg 1234     EPSG code to georeference the dataset if missing
-  -qsm               Export QSM [default: on if nothing provided]
-  -csv               Export CSV
-  -obj               Export OBJ
-  -ply               Export PLY
+  -o, --output <dir>  Output directory [default: input directory]
+  -allometry <name>   Choose an allometry name
+  -set_epsg 1234      EPSG code to georeference the dataset if missing
+  -csv                Export CSV
+  -obj                Export OBJ
+  -ply                Export PLY
+
+The <name>.qsf manifest and the qsm/ folder are always written (existing files are overwritten).
 
 Example:
   arbor qsf segmented.laz
@@ -46,6 +50,8 @@ Example:
   if (length(args) == 0 || has_flag(args, "-h") || has_flag(args, "--help")) {
     usage_qsm()
   }
+
+  if (strict) check_args(args, QSF_VALUE_FLAGS, QSF_BOOL_FLAGS)
 
   # --- Parse Inputs ---
   # Prioritize positional argument for input
@@ -63,7 +69,7 @@ Example:
   ifiles <- normalizePath(ifiles, mustWork = TRUE)
 
   # Output dir
-  odir <- file.path(dirname(ifiles), "qsm")
+  odir <- dirname(ifiles)
 
   # Override output if flag present
   out_flag <- get_arg(args, "-o")
@@ -72,29 +78,26 @@ Example:
 
   epsg <- as.numeric(get_arg(args, "-set_epsg", 0))
   crs = sf::NA_crs_
-  if (epsg != 0) crs <- st_crs(paste0("EPSG:", epsg))
+  if (epsg != 0) crs <- sf::st_crs(paste0("EPSG:", epsg))
 
   # Parameters
   allometry = get_arg(args, "-allometry", NULL)
   params = arbor_parameters_default
   if (!is.null(allometry)) params$qsm$allometry_name = allometry
 
-  # Formats
+  # Formats. The .qsf manifest and the .qsm files are always written (once), the other
+  # formats are optional.
   formats <- character()
-  #if (has_flag(args, "-qsm")) formats <- c(formats, "qsm")
   if (has_flag(args, "-csv")) formats <- c(formats, "csv")
   if (has_flag(args, "-obj")) formats <- c(formats, "obj")
   if (has_flag(args, "-ply")) formats <- c(formats, "ply")
-  if (length(formats) == 0) formats <- c("qsm") # Default
-
-  overwrite <- has_flag(args, "-overwrite")
 
   cat("
 ================= Arbor QSM module =================
 Input       :", paste(ifiles, collapse = ", "), "
 Output      :", odir, "
 Settings
-  Formats   :", paste(formats, collapse = ", "), "
+  Formats   :", paste(c("qsm", formats), collapse = ", "), "
   Allometry :", params$qsm$allometry_name, "
 =====================================================
 ")
@@ -106,13 +109,17 @@ Settings
   res <- qsf(las, params = params)
 
   if (!is.na(crs))
-    st_crs(res) <- crs
+    sf::st_crs(res) <- crs
 
   cat("Writing QSMs\n")
-  qsf_file = paste0(tools::file_path_sans_ext(ifiles), ".qsf")
+  if (!dir.exists(odir)) dir.create(odir, recursive = TRUE)
+  qsf_file <- file.path(odir, paste0(tools::file_path_sans_ext(basename(ifiles)), ".qsf"))
+
+  # Single call writing odir/<name>.qsf and odir/qsm/*.qsm
   qsf_write(res, qsf_file)
 
-  if (length(formats)> 0)
+  # Optional extra formats: odir/<format>/*.<format>
+  if (length(formats) > 0)
     qsf_write(res, odir, formats)
 
   invisible(list(

@@ -11,7 +11,11 @@ suppressPackageStartupMessages({
 # Report
 # ----------
 
-run_report = function(args)
+# Options known by `arbor report`
+REPORT_VALUE_FLAGS <- c("-o", "-target_epsg")
+REPORT_BOOL_FLAGS  <- c("-h", "--help")
+
+run_report = function(args, strict = TRUE)
 {
   usage_report = function()
   {
@@ -32,6 +36,8 @@ Options:
   if (length(args) < 1 || arbor:::has_flag(args, "-h") || arbor:::has_flag(args, "--help")) {
     usage_report()
   }
+
+  if (strict) arbor:::check_args(args, REPORT_VALUE_FLAGS, REPORT_BOOL_FLAGS)
 
   target_epsg <- as.numeric(arbor:::get_arg(args, "-target_epsg", 0))
   output      <- arbor:::get_arg(args, "-o", "")
@@ -81,8 +87,9 @@ Usage:
 
 Runs segment -> qsf -> report as one pass. Any option accepted by
 'arbor segment' or 'arbor qsf' can be passed here as-is and is forwarded
-to that step untouched -- run 'arbor segment -h' / 'arbor qsf -h' for the
-full list.
+to that step -- run 'arbor segment -h' / 'arbor qsf -h' for the full list.
+-target_epsg is forwarded to the report. -o is only used by the qsf step; the
+report is written next to the .qsf file.
 
 Mandatory:
   <input.las>              Input LAS/LAZ file (or a trees file if -skip-segment is used)
@@ -108,14 +115,15 @@ Pipeline control:
   }
   input <- normalizePath(input, mustWork = TRUE)
 
-  # Everything after the input file is forwarded untouched to whichever step
-  # accepts it: cmd_segment()/cmd_qsf()/run_report() each already only look
-  # for the flags they know about (get_arg()/has_flag() just do an exact-match
-  # lookup and silently ignore anything else), so there is no flag list to
-  # duplicate or keep in sync here. The only real exceptions are the epsg
-  # cascade and the -qsm default, handled explicitly below because those
-  # pipeline-level names/semantics genuinely differ from the wrapped command.
+  # Everything after the input file is forwarded to the steps. Each step only
+  # reads the flags it knows about, so the whole command line is validated once
+  # here against the union of the flags of all steps (each step then runs with
+  # strict = FALSE). The flag lists are owned by each command.
   rest_args <- args[-1]
+
+  arbor:::check_args(args,
+    value_flags = c(arbor:::SEGMENT_VALUE_FLAGS, arbor:::QSF_VALUE_FLAGS, REPORT_VALUE_FLAGS),
+    bool_flags  = c(arbor:::SEGMENT_BOOL_FLAGS, arbor:::QSF_BOOL_FLAGS, REPORT_BOOL_FLAGS, "-skip-segment", "-skip-report"))
 
   skip_segment <- arbor:::has_flag(rest_args, "-skip-segment")
   skip_report  <- arbor:::has_flag(rest_args, "-skip-report")
@@ -129,7 +137,7 @@ Pipeline control:
   else
   {
     cat("\n=== [Pipeline 1/3] Segmentation ===\n")
-    seg_res <- arbor:::cmd_segment(c(input, rest_args))
+    seg_res <- arbor:::cmd_segment(c(input, rest_args), strict = FALSE)
     gc()
   }
 
@@ -141,12 +149,8 @@ Pipeline control:
   # ---- 2. QSM ----
   qsf_args <- c(seg_res$trees, rest_args)
 
-  # The report step needs a .qsf file, so keep qsm export on even if the user
-  # only asked for extra formats (-csv/-obj/-ply) without -qsm.
-  if (!arbor:::has_flag(qsf_args, "-qsm")) qsf_args <- c(qsf_args, "-qsm")
-
   cat("\n=== [Pipeline 2/3] QSM ===\n")
-  qsf_res <- arbor:::cmd_qsf(qsf_args)
+  qsf_res <- arbor:::cmd_qsf(qsf_args, strict = FALSE)
   gc()
 
   if (is.null(qsf_res) || is.na(qsf_res$qsf_file))
@@ -161,10 +165,13 @@ Pipeline control:
     return(invisible(list(segment = seg_res, qsf = qsf_res, report = NA_character_)))
   }
 
-  report_args <- c(qsf_res$qsf_file, rest_args)
+  # '-o' is a directory for the qsf step but an html file for the report: do not forward it
+  report_args <- qsf_res$qsf_file
+  target_epsg <- arbor:::get_arg(rest_args, "-target_epsg")
+  if (!is.null(target_epsg)) report_args <- c(report_args, "-target_epsg", target_epsg)
 
   cat("\n=== [Pipeline 3/3] Report ===\n")
-  report_path <- run_report(report_args)
+  report_path <- run_report(report_args, strict = FALSE)
 
   invisible(list(segment = seg_res, qsf = qsf_res, report = report_path))
 }
@@ -177,7 +184,7 @@ Pipeline control:
 all_args <- commandArgs(trailingOnly = TRUE)
 
 if (length(all_args) == 0) {
-  cmd_usage()
+  arbor:::cmd_usage()
 }
 
 command  <- all_args[1]
@@ -193,8 +200,6 @@ if (command == "segment") {
   run_report(sub_args)
 } else if (command == "pipeline") {
   run_pipeline(sub_args)
-} else if (command == "blender") {
-  arbor:::cmd_blender(sub_args)
 } else if (command %in% c("-h", "--help")) {
   arbor:::cmd_usage()
 } else {

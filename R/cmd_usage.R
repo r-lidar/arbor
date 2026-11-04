@@ -24,16 +24,16 @@ Usage:
 
 Commands:
   segment      Segment a point cloud (LAS/LAZ)
-  qsm          Run QSM on a folder or file
-  report       Produce a pdf report
+  qsf          Compute QSMs of segmented trees
+  report       Produce an html report
   pipeline     Full pipeline
 
 Options:
   -h, --help   Show help for a specific command
 
 Examples:
-  arbor segment plot.laz --no-dtm
-  arbor qsm ./my_trees/ -ncores 4
+  arbor segment plot.laz -no-dtm
+  arbor qsf plot_output/plot_trees.laz
 ")
   quit(save = "no", status = 0)
 }
@@ -56,4 +56,33 @@ has_flag <- function(args, flag) {
 fail <- function(msg) {
   cat("Error:", msg, "\n", file = stderr())
   quit(status = 1)
+}
+
+# Validate a command line: every token must be the leading positional input, a known
+# boolean flag, or a known flag followed by a value.
+check_args <- function(args, value_flags, bool_flags)
+{
+  i <- if (length(args) > 0 && !startsWith(args[1], "-")) 2L else 1L
+  while (i <= length(args))
+  {
+    a <- args[i]
+    if (a %in% value_flags)
+    {
+      if (i == length(args)) stop(paste0("Option '", a, "' requires a value."), call. = FALSE)
+      i <- i + 2L
+    }
+    else if (a %in% bool_flags)
+    {
+      i <- i + 1L
+    }
+    else if (startsWith(a, "-"))
+    {
+      stop(paste0("Unknown option '", a, "'. Use -h for help."), call. = FALSE)
+    }
+    else
+    {
+      stop(paste0("Unexpected argument '", a, "'. Use -h for help."), call. = FALSE)
+    }
+  }
+  invisible(TRUE)
 }
