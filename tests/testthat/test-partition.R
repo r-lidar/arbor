@@ -155,3 +155,19 @@ test_that("wood_likelihood() keeps the order and skips the points below the cut 
   expect_lt(mean(diff > 1e-6), 1e-4)
   expect_lt(max(diff), 0.1)
 })
+
+test_that("ScopedPartition always hides the points that are not processable", {
+  # Noise (7, 18), buildings (6), water (9)... are hidden whatever their height
+  cloud <- make_cloud()
+  cloud$Classification <- sample(c(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 9L, 18L), nrow(cloud), replace = TRUE)
+  ref   <- data.table::copy(cloud)
+  cut   <- 0.25
+  keep  <- ref$hag > cut & ref$Classification %in% c(0L, 1L, 3L, 4L, 5L)
+
+  r <- C_scoped_partition(cloud, cut, FALSE)
+
+  expect_equal(r$kept, sum(keep))
+  expect_equal(r$size_after, nrow(ref))
+  expect_identical(cloud[, !"passage"], ref[, !"passage"])
+  expect_identical(cloud$passage, ifelse(keep, 1L, 2L))
+})

@@ -1,5 +1,9 @@
 # v1.1.6
 
+### ENHANCEMENTS
+
+- Only the points classified 0, 1 (unclassified) or 3, 4, 5 (vegetation) are processed. Noise, buildings, water and other classified points are never processed: they are flagged `ARBORLOW` by `segment_semantic()`, are not used to detect the ground and keep their class in `segment_ground()`.
+
 ### COMMAND LINE TOOLS
 
 - `arbor segment`: `-bound` is renamed `-aoi`, the default `-buffer` is 10 m, `-cut` is now actually used, the AOI is reprojected to the CRS of the point cloud and follows `-center`, invalid values of `-buffer`, `-fraction` and `-set_epsg` are reported.

@@ -132,7 +132,7 @@ void segment_instance(PointCloud& core, const PointCloud& seeds, const settings:
   // The output starts from scratch: the points that are not reached, or below the cut height, get 0 (no tree)
   for (size_t i = 0 ; i < core.size() ; i++) core.set_treeid(i, 0);
 
-  // The low points are hidden at the end of the memory layout and will never be processed. The point cloud
+  // The low points and the points that are not processable (noise, buildings...) are hidden at the end of the memory layout and will never be processed. The point cloud
   // gets its size and its order back when the partition goes out of scope, also on error or cancellation.
   ScopedPartition<PointCloud> partition(core, [&](size_t i) { return core.get_hag(i) > params.global.cut_above_ground; });
 

@@ -420,13 +420,14 @@ void segment_semantic(PointCloud& scene, const Raster& dtm, const settings::Arbo
     scene.set_foliage(i, 1);
   }
 
-  // The low points are hidden at the end of the memory layout and will never be processed. The scene
+  // The low points and the points that are not processable (noise, buildings...) are hidden at the end of
+  // the memory layout and will never be processed. The scene
   // gets its size and its order back when the partition goes out of scope, also on error or cancellation.
   ScopedPartition<PointCloud> partition(scene, [&](size_t i) { return scene.get_hag(i) > par.global.cut_above_ground; });
   size_t n = scene.size();
-  if (n == 0) throw std::runtime_error("segment_semantic: no point above 'cut_above_ground'");
+  if (n == 0) throw std::runtime_error("segment_semantic: no processable point above 'cut_above_ground'");
 
-  // Flag low points with UserData = 1. Low points are beyond the size of the partitioned point cloud
+  // Flag hidden points with UserData = 1. Hidden points are beyond the size of the partitioned point cloud
   for (size_t i = n ; i < partition.total() ; i++) scene.set_userdata(i, static_cast<int>(PointCloud::UserData::LOW));
 
   task.step("Accumulating passages");

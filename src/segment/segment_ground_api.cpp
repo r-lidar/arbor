@@ -56,8 +56,20 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
   double xmin = std::numeric_limits<double>::max(), xmax = -std::numeric_limits<double>::max();
   double ymin = std::numeric_limits<double>::max(), ymax = -std::numeric_limits<double>::max();
   double zmin = std::numeric_limits<double>::max(), zmax = -std::numeric_limits<double>::max();
+  // Only the candidates for the segmentation and the points already classified ground are classified.
+  // The other points (noise, buildings...) keep their class: a low noise point must never become ground.
+  std::vector<bool> eligible(n);
+  size_t n_eligible = 0;
+  for (size_t i = 0; i < n ; ++i)
+  {
+    eligible[i] = scene.is_processable(i) || (scene.has_class() && scene.get_classification(i) == 2);
+    if (eligible[i]) n_eligible++;
+  }
+  if (n_eligible == 0) throw std::runtime_error("segment_ground: no point to classify (only noise, buildings...).");
+
   for (unsigned int i = 0; i < scene.size() ; ++i)
   {
+    if (!eligible[i]) continue;
     double x = scene.get_x(i);
     double y = scene.get_y(i);
     double z = scene.get_z(i);
@@ -90,6 +102,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
 
   for (unsigned int i = 0 ; i < n ; i++)
   {
+    if (!eligible[i]) continue;
     ptd.insert_point(scene.get_x(i), scene.get_y(i), scene.get_z(i), i);
   }
 
@@ -101,8 +114,7 @@ void segment_ground(PointCloud& scene, const settings::ArborParameters& params)
 
   for (size_t i = 0; i < n ; i++)
   {
-    scene.is_ground(i);
-    scene.set_classification(i, 1);
+    if (eligible[i]) scene.set_classification(i, 1);
   }
 
   for (const auto fid : gnd_fids)

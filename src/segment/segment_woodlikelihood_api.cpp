@@ -33,7 +33,8 @@ void wood_likelihood(PointCloud& cloud, const settings::ArborParameters& params)
   // The points below the cut height are classified foliage by the semantic segmentation whatever their wood
   // likelihood: they are hidden and get 0. The points within a small margin below the cut height are kept as
   // neighbours, so that the neighbourhoods of the points just above the cut are not truncated. Without
-  // height above ground, every point is kept.
+  // height above ground, every point is kept. The points that are not processable (noise, buildings...) are
+  // always hidden and get 0.
   constexpr double margin = 0.05;
   const double cut = params.global.cut_above_ground;
   const bool has_hag = cloud.has_hag();
@@ -43,7 +44,7 @@ void wood_likelihood(PointCloud& cloud, const settings::ArborParameters& params)
   ScopedPartition<PointCloud> partition(cloud, [&](size_t i) { return !has_hag || cloud.get_hag(i) > cut - margin; });
 
   if (cloud.size() < static_cast<size_t>(params.woodlikelihood.k))
-    throw std::runtime_error("wood_likelihood: fewer points above 'cut_above_ground' than 'k'");
+    throw std::runtime_error("wood_likelihood: fewer processable points above 'cut_above_ground' than 'k'");
 
   // pwood is indexed in the order of the partition: it is written in the point cloud within the scope to
   // follow the points back to their original index

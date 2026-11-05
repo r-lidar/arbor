@@ -128,6 +128,17 @@ public:
   void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void remap_treeid(int from, int to);
 
+  // Whether the point is a candidate for the segmentation: never classified (0), unclassified (1) or
+  // vegetation (3, 4, 5). Noise, buildings, water, wires... are never processed. Without classification,
+  // every point is a candidate.
+  inline bool is_processable(size_t i) const
+  {
+    const Derived& self = static_cast<const Derived&>(*this);
+    if (!self.has_class()) return true;
+    const int c = self.get_classification(i);
+    return c == 0 || c == 1 || (c >= 3 && c <= 5);
+  }
+
   // Reorders the points in place along a Morton (Z-order) curve so that points close in space are also close in
   // memory (cache locality, faster kd-tree build and knn). Every attribute follows its point. Deterministic: ties
   // keep the original order. Temporary memory: 16 bytes per point. Not inside a ScopedPartition.
@@ -674,9 +685,10 @@ void BasePointCloud<Derived>::flag_buffer(double buffer, const Derived* seeds)
 // ============================================================================
 
 // Hides the points that a processing step must never see, without deleting them. The constructor moves
-// the points for which pred(i) is false to the end of the memory layout and shrinks size() to the number
-// of points kept: the algorithms, and the KD-tree built on size() points, only see the kept points. The
-// hidden points can still be written to with their index in [kept(), total()).
+// the points for which pred(i) is false, as well as the points that are not processable whatever pred
+// (see is_processable(): noise, buildings...), to the end of the memory layout and shrinks size() to the
+// number of points kept: the algorithms, and the KD-tree built on size() points, only see the kept points.
+// The hidden points can still be written to with their index in [kept(), total()).
 //
 // The destructor puts every point back at its original index and restores size(), also when an exception
 // (e.g. arbor::Cancelled) leaves the scope: outside the scope, the point cloud is exactly as it was, except
@@ -705,12 +717,14 @@ class ScopedPartition
 {
 public:
   template <typename Predicate>
-  ScopedPartition(Derived& pc, Predicate pred) : base(pc), n_total(pc.size())
+  ScopedPartition(Derived& pc, Predicate user_pred) : base(pc), n_total(pc.size())
   {
     if (n_total > std::numeric_limits<uint32_t>::max())
       throw std::runtime_error("ScopedPartition: too many points (more than 2^32)");
 
     base.kdtree.reset();
+
+    auto pred = [&](size_t i) { return pc.is_processable(i) && user_pred(i); };
 
     // Two pointers, as std::partition: the kept points at the front, the hidden points at the back
     int64_t left = 0;
