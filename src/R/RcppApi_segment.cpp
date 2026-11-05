@@ -57,8 +57,8 @@ void segment_semantic_cpp(DF core, Rcpp::List params)
 {
   arbor::settings::ArborParameters par = extract_arbor_params(params);
   PointCloud p(core);
-  PointCloud s = arbor::dtm::dtm(p);
-  arbor::segment::segment_semantic(p, s, par);
+  arbor::Raster dtm = arbor::dtm::dtm(p);
+  arbor::segment::segment_semantic(p, dtm, par);
 }
 
 void segment_instance_cpp(DF core, DF seeds, Rcpp::List params)

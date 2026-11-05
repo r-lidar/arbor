@@ -9,6 +9,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./segment \
   -I./seed \
   -I./dtm \
+  -I./raster \
   -I./fitting \
   -I./inventory \
   -I./nanoflann \
@@ -57,6 +58,7 @@ OBJECTS = \
   segment/segment_flag_api.o \
   RcppAutoExport.o \
   dtm/dtm.o \
+  raster/Raster.o \
   inventory/Inventory.o \
   inventory/InventoryMerger.o \
   utils/services.o \

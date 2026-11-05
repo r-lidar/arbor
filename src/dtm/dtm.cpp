@@ -21,10 +21,11 @@
 #include "arbor.h"
 #include "hporro/delaunay.h"
 #include "progress.h"
+#include "Raster.h"
 
 namespace arbor::dtm {
 
-PointCloud dtm(const PointCloud& scene)
+Raster dtm(const PointCloud& scene)
 {
   Task task("Computing DTM");
 
@@ -69,16 +70,13 @@ PointCloud dtm(const PointCloud& scene)
     }
   }
 
-  IncrementalDelaunay::Grid dtm_grid(xmin, ymin, xmax, ymax, 0.1);
-  PointCloud dtm(dtm_grid.get_ncells());
-  for (int i = 0 ; i < dtm_grid.get_ncells() ; i++)
+  Raster dtm(xmin, ymin, xmax, ymax, 0.1);
+  for (size_t i = 0 ; i < dtm.get_ncells() ; i++)
   {
-    double x = dtm_grid.x_from_cell(i);
-    double y = dtm_grid.y_from_cell(i);
-    double z = d.get_z(x - x_offset, y - y_offset);
-    dtm.set_x(i, x);
-    dtm.set_y(i, y);
-    dtm.set_z(i, z);
+    double x = dtm.x_from_cell(i);
+    double y = dtm.y_from_cell(i);
+    double z = d.get_z(x - x_offset, y - y_offset); // NaN outside the triangulation of the ground
+    dtm.set_value(i, static_cast<float>(z));
   }
 
   return dtm;

@@ -400,7 +400,7 @@ std::vector<bool> assign_wood_from_wood_dilatation(const PointCloud& pc, const s
   return is_wood;
 }
 
-void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::ArborParameters& par)
+void segment_semantic(PointCloud& scene, const Raster& dtm, const settings::ArborParameters& par)
 {
   if (scene.size() == 0)     throw std::runtime_error("segment_semantic: point cloud is empty.");
   if (!scene.has_foliage())  throw std::runtime_error("segment_semantic: point cloud is missing required 'foliage' attribute.");
@@ -430,7 +430,8 @@ void segment_semantic(PointCloud& scene, const PointCloud& dtm, const settings::
   for (size_t i = n ; i < partition.total() ; i++) scene.set_userdata(i, static_cast<int>(PointCloud::UserData::LOW));
 
   task.step("Accumulating passages");
-  std::vector<int> passages = accumulate_passages(scene, dtm, par.pathfinder);
+  PointCloud ground = dtm.to_points(); // the seeds of the graph: one per cell of the DTM with a value
+  std::vector<int> passages = accumulate_passages(scene, ground, par.pathfinder);
   for (size_t i = 0 ; i < n ; i++) scene.set_passage(i, passages[i]);
 
   task.step("Pathfinder-based wood segmentation");

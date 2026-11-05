@@ -24,6 +24,7 @@
 #include "PointCloud.h"
 #include "QSM.h"
 #include "QSF.h"
+#include "Raster.h"
 #include "services.h"
 
 #include <vector>
@@ -201,7 +202,7 @@ namespace arbor
     void segment_ground  (PointCloud& core,                          const settings::ArborParameters& params);
     void wood_likelihood (PointCloud& core,                          const settings::ArborParameters& params);
     void segment_instance(PointCloud& core, const PointCloud& seeds, const settings::ArborParameters& params);
-    void segment_semantic(PointCloud& core, const PointCloud& dtm,   const settings::ArborParameters& params);
+    void segment_semantic(PointCloud& core, const Raster& dtm,       const settings::ArborParameters& params);
 
     std::vector<float> dist2root(const PointCloud& core, const PointCloud& dtm, const settings::GraphParameters& params);
 
@@ -223,7 +224,7 @@ namespace arbor
 
   namespace dtm
   {
-    PointCloud dtm(const PointCloud&);
+    Raster dtm(const PointCloud&);
   }
 
   namespace utils
