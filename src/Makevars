@@ -10,6 +10,7 @@ PKG_CPPFLAGS = -DUSING_R -DNDEBUG \
   -I./seed \
   -I./dtm \
   -I./raster \
+  -I./trajectory \
   -I./fitting \
   -I./inventory \
   -I./nanoflann \
@@ -59,6 +60,7 @@ OBJECTS = \
   RcppAutoExport.o \
   dtm/dtm.o \
   raster/Raster.o \
+  trajectory/Trajectory.o \
   inventory/Inventory.o \
   inventory/InventoryMerger.o \
   utils/services.o \
