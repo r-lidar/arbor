@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <random>
 #include <algorithm>
+#include <array>
 #include <limits>
 
 #include "nanoflann.h"
@@ -55,6 +56,25 @@ inline void hcl_to_rgb(float h, float c, float l, uint8_t* R, uint8_t* G, uint8_
   *R = gamma(r_lin)*255;
   *G = gamma(g_lin)*255;
   *B = gamma(b_lin)*255;
+}
+
+// The color of a tree: a function of its id only (the generator is seeded with the id), so that a given id always gets
+// the same color within a build (std::uniform_real_distribution may differ between standard libraries).
+inline std::array<uint8_t, 3> tree_color(int id)
+{
+  std::mt19937 gen(static_cast<uint32_t>(id));
+  std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
+  std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
+  std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
+
+  // Drawn in this order (h, c, l): function arguments have no guaranteed evaluation order
+  const float h = dist_h(gen);
+  const float c = dist_c(gen);
+  const float l = dist_l(gen);
+
+  std::array<uint8_t, 3> rgb;
+  hcl_to_rgb(h, c, l, &rgb[0], &rgb[1], &rgb[2]);
+  return rgb;
 }
 
 // ============================================================================
@@ -408,8 +428,7 @@ void BasePointCloud<Derived>::colorize_trees(bool darken_foliage)
 
   if (self.size() == 0) return;
 
-  struct RGB { uint8_t r, g, b; };
-  std::unordered_map<int, RGB> color_cache;
+  std::unordered_map<int, std::array<uint8_t, 3>> color_cache; // tree_color() once per tree
   const float darken_factor = 0.7f;
 
   for (size_t i = 0; i < self.size(); ++i)
@@ -417,28 +436,22 @@ void BasePointCloud<Derived>::colorize_trees(bool darken_foliage)
     int id = self.get_treeid(i);
     if (id <= 0) continue;
 
-    auto [it, inserted] = color_cache.try_emplace(id, RGB{});
+    auto [it, inserted] = color_cache.try_emplace(id);
     if (inserted)
     {
-      std::mt19937 gen(static_cast<uint32_t>(id));
-      std::uniform_real_distribution<float> dist_h(0.0f, 360.0f);
-      std::uniform_real_distribution<float> dist_c(42.0f, 98.0f);
-      std::uniform_real_distribution<float> dist_l(40.0f, 90.0f);
-      hcl_to_rgb(dist_h(gen), dist_c(gen), dist_l(gen),                 &it->second.r, &it->second.g, &it->second.b);
+      it->second = tree_color(id);
     }
 
-    RGB color = it->second;
+    std::array<uint8_t, 3> color = it->second;
 
     // Abstracted wood/foliage check
     if (darken_foliage && !self.is_wood(i))
     {
-      color.r *= darken_factor;
-      color.g *= darken_factor;
-      color.b *= darken_factor;
+      for (uint8_t &channel : color) channel *= darken_factor;
     }
 
     // Unified assignment
-    self.set_color(i, color.r, color.g, color.b);
+    self.set_color(i, color[0], color[1], color[2]);
   }
 }
 
