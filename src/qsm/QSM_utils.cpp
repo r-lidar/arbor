@@ -24,6 +24,8 @@
 #include <unordered_set>
 #include <cmath>
 #include <string>
+#include <limits>
+#include <algorithm>
 
 namespace arbor::qsm {
 
@@ -329,38 +331,45 @@ double QSM::volume() const
 
 double QSM::height() const
 {
+  if (nodes().empty()) return 0.0;
+
+  const auto& bb = bbox();
   NodeID root_id = find_root_node();
 
-  // Fallback if graph is empty or root cannot be found safely
+  // Fallback if root cannot be found safely: use the absolute Z range of the tree
   if (root_id == -1 || !has_node(root_id))
-  {
-    if (nodes().empty()) return 0.0;
-
-    // Alternative fallback: use the absolute Z range of the tree
-    double min_z = std::numeric_limits<double>::max();
-    double max_z = -std::numeric_limits<double>::max();
-    for (const auto& kv : nodes())
-    {
-      if (kv.second.z < min_z) min_z = kv.second.z;
-      if (kv.second.z > max_z) max_z = kv.second.z;
-    }
-    return max_z - min_z;
-  }
+    return bb[5] - bb[2];
 
   // Measure vertical height relative to the root node's Z coordinate
-  double root_z = node(root_id).z;
-  double max_height = 0.0;
+  return std::max(0.0, bb[5] - node(root_id).z);
+}
 
-  for (const auto& kv : nodes())
+void QSM::compute_bbox() const
+{
+  if (nodes().empty())
   {
-    double current_height = kv.second.z - root_z;
-    if (current_height > max_height)
+    bbox_.fill(std::numeric_limits<double>::quiet_NaN());
+  }
+  else
+  {
+    double xmin = std::numeric_limits<double>::max();
+    double ymin = std::numeric_limits<double>::max();
+    double zmin = std::numeric_limits<double>::max();
+    double xmax = std::numeric_limits<double>::lowest();
+    double ymax = std::numeric_limits<double>::lowest();
+    double zmax = std::numeric_limits<double>::lowest();
+
+    for (const auto& [nid, n] : nodes())
     {
-      max_height = current_height;
+      xmin = std::min(xmin, n.x); xmax = std::max(xmax, n.x);
+      ymin = std::min(ymin, n.y); ymax = std::max(ymax, n.y);
+      zmin = std::min(zmin, n.z); zmax = std::max(zmax, n.z);
     }
+
+    bbox_ = {xmin, ymin, zmin, xmax, ymax, zmax};
   }
 
-  return max_height;
+  bbox_revision_ = node_revision();
 }
 
 }

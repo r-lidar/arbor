@@ -22,6 +22,8 @@
 #define QSMGRAPH_H
 
 #include <cmath>
+#include <array>
+#include <limits>
 
 #include "libqsm.h"
 #include "DirectedGraph.h"
@@ -133,6 +135,15 @@ public:
   double dbh(double d, double* xyz = nullptr, double* n = nullptr) const;
   double volume() const;
   double height() const;
+
+  // Axis-aligned bounding box of the node positions: {xmin, ymin, zmin, xmax, ymax, zmax}
+  // (cylinder radii are not included). All NaN if the QSM has no node. The value is
+  // cached and recomputed only when the nodes changed since the last call.
+  const std::array<double,6>& bbox() const
+  {
+    if (bbox_revision_ != node_revision()) compute_bbox();
+    return bbox_;
+  }
   //void dump(std::ostream& os = std::cout, bool detailed = false) const;
 
 public:
@@ -142,6 +153,11 @@ public:
   int id = 0;
 
 private:
+  void compute_bbox() const;
+
+  mutable std::array<double,6> bbox_;
+  mutable unsigned int bbox_revision_ = 0; // node revision bbox_ was computed for (0 = never)
+
   void mesh(std::vector<std::array<double,3>>& vertices, std::vector<std::array<int,4>>& faces, std::vector<int>& node_ids, int resolution) const;
   void read_qsm (const std::string& filename);
   void write_ply(const std::string& filename, bool binary) const;

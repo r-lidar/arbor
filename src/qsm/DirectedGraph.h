@@ -57,6 +57,7 @@ public:
   {
     NodeID id = next_node_id_++;
     nodes_[id] = data;
+    ++node_revision_;
     outgoing_[id] = {};
     incoming_[id] = {};
     return id;
@@ -65,7 +66,8 @@ public:
   bool has_node(NodeID id) const { return nodes_.count(id) > 0; }
   size_t node_count() const { return nodes_.size(); }
 
-  NodeData& node(NodeID id) { return nodes_.at(id); }
+  // Non-const access may modify node data: bumps the node revision.
+  NodeData& node(NodeID id) { ++node_revision_; return nodes_.at(id); }
   const NodeData& node(NodeID id) const { return nodes_.at(id); }
 
   void remove_node(NodeID id)
@@ -82,6 +84,7 @@ public:
     for (EdgeID eid : inc) remove_edge(eid);
 
     nodes_.erase(id);
+    ++node_revision_;
     outgoing_.erase(id);
     incoming_.erase(id);
   }
@@ -237,7 +240,15 @@ public:
   // ---- Storage access ----
 
   const std::map<NodeID, NodeData>& nodes() const { return nodes_; }
-  std::map<NodeID, NodeData>& nodes() { return nodes_; }
+  // Non-const access may modify node data: bumps the node revision.
+  std::map<NodeID, NodeData>& nodes() { ++node_revision_; return nodes_; }
+
+  // Incremented each time the node set or node data may have changed (node added,
+  // removed, cleared, or accessed through a non-const accessor). Derived classes
+  // use it to invalidate caches of quantities derived from nodes (e.g. bounding box).
+  // Caveat: a non-const reference obtained before reading a cache and written after
+  // it is not detected.
+  unsigned int node_revision() const { return node_revision_; }
 
   const std::map<EdgeID, EdgeInfo>& edges() const { return edges_; }
   std::map<EdgeID, EdgeInfo>& edges() { return edges_; }
@@ -250,6 +261,7 @@ public:
     incoming_.clear();
     next_node_id_ = 1;
     next_edge_id_ = 1;
+    ++node_revision_;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const DirectedGraph& g)
@@ -303,6 +315,8 @@ private:
 
   NodeID next_node_id_ = 1;
   EdgeID next_edge_id_ = 1;
+
+  unsigned int node_revision_ = 1;
 };
 
 #endif // DIRECTED_GRAPH_H

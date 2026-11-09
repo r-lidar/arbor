@@ -496,25 +496,12 @@ void QSF::write_qsf(const fs::path& manifest_file, const std::unordered_map<int,
     entry.id   = qsm.id;
     entry.name = qsm.name;
 
-    double xmin = std::numeric_limits<double>::max();
-    double ymin = std::numeric_limits<double>::max();
-    double zmin = std::numeric_limits<double>::max();
-    double xmax = std::numeric_limits<double>::lowest();
-    double ymax = std::numeric_limits<double>::lowest();
-    double zmax = std::numeric_limits<double>::lowest();
-
-    for (const auto& [nid, node] : qsm.nodes())
-    {
-      xmin = std::min(xmin, node.x); xmax = std::max(xmax, node.x);
-      ymin = std::min(ymin, node.y); ymax = std::max(ymax, node.y);
-      zmin = std::min(zmin, node.z); zmax = std::max(zmax, node.z);
-    }
-
     if (!qsm.nodes().empty())
     {
+      const auto& bb = qsm.bbox();
       entry.has_bbox = true;
-      entry.xmin = xmin; entry.ymin = ymin; entry.zmin = zmin;
-      entry.xmax = xmax; entry.ymax = ymax; entry.zmax = zmax;
+      entry.xmin = bb[0]; entry.ymin = bb[1]; entry.zmin = bb[2];
+      entry.xmax = bb[3]; entry.ymax = bb[4]; entry.zmax = bb[5];
     }
 
     writer.add_entry(entry);
