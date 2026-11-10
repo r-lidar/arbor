@@ -81,4 +81,49 @@ PointCloud Raster::to_points() const
   return points;
 }
 
+Raster Raster::focal(int window, const std::function<float(std::vector<float>&)> &fun) const
+{
+  Raster out = *this;
+  std::fill(out.values.begin(), out.values.end(), NA);
+
+  const long half_window = std::max(0, window / 2);
+  const long nr = static_cast<long>(nrows);
+  const long nc = static_cast<long>(ncols);
+
+  #pragma omp parallel
+  {
+    std::vector<float> neighbors; // one buffer per thread
+
+    #pragma omp for
+    for (long row = 0 ; row < nr ; ++row)
+    {
+      for (long col = 0 ; col < nc ; ++col)
+      {
+        const size_t cell = cell_from_row_col(row, col);
+        if (is_na(cell)) continue;
+
+        const long first_row = std::max(0L, row - half_window);
+        const long last_row  = std::min(nr - 1, row + half_window);
+        const long first_col = std::max(0L, col - half_window);
+        const long last_col  = std::min(nc - 1, col + half_window);
+
+        neighbors.clear();
+        for (long r = first_row ; r <= last_row ; ++r)
+        {
+          for (long c = first_col ; c <= last_col ; ++c)
+          {
+            const size_t neighbor = cell_from_row_col(r, c);
+            if (is_na(neighbor)) continue;
+            neighbors.push_back(values[neighbor]);
+          }
+        }
+
+        out.values[cell] = fun(neighbors);
+      }
+    }
+  }
+
+  return out;
+}
+
 }

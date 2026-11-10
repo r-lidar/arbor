@@ -25,6 +25,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <limits>
 #include <vector>
 
@@ -72,6 +73,11 @@ public:
   void  set_value(size_t cell, float value)       { values[cell] = value; }
   bool  is_na(size_t cell)                  const { return std::isnan(values[cell]); }
   const std::vector<float> &get_values()    const { return values; }
+
+  // Focal operation: each non-NA cell gets fun(values of the non-NA cells in the window x window neighborhood, the
+  // cell itself included). The window is clipped at the edges and NA cells stay NA. window is rounded to an odd size
+  // (half-window = window / 2). fun may reorder the vector it receives, which is never empty.
+  Raster focal(int window, const std::function<float(std::vector<float>&)> &fun) const;
 
   // One point per cell with a value (NA cells skipped), at the center of the cell, in the order of the cells.
   PointCloud to_points() const;

@@ -111,6 +111,11 @@ arbor::settings::GlobalParameters extract_global_params(const Rcpp::List& params
   return extract<arbor::settings::GlobalParameters>(params, "global");
 }
 
+arbor::settings::GroundParameters extract_ground_params(const Rcpp::List& params)
+{
+  return extract<arbor::settings::GroundParameters>(params, "ground");
+}
+
 arbor::settings::WoodlikelihoodParameters extract_likelihood_params(const Rcpp::List& params)
 {
   return extract<arbor::settings::WoodlikelihoodParameters>(params, "woodlikelihood");
@@ -164,6 +169,7 @@ arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
 {
   arbor::settings::ArborParameters s;
   s.global         = extract_global_params(params);
+  s.ground         = extract_ground_params(params);
   s.woodlikelihood = extract_likelihood_params(params);
   s.pathfinder     = extract_pathfinder_params(params);
   s.semantic       = extract_semantic_params(params);
@@ -176,6 +182,9 @@ arbor::settings::ArborParameters extract_arbor_params(const Rcpp::List& params)
 // ---- Serialize --------------------------------------------------------
 
 Rcpp::List global_to_list(arbor::settings::GlobalParameters& s)
+{ return to_list(s); }
+
+Rcpp::List ground_to_list(arbor::settings::GroundParameters& s)
 { return to_list(s); }
 
 Rcpp::List likelihood_to_list(arbor::settings::WoodlikelihoodParameters& s)
@@ -238,6 +247,7 @@ Rcpp::List default_arbor_params_cpp()
 
   return Rcpp::List::create(
     Rcpp::Named("global")         = global_to_list(p.global),
+    Rcpp::Named("ground")         = ground_to_list(p.ground),
     Rcpp::Named("woodlikelihood") = likelihood_to_list(p.woodlikelihood),
     Rcpp::Named("path_finder")    = graph_to_pathfinder_list(p.pathfinder),
     Rcpp::Named("semantic")       = semantic_to_list(p.semantic),

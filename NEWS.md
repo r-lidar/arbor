@@ -2,7 +2,7 @@
 
 ### ENHANCEMENTS
 
-- Only the points classified 0, 1 (unclassified) or 3, 4, 5 (vegetation) are processed. Noise, buildings, water and other classified points are never processed: they are flagged `ARBORLOW` by `segment_semantic()`, are not used to detect the ground and keep their class in `segment_ground()`.
+- `segment_ground()` classifies noise below the ground and is therefore more robust to low noise points
 
 ### COMMAND LINE TOOLS
 

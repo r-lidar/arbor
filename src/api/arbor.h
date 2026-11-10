@@ -47,6 +47,27 @@ namespace arbor
       }
     };
 
+    // Pre-classification of the low noise (points below the ground) before the ground segmentation. The reference
+    // height is the noise_quantile of Z in cells of noise_res, smoothed by a median over a window of noise_window x
+    // noise_window cells. The points lower than noise_threshold below this reference are classified noise (7).
+    struct GroundParameters
+    {
+      bool   noise_enabled   = true;
+      double noise_res       = 0.5;
+      double noise_quantile  = 0.01;
+      int    noise_window    = 5;
+      double noise_threshold = 0.5;
+
+      template<typename V> void visit(V& v)
+      {
+        v("noise_enabled",   noise_enabled);
+        v("noise_res",       noise_res);
+        v("noise_quantile",  noise_quantile);
+        v("noise_window",    noise_window);
+        v("noise_threshold", noise_threshold);
+      }
+    };
+
     struct WoodlikelihoodParameters
     {
       int k = 80;
@@ -188,6 +209,7 @@ namespace arbor
     struct ArborParameters
     {
       GlobalParameters         global;
+      GroundParameters         ground;
       WoodlikelihoodParameters woodlikelihood;
       GraphParameters          pathfinder;
       SemanticParameters       semantic;
