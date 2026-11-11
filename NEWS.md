@@ -1,4 +1,8 @@
-# v1.1.6
+# v1.2.0
+
+### NEW FEATURES
+
+- New `read_tls()` replaces `lidR::readTLS()`. It reads LAZ files in parallel with `rlas >= 1.9.6` and sorts the points along a Morton curve.
 
 ### ENHANCEMENTS
 
@@ -6,6 +10,7 @@
 
 ### COMMAND LINE TOOLS
 
+- `arbor segment` reads the point cloud with `read_tls()`: LAZ files are read in parallel with `rlas >= 1.9.6`.
 - `arbor segment`: `-bound` is renamed `-aoi`, the default `-buffer` is 10 m, `-cut` is now actually used, the AOI is reprojected to the CRS of the point cloud and follows `-center`, invalid values of `-buffer`, `-fraction` and `-set_epsg` are reported.
 - `arbor qsf`: QSM files and the `.qsf` manifest were written twice. The default output directory is now the input directory, as documented.
 

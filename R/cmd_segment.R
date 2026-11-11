@@ -167,7 +167,7 @@ Exports
 
   if (track_memory) phase("Read", f)
   cat("Reading point cloud\n")
-  las <- lidR::readTLS(input, select = "xyzic", filter = filter_str)
+  las <- read_tls(input, select = "xyzic", filter = filter_str)
   gc()
 
   if (!is.na(crs))

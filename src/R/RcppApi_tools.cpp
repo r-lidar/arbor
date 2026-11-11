@@ -363,6 +363,11 @@ void C_merge_instances(Rcpp::List match_result, Rcpp::DataFrame df)
   return;
 }
 
-
+// Sorts the points of df in place along a Morton (Z-order) curve. Every column follows its point.
+void C_spatial_sort(Rcpp::DataFrame df)
+{
+  PointCloud pc(df);
+  pc.spatial_sort();
+}
 
 #endif

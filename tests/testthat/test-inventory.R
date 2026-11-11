@@ -231,7 +231,7 @@ test_that("Inventory merging on a real plot",
   skip_if_not(all(file.exists(c(flas, fdtm, finv))), "Local test data not available")
   skip_if_not_installed("terra")
 
-  las <- lidR::readTLS(flas, select = "xyz0")
+  las <- read_tls(flas, select = "xyz0")
   data <- las@data[, c("X", "Y", "Z", "hag", "treeID", "foliage")]
   rm(las)
 
@@ -247,7 +247,7 @@ test_that("Inventory merging on a real plot",
   mt <- mt[order(mt$targetID, mt$treeID), ]
 
   expect_equal(mt$targetID, c(21L, 24L, 33L, 34L, 35L, 36L, 36L, 37L, 38L, 39L, 40L, 40L, 41L, 42L, 43L, 44L, 45L, 45L, 47L, 48L, 49L, 50L, 54L, 55L, 56L, 57L, 58L, 59L, 60L, 61L, 199L))
-  expect_equal(mt$treeID,   c(28L, 169L, 70L, 70L, 71L, 123L, 893L, 122L, 123L, 123L, 123L, 893L, 5401L, 521L, 92L, 30L, 32L, 582L, 27L, 5L, 16L, 5403L, NA, 385L, 5399L, 5399L, 5399L, 5399L, 5399L, 5398L, 3L))
+  expect_equal(mt$treeID,   c(28L, 169L, 70L, 70L, 71L, 123L, 893L, 122L, 123L, 123L, 123L, 893L, 5393L, 521L, 92L, 30L, 32L, 582L, 27L, 5L, 16L, 5402L, NA, 385L, 5394L, 5394L, 5394L, 5394L, 5394L, 5396L, 3L))
 
   id <- quiet(arbor:::aim_merge_inventory_cpp(data, inv))
 

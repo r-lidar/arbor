@@ -1,5 +1,5 @@
 f <- system.file("extdata", "9x9.laz", package = "arbor")
-las <- lidR::readTLS(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
+las <- read_tls(f, select = 'xyz', filter = "-keep_random_fraction 0.6")
 
 sink(tempfile())
 
@@ -89,6 +89,31 @@ test_that("QSF is valid", {
   expect_is(qsf, "qsf")
   expect_is(qsf, "list")
   expect_equal(length(qsf), 22L, tolerance = 1)
+})
+
+test_that("The segmented point cloud is written and read back with the same types and values", {
+  out <- tempfile(fileext = ".laz")
+  lidR::writeLAS(las, out)
+
+  # Extra bytes as declared by arbor: no scale nor offset, otherwise rlas reads them as double
+  eb <- rlas::read.lasheader(out)[["Variable Length Records"]][["Extra_Bytes"]][["Extra Bytes Description"]]
+  types <- c(hag = 10L, pwood = 9L, foliage = 2L, passage = 6L, treeID = 6L) # double, float, char, int, int
+  for (name in names(types))
+  {
+    expect_equal(eb[[name]][["data_type"]], types[[name]], label = paste(name, "data_type"))
+    expect_equal(bitwAnd(eb[[name]][["options"]], 24L), 0L, label = paste(name, "scale/offset flags"))
+  }
+
+  # Read back with rlas directly: no type conversion by read_tls()
+  back <- rlas::read.las(out)
+  for (name in c("hag", "pwood", "foliage", "passage", "treeID", "UserData"))
+    expect_identical(typeof(back[[name]]), typeof(las@data[[name]]), label = paste(name, "type"))
+
+  expect_equal(nrow(back), lidR::npoints(las))
+  for (name in c("foliage", "passage", "treeID", "UserData"))
+    expect_identical(back[[name]], las@data[[name]], label = name)
+  expect_equal(back$hag, las$hag, tolerance = 1e-6)
+  expect_equal(back$pwood, las$pwood, tolerance = 1e-6)
 })
 
 sink()

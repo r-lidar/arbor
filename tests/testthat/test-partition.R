@@ -92,7 +92,7 @@ test_that("ScopedPartition handles edge cases", {
 # The stages that partition the point cloud keep the order and can be run again in place
 
 f   <- system.file("extdata", "9x9.laz", package = "arbor")
-las <- lidR::readTLS(f, select = 'xyz', filter = "-keep_random_fraction 0.3")
+las <- read_tls(f, select = 'xyz', filter = "-keep_random_fraction 0.3")
 
 sink(tempfile())
 las <- segment_ground(las)

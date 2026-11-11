@@ -44,6 +44,9 @@ Rcpp::LogicalVector C_homogeneization(Rcpp::DataFrame df, double res, bool hybri
 //[[Rcpp::export(rng = false)]]
 Rcpp::List C_scoped_partition(Rcpp::DataFrame df, double cut, bool fail);
 
+//[[Rcpp::export(rng = false)]]
+void C_spatial_sort(Rcpp::DataFrame df);
+
 // ========================
 // SEGMENTATION
 // ========================

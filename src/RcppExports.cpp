@@ -52,6 +52,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// C_spatial_sort
+void C_spatial_sort(Rcpp::DataFrame df);
+RcppExport SEXP _arbor_C_spatial_sort(SEXP dfSEXP) {
+BEGIN_RCPP
+    Rcpp::traits::input_parameter< Rcpp::DataFrame >::type df(dfSEXP);
+    C_spatial_sort(df);
+    return R_NilValue;
+END_RCPP
+}
 // segment_ground_cpp
 void segment_ground_cpp(Rcpp::DataFrame core, Rcpp::List params);
 RcppExport SEXP _arbor_segment_ground_cpp(SEXP coreSEXP, SEXP paramsSEXP) {
@@ -429,6 +438,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_arbor_default_arbor_params_cpp", (DL_FUNC) &_arbor_default_arbor_params_cpp, 0},
     {"_arbor_C_homogeneization", (DL_FUNC) &_arbor_C_homogeneization, 3},
     {"_arbor_C_scoped_partition", (DL_FUNC) &_arbor_C_scoped_partition, 3},
+    {"_arbor_C_spatial_sort", (DL_FUNC) &_arbor_C_spatial_sort, 1},
     {"_arbor_segment_ground_cpp", (DL_FUNC) &_arbor_segment_ground_cpp, 2},
     {"_arbor_wood_likelihood_cpp", (DL_FUNC) &_arbor_wood_likelihood_cpp, 2},
     {"_arbor_segment_semantic_cpp", (DL_FUNC) &_arbor_segment_semantic_cpp, 2},
