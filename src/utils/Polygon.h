@@ -46,22 +46,22 @@ public:
   bool empty() const { return vertices.empty(); }
   const Ring& ring() const { return vertices; }
 
+  double area() const
+  {
+    double twice = 0;
+    for (size_t i = 0; i < vertices.size(); ++i)
+    {
+      const Point& a = vertices[i];
+      const Point& b = vertices[(i + 1) % vertices.size()];
+      twice += a.x * b.y - b.x * a.y;
+    }
+    return std::abs(twice) / 2;
+  }
+
   bool point_in_polygon(double x, double y) const;
-
-  // Shrunk polygon (negative buffer). Only convex polygons are supported. The result contains the
-  // points of the polygon that are at least d >= 0 from its boundary. It is empty if d is too large
-  // for the polygon (same as sf::st_buffer() with distance -d).
-  Polygon shrink(double d) const;
-
-  // Expanded polygon (positive buffer) with mitred corners: each edge is moved outward by d >= 0 and
-  // consecutive moved edges are extended until they meet. Convex and concave polygons are supported.
-  // Unlike sf::st_buffer() the corners are not rounded, and a concave notch narrower than 2d is not
-  // filled: its moved edges cross and the ring self-intersects.
-  Polygon expand(double d) const;
-
+  Polygon shrink(double d) const;   // Shrunk polygon (negative buffer). Only convex polygons are supported.
+  Polygon expand(double d) const;   // Expanded polygon (positive buffer) with mitred corners
   bool is_convex() const;
-
-  // Convex hull (Andrew's monotone chain). Returns an empty polygon if the hull is degenerate.
   static Polygon convex_hull(std::vector<Point> pts);
 
   // Parallel convex hull of n points accessed via get_x(i) and get_y(i). Points that are strictly
