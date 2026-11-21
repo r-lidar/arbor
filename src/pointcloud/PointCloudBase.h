@@ -144,6 +144,8 @@ public:
   inline size_t size() const;
 
   void build_index() const;
+  size_t kdtree_memory() const { return kdtree ? kdtree->usedMemory(*kdtree) : 0; }
+
   void knn(const double* query, int k, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void radius_search(const double* query, double radius, std::vector<unsigned int>& indices, std::vector<double>& sqdist) const;
   void remap_treeid(int from, int to);

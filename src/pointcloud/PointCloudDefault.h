@@ -87,6 +87,14 @@ public:
   }
   template <class BBOX> bool kdtree_get_bbox(BBOX&) const { return false; }
 
+  // --- Memory ---
+  size_t memory_bytes() const
+  {
+    size_t bytes = coords.capacity() * sizeof(Vec3);
+    visit_attributes([&](Attr, auto member, auto) { bytes += (this->*member).capacity() * sizeof(typename std::remove_reference_t<decltype(this->*member)>::value_type); });
+    return bytes;
+  }
+
   // --- Num. points ---
   inline size_t point_count() const { return n_points; }
   inline size_t size()        const { return n_points; }
