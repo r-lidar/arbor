@@ -27,10 +27,10 @@
 #' @param filter Character. Streaming filters applied while reading. See \code{lidR::readLAS()}.
 #'
 #' @return A \code{LAS} object.
-#' @export
 #' @examples
 #' f <- system.file("extdata", "9x9.laz", package = "arbor")
 #' las <- read_tls(f, select = "xyz")
+#' @export
 read_tls = function(files, select = "*", filter = "")
 {
   stopifnot(is.character(files), length(files) >= 1L)
@@ -52,9 +52,7 @@ read_tls = function(files, select = "*", filter = "")
   }
   else
   {
-    # rlas cannot decode spatial queries (-inside...) in parallel: it would read sequentially with a warning
-    parallel = !grepl("-inside", filter, fixed = TRUE)
-    data = rlas::read.las(files, select = select, filter = filter, parallel = parallel)
+    data = rlas::read.las(files, select = select, filter = filter, ncores = 0)
   }
 
   data = fix_arbor_types(data)
@@ -95,14 +93,14 @@ spatial_sort = function(las)
 
 rlas_has_parallel = function()
 {
-  utils::packageVersion("rlas") >= "1.9.6"
+  utils::packageVersion("rlas") >= "1.10.0"
 }
 
 # Once per session
 message_parallel_read = function()
 {
   if (isTRUE(getOption("arbor.parallel_read_message_shown"))) return(invisible())
-  message("Parallel reading of LAZ files is available with rlas >= 1.9.6 (installed: ", utils::packageVersion("rlas"), "). Update rlas to read faster.")
+  message("Parallel reading of LAZ files is available with rlas >= 1.10.0 (installed: ", utils::packageVersion("rlas"), "). Update rlas to read faster.")
   options(arbor.parallel_read_message_shown = TRUE)
   invisible()
 }

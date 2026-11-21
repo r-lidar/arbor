@@ -25,5 +25,5 @@ Imports:
 Suggests: 
   testthat (>= 3.0.0),
   terra
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
 Config/build/compilation-database: true
