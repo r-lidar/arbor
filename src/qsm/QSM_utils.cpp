@@ -243,12 +243,12 @@ double QSM::dbh(double d, double* xyz, double* n) const
   if (d <= trunk_edges.front().distance_to_root)
   {
     fill_from_single(trunk_edges.front());
-    return trunk_edges.front().radius;
+    return trunk_edges.front().radius*2;
   }
   if (d >= trunk_edges.back().distance_to_root)
   {
     fill_from_single(trunk_edges.back());
-    return trunk_edges.back().radius;
+    return trunk_edges.back().radius*2;
   }
 
   // Binary search for the first edge whose distance_to_root > d.

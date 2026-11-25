@@ -1,3 +1,9 @@
+# v1.1.6
+
+### BUG FIXES
+
+- `qsm_dbh()` returned the radius instead of the diameter when the measurement height was below the first or above the last cylinder of the trunk. Extremely rare cases.
+
 # v1.1.5
 
 ### NEW FEATURES
