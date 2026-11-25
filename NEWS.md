@@ -18,12 +18,13 @@
 
 - Internal changes for ArborStudio
 
+# v1.1.6
+
+### BUG FIXES
+
+- `qsm_dbh()` returned the radius instead of the diameter when the measurement height was below the first or above the last cylinder of the trunk. Extremely rare cases.
 
 # v1.1.5
-
-- Fix: R copy semantic of the point cloud and drastically reduce memory usage (-50%)
-
-# v1.1.4
 
 ### NEW FEATURES
 
@@ -42,7 +43,8 @@
  - `available_allometries()` now reads the list of models from the C++ allometry database and also reports the authors and country of each model. The `url` column is renamed `reference`.
  - `segment_semantic()` and `segment_instance()` no longer reorder the points of the LAS object: the points below `cut_above_ground` stay at their original place.
  - `wood_likelihood()` no longer computes the points below `cut_above_ground`, which the semantic segmentation classifies as foliage anyway. They get `pwood = 0` and the stage is faster in proportion to the share of low points. If the point cloud has no attribute `hag`, every point is computed as before.
-
+ - Fix and R copy semantic of the point cloud and drastically reduce memory usage (-50%)
+ 
 ### BUG FIXES
 
  - `segment_instance()` could return `treeID = NA` for a few isolated points. These points now get `treeID = 0` (no tree), so `treeID` is always either `0` or a valid tree ID.
