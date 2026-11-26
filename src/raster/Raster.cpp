@@ -20,21 +20,26 @@
 
 #include "Raster.h"
 
+#include "myomp.h"
+
 #include <algorithm>
 #include <stdexcept>
 
 namespace arbor {
 
-Raster::Raster(double x_min, double y_min, double x_max, double y_max, double resolution) : res(resolution)
+Raster::Raster(double x_min, double y_min, double x_max, double y_max, double resolution, bool floor_origin) : res(resolution)
 {
   if (!(res > 0)) throw std::runtime_error("Raster: the resolution must be positive.");
 
-  xmin = std::floor(x_min);
-  ymin = std::floor(y_min);
+  const bool exact = !floor_origin;
+  xmin = exact ? x_min : std::floor(x_min);
+  ymin = exact ? y_min : std::floor(y_min);
 
-  // Number of cells needed to fully cover the domain
-  double cols = std::ceil((x_max - xmin) / res);
-  double rows = std::ceil((y_max - ymin) / res);
+  // Number of cells needed to fully cover the domain. An exact grid is a whole number of cells: the rounding errors of
+  // its bounds must not add one.
+  const double tolerance = exact ? 1e-6 : 0;
+  double cols = std::ceil((x_max - xmin) / res - tolerance);
+  double rows = std::ceil((y_max - ymin) / res - tolerance);
   if (!(cols > 0) || !(rows > 0)) throw std::runtime_error("Raster: invalid dimensions.");
 
   ncols = static_cast<size_t>(cols);
@@ -79,6 +84,89 @@ PointCloud Raster::to_points() const
   }
 
   return points;
+}
+
+float Raster::nearest_value(long row, long col) const
+{
+  const long nr = static_cast<long>(nrows);
+  const long nc = static_cast<long>(ncols);
+  row = std::clamp(row, 0L, nr - 1);
+  col = std::clamp(col, 0L, nc - 1);
+
+  // Square rings of growing radius: the first ring holding values gives the nearest of them (distance in cells).
+  const long max_radius = std::max(nr, nc);
+  for (long radius = 0 ; radius <= max_radius ; ++radius)
+  {
+    float  best      = NA;
+    double best_dist = std::numeric_limits<double>::max();
+    for (long r = row - radius ; r <= row + radius ; ++r)
+    {
+      if (r < 0 || r >= nr) continue;
+      const bool edge_row = r == row - radius || r == row + radius;
+      const long step     = edge_row ? 1 : 2 * radius; // inside rows: only the two ends belong to the ring
+      for (long c = col - radius ; c <= col + radius ; c += std::max(step, 1L))
+      {
+        if (c < 0 || c >= nc) continue;
+        const size_t cell = cell_from_row_col(r, c);
+        if (is_na(cell)) continue;
+        const double dist = double(r - row) * (r - row) + double(c - col) * (c - col);
+        if (dist < best_dist) { best_dist = dist; best = values[cell]; }
+      }
+    }
+    if (!std::isnan(best)) return best;
+  }
+  return NA;
+}
+
+float Raster::interpolate(double x, double y) const
+{
+  if (empty()) return NA;
+
+  // Position in cell centers: (0, 0) is the center of the north west cell.
+  const double fc = (x - xmin) / res - 0.5;
+  const double fr = (ymax - y) / res - 0.5;
+  const long   nr = static_cast<long>(nrows);
+  const long   nc = static_cast<long>(ncols);
+
+  const long   c0 = static_cast<long>(std::floor(fc));
+  const long   r0 = static_cast<long>(std::floor(fr));
+  const double tx = std::clamp(fc - c0, 0.0, 1.0);
+  const double ty = std::clamp(fr - r0, 0.0, 1.0);
+
+  double sum = 0;
+  double weights = 0;
+  for (int dr = 0 ; dr <= 1 ; ++dr)
+  {
+    for (int dc = 0 ; dc <= 1 ; ++dc)
+    {
+      const long r = std::clamp(r0 + dr, 0L, nr - 1);
+      const long c = std::clamp(c0 + dc, 0L, nc - 1);
+      const float v = values[cell_from_row_col(r, c)];
+      if (std::isnan(v)) continue;
+      const double w = (dc ? tx : 1 - tx) * (dr ? ty : 1 - ty);
+      sum     += w * v;
+      weights += w;
+    }
+  }
+
+  if (weights > 0) return static_cast<float>(sum / weights);
+  return nearest_value(static_cast<long>(std::lround(fr)), static_cast<long>(std::lround(fc)));
+}
+
+void Raster::compute_hag(PointCloud &scene) const
+{
+  if (!scene.has_hag()) throw std::runtime_error("Raster::compute_hag(): the HAG attribute is not allocated.");
+  if (std::all_of(values.begin(), values.end(), [](float v) { return std::isnan(v); }))
+    throw std::runtime_error("Raster::compute_hag(): the raster has no value.");
+
+  const long n = static_cast<long>(scene.size());
+
+  #pragma omp parallel for
+  for (long i = 0 ; i < n ; ++i)
+  {
+    const double ground = interpolate(scene.get_x(i), scene.get_y(i));
+    scene.set_hag(i, scene.get_z(i) - ground);
+  }
 }
 
 Raster Raster::focal(int window, const std::function<float(std::vector<float>&)> &fun) const

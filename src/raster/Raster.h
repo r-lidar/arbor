@@ -35,15 +35,16 @@ namespace arbor {
 // coordinates of a cell are derived from the extent, in double precision.
 //
 // Layout: row-major, row 0 is the north edge (ymax), column 0 the west edge (xmin). The cell coordinates are the
-// centers of the cells. Same geometry as IncrementalDelaunay::Grid: xmin and ymin are floored, the extent is rounded
-// up to cover the requested bounds with whole cells.
+// centers of the cells. The extent is rounded up to cover the requested bounds with whole cells. By default xmin and
+// ymin are floored (same geometry as IncrementalDelaunay::Grid); floor_origin = false keeps them, for the grid of an
+// existing raster (e.g. a DTM read from a file).
 class Raster
 {
 public:
   static constexpr float NA = std::numeric_limits<float>::quiet_NaN();
 
   Raster() = default;
-  Raster(double xmin, double ymin, double xmax, double ymax, double res); // every cell NA
+  Raster(double xmin, double ymin, double xmax, double ymax, double res, bool floor_origin = true); // every cell NA
 
   // Geometry
   bool   empty()      const { return values.empty(); }
@@ -74,15 +75,17 @@ public:
   bool  is_na(size_t cell)                  const { return std::isnan(values[cell]); }
   const std::vector<float> &get_values()    const { return values; }
 
-  // Focal operation: each non-NA cell gets fun(values of the non-NA cells in the window x window neighborhood, the
-  // cell itself included). The window is clipped at the edges and NA cells stay NA. window is rounded to an odd size
-  // (half-window = window / 2). fun may reorder the vector it receives, which is never empty.
+
+  float interpolate(double x, double y) const; // Bilinear interpolation
+  void  compute_hag(PointCloud &scene) const;
+
   Raster focal(int window, const std::function<float(std::vector<float>&)> &fun) const;
 
-  // One point per cell with a value (NA cells skipped), at the center of the cell, in the order of the cells.
   PointCloud to_points() const;
 
 private:
+  float nearest_value(long row, long col) const;
+
   size_t ncols = 0;
   size_t nrows = 0;
   double xmin  = 0;
